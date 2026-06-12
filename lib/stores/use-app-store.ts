@@ -12,6 +12,8 @@ interface AppState {
   setMobileNavOpen: (open: boolean) => void;
   chatMode: "chat" | "agent";
   setChatMode: (mode: "chat" | "agent") => void;
+  autoSpeak: boolean;
+  setAutoSpeak: (on: boolean) => void;
 
   providers: AiProviderPublic[];
   activeProviderId: string | null;
@@ -28,6 +30,8 @@ export const useAppStore = create<AppState>((set) => ({
   setMobileNavOpen: (mobileNavOpen) => set({ mobileNavOpen }),
   chatMode: "chat",
   setChatMode: (chatMode) => set({ chatMode }),
+  autoSpeak: false,
+  setAutoSpeak: (autoSpeak) => set({ autoSpeak }),
 
   providers: [],
   activeProviderId: null,

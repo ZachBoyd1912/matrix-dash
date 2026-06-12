@@ -1,0 +1,53 @@
+import { randomUUID } from "crypto";
+import { asc, eq } from "drizzle-orm";
+import { z } from "zod";
+import { getDb } from "@/lib/db/client";
+import { tasks } from "@/lib/db/schema";
+import type { Task } from "@/types/jarvis";
+
+export const dynamic = "force-dynamic";
+
+function toTask(row: typeof tasks.$inferSelect): Task {
+  return { ...row, isDone: !!row.isDone, reminded: !!row.reminded };
+}
+
+const createSchema = z.object({
+  title: z.string().min(1),
+  notes: z.string().optional(),
+  dueAt: z.string().nullable().optional(),
+  remindAt: z.string().nullable().optional(),
+  priority: z.enum(["low", "normal", "high"]).optional(),
+});
+
+export async function GET() {
+  const rows = getDb().select().from(tasks).orderBy(asc(tasks.isDone), asc(tasks.dueAt)).all();
+  return Response.json(rows.map(toTask));
+}
+
+export async function POST(req: Request) {
+  let payload: unknown;
+  try {
+    payload = await req.json();
+  } catch {
+    return Response.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+  const parsed = createSchema.safeParse(payload);
+  if (!parsed.success) return Response.json({ error: parsed.error.flatten() }, { status: 400 });
+  const id = randomUUID();
+  const now = new Date().toISOString();
+  getDb()
+    .insert(tasks)
+    .values({
+      id,
+      title: parsed.data.title,
+      notes: parsed.data.notes ?? "",
+      dueAt: parsed.data.dueAt ?? null,
+      remindAt: parsed.data.remindAt ?? null,
+      priority: parsed.data.priority ?? "normal",
+      createdAt: now,
+      updatedAt: now,
+    })
+    .run();
+  const row = getDb().select().from(tasks).where(eq(tasks.id, id)).get();
+  return Response.json(row ? toTask(row) : { id });
+}

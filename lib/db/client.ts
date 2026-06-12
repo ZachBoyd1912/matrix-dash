@@ -103,6 +103,151 @@ CREATE TABLE IF NOT EXISTS emails (
 
 CREATE INDEX IF NOT EXISTS idx_emails_folder ON emails(folder);
 
+CREATE TABLE IF NOT EXISTS skills (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  instructions TEXT NOT NULL DEFAULT '',
+  is_enabled INTEGER DEFAULT 1,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  body TEXT NOT NULL DEFAULT '',
+  kind TEXT NOT NULL DEFAULT 'info',
+  href TEXT,
+  is_read INTEGER DEFAULT 0,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS tasks (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  notes TEXT NOT NULL DEFAULT '',
+  is_done INTEGER DEFAULT 0,
+  due_at TEXT,
+  remind_at TEXT,
+  reminded INTEGER DEFAULT 0,
+  priority TEXT NOT NULL DEFAULT 'normal',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS scheduled_jobs (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  prompt TEXT NOT NULL,
+  cron TEXT NOT NULL,
+  is_enabled INTEGER DEFAULT 1,
+  last_run_at TEXT,
+  last_result TEXT,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS email_accounts (
+  id TEXT PRIMARY KEY,
+  label TEXT NOT NULL,
+  address TEXT NOT NULL,
+  imap_host TEXT NOT NULL,
+  imap_port INTEGER NOT NULL DEFAULT 993,
+  smtp_host TEXT NOT NULL,
+  smtp_port INTEGER NOT NULL DEFAULT 465,
+  username TEXT NOT NULL,
+  password_encrypted TEXT NOT NULL,
+  use_tls INTEGER DEFAULT 1,
+  triage_enabled INTEGER DEFAULT 0,
+  is_active INTEGER DEFAULT 1,
+  last_sync_at TEXT,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS calendars (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  color TEXT NOT NULL DEFAULT '#34d399',
+  caldav_url TEXT,
+  caldav_user TEXT,
+  caldav_pass_encrypted TEXT,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS events (
+  id TEXT PRIMARY KEY,
+  calendar_id TEXT NOT NULL REFERENCES calendars(id) ON DELETE CASCADE,
+  uid TEXT,
+  title TEXT NOT NULL DEFAULT '',
+  description TEXT NOT NULL DEFAULT '',
+  location TEXT NOT NULL DEFAULT '',
+  starts_at TEXT NOT NULL,
+  ends_at TEXT NOT NULL,
+  all_day INTEGER DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_events_calendar ON events(calendar_id);
+CREATE INDEX IF NOT EXISTS idx_events_starts ON events(starts_at);
+
+CREATE TABLE IF NOT EXISTS attachments (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  mime TEXT NOT NULL DEFAULT '',
+  kind TEXT NOT NULL DEFAULT 'file',
+  data_url TEXT,
+  extracted_text TEXT,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS contacts (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL DEFAULT '',
+  email TEXT NOT NULL DEFAULT '',
+  notes TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS api_tokens (
+  id TEXT PRIMARY KEY,
+  label TEXT NOT NULL,
+  token TEXT NOT NULL,
+  last_used_at TEXT,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS vault (
+  id TEXT PRIMARY KEY,
+  label TEXT NOT NULL,
+  value_encrypted TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS webhooks (
+  id TEXT PRIMARY KEY,
+  label TEXT NOT NULL,
+  url TEXT NOT NULL,
+  event TEXT NOT NULL DEFAULT '*',
+  is_enabled INTEGER DEFAULT 1,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS presets (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  system_prompt TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS images (
+  id TEXT PRIMARY KEY,
+  prompt TEXT NOT NULL DEFAULT '',
+  data_url TEXT NOT NULL,
+  provider TEXT,
+  created_at TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_memory_links_source ON memory_links(source_memory_id);
 CREATE INDEX IF NOT EXISTS idx_memory_links_target ON memory_links(target_memory_id);
 CREATE INDEX IF NOT EXISTS idx_session_messages_session ON session_messages(session_id);

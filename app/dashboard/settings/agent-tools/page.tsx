@@ -1,42 +1,30 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useGsapEntrance } from "@/lib/hooks/use-gsap-entrance";
 
-const TOOLS = [
-  {
-    key: "toolMemoryWrite",
-    name: "Memory write",
-    description: "Allow the agent to store extracted memories automatically.",
-    live: true,
-  },
-  {
-    key: "toolMemoryRead",
-    name: "Memory read",
-    description: "Allow injection of relevant memories into every turn.",
-    live: true,
-  },
-  {
-    key: "toolWebSearch",
-    name: "Web search",
-    description: "Ground answers with live search results.",
-    live: false,
-  },
-  {
-    key: "toolCodeRunner",
-    name: "Code runner",
-    description: "Execute snippets from the IDE in a sandbox.",
-    live: false,
-  },
-  {
-    key: "toolFileAccess",
-    name: "Workspace files",
-    description: "Let the agent read and edit IDE files in agent mode.",
-    live: false,
-  },
+interface ToolDef {
+  key: string;
+  name: string;
+  description: string;
+  /** When true, also exposes an auto-approve switch (destructive tool). */
+  gated?: string;
+}
+
+const TOOLS: ToolDef[] = [
+  { key: "memory", name: "Memory", description: "Search and save long-term memories." },
+  { key: "notes", name: "Notes", description: "Search, read, and create notes." },
+  { key: "tasks", name: "Tasks", description: "Create and list to-do items." },
+  { key: "calendar", name: "Calendar", description: "List and create calendar events." },
+  { key: "web", name: "Web", description: "Search the web and read pages." },
+  { key: "email", name: "Email", description: "Draft email and look up contacts." },
+  { key: "files", name: "Workspace files", description: "Read and write IDE files.", gated: "writeFile" },
+  { key: "shell", name: "Shell", description: "Run allowlisted read-only commands.", gated: "runShell" },
+  { key: "notify", name: "Notifications", description: "Send you notifications." },
 ];
 
 export default function AgentToolsPage() {
@@ -44,12 +32,10 @@ export default function AgentToolsPage() {
   const [settings, setSettings] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    fetch("/api/settings")
-      .then((r) => r.json())
-      .then(setSettings);
+    fetch("/api/settings").then((r) => r.json()).then(setSettings);
   }, []);
 
-  const toggle = async (key: string, value: boolean) => {
+  const update = async (key: string, value: boolean) => {
     const res = await fetch("/api/settings", {
       method: "PATCH",
       headers: { "content-type": "application/json" },
@@ -58,45 +44,49 @@ export default function AgentToolsPage() {
     setSettings(await res.json());
   };
 
+  // Tools default ON unless explicitly disabled ("0").
+  const toolOn = (key: string) => settings[`tool_${key}`] !== "0";
+  // Approvals default OFF unless explicitly "1".
+  const approveOn = (name: string) => settings[`approve_${name}`] === "1";
+
   return (
     <div ref={ref} className="space-y-6">
       <div>
         <h2 className="text-xl font-bold tracking-tight">Agent tools</h2>
         <p className="text-text-secondary text-sm mt-1">
-          Capabilities available to the AI when Agent mode is on. Memory tools map to the
-          extraction/injection toggles.
+          Capabilities the agent may use in <span className="text-emerald-400">Agent</span> mode. Build reusable
+          instruction packs on the <Link href="/dashboard/skills" className="text-emerald-400 hover:underline">Skills</Link> page.
         </p>
       </div>
       <div className="space-y-2">
-        {TOOLS.map((tool) => {
-          // Memory tools alias the real autoExtract/autoInject switches.
-          const aliasKey =
-            tool.key === "toolMemoryWrite"
-              ? "autoExtract"
-              : tool.key === "toolMemoryRead"
-                ? "autoInject"
-                : tool.key;
-          const checked = settings[aliasKey] !== "0" && (tool.live || settings[aliasKey] === "1");
-          return (
-            <Card key={tool.key} className="flex items-center justify-between gap-4 py-3">
+        {TOOLS.map((tool) => (
+          <Card key={tool.key} className="space-y-3">
+            <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-medium text-text-primary">{tool.name}</p>
-                  {!tool.live && (
-                    <Badge className="bg-amber-400/10 border-amber-400/20 text-amber-400">Soon</Badge>
+                  {tool.gated && (
+                    <Badge className="bg-rose-400/10 border-rose-400/20 text-rose-300">Needs approval</Badge>
                   )}
                 </div>
                 <p className="text-xs text-text-secondary mt-0.5">{tool.description}</p>
               </div>
-              <Switch
-                checked={checked}
-                disabled={!tool.live}
-                onCheckedChange={(v) => toggle(aliasKey, v)}
-                label={tool.name}
-              />
-            </Card>
-          );
-        })}
+              <Switch checked={toolOn(tool.key)} onCheckedChange={(v) => update(`tool_${tool.key}`, v)} label={tool.name} />
+            </div>
+            {tool.gated && toolOn(tool.key) && (
+              <div className="flex items-center justify-between gap-4 pl-3 border-l-2 border-rose-400/20">
+                <p className="text-xs text-text-secondary">
+                  Auto-approve <span className="font-mono text-text-primary">{tool.gated}</span> without asking
+                </p>
+                <Switch
+                  checked={approveOn(tool.gated)}
+                  onCheckedChange={(v) => update(`approve_${tool.gated}`, v)}
+                  label={`Auto-approve ${tool.gated}`}
+                />
+              </div>
+            )}
+          </Card>
+        ))}
       </div>
     </div>
   );

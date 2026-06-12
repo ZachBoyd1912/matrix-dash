@@ -1,19 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, Square, Paperclip, AtSign } from "lucide-react";
+import { ArrowUp, Square, Paperclip, Mic, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { useAppStore } from "@/lib/stores/use-app-store";
+import { useSpeechInput } from "@/lib/hooks/use-voice";
 
 interface Props {
   onSubmit: (text: string) => void;
   onCancel?: () => void;
+  onAttach?: () => void;
   busy?: boolean;
   disabled?: boolean;
   placeholder?: string;
 }
 
-export function ChatInput({ onSubmit, onCancel, busy, disabled, placeholder }: Props) {
+export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeholder }: Props) {
   const [value, setValue] = useState("");
   const ref = useRef<HTMLTextAreaElement>(null);
   const providers = useAppStore((s) => s.providers);
@@ -21,6 +23,11 @@ export function ChatInput({ onSubmit, onCancel, busy, disabled, placeholder }: P
   const setActive = useAppStore((s) => s.setActiveProviderId);
   const chatMode = useAppStore((s) => s.chatMode);
   const setChatMode = useAppStore((s) => s.setChatMode);
+  const autoSpeak = useAppStore((s) => s.autoSpeak);
+  const setAutoSpeak = useAppStore((s) => s.setAutoSpeak);
+  const { listening, supported: micSupported, toggle: toggleMic } = useSpeechInput((text) =>
+    setValue((v) => (v ? `${v} ${text}` : text))
+  );
 
   useEffect(() => {
     if (!ref.current) return;
@@ -57,21 +64,42 @@ export function ChatInput({ onSubmit, onCancel, busy, disabled, placeholder }: P
         />
         <div className="flex items-center justify-between mt-2 px-1">
           <div className="flex items-center gap-1">
+            {onAttach && (
+              <button
+                type="button"
+                onClick={onAttach}
+                className="h-7 w-7 grid place-items-center rounded-md text-text-muted hover:text-text-primary hover:bg-white/5 transition-colors"
+                aria-label="Attach file"
+              >
+                <Paperclip size={14} />
+              </button>
+            )}
+            {micSupported && (
+              <button
+                type="button"
+                onClick={toggleMic}
+                className={cn(
+                  "h-7 w-7 grid place-items-center rounded-md transition-colors",
+                  listening
+                    ? "text-rose-400 bg-rose-400/10 animate-pulse"
+                    : "text-text-muted hover:text-text-primary hover:bg-white/5"
+                )}
+                aria-label={listening ? "Stop listening" : "Speak"}
+              >
+                <Mic size={14} />
+              </button>
+            )}
             <button
               type="button"
-              disabled
-              className="h-7 w-7 grid place-items-center rounded-md text-text-muted/60 cursor-not-allowed"
-              aria-label="Attach (coming soon)"
+              onClick={() => setAutoSpeak(!autoSpeak)}
+              className={cn(
+                "h-7 w-7 grid place-items-center rounded-md transition-colors",
+                autoSpeak ? "text-emerald-400 bg-emerald-400/10" : "text-text-muted hover:text-text-primary hover:bg-white/5"
+              )}
+              aria-label={autoSpeak ? "Mute replies" : "Speak replies"}
+              title={autoSpeak ? "Replies spoken aloud" : "Speak replies aloud"}
             >
-              <Paperclip size={14} />
-            </button>
-            <button
-              type="button"
-              disabled
-              className="h-7 w-7 grid place-items-center rounded-md text-text-muted/60 cursor-not-allowed"
-              aria-label="Mention (coming soon)"
-            >
-              <AtSign size={14} />
+              {autoSpeak ? <Volume2 size={14} /> : <VolumeX size={14} />}
             </button>
           </div>
           <div className="flex items-center gap-2">

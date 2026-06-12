@@ -1,9 +1,10 @@
 "use client";
 
-import { Search, Bell, Sparkles, Menu } from "lucide-react";
+import { Search, Sparkles, Menu } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useAppStore } from "@/lib/stores/use-app-store";
 import { ThemeToggle } from "./theme-toggle";
+import { NotificationBell } from "./notification-bell";
 
 const TITLES: Record<string, string> = {
   "/dashboard": "Overview",
@@ -56,12 +57,7 @@ export function Topbar() {
               <span className="px-1 rounded bg-white/5">K</span>
             </kbd>
           </button>
-          <button
-            aria-label="Notifications"
-            className="h-8 w-8 grid place-items-center rounded-md text-text-muted hover:text-text-primary hover:bg-white/5 transition-colors"
-          >
-            <Bell size={15} />
-          </button>
+          <NotificationBell />
           <div className="h-8 w-8 grid place-items-center rounded-full bg-gradient-to-br from-emerald-400/30 to-sky-400/30 border border-white/10">
             <Sparkles size={13} className="text-emerald-300" />
           </div>

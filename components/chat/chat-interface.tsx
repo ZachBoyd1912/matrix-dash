@@ -5,6 +5,7 @@ import { MessageBubble } from "./message-bubble";
 import { ChatInput } from "./chat-input";
 import { LogoMark } from "@/components/layout/logo";
 import { useAppStore } from "@/lib/stores/use-app-store";
+import { speak } from "@/lib/hooks/use-voice";
 import Link from "next/link";
 
 interface ChatMessage {
@@ -28,6 +29,8 @@ export function ChatInterface({ sessionId, initialMessages, embedded }: Props) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const providerId = useAppStore((s) => s.activeProviderId);
   const providers = useAppStore((s) => s.providers);
+  const chatMode = useAppStore((s) => s.chatMode);
+  const autoSpeak = useAppStore((s) => s.autoSpeak);
 
   useEffect(() => {
     if (initialMessages) setMessages(initialMessages);
@@ -73,6 +76,7 @@ export function ChatInterface({ sessionId, initialMessages, embedded }: Props) {
             messages: history.map(({ role, content }) => ({ role, content })),
             providerId,
             sessionId,
+            mode: chatMode,
           }),
           signal: controller.signal,
         });
@@ -93,6 +97,7 @@ export function ChatInterface({ sessionId, initialMessages, embedded }: Props) {
             prev.map((m) => (m.id === assistantId ? { ...m, content: acc } : m))
           );
         }
+        if (autoSpeak && acc.trim()) speak(acc);
       } catch (err) {
         if ((err as Error).name === "AbortError") {
           /* user-cancelled */
@@ -106,7 +111,7 @@ export function ChatInterface({ sessionId, initialMessages, embedded }: Props) {
         abortRef.current = null;
       }
     },
-    [messages, providerId, sessionId]
+    [messages, providerId, sessionId, chatMode, autoSpeak]
   );
 
   const empty = messages.length === 0;
