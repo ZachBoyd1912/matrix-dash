@@ -132,7 +132,7 @@ function Tree({ nodes, activeId, onOpen, onDelete, depth }: TreeProps) {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (confirm(`Delete ${node.file.name}?`)) onDelete(node.file.id);
+                  onDelete(node.file.id);
                 }}
                 className="text-text-muted hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity"
                 aria-label="Delete file"

@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGsapEntrance } from "@/lib/hooks/use-gsap-entrance";
 import { timeAgo } from "@/lib/utils/time";
+import { toast, confirm } from "@/lib/stores/use-feedback";
 import type { SessionWithCount } from "@/types/session";
 
 export default function SessionsPage() {
@@ -24,6 +25,16 @@ export default function SessionsPage() {
     refresh();
   }, [refresh]);
 
+  // ?new=1 deep link from the command palette.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("new") === "1") {
+      window.history.replaceState(null, "", "/dashboard/sessions");
+      create();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const create = async () => {
     const res = await fetch("/api/sessions", {
       method: "POST",
@@ -35,8 +46,15 @@ export default function SessionsPage() {
   };
 
   const remove = async (id: string) => {
-    if (!confirm("Delete this session and all its messages?")) return;
+    const ok = await confirm({
+      title: "Delete this session?",
+      description: "All of its messages will be deleted too.",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     await fetch(`/api/sessions/${id}`, { method: "DELETE" });
+    toast.success("Session deleted");
     refresh();
   };
 

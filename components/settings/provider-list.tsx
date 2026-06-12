@@ -1,11 +1,12 @@
 "use client";
 
-import { Trash2, Check } from "lucide-react";
+import { Trash2, Check, FlaskConical } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import { toast, confirm } from "@/lib/stores/use-feedback";
 import type { AiProviderPublic } from "@/types/ai-provider";
 
 interface Props {
@@ -16,6 +17,24 @@ interface Props {
 export function ProviderList({ providers, onChange }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [model, setModel] = useState("");
+  const [testingId, setTestingId] = useState<string | null>(null);
+
+  const test = async (p: AiProviderPublic) => {
+    setTestingId(p.id);
+    try {
+      const res = await fetch(`/api/providers/${p.id}/test`, { method: "POST" });
+      const data = await res.json();
+      if (data.ok) {
+        toast.success(`${p.name} works`, `Model replied: ${data.message || "OK"}`);
+      } else {
+        toast.error(`${p.name} failed`, data.error);
+      }
+    } catch {
+      toast.error(`${p.name} failed`, "Could not reach the test endpoint.");
+    } finally {
+      setTestingId(null);
+    }
+  };
 
   if (providers.length === 0) return null;
 
@@ -39,8 +58,15 @@ export function ProviderList({ providers, onChange }: Props) {
   };
 
   const remove = async (id: string) => {
-    if (!confirm("Remove this provider?")) return;
+    const ok = await confirm({
+      title: "Remove provider?",
+      description: "Chats using this provider will need a different one.",
+      confirmLabel: "Remove",
+      danger: true,
+    });
+    if (!ok) return;
     await fetch(`/api/providers/${id}`, { method: "DELETE" });
+    toast.success("Provider removed");
     onChange();
   };
 
@@ -82,6 +108,14 @@ export function ProviderList({ providers, onChange }: Props) {
             </div>
           </div>
           <div className="flex items-center gap-1">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => test(p)}
+              disabled={testingId === p.id}
+            >
+              <FlaskConical size={12} /> {testingId === p.id ? "Testing…" : "Test"}
+            </Button>
             {!p.isActive && (
               <Button size="sm" variant="ghost" onClick={() => setActive(p.id)}>
                 <Check size={12} /> Activate

@@ -19,6 +19,8 @@ export function ChatInput({ onSubmit, onCancel, busy, disabled, placeholder }: P
   const providers = useAppStore((s) => s.providers);
   const activeId = useAppStore((s) => s.activeProviderId);
   const setActive = useAppStore((s) => s.setActiveProviderId);
+  const chatMode = useAppStore((s) => s.chatMode);
+  const setChatMode = useAppStore((s) => s.setChatMode);
 
   useEffect(() => {
     if (!ref.current) return;
@@ -73,6 +75,23 @@ export function ChatInput({ onSubmit, onCancel, busy, disabled, placeholder }: P
             </button>
           </div>
           <div className="flex items-center gap-2">
+            <div className="hidden sm:flex items-center glass-input rounded-full p-0.5 text-[10px]">
+              {(["chat", "agent"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setChatMode(mode)}
+                  className={cn(
+                    "h-6 px-2.5 rounded-full capitalize transition-colors",
+                    chatMode === mode
+                      ? "bg-emerald-400/20 text-emerald-300"
+                      : "text-text-muted hover:text-text-secondary"
+                  )}
+                  title={mode === "agent" ? "Agent tools configurable in Settings → Agent Tools" : "Plain conversation"}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
             {providers.length > 0 ? (
               <select
                 value={activeId ?? ""}

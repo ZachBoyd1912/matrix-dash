@@ -89,6 +89,20 @@ CREATE TABLE IF NOT EXISTS settings (
   value TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS emails (
+  id TEXT PRIMARY KEY,
+  folder TEXT NOT NULL DEFAULT 'inbox',
+  from_addr TEXT NOT NULL DEFAULT '',
+  to_addr TEXT NOT NULL DEFAULT '',
+  subject TEXT NOT NULL DEFAULT '',
+  body TEXT NOT NULL DEFAULT '',
+  is_read INTEGER DEFAULT 0,
+  is_starred INTEGER DEFAULT 0,
+  created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_emails_folder ON emails(folder);
+
 CREATE INDEX IF NOT EXISTS idx_memory_links_source ON memory_links(source_memory_id);
 CREATE INDEX IF NOT EXISTS idx_memory_links_target ON memory_links(target_memory_id);
 CREATE INDEX IF NOT EXISTS idx_session_messages_session ON session_messages(session_id);
@@ -141,8 +155,25 @@ export function getSqlite(): Database.Database {
   sqlite.pragma("foreign_keys = ON");
   sqlite.pragma("busy_timeout = 5000");
   sqlite.exec(INIT_SQL);
+  seedWelcomeEmail(sqlite);
   g.__matrixSqlite = sqlite;
   return sqlite;
+}
+
+function seedWelcomeEmail(sqlite: Database.Database) {
+  const count = sqlite.prepare("SELECT COUNT(*) AS c FROM emails").get() as { c: number };
+  if (count.c > 0) return;
+  sqlite
+    .prepare(
+      `INSERT INTO emails (id, folder, from_addr, to_addr, subject, body, is_read, is_starred, created_at)
+       VALUES (?, 'inbox', 'matrix@dash.local', 'you@dash.local', ?, ?, 0, 1, ?)`
+    )
+    .run(
+      crypto.randomUUID(),
+      "Welcome to your local mailbox",
+      "This inbox lives entirely in ~/MatrixDash/matrix.db.\n\nUse Compose to draft messages, star what matters, and organize across Inbox, Sent, Drafts, and Trash. Connect a real provider later from Settings → Email.",
+      new Date().toISOString()
+    );
 }
 
 export function getDb(): DB {

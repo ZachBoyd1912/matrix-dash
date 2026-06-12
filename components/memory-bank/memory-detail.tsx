@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { MEMORY_TYPE_META, MEMORY_TYPES, type LinkedMemory, type Memory } from "@/types/memory";
 import { timeAgo } from "@/lib/utils/time";
+import { toast, confirm } from "@/lib/stores/use-feedback";
 
 interface Props {
   memory: Memory;
@@ -44,8 +45,15 @@ export function MemoryDetail({ memory, links, onChange, onSelectLinked }: Props)
   };
 
   const remove = async () => {
-    if (!confirm("Delete this memory? This cannot be undone.")) return;
+    const ok = await confirm({
+      title: "Delete this memory?",
+      description: "Links to and from it will be removed too. This cannot be undone.",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     await fetch(`/api/memories/${memory.id}`, { method: "DELETE" });
+    toast.success("Memory deleted");
     onChange();
   };
 

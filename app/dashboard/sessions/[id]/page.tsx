@@ -8,6 +8,7 @@ import { ChatInterface } from "@/components/chat/chat-interface";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast, confirm } from "@/lib/stores/use-feedback";
 import type { Session, SessionMessage } from "@/types/session";
 
 export default function SessionPage() {
@@ -47,8 +48,15 @@ export default function SessionPage() {
   };
 
   const remove = async () => {
-    if (!confirm("Delete this session?")) return;
+    const ok = await confirm({
+      title: "Delete this session?",
+      description: "All of its messages will be deleted too.",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     await fetch(`/api/sessions/${sessionId}`, { method: "DELETE" });
+    toast.success("Session deleted");
     router.push("/dashboard/sessions");
   };
 
@@ -68,7 +76,7 @@ export default function SessionPage() {
   }));
 
   return (
-    <div className="flex flex-col h-[calc(100vh-3.5rem)]">
+    <div className="flex flex-col page-h">
       <div className="px-4 md:px-6 py-3 border-b border-white/5 flex items-center gap-3">
         <Link
           href="/dashboard/sessions"

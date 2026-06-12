@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useGsapEntrance } from "@/lib/hooks/use-gsap-entrance";
+import { toast } from "@/lib/stores/use-feedback";
 
 export default function MemorySettingsPage() {
   const ref = useGsapEntrance();
@@ -104,7 +105,7 @@ export default function MemorySettingsPage() {
               onClick={async () => {
                 const res = await fetch("/api/memories/tidy", { method: "POST" });
                 const data = await res.json();
-                alert(`Tidied: ${data.tidy.merged} merged, ${data.tidy.deleted} removed.`);
+                toast.success("Tidy complete", `${data.tidy.merged} merged, ${data.tidy.deleted} removed.`);
               }}
             >
               Tidy now
@@ -115,7 +116,7 @@ export default function MemorySettingsPage() {
               onClick={async () => {
                 const res = await fetch("/api/memories/tidy?decay=1", { method: "POST" });
                 const data = await res.json();
-                alert(`Decay: ${data.decay.adjusted} adjusted, ${data.decay.pruned} pruned.`);
+                toast.success("Decay complete", `${data.decay.adjusted} adjusted, ${data.decay.pruned} pruned.`);
               }}
             >
               Run decay

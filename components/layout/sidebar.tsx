@@ -2,29 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  MessageSquare,
-  BrainCircuit,
-  Layers,
-  Code2,
-  Settings,
-  PanelLeft,
-  FileText,
-  Sparkles,
-} from "lucide-react";
+import { PanelLeft } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { LogoMark } from "./logo";
+import { NAV_ITEMS, isNavActive } from "./nav-items";
 import { useAppStore } from "@/lib/stores/use-app-store";
-
-const NAV = [
-  { href: "/dashboard", label: "Overview", icon: Sparkles, exact: true },
-  { href: "/dashboard/chat", label: "Chat", icon: MessageSquare },
-  { href: "/dashboard/memory-bank", label: "Memory Bank", icon: BrainCircuit },
-  { href: "/dashboard/notes", label: "Notes", icon: FileText },
-  { href: "/dashboard/sessions", label: "Sessions", icon: Layers },
-  { href: "/dashboard/ide", label: "IDE", icon: Code2 },
-  { href: "/dashboard/settings", label: "Settings", icon: Settings },
-];
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -62,11 +44,9 @@ export function Sidebar() {
         </div>
 
         <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1">
-          {NAV.map((item) => {
+          {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
-            const active = item.exact
-              ? pathname === item.href
-              : pathname === item.href || pathname.startsWith(item.href + "/");
+            const active = isNavActive(item, pathname);
             return (
               <Link
                 key={item.href}

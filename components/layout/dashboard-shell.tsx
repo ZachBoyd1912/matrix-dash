@@ -4,6 +4,9 @@ import { useEffect } from "react";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 import { CommandPalette } from "./command-palette";
+import { MobileNav } from "./mobile-nav";
+import { Toaster } from "@/components/ui/toaster";
+import { ConfirmHost } from "@/components/ui/confirm-host";
 import { useAppStore } from "@/lib/stores/use-app-store";
 import type { AiProviderPublic } from "@/types/ai-provider";
 
@@ -26,9 +29,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <Sidebar />
       <div className="flex-1 min-w-0 flex flex-col">
         <Topbar />
-        <main className="flex-1 min-w-0">{children}</main>
+        <main className="flex-1 min-w-0 pb-14 md:pb-0">{children}</main>
       </div>
+      <MobileNav />
       <CommandPalette />
+      <Toaster />
+      <ConfirmHost />
     </div>
   );
 }

@@ -8,6 +8,10 @@ interface AppState {
   toggleSidebar: () => void;
   commandOpen: boolean;
   setCommandOpen: (open: boolean) => void;
+  mobileNavOpen: boolean;
+  setMobileNavOpen: (open: boolean) => void;
+  chatMode: "chat" | "agent";
+  setChatMode: (mode: "chat" | "agent") => void;
 
   providers: AiProviderPublic[];
   activeProviderId: string | null;
@@ -20,6 +24,10 @@ export const useAppStore = create<AppState>((set) => ({
   toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
   commandOpen: false,
   setCommandOpen: (commandOpen) => set({ commandOpen }),
+  mobileNavOpen: false,
+  setMobileNavOpen: (mobileNavOpen) => set({ mobileNavOpen }),
+  chatMode: "chat",
+  setChatMode: (chatMode) => set({ chatMode }),
 
   providers: [],
   activeProviderId: null,

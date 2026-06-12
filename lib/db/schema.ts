@@ -98,6 +98,19 @@ export const files = sqliteTable("files", {
   updatedAt: text("updated_at").notNull(),
 });
 
+// ─── EMAILS (local mailbox) ───────────────────────────────
+export const emails = sqliteTable("emails", {
+  id: text("id").primaryKey(),
+  folder: text("folder", { enum: ["inbox", "sent", "drafts", "trash"] }).notNull().default("inbox"),
+  fromAddr: text("from_addr").notNull().default(""),
+  toAddr: text("to_addr").notNull().default(""),
+  subject: text("subject").notNull().default(""),
+  body: text("body").notNull().default(""),
+  isRead: integer("is_read", { mode: "boolean" }).default(false),
+  isStarred: integer("is_starred", { mode: "boolean" }).default(false),
+  createdAt: text("created_at").notNull(),
+});
+
 // ─── SETTINGS ─────────────────────────────────────────────
 export const settings = sqliteTable("settings", {
   key: text("key").primaryKey(),

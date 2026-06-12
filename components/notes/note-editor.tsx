@@ -9,6 +9,7 @@ import { WikiContent } from "./wiki-content";
 import type { Note, NoteBacklinks } from "@/types/note";
 import { timeAgo } from "@/lib/utils/time";
 import { cn } from "@/lib/utils/cn";
+import { toast, confirm } from "@/lib/stores/use-feedback";
 
 interface Props {
   note: Note;
@@ -64,8 +65,15 @@ export function NoteEditor({ note, backlinks, onChange, onNavigateTitle, onNavig
   };
 
   const remove = async () => {
-    if (!confirm("Delete this note?")) return;
+    const ok = await confirm({
+      title: "Delete this note?",
+      description: "Backlinks pointing at it will be removed.",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     await fetch(`/api/notes/${note.id}`, { method: "DELETE" });
+    toast.success("Note deleted");
     onChange();
   };
 

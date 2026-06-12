@@ -7,8 +7,11 @@ import { EditorTabs } from "@/components/ide/editor-tabs";
 import { MonacoEditor } from "@/components/ide/monaco-editor";
 import { EmptyState } from "@/components/ui/empty";
 import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import type { FileMeta, FileRecord } from "@/types/file";
 import { languageFromPath } from "@/lib/utils/language";
+import { toast, confirm } from "@/lib/stores/use-feedback";
 
 interface OpenFile {
   meta: FileMeta;
@@ -105,8 +108,16 @@ export default function IdePage() {
     saveTimer.current = setTimeout(saveActive, 1200);
   };
 
-  const create = async () => {
-    const path = prompt("New file path (e.g. src/utils.ts):");
+  const [newFileOpen, setNewFileOpen] = useState(false);
+  const [newFilePath, setNewFilePath] = useState("");
+
+  const create = () => {
+    setNewFilePath("");
+    setNewFileOpen(true);
+  };
+
+  const submitCreate = async () => {
+    const path = newFilePath.trim();
     if (!path) return;
     const name = path.split("/").pop() || path;
     const res = await fetch("/api/files", {
@@ -120,12 +131,23 @@ export default function IdePage() {
       }),
     });
     const data = await res.json();
+    setNewFileOpen(false);
+    toast.success(`Created ${name}`);
     await refreshList();
     if (data.id) openFile(data.id);
   };
 
   const remove = async (id: string) => {
+    const file = files.find((f) => f.id === id);
+    const ok = await confirm({
+      title: `Delete ${file?.name ?? "file"}?`,
+      description: "The file will be removed from the workspace permanently.",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     await fetch(`/api/files/${id}`, { method: "DELETE" });
+    toast.success("File deleted");
     closeFile(id);
     refreshList();
   };
@@ -140,7 +162,7 @@ export default function IdePage() {
   }
 
   return (
-    <div className="h-[calc(100vh-3.5rem)] grid grid-cols-[240px_1fr]">
+    <div className="page-h grid grid-cols-[180px_1fr] md:grid-cols-[240px_1fr]">
       <aside className="border-r border-white/5 bg-white/[0.01]">
         <FileTree
           files={files}
@@ -203,6 +225,33 @@ export default function IdePage() {
           </div>
         </div>
       </section>
+
+      <Dialog
+        open={newFileOpen}
+        onClose={() => setNewFileOpen(false)}
+        title="New file"
+        description="Folders are created automatically from the path."
+      >
+        <div className="space-y-3">
+          <Input
+            autoFocus
+            value={newFilePath}
+            onChange={(e) => setNewFilePath(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") submitCreate();
+            }}
+            placeholder="src/utils.ts"
+          />
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setNewFileOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={submitCreate} disabled={!newFilePath.trim()}>
+              Create
+            </Button>
+          </div>
+        </div>
+      </Dialog>
     </div>
   );
 }

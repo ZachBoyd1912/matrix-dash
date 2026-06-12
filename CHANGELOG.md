@@ -1,5 +1,25 @@
 # Changelog
 
+## 12/06/2026 @ 08:09:11 IST — "claude-fable-5"
+
+**Goal:** Close every remaining gap from the Phase 1 build — full plan parity plus the requested upgrades: theme toggle, mobile view, local email box, Obsidian-style notes graph, settings parity, styled feedback.
+
+**Added:**
+- **Theme toggle (dark/light)** — next-themes with class strategy, persisted in localStorage; light token overrides for every CSS variable, glass surface, scrollbar, and translucent hover state; Sun/Moon toggle in the topbar. Cause of prior miss: shipped dark-only in Phase 1. Verification: typecheck clean, toggle renders after hydration guard.
+- **Mobile view** — hamburger in the topbar plus a slide-in drawer with the full nav, and a 5-slot bottom tab bar on <768px; new `.page-h` utility accounts for the bottom bar height so panes don't overflow; IDE tree narrows on small screens.
+- **Email box** — new `emails` table (inbox/sent/drafts/trash, read/star flags) with seeded welcome message; CRUD API (`/api/emails`, `/api/emails/[id]`); three-pane mail UI (folder rail, message list, reading pane) with compose dialog, star, trash/restore, delete-forever; signature + from-address settings appended on send. Local-only by design — SMTP noted as planned.
+- **Settings parity** — Integrations (six bridge cards), Shortcuts (keybinding reference), Account (local profile in settings KV), Agent Tools (memory read/write toggles aliasing autoExtract/autoInject; future tools marked Soon), Email (from + signature). Settings nav now has all nine sections from plan F6.
+- **Styled feedback** — zustand toast + promise-based confirm stores with `Toaster`/`ConfirmHost` mounted in the shell; every native `confirm()`/`alert()`/`prompt()` replaced (memory delete, tidy/decay results, session delete ×2, note delete, IDE file create/delete, provider remove, system wipe — wipe now requires typing WIPE in a styled dialog).
+- **Provider Test button** — `/api/providers/[id]/test` runs a 15s-bounded one-token generate; result surfaces as a success/error toast.
+- **Plan-parity memory routes** — `/dashboard/memory-bank/new` (full-page form with pin option) and `/dashboard/memory-bank/[id]` (deep-linkable detail); memory bank honors `?focus=`/`?new=1`, sessions honors `?new=1` (command palette deep links now all work).
+- **Obsidian-style notes graph** — `/api/notes/graph` + D3 force graph (violet nodes, favorites amber, sized by content length); toggle in the notes sidebar; clicking a node opens that note.
+- **Chat Agent|Chat toggle** — segmented mode pill in the chat input bar per plan F2.
+
+**Fixed:**
+- Dev server log clean during smoke test; all 8 new/changed pages return HTTP 200; email CRUD round-trips verified with curl. Cause-level fix carried from smoke testing: none new (FTS prefix fix shipped in prior entry).
+
+**Files Touched:** 20 new files (email module, settings pages, feedback system, notes graph, memory routes, theme toggle, mobile nav) and ~18 modified (shell, sidebar/topbar, globals.css, schema/client, chat input, all confirm/alert call sites).
+
 ## 12/06/2026 @ 07:42:01 IST — "claude-fable-5"
 
 **Goal:** One-shot greenfield build of Matrix Dash from `matrix-dash-plan.md` — a local-first AI command center with autonomous memory, multi-provider chat, sessions, notes, IDE, and settings.

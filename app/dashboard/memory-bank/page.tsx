@@ -14,6 +14,7 @@ import { useDebounce } from "@/lib/hooks/use-debounce";
 import { MEMORY_TYPES, MEMORY_TYPE_META, type LinkedMemory, type Memory, type MemoryType } from "@/types/memory";
 import { useGsapEntrance } from "@/lib/hooks/use-gsap-entrance";
 import { cn } from "@/lib/utils/cn";
+import { toast } from "@/lib/stores/use-feedback";
 
 interface GraphData {
   nodes: { id: string; label: string; type: MemoryType; importance: number; usageCount: number; isPinned: boolean }[];
@@ -32,6 +33,14 @@ export default function MemoryBankPage() {
   const [graph, setGraph] = useState<GraphData | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tidying, setTidying] = useState(false);
+
+  // Honor ?focus=<id> and ?new=1 deep links (command palette).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const focus = params.get("focus");
+    if (focus) setSelectedId(focus);
+    if (params.get("new") === "1") setDialogOpen(true);
+  }, []);
 
   const refresh = useCallback(async () => {
     const params = new URLSearchParams();
@@ -70,7 +79,7 @@ export default function MemoryBankPage() {
     try {
       const res = await fetch("/api/memories/tidy", { method: "POST" });
       const data = await res.json();
-      alert(`Tidied: ${data.tidy.merged} merged, ${data.tidy.deleted} removed.`);
+      toast.success("Tidy complete", `${data.tidy.merged} merged, ${data.tidy.deleted} removed.`);
       await refresh();
     } finally {
       setTidying(false);
@@ -78,7 +87,7 @@ export default function MemoryBankPage() {
   };
 
   return (
-    <div ref={ref} className="h-[calc(100vh-3.5rem)] flex flex-col">
+    <div ref={ref} className="page-h flex flex-col">
       <div className="px-4 md:px-6 py-4 border-b border-white/5 flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[200px] max-w-md">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />

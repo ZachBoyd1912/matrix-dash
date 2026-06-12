@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Search, Star, FileText } from "lucide-react";
+import { Plus, Search, Star, FileText, Network, Edit3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NoteEditor } from "@/components/notes/note-editor";
+import { NotesGraph, type NotesGraphData } from "@/components/notes/notes-graph";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import { useGsapEntrance } from "@/lib/hooks/use-gsap-entrance";
 import { timeAgo } from "@/lib/utils/time";
@@ -20,6 +21,16 @@ export default function NotesPage() {
   const [detail, setDetail] = useState<{ note: Note; backlinks: NoteBacklinks } | null>(null);
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebounce(query, 250);
+  const [view, setView] = useState<"edit" | "graph">("edit");
+  const [graph, setGraph] = useState<NotesGraphData | null>(null);
+
+  useEffect(() => {
+    if (view !== "graph") return;
+    fetch("/api/notes/graph")
+      .then((r) => r.json())
+      .then(setGraph)
+      .catch(() => setGraph(null));
+  }, [view]);
 
   const refresh = useCallback(async () => {
     const params = new URLSearchParams();
@@ -71,7 +82,7 @@ export default function NotesPage() {
   };
 
   return (
-    <div ref={ref} className="h-[calc(100vh-3.5rem)] grid grid-cols-1 md:grid-cols-[300px_1fr]">
+    <div ref={ref} className="page-h grid grid-cols-1 md:grid-cols-[300px_1fr]">
       <aside className="border-r border-white/5 flex flex-col bg-white/[0.01]">
         <div className="p-3 border-b border-white/5 space-y-2">
           <div className="relative">
@@ -83,9 +94,19 @@ export default function NotesPage() {
               className="pl-9 h-9 text-xs"
             />
           </div>
-          <Button variant="primary" size="sm" onClick={() => create()} className="w-full">
-            <Plus size={13} /> New note
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="primary" size="sm" onClick={() => create()} className="flex-1">
+              <Plus size={13} /> New note
+            </Button>
+            <Button
+              variant="secondary"
+              size="icon"
+              onClick={() => setView(view === "graph" ? "edit" : "graph")}
+              aria-label={view === "graph" ? "Edit view" : "Graph view"}
+            >
+              {view === "graph" ? <Edit3 size={13} /> : <Network size={13} />}
+            </Button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-2 space-y-1">
@@ -137,7 +158,29 @@ export default function NotesPage() {
       </aside>
 
       <section className="min-w-0">
-        {detail ? (
+        {view === "graph" ? (
+          <div className="h-full p-4">
+            <div className="glass rounded-xl h-full overflow-hidden">
+              {graph && graph.nodes.length > 0 ? (
+                <NotesGraph
+                  data={graph}
+                  onSelect={(id) => {
+                    setSelectedId(id);
+                    setView("edit");
+                  }}
+                />
+              ) : (
+                <div className="h-full grid place-items-center">
+                  <EmptyState
+                    icon={<Network size={16} />}
+                    title="No graph yet"
+                    description="Create notes and connect them with [[wiki links]]."
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        ) : detail ? (
           <NoteEditor
             key={detail.note.id}
             note={detail.note}

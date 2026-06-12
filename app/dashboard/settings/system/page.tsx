@@ -5,6 +5,7 @@ import { Download, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useGsapEntrance } from "@/lib/hooks/use-gsap-entrance";
+import { toast, confirm } from "@/lib/stores/use-feedback";
 
 export default function SystemPage() {
   const ref = useGsapEntrance();
@@ -17,9 +18,14 @@ export default function SystemPage() {
   const wipe = async (scope: "memories" | "notes" | "sessions" | "files" | "all") => {
     const human =
       scope === "all" ? "ALL local data (memories, notes, sessions, files)" : `all ${scope}`;
-    if (!confirm(`This will permanently delete ${human}. Type WIPE to confirm.`)) return;
-    const input = prompt("Type WIPE to confirm:");
-    if (input !== "WIPE") return;
+    const ok = await confirm({
+      title: `Wipe ${scope === "all" ? "everything" : scope}?`,
+      description: `This permanently deletes ${human}. There is no undo.`,
+      confirmLabel: "Wipe",
+      danger: true,
+      requireText: "WIPE",
+    });
+    if (!ok) return;
     setWiping(true);
     try {
       await fetch("/api/system/wipe", {
@@ -27,7 +33,7 @@ export default function SystemPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ confirm: "WIPE", scope }),
       });
-      alert(`${human} deleted.`);
+      toast.success("Wipe complete", `Deleted ${human}.`);
     } finally {
       setWiping(false);
     }

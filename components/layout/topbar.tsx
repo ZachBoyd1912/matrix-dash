@@ -1,14 +1,16 @@
 "use client";
 
-import { Search, Bell, Sparkles } from "lucide-react";
+import { Search, Bell, Sparkles, Menu } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useAppStore } from "@/lib/stores/use-app-store";
+import { ThemeToggle } from "./theme-toggle";
 
 const TITLES: Record<string, string> = {
   "/dashboard": "Overview",
   "/dashboard/chat": "Chat",
   "/dashboard/memory-bank": "Memory Bank",
   "/dashboard/notes": "Notes",
+  "/dashboard/email": "Email",
   "/dashboard/sessions": "Sessions",
   "/dashboard/ide": "IDE",
   "/dashboard/settings": "Settings",
@@ -17,6 +19,8 @@ const TITLES: Record<string, string> = {
 export function Topbar() {
   const pathname = usePathname();
   const setCommandOpen = useAppStore((s) => s.setCommandOpen);
+  const setMobileNavOpen = useAppStore((s) => s.setMobileNavOpen);
+  const mobileNavOpen = useAppStore((s) => s.mobileNavOpen);
 
   const title =
     TITLES[pathname] ||
@@ -29,9 +33,17 @@ export function Topbar() {
     <header className="sticky top-0 z-20 h-14 border-b border-white/5 glass-strong">
       <div className="h-full flex items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setMobileNavOpen(!mobileNavOpen)}
+            className="md:hidden h-8 w-8 grid place-items-center rounded-md text-text-muted hover:text-text-primary hover:bg-white/5 transition-colors"
+            aria-label="Open navigation"
+          >
+            <Menu size={16} />
+          </button>
           <h1 className="text-sm font-semibold text-text-primary">{title}</h1>
         </div>
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           <button
             onClick={() => setCommandOpen(true)}
             className="hidden sm:flex items-center gap-2 h-8 px-3 rounded-md glass-input text-xs text-text-muted hover:text-text-primary transition-colors"

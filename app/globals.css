@@ -38,6 +38,13 @@
     --border-subtle: rgba(255, 255, 255, 0.06);
     --border-default: rgba(255, 255, 255, 0.1);
     --border-strong: rgba(255, 255, 255, 0.18);
+    --bottom-nav-h: 3.5rem;
+  }
+
+  @media (min-width: 768px) {
+    :root {
+      --bottom-nav-h: 0px;
+    }
   }
 
   html,
@@ -125,6 +132,79 @@
   .pulse-dot {
     animation: pulse-dot 1.6s ease-in-out infinite;
   }
+
+  /* Full viewport height minus topbar minus mobile bottom nav. */
+  .page-h {
+    height: calc(100vh - 3.5rem - var(--bottom-nav-h, 0px));
+  }
+}
+
+/* ─── Light theme overrides (next-themes toggles .light on <html>) ─── */
+.light {
+  color-scheme: light;
+  --color-bg-base: #f3f4f6;
+  --color-bg-surface: #ffffff;
+  --color-bg-elevated: #ffffff;
+  --color-bg-overlay: #eceef1;
+  --color-text-primary: #16181d;
+  --color-text-secondary: #5b6470;
+  --color-text-muted: #9aa3af;
+  --border-subtle: rgba(15, 23, 42, 0.08);
+  --border-default: rgba(15, 23, 42, 0.14);
+  --border-strong: rgba(15, 23, 42, 0.22);
+  --shadow-card: 0 8px 32px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(15, 23, 42, 0.04);
+  --shadow-elevated: 0 16px 64px rgba(15, 23, 42, 0.14), 0 0 0 1px rgba(15, 23, 42, 0.06);
+  --shadow-modal: 0 32px 128px rgba(15, 23, 42, 0.25);
+}
+
+.light body {
+  background-image:
+    radial-gradient(at 18% 12%, rgba(52, 211, 153, 0.12) 0px, transparent 55%),
+    radial-gradient(at 82% 8%, rgba(56, 189, 248, 0.09) 0px, transparent 50%),
+    radial-gradient(at 60% 90%, rgba(168, 85, 247, 0.06) 0px, transparent 55%);
+}
+
+.light .glass {
+  background: rgba(255, 255, 255, 0.62);
+  border-color: var(--border-subtle);
+}
+
+.light .glass-strong {
+  background: rgba(255, 255, 255, 0.78);
+  border-color: var(--border-default);
+}
+
+.light .glass-input {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: var(--border-subtle);
+}
+.light .glass-input:focus,
+.light .glass-input:focus-visible {
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.light ::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.14);
+}
+.light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 23, 42, 0.25);
+}
+
+/* Translucent white hover/selection states need a dark counterpart in light mode. */
+.light .hover\:bg-white\/5:hover,
+.light .hover\:bg-white\/\[0\.03\]:hover,
+.light .hover\:bg-white\/\[0\.04\]:hover {
+  background-color: rgba(15, 23, 42, 0.05);
+}
+.light .bg-white\/5,
+.light .bg-white\/\[0\.02\],
+.light .bg-white\/\[0\.01\] {
+  background-color: rgba(15, 23, 42, 0.03);
+}
+.light .bg-white\/\[0\.06\],
+.light .bg-white\/\[0\.07\],
+.light .bg-white\/10 {
+  background-color: rgba(15, 23, 42, 0.08);
 }
 
 @keyframes pulse-dot {
@@ -133,6 +213,37 @@
     transform: scale(0.95);
   }
   50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes drawerIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
     opacity: 1;
     transform: scale(1);
   }
