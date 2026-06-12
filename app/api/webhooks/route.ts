@@ -1,0 +1,65 @@
+import { randomUUID } from "crypto";
+import { desc, eq } from "drizzle-orm";
+import { z } from "zod";
+import { getDb } from "@/lib/db/client";
+import { webhooks } from "@/lib/db/schema";
+
+export const dynamic = "force-dynamic";
+
+const createSchema = z.object({
+  label: z.string().min(1),
+  url: z.string().url(),
+  event: z.string().default("*"),
+  isEnabled: z.boolean().optional(),
+});
+
+export async function GET() {
+  const rows = getDb().select().from(webhooks).orderBy(desc(webhooks.createdAt)).all();
+  return Response.json(rows.map((r) => ({ ...r, isEnabled: !!r.isEnabled })));
+}
+
+export async function POST(req: Request) {
+  let payload: unknown;
+  try {
+    payload = await req.json();
+  } catch {
+    return Response.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+  const parsed = createSchema.safeParse(payload);
+  if (!parsed.success) return Response.json({ error: parsed.error.flatten() }, { status: 400 });
+  const id = randomUUID();
+  getDb()
+    .insert(webhooks)
+    .values({
+      id,
+      label: parsed.data.label,
+      url: parsed.data.url,
+      event: parsed.data.event,
+      isEnabled: parsed.data.isEnabled ?? true,
+      createdAt: new Date().toISOString(),
+    })
+    .run();
+  return Response.json({ id });
+}
+
+export async function PATCH(req: Request) {
+  const url = new URL(req.url);
+  const id = url.searchParams.get("id");
+  if (!id) return Response.json({ error: "id required" }, { status: 400 });
+  let payload: { isEnabled?: boolean };
+  try {
+    payload = await req.json();
+  } catch {
+    return Response.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+  getDb().update(webhooks).set(payload).where(eq(webhooks.id, id)).run();
+  return Response.json({ ok: true });
+}
+
+export async function DELETE(req: Request) {
+  const url = new URL(req.url);
+  const id = url.searchParams.get("id");
+  if (!id) return Response.json({ error: "id required" }, { status: 400 });
+  getDb().delete(webhooks).where(eq(webhooks.id, id)).run();
+  return Response.json({ ok: true });
+}

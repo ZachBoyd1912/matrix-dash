@@ -13,6 +13,7 @@ import {
   calendars,
   emails,
   contacts,
+  attachments,
 } from "@/lib/db/schema";
 import { searchMemoriesFts, searchNotesFts } from "@/lib/db/fts";
 import { autoLink } from "@/lib/ai/extraction";
@@ -160,6 +161,29 @@ export function buildAgentTools() {
           })
           .run();
         return { created: true, id };
+      },
+    });
+  }
+
+  if (enabled("knowledge")) {
+    toolset.searchKnowledge = tool({
+      description: "Search uploaded documents (PDFs, text files) the user has shared.",
+      inputSchema: z.object({ query: z.string() }),
+      execute: async ({ query }) => {
+        const rows = getDb()
+          .select({ name: attachments.name, text: attachments.extractedText })
+          .from(attachments)
+          .all();
+        const q = query.toLowerCase();
+        const hits = rows
+          .filter((r) => r.text && r.text.toLowerCase().includes(q))
+          .slice(0, 4)
+          .map((r) => {
+            const idx = (r.text ?? "").toLowerCase().indexOf(q);
+            const snippet = (r.text ?? "").slice(Math.max(0, idx - 200), idx + 400);
+            return { document: r.name, snippet };
+          });
+        return hits.length ? hits : { note: "No matching documents." };
       },
     });
   }

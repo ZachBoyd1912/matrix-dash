@@ -1,0 +1,157 @@
+"use client";
+
+import { useRef, useState } from "react";
+import { FlaskConical, Loader2, ExternalLink, Save, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import { Markdown } from "@/components/chat/markdown";
+import { EmptyState } from "@/components/ui/empty";
+import { toast } from "@/lib/stores/use-feedback";
+import { useGsapEntrance } from "@/lib/hooks/use-gsap-entrance";
+import type { ResearchEvent } from "@/lib/ai/research";
+
+export default function ResearchPage() {
+  const ref = useGsapEntrance();
+  const [question, setQuestion] = useState("");
+  const [running, setRunning] = useState(false);
+  const [statuses, setStatuses] = useState<string[]>([]);
+  const [sources, setSources] = useState<{ title: string; url: string }[]>([]);
+  const [report, setReport] = useState("");
+  const reportRef = useRef("");
+
+  const run = async () => {
+    if (!question.trim() || running) return;
+    setRunning(true);
+    setStatuses([]);
+    setSources([]);
+    setReport("");
+    reportRef.current = "";
+
+    try {
+      const res = await fetch("/api/research", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ question }),
+      });
+      if (!res.body) throw new Error("No stream");
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          const event = JSON.parse(line) as ResearchEvent;
+          if (event.type === "status" && event.message) setStatuses((s) => [...s, event.message!]);
+          if (event.type === "source" && event.source) setSources((s) => [...s, event.source!]);
+          if (event.type === "report" && event.report) {
+            reportRef.current = event.report;
+            setReport(event.report);
+          }
+          if (event.type === "error") toast.error("Research failed", event.message);
+        }
+      }
+    } catch (err) {
+      toast.error("Research failed", err instanceof Error ? err.message : String(err));
+    } finally {
+      setRunning(false);
+    }
+  };
+
+  const saveAsNote = async () => {
+    await fetch("/api/notes", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title: `Research: ${question.slice(0, 60)}`, content: reportRef.current }),
+    });
+    toast.success("Saved to Notes");
+  };
+
+  return (
+    <div ref={ref} className="px-4 md:px-8 py-8 max-w-3xl mx-auto space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <FlaskConical size={20} className="text-emerald-400" /> Deep Research
+        </h1>
+        <p className="text-text-secondary text-sm mt-1">
+          The agent plans sub-questions, searches the web, reads sources, and synthesizes a cited report.
+        </p>
+      </div>
+
+      <Card className="space-y-3">
+        <Textarea
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          rows={3}
+          placeholder="What do you want researched? e.g. 'Compare the best local LLM runtimes for an 8GB Mac in 2026.'"
+        />
+        <div className="flex justify-end">
+          <Button variant="primary" onClick={run} disabled={running || !question.trim()}>
+            {running ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
+            {running ? "Researching…" : "Start research"}
+          </Button>
+        </div>
+      </Card>
+
+      {(running || statuses.length > 0) && (
+        <Card>
+          <div className="flex items-center gap-2 mb-2">
+            <p className="text-xs font-semibold text-text-primary">Progress</p>
+            {running && <Loader2 size={12} className="animate-spin text-emerald-400" />}
+          </div>
+          <div className="space-y-1 max-h-40 overflow-y-auto">
+            {statuses.map((s, i) => (
+              <p key={i} className="text-[11px] text-text-secondary flex items-center gap-1.5">
+                <span className="h-1 w-1 rounded-full bg-emerald-400/60" /> {s}
+              </p>
+            ))}
+          </div>
+          {sources.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-white/5">
+              <p className="text-[10px] uppercase text-text-muted mb-1.5">Sources ({sources.length})</p>
+              <div className="space-y-1">
+                {sources.map((s, i) => (
+                  <a
+                    key={i}
+                    href={s.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[11px] text-sky-400 hover:underline flex items-center gap-1 truncate"
+                  >
+                    <ExternalLink size={9} className="shrink-0" /> <span className="truncate">{s.title}</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {report ? (
+        <Card>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-semibold text-text-primary">Report</p>
+            <Button size="sm" variant="secondary" onClick={saveAsNote}>
+              <Save size={12} /> Save to Notes
+            </Button>
+          </div>
+          <Markdown content={report} />
+        </Card>
+      ) : (
+        !running &&
+        statuses.length === 0 && (
+          <EmptyState
+            icon={<FlaskConical size={16} />}
+            title="No research yet"
+            description="Ask a question above to generate a cited report."
+          />
+        )
+      )}
+    </div>
+  );
+}

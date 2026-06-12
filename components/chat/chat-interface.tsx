@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Paperclip, X } from "lucide-react";
 import { MessageBubble } from "./message-bubble";
 import { ChatInput } from "./chat-input";
 import { LogoMark } from "@/components/layout/logo";
@@ -31,6 +32,25 @@ export function ChatInterface({ sessionId, initialMessages, embedded }: Props) {
   const providers = useAppStore((s) => s.providers);
   const chatMode = useAppStore((s) => s.chatMode);
   const autoSpeak = useAppStore((s) => s.autoSpeak);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [attachment, setAttachment] = useState<{ name: string; text: string } | null>(null);
+
+  const handleFile = useCallback(async (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    try {
+      const res = await fetch("/api/uploads", { method: "POST", body: form });
+      const data = await res.json();
+      if (res.ok) {
+        setAttachment({
+          name: data.name,
+          text: data.extractedText || `[attached ${data.kind}: ${data.name}]`,
+        });
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   useEffect(() => {
     if (initialMessages) setMessages(initialMessages);
@@ -50,11 +70,15 @@ export function ChatInterface({ sessionId, initialMessages, embedded }: Props) {
   const send = useCallback(
     async (text: string) => {
       setError(null);
+      const composedText = attachment
+        ? `${text}\n\n[Attached: ${attachment.name}]\n${attachment.text.slice(0, 12000)}`
+        : text;
       const userMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: "user",
-        content: text,
+        content: composedText,
       };
+      setAttachment(null);
       const assistantId = crypto.randomUUID();
       const assistantPlaceholder: ChatMessage = {
         id: assistantId,
@@ -111,7 +135,7 @@ export function ChatInterface({ sessionId, initialMessages, embedded }: Props) {
         abortRef.current = null;
       }
     },
-    [messages, providerId, sessionId, chatMode, autoSpeak]
+    [messages, providerId, sessionId, chatMode, autoSpeak, attachment]
   );
 
   const empty = messages.length === 0;
@@ -136,7 +160,7 @@ export function ChatInterface({ sessionId, initialMessages, embedded }: Props) {
             </div>
           )}
           <div className="w-full">
-            <ChatInput onSubmit={send} busy={streaming} disabled={noProvider} />
+            <ChatInput onSubmit={send} onAttach={() => fileInputRef.current?.click()} busy={streaming} disabled={noProvider} />
           </div>
         </div>
       ) : (
@@ -159,15 +183,38 @@ export function ChatInterface({ sessionId, initialMessages, embedded }: Props) {
             </div>
           </div>
           <div className="py-4 bg-gradient-to-t from-bg-base via-bg-base/80 to-transparent">
+            {attachment && (
+              <div className="max-w-3xl mx-auto px-4 mb-2">
+                <div className="inline-flex items-center gap-2 glass-input rounded-full px-3 py-1 text-xs text-text-secondary">
+                  <Paperclip size={11} />
+                  <span className="max-w-[200px] truncate">{attachment.name}</span>
+                  <button onClick={() => setAttachment(null)} className="text-text-muted hover:text-rose-400" aria-label="Remove attachment">
+                    <X size={11} />
+                  </button>
+                </div>
+              </div>
+            )}
             <ChatInput
               onSubmit={send}
               onCancel={cancel}
+              onAttach={() => fileInputRef.current?.click()}
               busy={streaming}
               disabled={noProvider}
             />
           </div>
         </>
       )}
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        accept="image/*,application/pdf,text/*,application/json"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleFile(file);
+          e.target.value = "";
+        }}
+      />
     </div>
   );
 }

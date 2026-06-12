@@ -6,6 +6,8 @@ import { runAgent } from "@/lib/ai/runner";
 import { notify, fireWebhooks } from "./notify";
 import { decayMemories } from "@/lib/ai/consolidation";
 import { syncAllAccounts } from "./email";
+import { writeBackup } from "./backup";
+import { getSetting } from "@/lib/db/settings";
 
 // The daemon is a singleton background loop, cached on globalThis so Next.js
 // HMR / multiple route imports don't spawn duplicates.
@@ -107,6 +109,14 @@ export function startDaemon() {
         decayMemories();
       } catch {
         /* ignore */
+      }
+      // Nightly backup (toggleable).
+      if (getSetting("autoBackup") !== "0") {
+        try {
+          writeBackup();
+        } catch {
+          /* ignore */
+        }
       }
     }
   });

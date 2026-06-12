@@ -12,6 +12,7 @@ import {
   CheckSquare,
   FlaskConical,
   GitCompare,
+  Image as ImageIcon,
   type LucideIcon,
 } from "lucide-react";
 
@@ -32,6 +33,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard/email", label: "Email", icon: Mail },
   { href: "/dashboard/research", label: "Research", icon: FlaskConical },
   { href: "/dashboard/compare", label: "Compare", icon: GitCompare },
+  { href: "/dashboard/images", label: "Images", icon: ImageIcon },
   { href: "/dashboard/skills", label: "Skills", icon: Wand2 },
   { href: "/dashboard/sessions", label: "Sessions", icon: Layers },
   { href: "/dashboard/ide", label: "IDE", icon: Code2 },

@@ -12,18 +12,36 @@ import {
   User,
   Mail,
   Wrench,
+  Cpu,
+  Lock,
+  KeyRound,
+  Shield,
+  Webhook,
+  Archive,
+  Users,
+  Activity,
+  Drama,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 const SECTIONS = [
   { href: "/dashboard/settings", label: "AI Providers", icon: Bot, exact: true },
+  { href: "/dashboard/settings/cookbook", label: "Cookbook", icon: Cpu },
   { href: "/dashboard/settings/memory", label: "Memory", icon: Brain },
   { href: "/dashboard/settings/email", label: "Email", icon: Mail },
   { href: "/dashboard/settings/integrations", label: "Integrations", icon: Plug },
   { href: "/dashboard/settings/agent-tools", label: "Agent Tools", icon: Wrench },
   { href: "/dashboard/settings/shortcuts", label: "Shortcuts", icon: Keyboard },
   { href: "/dashboard/settings/account", label: "Account", icon: User },
+  { href: "/dashboard/settings/auth", label: "Security (2FA)", icon: Lock },
+  { href: "/dashboard/settings/tokens", label: "API Tokens", icon: KeyRound },
+  { href: "/dashboard/settings/vault", label: "Vault", icon: Shield },
+  { href: "/dashboard/settings/webhooks", label: "Webhooks", icon: Webhook },
+  { href: "/dashboard/settings/backups", label: "Backups", icon: Archive },
+  { href: "/dashboard/settings/contacts", label: "Contacts", icon: Users },
+  { href: "/dashboard/settings/presets", label: "Personas", icon: Drama },
   { href: "/dashboard/settings/appearance", label: "Appearance", icon: Palette },
+  { href: "/dashboard/settings/diagnostics", label: "Diagnostics", icon: Activity },
   { href: "/dashboard/settings/system", label: "System", icon: ShieldAlert },
 ];
 

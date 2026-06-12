@@ -5,6 +5,7 @@ import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 import { CommandPalette } from "./command-palette";
 import { MobileNav } from "./mobile-nav";
+import { PwaRegister } from "./pwa-register";
 import { Toaster } from "@/components/ui/toaster";
 import { ConfirmHost } from "@/components/ui/confirm-host";
 import { useAppStore } from "@/lib/stores/use-app-store";
@@ -35,6 +36,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <CommandPalette />
       <Toaster />
       <ConfirmHost />
+      <PwaRegister />
     </div>
   );
 }
