@@ -1,11 +1,15 @@
 "use client";
 
 import { X } from "lucide-react";
-import type { FileMeta } from "@/types/file";
 import { cn } from "@/lib/utils/cn";
 
+export interface TabItem {
+  id: string;
+  name: string;
+}
+
 interface Props {
-  files: FileMeta[];
+  files: TabItem[];
   activeId: string | null;
   dirty: Set<string>;
   onSelect: (id: string) => void;

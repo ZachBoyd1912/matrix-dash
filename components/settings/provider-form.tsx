@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import {
-  DEFAULT_MODELS,
   PROVIDER_KINDS,
+  providerSpec,
+  showsBaseUrl,
   type ProviderKind,
 } from "@/types/ai-provider";
 
@@ -24,6 +25,17 @@ export function ProviderForm({ onCreated }: Props) {
   const [defaultModel, setDefaultModel] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  // When the kind changes, auto-fill the base URL + default model from the catalog.
+  const onKindChange = (value: ProviderKind) => {
+    setProvider(value);
+    const spec = providerSpec(value);
+    setBaseUrl(spec?.baseUrl ?? "");
+    setDefaultModel(spec?.defaultModel ?? "");
+  };
+
+  const spec = providerSpec(provider);
+  const needsBaseUrl = !!spec?.requiresBaseUrl;
+
   const submit = async () => {
     if (!name.trim() || !apiKey.trim()) return;
     setSubmitting(true);
@@ -35,8 +47,8 @@ export function ProviderForm({ onCreated }: Props) {
           name,
           provider,
           apiKey,
-          baseUrl: provider === "custom" ? baseUrl : null,
-          defaultModel: defaultModel || DEFAULT_MODELS[provider],
+          baseUrl: baseUrl.trim() || null,
+          defaultModel: defaultModel.trim() || spec?.defaultModel || null,
         }),
       });
       setName("");
@@ -61,7 +73,7 @@ export function ProviderForm({ onCreated }: Props) {
             <label className="text-[10px] uppercase text-text-muted block mb-1">Provider</label>
             <Select
               value={provider}
-              onChange={(e) => setProvider(e.target.value as ProviderKind)}
+              onChange={(e) => onKindChange(e.target.value as ProviderKind)}
               className="w-full"
             >
               {PROVIDER_KINDS.map((p) => (
@@ -84,23 +96,24 @@ export function ProviderForm({ onCreated }: Props) {
             />
           </div>
           <div>
-            <label className="text-[10px] uppercase text-text-muted block mb-1">
-              Default model
-            </label>
+            <label className="text-[10px] uppercase text-text-muted block mb-1">Default model</label>
             <Input
               value={defaultModel}
               onChange={(e) => setDefaultModel(e.target.value)}
-              placeholder={DEFAULT_MODELS[provider]}
+              placeholder={spec?.defaultModel || "model id"}
             />
           </div>
         </div>
-        {provider === "custom" && (
+        {showsBaseUrl(provider) && (
           <div>
-            <label className="text-[10px] uppercase text-text-muted block mb-1">Base URL</label>
+            <label className="text-[10px] uppercase text-text-muted block mb-1">
+              Base URL {needsBaseUrl && <span className="text-rose-400">*</span>}
+            </label>
             <Input
               value={baseUrl}
               onChange={(e) => setBaseUrl(e.target.value)}
-              placeholder="https://openrouter.ai/api/v1"
+              placeholder={needsBaseUrl ? "https://your-endpoint/v1" : "Pre-filled — override if needed"}
+              className="font-mono text-xs"
             />
           </div>
         )}
@@ -108,7 +121,7 @@ export function ProviderForm({ onCreated }: Props) {
           <Button
             variant="primary"
             onClick={submit}
-            disabled={!name.trim() || !apiKey.trim() || submitting}
+            disabled={!name.trim() || !apiKey.trim() || (needsBaseUrl && !baseUrl.trim()) || submitting}
           >
             <Plus size={14} /> {submitting ? "Adding…" : "Add provider"}
           </Button>

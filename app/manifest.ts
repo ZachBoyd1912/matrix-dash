@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Matrix Dash",
+    name: "Matrix Dashboard",
     short_name: "Matrix",
     description: "Your AI command center.",
     start_url: "/dashboard",

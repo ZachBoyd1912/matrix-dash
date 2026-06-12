@@ -139,16 +139,205 @@
   }
 }
 
-/* ─── Light theme overrides (next-themes toggles .light on <html>) ─── */
-.light {
-  color-scheme: light;
-  --color-bg-base: #f3f4f6;
+/* Frosted-glass opt-out (Customize → Font & Layout). Drops backdrop blur. */
+:root[data-frosted="off"] .glass,
+:root[data-frosted="off"] .glass-strong,
+:root[data-frosted="off"] .glass-input {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   NAMED THEMES — applied via data-theme on <html> (managed by next-themes).
+   Theme names + palette direction inspired by Odysseus (pewdiepie-archdaemon,
+   AGPL-3.0); re-implemented clean-room here. The accent token propagates to
+   selection / focus rings / ambient glow generically via color-mix below.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root[data-theme="matrix"] {
+  --color-bg-base: #050505;
+  --color-bg-surface: #0d0d0d;
+  --color-bg-elevated: #141414;
+  --color-bg-overlay: #1a1a1a;
+  --color-text-primary: #e8e8e8;
+  --color-text-secondary: #888888;
+  --color-text-muted: #555555;
+  --color-emerald-accent: #34d399;
+}
+:root[data-theme="claude"] {
+  --color-bg-base: #141414;
+  --color-bg-surface: #1c1c1c;
+  --color-bg-elevated: #242424;
+  --color-bg-overlay: #2c2c2c;
+  --color-text-primary: #ededed;
+  --color-text-secondary: #9a9a9a;
+  --color-text-muted: #666666;
+  --color-emerald-accent: #d97706;
+}
+:root[data-theme="original"] {
+  --color-bg-base: #1a1a2e;
+  --color-bg-surface: #232342;
+  --color-bg-elevated: #2c2c52;
+  --color-bg-overlay: #353561;
+  --color-text-primary: #e8e8f5;
+  --color-text-secondary: #9a9ac0;
+  --color-text-muted: #6a6a90;
+  --color-emerald-accent: #7c6af0;
+}
+:root[data-theme="midnight"] {
+  --color-bg-base: #050507;
+  --color-bg-surface: #0d0d12;
+  --color-bg-elevated: #14141c;
+  --color-bg-overlay: #1c1c26;
+  --color-text-primary: #e8eaf0;
+  --color-text-secondary: #878a99;
+  --color-text-muted: #54576a;
+  --color-emerald-accent: #60a5fa;
+}
+:root[data-theme="cyberpunk"] {
+  --color-bg-base: #0a0a0f;
+  --color-bg-surface: #12121c;
+  --color-bg-elevated: #1a1a28;
+  --color-bg-overlay: #222234;
+  --color-text-primary: #d6fff5;
+  --color-text-secondary: #7aa8a0;
+  --color-text-muted: #4d6a64;
+  --color-emerald-accent: #00ffcc;
+}
+:root[data-theme="retrowave"] {
+  --color-bg-base: #0d0221;
+  --color-bg-surface: #160a30;
+  --color-bg-elevated: #1f1140;
+  --color-bg-overlay: #2a1852;
+  --color-text-primary: #ffe6f5;
+  --color-text-secondary: #b083a8;
+  --color-text-muted: #74506e;
+  --color-emerald-accent: #ff2d78;
+}
+:root[data-theme="forest"] {
+  --color-bg-base: #0a1a0f;
+  --color-bg-surface: #102516;
+  --color-bg-elevated: #16311e;
+  --color-bg-overlay: #1d3d27;
+  --color-text-primary: #e0f5e6;
+  --color-text-secondary: #83b094;
+  --color-text-muted: #506a59;
+  --color-emerald-accent: #4ade80;
+}
+:root[data-theme="ocean"] {
+  --color-bg-base: #051218;
+  --color-bg-surface: #0a1c24;
+  --color-bg-elevated: #102832;
+  --color-bg-overlay: #163440;
+  --color-text-primary: #e0f2fa;
+  --color-text-secondary: #83a4b0;
+  --color-text-muted: #506a74;
+  --color-emerald-accent: #38bdf8;
+}
+:root[data-theme="ume"] {
+  --color-bg-base: #1a0826;
+  --color-bg-surface: #260f35;
+  --color-bg-elevated: #321545;
+  --color-bg-overlay: #401c56;
+  --color-text-primary: #f7e6ff;
+  --color-text-secondary: #b288c4;
+  --color-text-muted: #74567e;
+  --color-emerald-accent: #e879f9;
+}
+:root[data-theme="copper"] {
+  --color-bg-base: #1a0e08;
+  --color-bg-surface: #261610;
+  --color-bg-elevated: #321e16;
+  --color-bg-overlay: #40281d;
+  --color-text-primary: #f7ece4;
+  --color-text-secondary: #b89c88;
+  --color-text-muted: #7a6452;
+  --color-emerald-accent: #c2652a;
+}
+:root[data-theme="terminal"] {
+  --color-bg-base: #000000;
+  --color-bg-surface: #0a0a0a;
+  --color-bg-elevated: #121212;
+  --color-bg-overlay: #1a1a1a;
+  --color-text-primary: #d4ffd4;
+  --color-text-secondary: #6aa86a;
+  --color-text-muted: #3d6a3d;
+  --color-emerald-accent: #22c55e;
+}
+:root[data-theme="lavender"] {
+  --color-bg-base: #1a1528;
+  --color-bg-surface: #241d38;
+  --color-bg-elevated: #2e2548;
+  --color-bg-overlay: #392f57;
+  --color-text-primary: #efeaff;
+  --color-text-secondary: #a79cc4;
+  --color-text-muted: #6a607e;
+  --color-emerald-accent: #a78bfa;
+}
+:root[data-theme="cute"] {
+  --color-bg-base: #1f0a1f;
+  --color-bg-surface: #2c0f2c;
+  --color-bg-elevated: #381538;
+  --color-bg-overlay: #461c46;
+  --color-text-primary: #ffe6fa;
+  --color-text-secondary: #c488bc;
+  --color-text-muted: #7e5676;
+  --color-emerald-accent: #f472b6;
+}
+:root[data-theme="gpt"] {
+  --color-bg-base: #0d0d0d;
+  --color-bg-surface: #161616;
+  --color-bg-elevated: #1e1e1e;
+  --color-bg-overlay: #262626;
+  --color-text-primary: #ececec;
+  --color-text-secondary: #9a9a9a;
+  --color-text-muted: #5e5e5e;
+  --color-emerald-accent: #9ca3af;
+}
+:root[data-theme="paper"] {
+  --color-bg-base: #f5f0e8;
+  --color-bg-surface: #fffdf8;
+  --color-bg-elevated: #fffefb;
+  --color-bg-overlay: #efe9df;
+  --color-text-primary: #2a2520;
+  --color-text-secondary: #6a6258;
+  --color-text-muted: #9a9388;
+  --color-emerald-accent: #b45309;
+}
+:root[data-theme="light"] {
+  --color-bg-base: #f8f8f8;
   --color-bg-surface: #ffffff;
   --color-bg-elevated: #ffffff;
   --color-bg-overlay: #eceef1;
   --color-text-primary: #16181d;
   --color-text-secondary: #5b6470;
   --color-text-muted: #9aa3af;
+  --color-emerald-accent: #34d399;
+}
+
+/* The custom theme injects its own :root[data-theme="custom"] block at runtime. */
+
+/* ─── Accent propagation (any named theme) ─────────────────────────────── */
+:root[data-theme] body {
+  background-image:
+    radial-gradient(at 18% 12%, color-mix(in srgb, var(--color-emerald-accent) 12%, transparent) 0px, transparent 55%),
+    radial-gradient(at 82% 8%, color-mix(in srgb, var(--color-emerald-accent) 7%, transparent) 0px, transparent 50%),
+    radial-gradient(at 60% 90%, color-mix(in srgb, var(--color-emerald-accent) 5%, transparent) 0px, transparent 55%);
+}
+:root[data-theme] ::selection {
+  background: color-mix(in srgb, var(--color-emerald-accent) 35%, transparent);
+  color: var(--color-text-primary);
+}
+:root[data-theme] .glass-input:focus,
+:root[data-theme] .glass-input:focus-visible {
+  border-color: color-mix(in srgb, var(--color-emerald-accent) 45%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-emerald-accent) 12%, transparent);
+}
+
+/* ─── Light theme overrides (paper + light) ────────────────────────────── */
+:root[data-theme="paper"],
+:root[data-theme="light"] {
+  color-scheme: light;
   --border-subtle: rgba(15, 23, 42, 0.08);
   --border-default: rgba(15, 23, 42, 0.14);
   --border-strong: rgba(15, 23, 42, 0.22);
@@ -156,54 +345,57 @@
   --shadow-elevated: 0 16px 64px rgba(15, 23, 42, 0.14), 0 0 0 1px rgba(15, 23, 42, 0.06);
   --shadow-modal: 0 32px 128px rgba(15, 23, 42, 0.25);
 }
-
-.light body {
-  background-image:
-    radial-gradient(at 18% 12%, rgba(52, 211, 153, 0.12) 0px, transparent 55%),
-    radial-gradient(at 82% 8%, rgba(56, 189, 248, 0.09) 0px, transparent 50%),
-    radial-gradient(at 60% 90%, rgba(168, 85, 247, 0.06) 0px, transparent 55%);
-}
-
-.light .glass {
-  background: rgba(255, 255, 255, 0.62);
+:root[data-theme="paper"] .glass,
+:root[data-theme="light"] .glass {
+  background: color-mix(in srgb, var(--color-bg-surface) 62%, transparent);
   border-color: var(--border-subtle);
 }
-
-.light .glass-strong {
-  background: rgba(255, 255, 255, 0.78);
+:root[data-theme="paper"] .glass-strong,
+:root[data-theme="light"] .glass-strong {
+  background: color-mix(in srgb, var(--color-bg-surface) 82%, transparent);
   border-color: var(--border-default);
 }
-
-.light .glass-input {
-  background: rgba(255, 255, 255, 0.7);
+:root[data-theme="paper"] .glass-input,
+:root[data-theme="light"] .glass-input {
+  background: color-mix(in srgb, var(--color-bg-surface) 72%, transparent);
   border-color: var(--border-subtle);
 }
-.light .glass-input:focus,
-.light .glass-input:focus-visible {
-  background: rgba(255, 255, 255, 0.95);
+:root[data-theme="paper"] .glass-input:focus,
+:root[data-theme="light"] .glass-input:focus-visible {
+  background: var(--color-bg-surface);
 }
-
-.light ::-webkit-scrollbar-thumb {
+:root[data-theme="paper"] ::-webkit-scrollbar-thumb,
+:root[data-theme="light"] ::-webkit-scrollbar-thumb {
   background: rgba(15, 23, 42, 0.14);
 }
-.light ::-webkit-scrollbar-thumb:hover {
+:root[data-theme="paper"] ::-webkit-scrollbar-thumb:hover,
+:root[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
   background: rgba(15, 23, 42, 0.25);
 }
 
-/* Translucent white hover/selection states need a dark counterpart in light mode. */
-.light .hover\:bg-white\/5:hover,
-.light .hover\:bg-white\/\[0\.03\]:hover,
-.light .hover\:bg-white\/\[0\.04\]:hover {
+/* Translucent white hover/selection states need a dark counterpart in light themes. */
+:root[data-theme="paper"] .hover\:bg-white\/5:hover,
+:root[data-theme="paper"] .hover\:bg-white\/\[0\.03\]:hover,
+:root[data-theme="paper"] .hover\:bg-white\/\[0\.04\]:hover,
+:root[data-theme="light"] .hover\:bg-white\/5:hover,
+:root[data-theme="light"] .hover\:bg-white\/\[0\.03\]:hover,
+:root[data-theme="light"] .hover\:bg-white\/\[0\.04\]:hover {
   background-color: rgba(15, 23, 42, 0.05);
 }
-.light .bg-white\/5,
-.light .bg-white\/\[0\.02\],
-.light .bg-white\/\[0\.01\] {
+:root[data-theme="paper"] .bg-white\/5,
+:root[data-theme="paper"] .bg-white\/\[0\.02\],
+:root[data-theme="paper"] .bg-white\/\[0\.01\],
+:root[data-theme="light"] .bg-white\/5,
+:root[data-theme="light"] .bg-white\/\[0\.02\],
+:root[data-theme="light"] .bg-white\/\[0\.01\] {
   background-color: rgba(15, 23, 42, 0.03);
 }
-.light .bg-white\/\[0\.06\],
-.light .bg-white\/\[0\.07\],
-.light .bg-white\/10 {
+:root[data-theme="paper"] .bg-white\/\[0\.06\],
+:root[data-theme="paper"] .bg-white\/\[0\.07\],
+:root[data-theme="paper"] .bg-white\/10,
+:root[data-theme="light"] .bg-white\/\[0\.06\],
+:root[data-theme="light"] .bg-white\/\[0\.07\],
+:root[data-theme="light"] .bg-white\/10 {
   background-color: rgba(15, 23, 42, 0.08);
 }
 

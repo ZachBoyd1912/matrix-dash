@@ -1,148 +1,353 @@
 "use client";
 
-import { useMemo } from "react";
-import { Folder, FileCode2, Plus, Trash2 } from "lucide-react";
-import type { FileMeta } from "@/types/file";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  ChevronRight,
+  File,
+  FileCode2,
+  FileCog,
+  FileJson,
+  FileTerminal,
+  FileText,
+  Folder,
+  FolderOpen,
+  Image as ImageIcon,
+} from "lucide-react";
+import type { TreeEntry } from "@/types/workspace";
 import { cn } from "@/lib/utils/cn";
 
+export type ContextAction = "newFile" | "newFolder" | "rename" | "delete" | "copyPath" | "reveal";
+
 interface Props {
-  files: FileMeta[];
-  activeId: string | null;
-  onOpen: (id: string) => void;
-  onCreate: () => void;
-  onDelete: (id: string) => void;
+  tree: TreeEntry[];
+  activePath: string | null;
+  onOpenFile: (path: string) => void;
+  onNewFile: (dirPath: string) => void;
+  onNewFolder: (dirPath: string) => void;
+  onRename: (entry: TreeEntry, newName: string) => void;
+  onDelete: (entry: TreeEntry) => void;
+  onCopyPath: (path: string) => void;
 }
 
-interface TreeFolder {
-  type: "folder";
-  name: string;
-  path: string;
-  children: TreeNode[];
+interface IconSpec {
+  Icon: typeof File;
+  className: string;
 }
 
-interface TreeFile {
-  type: "file";
-  file: FileMeta;
-}
-
-type TreeNode = TreeFolder | TreeFile;
-
-function buildTree(files: FileMeta[]): TreeNode[] {
-  const root: TreeNode[] = [];
-  const folderMap = new Map<string, TreeFolder>();
-
-  // Stable order: by path.
-  const sorted = [...files].sort((a, b) => a.path.localeCompare(b.path));
-
-  for (const file of sorted) {
-    const parts = file.path.split("/").filter(Boolean);
-    let parent: TreeNode[] = root;
-    let acc = "";
-    for (let i = 0; i < parts.length - 1; i++) {
-      acc = acc ? `${acc}/${parts[i]}` : parts[i];
-      let folder = folderMap.get(acc);
-      if (!folder) {
-        folder = { type: "folder", name: parts[i], path: acc, children: [] };
-        folderMap.set(acc, folder);
-        parent.push(folder);
-      }
-      parent = folder.children;
-    }
-    parent.push({ type: "file", file });
+function iconFor(name: string): IconSpec {
+  const ext = name.split(".").pop()?.toLowerCase() ?? "";
+  switch (ext) {
+    case "ts":
+    case "tsx":
+    case "js":
+    case "jsx":
+    case "mjs":
+    case "cjs":
+      return { Icon: FileCode2, className: "text-sky-400" };
+    case "py":
+      return { Icon: FileCode2, className: "text-emerald-400" };
+    case "go":
+      return { Icon: FileCode2, className: "text-cyan-400" };
+    case "rs":
+      return { Icon: FileCode2, className: "text-orange-300" };
+    case "json":
+      return { Icon: FileJson, className: "text-amber-400" };
+    case "md":
+    case "mdx":
+    case "txt":
+      return { Icon: FileText, className: "text-violet-400" };
+    case "css":
+    case "scss":
+    case "sass":
+      return { Icon: FileCode2, className: "text-pink-400" };
+    case "html":
+    case "xml":
+    case "svg":
+      return { Icon: FileCode2, className: "text-orange-400" };
+    case "sh":
+    case "bash":
+    case "zsh":
+      return { Icon: FileTerminal, className: "text-lime-400" };
+    case "yml":
+    case "yaml":
+    case "toml":
+    case "ini":
+    case "env":
+      return { Icon: FileCog, className: "text-stone-300" };
+    case "png":
+    case "jpg":
+    case "jpeg":
+    case "gif":
+    case "webp":
+    case "ico":
+    case "avif":
+      return { Icon: ImageIcon, className: "text-fuchsia-400" };
+    default:
+      return { Icon: File, className: "text-text-muted" };
   }
-
-  return root;
 }
 
-export function FileTree({ files, activeId, onOpen, onCreate, onDelete }: Props) {
-  const tree = useMemo(() => buildTree(files), [files]);
+interface MenuState {
+  x: number;
+  y: number;
+  entry: TreeEntry;
+}
+
+export function FileTree({
+  tree,
+  activePath,
+  onOpenFile,
+  onNewFile,
+  onNewFolder,
+  onRename,
+  onDelete,
+  onCopyPath,
+}: Props) {
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [menu, setMenu] = useState<MenuState | null>(null);
+  const [renaming, setRenaming] = useState<{ path: string; value: string } | null>(null);
+
+  // Close the context menu on any outside interaction.
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(null);
+    window.addEventListener("click", close);
+    window.addEventListener("contextmenu", close);
+    window.addEventListener("scroll", close, true);
+    return () => {
+      window.removeEventListener("click", close);
+      window.removeEventListener("contextmenu", close);
+      window.removeEventListener("scroll", close, true);
+    };
+  }, [menu]);
+
+  const toggle = (path: string) =>
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(path)) next.delete(path);
+      else next.add(path);
+      return next;
+    });
+
+  const openMenu = (e: React.MouseEvent, entry: TreeEntry) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setMenu({ x: e.clientX, y: e.clientY, entry });
+  };
+
+  const startRename = (entry: TreeEntry) => {
+    setMenu(null);
+    setRenaming({ path: entry.path, value: entry.name });
+  };
+
+  const commitRename = (entry: TreeEntry) => {
+    const value = renaming?.value.trim();
+    setRenaming(null);
+    if (value && value !== entry.name) onRename(entry, value);
+  };
+
+  const rows = useMemo(() => tree, [tree]);
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="px-3 py-2 border-b border-white/5 flex items-center justify-between">
-        <span className="text-[10px] uppercase tracking-wider text-text-muted">Files</span>
-        <button
-          onClick={onCreate}
-          className="text-text-muted hover:text-text-primary p-1 rounded-md hover:bg-white/5 transition-colors"
-          aria-label="New file"
-        >
-          <Plus size={12} />
-        </button>
-      </div>
-      <div className="flex-1 overflow-y-auto p-1">
-        {files.length === 0 ? (
+    <>
+      <div className="flex-1 overflow-y-auto p-1 select-none">
+        {rows.length === 0 ? (
           <p className="text-xs text-text-muted text-center py-8 px-2">
-            No files yet.<br />Click + to create one.
+            This folder is empty.
+            <br />
+            Right-click to add a file.
           </p>
         ) : (
-          <Tree nodes={tree} activeId={activeId} onOpen={onOpen} onDelete={onDelete} depth={0} />
+          <TreeNodes
+            nodes={rows}
+            depth={0}
+            activePath={activePath}
+            collapsed={collapsed}
+            renaming={renaming}
+            onToggle={toggle}
+            onOpenFile={onOpenFile}
+            onContext={openMenu}
+            onRenameChange={(v) => setRenaming((r) => (r ? { ...r, value: v } : r))}
+            onRenameCommit={commitRename}
+            onRenameCancel={() => setRenaming(null)}
+          />
         )}
       </div>
-    </div>
+
+      {menu && (
+        <div
+          className="fixed z-[60] min-w-[176px] glass-strong rounded-lg p-1 text-xs shadow-2xl border border-white/10"
+          style={{ top: Math.min(menu.y, window.innerHeight - 230), left: Math.min(menu.x, window.innerWidth - 190) }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <MenuItem
+            label={menu.entry.type === "dir" ? "New file here" : "New file"}
+            onClick={() => {
+              const dir = menu.entry.type === "dir" ? menu.entry.path : parentOf(menu.entry.path);
+              setMenu(null);
+              onNewFile(dir);
+            }}
+          />
+          <MenuItem
+            label={menu.entry.type === "dir" ? "New folder here" : "New folder"}
+            onClick={() => {
+              const dir = menu.entry.type === "dir" ? menu.entry.path : parentOf(menu.entry.path);
+              setMenu(null);
+              onNewFolder(dir);
+            }}
+          />
+          <div className="my-1 h-px bg-white/8" />
+          <MenuItem label="Rename" onClick={() => startRename(menu.entry)} />
+          <MenuItem
+            label="Copy path"
+            onClick={() => {
+              onCopyPath(menu.entry.path);
+              setMenu(null);
+            }}
+          />
+          <div className="my-1 h-px bg-white/8" />
+          <MenuItem
+            label="Delete"
+            danger
+            onClick={() => {
+              const entry = menu.entry;
+              setMenu(null);
+              onDelete(entry);
+            }}
+          />
+        </div>
+      )}
+    </>
   );
 }
 
-interface TreeProps {
-  nodes: TreeNode[];
-  activeId: string | null;
-  onOpen: (id: string) => void;
-  onDelete: (id: string) => void;
-  depth: number;
+function MenuItem({ label, onClick, danger }: { label: string; onClick: () => void; danger?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "w-full text-left px-2.5 py-1.5 rounded-md transition-colors",
+        danger ? "text-rose-300 hover:bg-rose-500/15" : "text-text-secondary hover:bg-white/8 hover:text-text-primary"
+      )}
+    >
+      {label}
+    </button>
+  );
 }
 
-function Tree({ nodes, activeId, onOpen, onDelete, depth }: TreeProps) {
+interface NodesProps {
+  nodes: TreeEntry[];
+  depth: number;
+  activePath: string | null;
+  collapsed: Set<string>;
+  renaming: { path: string; value: string } | null;
+  onToggle: (path: string) => void;
+  onOpenFile: (path: string) => void;
+  onContext: (e: React.MouseEvent, entry: TreeEntry) => void;
+  onRenameChange: (v: string) => void;
+  onRenameCommit: (entry: TreeEntry) => void;
+  onRenameCancel: () => void;
+}
+
+function TreeNodes(props: NodesProps) {
+  const { nodes, depth, activePath, collapsed, renaming } = props;
   return (
-    <ul className="space-y-0.5">
+    <ul className="space-y-px">
       {nodes.map((node) => {
-        if (node.type === "folder") {
+        const pad = 6 + depth * 12;
+        const isRenaming = renaming?.path === node.path;
+
+        if (node.type === "dir") {
+          const isOpen = !collapsed.has(node.path);
           return (
-            <li key={`folder-${node.path}`}>
+            <li key={node.path}>
               <div
-                className="flex items-center gap-1.5 px-2 py-1 rounded-md text-text-secondary text-xs"
-                style={{ paddingLeft: `${8 + depth * 12}px` }}
+                className="group flex items-center gap-1 px-1.5 py-1 rounded-md text-text-secondary text-xs cursor-pointer hover:bg-white/[0.04] hover:text-text-primary"
+                style={{ paddingLeft: pad }}
+                onClick={() => props.onToggle(node.path)}
+                onContextMenu={(e) => props.onContext(e, node)}
               >
-                <Folder size={11} className="text-amber-400" />
-                <span className="truncate">{node.name}</span>
+                <ChevronRight
+                  size={12}
+                  className={cn("shrink-0 transition-transform text-text-muted", isOpen && "rotate-90")}
+                />
+                {isOpen ? (
+                  <FolderOpen size={13} className="shrink-0 text-amber-400" />
+                ) : (
+                  <Folder size={13} className="shrink-0 text-amber-400" />
+                )}
+                {isRenaming ? (
+                  <RenameInput node={node} {...props} />
+                ) : (
+                  <span className="truncate">{node.name}</span>
+                )}
               </div>
-              <Tree
-                nodes={node.children}
-                activeId={activeId}
-                onOpen={onOpen}
-                onDelete={onDelete}
-                depth={depth + 1}
-              />
+              {isOpen && node.children && node.children.length > 0 && (
+                <TreeNodes {...props} nodes={node.children} depth={depth + 1} />
+              )}
             </li>
           );
         }
-        const isActive = activeId === node.file.id;
+
+        const isActive = activePath === node.path;
+        const { Icon, className } = iconFor(node.name);
         return (
-          <li key={node.file.id} className="group">
+          <li key={node.path}>
             <div
               className={cn(
-                "flex items-center gap-1.5 px-2 py-1 rounded-md text-xs cursor-pointer transition-colors",
+                "group flex items-center gap-1.5 px-1.5 py-1 rounded-md text-xs cursor-pointer transition-colors",
                 isActive
-                  ? "bg-white/[0.07] text-text-primary"
+                  ? "bg-white/[0.08] text-text-primary"
                   : "text-text-secondary hover:bg-white/[0.04] hover:text-text-primary"
               )}
-              style={{ paddingLeft: `${8 + depth * 12}px` }}
-              onClick={() => onOpen(node.file.id)}
+              style={{ paddingLeft: pad + 13 }}
+              onClick={() => props.onOpenFile(node.path)}
+              onContextMenu={(e) => props.onContext(e, node)}
             >
-              <FileCode2 size={11} className="shrink-0 text-sky-400" />
-              <span className="flex-1 truncate">{node.file.name}</span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(node.file.id);
-                }}
-                className="text-text-muted hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                aria-label="Delete file"
-              >
-                <Trash2 size={10} />
-              </button>
+              <Icon size={13} className={cn("shrink-0", className)} />
+              {isRenaming ? (
+                <RenameInput node={node} {...props} />
+              ) : (
+                <span className="flex-1 truncate">{node.name}</span>
+              )}
             </div>
           </li>
         );
       })}
     </ul>
   );
+}
+
+function RenameInput({
+  node,
+  renaming,
+  onRenameChange,
+  onRenameCommit,
+  onRenameCancel,
+}: NodesProps & { node: TreeEntry }) {
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    ref.current?.focus();
+    ref.current?.select();
+  }, []);
+  return (
+    <input
+      ref={ref}
+      value={renaming?.value ?? ""}
+      onClick={(e) => e.stopPropagation()}
+      onChange={(e) => onRenameChange(e.target.value)}
+      onBlur={() => onRenameCommit(node)}
+      onKeyDown={(e) => {
+        e.stopPropagation();
+        if (e.key === "Enter") onRenameCommit(node);
+        else if (e.key === "Escape") onRenameCancel();
+      }}
+      className="flex-1 min-w-0 bg-black/40 border border-emerald-400/40 rounded px-1 py-0 text-xs text-text-primary focus:outline-none"
+    />
+  );
+}
+
+function parentOf(p: string): string {
+  const idx = p.lastIndexOf("/");
+  return idx > 0 ? p.slice(0, idx) : p;
 }

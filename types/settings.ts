@@ -3,6 +3,8 @@ export interface AppSettings {
   autoInject: boolean;
   maxInjectedMemories: number;
   systemPrompt: string;
+  /** Stream extended-thinking/reasoning from providers that support it (Anthropic). */
+  enableThinking: boolean;
 }
 
 export const SETTING_DEFAULTS: Record<string, string> = {
@@ -10,4 +12,5 @@ export const SETTING_DEFAULTS: Record<string, string> = {
   autoInject: "1",
   maxInjectedMemories: "10",
   systemPrompt: "",
+  enableThinking: "1",
 };

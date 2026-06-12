@@ -5,23 +5,25 @@ import { getDb } from "@/lib/db/client";
 import { aiProviders } from "@/lib/db/schema";
 import { encrypt } from "@/lib/utils/crypto";
 import { listProviders } from "@/lib/ai/registry";
+import { withLog } from "@/lib/utils/logger";
 
 export const dynamic = "force-dynamic";
 
 const createSchema = z.object({
   name: z.string().min(1),
-  provider: z.enum(["openai", "anthropic", "google", "custom"]),
+  // Any catalog kind — validated as a non-empty string so new kinds need no code change here.
+  provider: z.string().min(1),
   apiKey: z.string().min(1),
   baseUrl: z.string().nullable().optional(),
   defaultModel: z.string().nullable().optional(),
   isActive: z.boolean().optional(),
 });
 
-export async function GET() {
+export const GET = withLog(async () => {
   return Response.json(listProviders());
-}
+});
 
-export async function POST(req: Request) {
+export const POST = withLog(async (req) => {
   let payload: unknown;
   try {
     payload = await req.json();
@@ -58,4 +60,4 @@ export async function POST(req: Request) {
     db.update(aiProviders).set({ isActive: true }).where(eq(aiProviders.id, id)).run();
   }
   return Response.json({ id });
-}
+});

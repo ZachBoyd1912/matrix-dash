@@ -16,14 +16,22 @@ interface Props {
   value: string;
   language: string;
   onChange: (next: string) => void;
+  onSave?: () => void;
+  onCursor?: (line: number, col: number) => void;
 }
 
-export function MonacoEditor({ value, language, onChange }: Props) {
+export function MonacoEditor({ value, language, onChange, onSave, onCursor }: Props) {
   const handleChange: OnChange = (next) => {
     onChange(next ?? "");
   };
 
   const handleMount: OnMount = (editor, monaco) => {
+    editor.onDidChangeCursorPosition((e) => {
+      onCursor?.(e.position.lineNumber, e.position.column);
+    });
+    if (onSave) {
+      editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => onSave());
+    }
     monaco.editor.defineTheme("matrix-dash", {
       base: "vs-dark",
       inherit: true,

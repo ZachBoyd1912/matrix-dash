@@ -248,6 +248,13 @@ CREATE TABLE IF NOT EXISTS images (
   created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS workspaces (
+  id TEXT PRIMARY KEY,
+  path TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  last_opened TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_memory_links_source ON memory_links(source_memory_id);
 CREATE INDEX IF NOT EXISTS idx_memory_links_target ON memory_links(target_memory_id);
 CREATE INDEX IF NOT EXISTS idx_session_messages_session ON session_messages(session_id);

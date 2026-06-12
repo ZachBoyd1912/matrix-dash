@@ -13,6 +13,7 @@ import { buildMemoryContext } from "@/lib/ai/injection";
 import { extractMemories } from "@/lib/ai/extraction";
 import { getAppSettings } from "@/lib/db/settings";
 import { buildAgentTools } from "@/lib/ai/tools";
+import { providerSpec } from "@/types/ai-provider";
 
 export const dynamic = "force-dynamic";
 
@@ -115,11 +116,20 @@ export async function POST(req: Request) {
 
   const capturedProvider = provider;
   const tools = isAgent ? buildAgentTools() : undefined;
+
+  // Extended thinking: only Anthropic supports it, and only when the user hasn't disabled it.
+  const isAnthropic = providerSpec(provider.provider)?.sdk === "anthropic";
+  const thinkingOn = isAnthropic && appSettings.enableThinking;
+  const providerOptions = thinkingOn
+    ? { anthropic: { thinking: { type: "enabled" as const, budgetTokens: 8000 } } }
+    : undefined;
+
   const result = streamText({
     model,
     messages: finalMessages,
     tools,
     stopWhen: isAgent ? stepCountIs(8) : undefined,
+    providerOptions,
     onFinish: async ({ text }) => {
       // Persist assistant reply.
       if (sessionId) {
@@ -151,7 +161,38 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toTextStreamResponse({
-    headers: { "x-provider-id": provider.id },
+  // NDJSON stream: one JSON object per line so the client can separate the main
+  // reply ({type:"text"}) from the thinking trace ({type:"reasoning"}).
+  const encoder = new TextEncoder();
+  const line = (obj: Record<string, unknown>) => encoder.encode(JSON.stringify(obj) + "\n");
+
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      try {
+        for await (const part of result.fullStream) {
+          if (part.type === "text-delta") {
+            controller.enqueue(line({ type: "text", value: part.text }));
+          } else if (part.type === "reasoning-delta") {
+            controller.enqueue(line({ type: "reasoning", value: part.text }));
+          } else if (part.type === "error") {
+            const msg = part.error instanceof Error ? part.error.message : String(part.error);
+            controller.enqueue(line({ type: "error", value: msg }));
+          }
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        controller.enqueue(line({ type: "error", value: msg }));
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "content-type": "application/x-ndjson; charset=utf-8",
+      "cache-control": "no-cache, no-transform",
+      "x-provider-id": provider.id,
+    },
   });
 }

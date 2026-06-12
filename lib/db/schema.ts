@@ -78,7 +78,8 @@ export const sessionMessages = sqliteTable("session_messages", {
 export const aiProviders = sqliteTable("ai_providers", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
-  provider: text("provider", { enum: ["openai", "anthropic", "google", "custom"] }).notNull(),
+  // Plain text (no enum constraint) so new provider kinds need no migration.
+  provider: text("provider").notNull(),
   apiKeyEncrypted: text("api_key_encrypted").notNull(),
   baseUrl: text("base_url"),
   defaultModel: text("default_model"),
@@ -276,4 +277,12 @@ export const images = sqliteTable("images", {
   dataUrl: text("data_url").notNull(),
   provider: text("provider"),
   createdAt: text("created_at").notNull(),
+});
+
+// ─── WORKSPACES (real on-disk project roots for the IDE) ──
+export const workspaces = sqliteTable("workspaces", {
+  id: text("id").primaryKey(),
+  path: text("path").notNull().unique(),
+  name: text("name").notNull(),
+  lastOpened: text("last_opened").notNull(),
 });

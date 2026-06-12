@@ -13,6 +13,7 @@ interface ChatMessage {
   id: string;
   role: "user" | "assistant" | "system";
   content: string;
+  thinking?: string;
 }
 
 interface Props {
@@ -113,14 +114,46 @@ export function ChatInterface({ sessionId, initialMessages, embedded }: Props) {
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let acc = "";
+        let thinking = "";
+        let streamError = "";
+        let buffer = "";
+
+        // Parse the NDJSON stream line-by-line: {type:"text"|"reasoning"|"error", value}.
+        const handleLine = (raw: string) => {
+          const trimmed = raw.trim();
+          if (!trimmed) return;
+          try {
+            const evt = JSON.parse(trimmed) as { type?: string; value?: string };
+            if (evt.type === "text") acc += evt.value ?? "";
+            else if (evt.type === "reasoning") thinking += evt.value ?? "";
+            else if (evt.type === "error") streamError = evt.value ?? "Stream error";
+          } catch {
+            // Backward-compat: a server that streams plain text → treat as reply text.
+            acc += raw;
+          }
+        };
+
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          acc += decoder.decode(value, { stream: true });
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? ""; // keep the trailing partial line
+          for (const l of lines) handleLine(l);
           setMessages((prev) =>
-            prev.map((m) => (m.id === assistantId ? { ...m, content: acc } : m))
+            prev.map((m) =>
+              m.id === assistantId ? { ...m, content: acc, thinking: thinking || undefined } : m
+            )
           );
         }
+        if (buffer) handleLine(buffer);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantId ? { ...m, content: acc, thinking: thinking || undefined } : m
+          )
+        );
+
+        if (streamError && !acc.trim()) throw new Error(streamError);
         if (autoSpeak && acc.trim()) speak(acc);
       } catch (err) {
         if ((err as Error).name === "AbortError") {
@@ -172,6 +205,7 @@ export function ChatInterface({ sessionId, initialMessages, embedded }: Props) {
                   key={m.id}
                   role={m.role}
                   content={m.content}
+                  thinking={m.thinking}
                   streaming={streaming && m.role === "assistant" && m.id === messages[messages.length - 1].id}
                 />
               ))}

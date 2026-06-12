@@ -6,6 +6,7 @@ import { Topbar } from "./topbar";
 import { CommandPalette } from "./command-palette";
 import { MobileNav } from "./mobile-nav";
 import { PwaRegister } from "./pwa-register";
+import { ThemeStyle } from "./theme-style";
 import { Toaster } from "@/components/ui/toaster";
 import { ConfirmHost } from "@/components/ui/confirm-host";
 import { useAppStore } from "@/lib/stores/use-app-store";
@@ -37,6 +38,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <Toaster />
       <ConfirmHost />
       <PwaRegister />
+      <ThemeStyle />
     </div>
   );
 }

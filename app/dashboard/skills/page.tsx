@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Wand2, Trash2 } from "lucide-react";
+import { Plus, Wand2, Trash2, Github, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
@@ -12,6 +12,8 @@ import { toast, confirm } from "@/lib/stores/use-feedback";
 import { useGsapEntrance } from "@/lib/hooks/use-gsap-entrance";
 import type { Skill } from "@/types/jarvis";
 
+const DEFAULT_IMPORT_REPO = "https://github.com/sickn33/antigravity-awesome-skills";
+
 export default function SkillsPage() {
   const ref = useGsapEntrance();
   const [list, setList] = useState<Skill[] | null>(null);
@@ -19,6 +21,11 @@ export default function SkillsPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [instructions, setInstructions] = useState("");
+
+  // GitHub bulk-import dialog state.
+  const [importOpen, setImportOpen] = useState(false);
+  const [repoUrl, setRepoUrl] = useState(DEFAULT_IMPORT_REPO);
+  const [importing, setImporting] = useState(false);
 
   const refresh = useCallback(async () => {
     const res = await fetch("/api/skills");
@@ -42,6 +49,41 @@ export default function SkillsPage() {
     setInstructions("");
     setOpen(false);
     refresh();
+  };
+
+  const importFromGithub = async () => {
+    if (!repoUrl.trim() || importing) return;
+    setImporting(true);
+    try {
+      const res = await fetch("/api/skills/import", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ repoUrl: repoUrl.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error("Import failed", data?.error ?? `HTTP ${res.status}`);
+        return;
+      }
+      const { imported = 0, skipped = 0, found = 0 } = data;
+      if (imported === 0 && skipped === 0) {
+        toast.info("Nothing imported", data?.error ?? "No SKILL.md files found.");
+      } else {
+        toast.success(
+          `Imported ${imported} skill${imported === 1 ? "" : "s"}`,
+          `${found} found · ${skipped} skipped (duplicates). Imported skills start disabled.`,
+        );
+      }
+      if (data?.truncated) {
+        toast.info("Large repo", "Only the first batch of skills was imported.");
+      }
+      setImportOpen(false);
+      refresh();
+    } catch (err) {
+      toast.error("Import failed", err instanceof Error ? err.message : "Network error");
+    } finally {
+      setImporting(false);
+    }
   };
 
   const toggle = async (s: Skill) => {
@@ -70,9 +112,14 @@ export default function SkillsPage() {
             Reusable instruction packs the agent loads when you&apos;re in Agent mode.
           </p>
         </div>
-        <Button variant="primary" onClick={() => setOpen(true)}>
-          <Plus size={14} /> New skill
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" onClick={() => setImportOpen(true)}>
+            <Github size={14} /> Import from GitHub
+          </Button>
+          <Button variant="primary" onClick={() => setOpen(true)}>
+            <Plus size={14} /> New skill
+          </Button>
+        </div>
       </div>
 
       {list === null ? null : list.length === 0 ? (
@@ -115,6 +162,41 @@ export default function SkillsPage() {
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
             <Button variant="primary" onClick={create} disabled={!name.trim()}>Create</Button>
+          </div>
+        </div>
+      </Dialog>
+
+      <Dialog
+        open={importOpen}
+        onClose={() => !importing && setImportOpen(false)}
+        title="Import skills from GitHub"
+        description="Scans a public repo for SKILL.md files and imports each as a skill."
+      >
+        <div className="space-y-3">
+          <div>
+            <label className="text-[10px] uppercase text-text-muted block mb-1">Repository URL</label>
+            <Input
+              value={repoUrl}
+              onChange={(e) => setRepoUrl(e.target.value)}
+              placeholder="https://github.com/owner/repo"
+              className="font-mono text-xs"
+              autoFocus
+              disabled={importing}
+            />
+          </div>
+          <p className="text-[11px] text-text-muted">
+            Every <span className="font-mono">SKILL.md</span> in the repo becomes a skill (name +
+            description parsed from frontmatter or the first heading). Duplicates are skipped and
+            imported skills start <span className="text-text-secondary">disabled</span>.
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setImportOpen(false)} disabled={importing}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={importFromGithub} disabled={!repoUrl.trim() || importing}>
+              {importing ? <Loader2 size={14} className="animate-spin" /> : <Github size={14} />}
+              {importing ? "Importing…" : "Import"}
+            </Button>
           </div>
         </div>
       </Dialog>

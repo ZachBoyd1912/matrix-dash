@@ -1,5 +1,45 @@
 # Changelog
 
+## 12/06/2026 @ 23:41:39 IST — "claude-opus-4.8-ultracode"
+
+**Goal:** Execute the 8-enhancement plan to its fullest — real on-disk IDE, chat streaming + thinking, a full 20+ provider catalog, GitHub skill import, pretty server logs, a 16-theme studio, and an Odysseus-style hardware-aware Cookbook.
+
+**Credits:** The theme system (named palettes, customization studio, color-harmony generator) and the Cookbook (tab structure, hardware-aware model FIT scoring, dependency manager) are inspired by and adapted from **Odysseus** by **pewdiepie-archdaemon** (AGPL-3.0) — clean-room re-implementations in TypeScript/Next.js. Attribution added to `README.md` (new) and here.
+
+**Added — Fix 1+3 (Real Workspace IDE):**
+- `workspaces` table + `lib/services/workspace.ts` + `types/workspace.ts`.
+- `app/api/workspace/{route,[id],tree,file,mkdir,rename}` — register/list/delete workspaces, recursive tree (skips `node_modules/.git/.next/…`, depth 8), read/write/delete files on disk (500 KB cap), mkdir, rename/move.
+- IDE reworked to open a real folder, browse a live tree, edit in Monaco, and save to disk — every fetch wrapped in try/catch with `toast.error`, killing the old silent failures.
+
+**Added — Fix 4 (Provider catalog):**
+- 20+ providers in `types/ai-provider.ts` (DeepSeek, OpenRouter, Groq, Mistral, Together, Fireworks, xAI, Zhipu, Ollama, LM Studio, Cohere, Perplexity, Hyperbolic, Novita, Azure, …) with pre-filled base URLs + default models.
+- `provider` column switched to free-text; `lib/ai/registry.ts` gained a default OpenAI-compatible branch (`createOpenAI({ apiKey, baseURL })`) so every openai-compat provider resolves with zero extra code. Added `@ai-sdk/mistral` + `@ai-sdk/xai`. Provider form auto-fills base URL + model on kind select.
+
+**Added — Fix 6 (Pretty logs):**
+- `lib/utils/logger.ts` — ANSI logger + `withLog()` HOF that logs `METHOD /path → STATUS (ms)` (green/yellow/red by status) and catches handler errors. Wrapped the workspace + providers routes.
+
+**Added — Fix 5 (Skill import):**
+- `app/api/skills/import/route.ts` — POST `{ repoUrl }` walks a repo's git tree, finds every `SKILL.md`, parses front-matter or first-heading/paragraph, dedupes against existing names, inserts disabled (max 150). Skills page gets an "Import from GitHub" dialog (pre-filled to the antigravity repo).
+
+**Added — Fix 2 (Chat streaming + thinking):**
+- Backend streams NDJSON over `result.fullStream` (`text` / `reasoning` / `error` parts); Anthropic extended thinking enabled via `providerOptions.anthropic.thinking` behind a new `enableThinking` setting.
+- `components/chat/thinking-block.tsx` (collapsible reasoning trace) + message-bubble/chat-interface updated to render live thinking and a pulsing indicator.
+
+**Added — Fix 7 (Theme studio):**
+- `lib/themes.ts` — 16 named themes + `CustomTheme`, `customThemeToCss`, and an HSL color-harmony generator (complementary/analogous/triadic/split).
+- `app/globals.css` — 16 `:root[data-theme]` token blocks, app-wide accent propagation via `color-mix`, light-mode overrides (paper/light), and a `data-frosted="off"` opt-out.
+- `app/dashboard/settings/appearance/page.tsx` rebuilt into 2 tabs (Themes grid + Customize: color pickers, harmony generator, font/density/frosted, save/import/export/reset). `next-themes` switched to `attribute="data-theme"`; `components/layout/theme-style.tsx` boots custom theme + UI prefs; `components/ui/tabs.tsx` primitive added.
+
+**Added — Fix 8 (Cookbook):**
+- `lib/services/ollama-shared.ts` — ~34-model registry + `scoreModel()`/`vramForQuant()` FIT logic (PERFECT/OK/MARGINAL/NO) and tag metadata.
+- `app/api/ollama/route.ts` — VRAM/GPU/chip detection (Apple unified memory vs. discrete VRAM) → `usableVramGb`.
+- New routes `app/api/ollama/{serve,config,deps}`; `lib/services/ollama.ts` gained `psOllama`, serve start/stop/restart, and config read/write.
+- `app/dashboard/settings/cookbook/page.tsx` rebuilt into 4 tabs (Download with FIT table + quant re-fitting, Serve, Dependencies, Settings).
+
+**Verification:** `pnpm typecheck` — zero errors. `app/globals.css` braces balanced (69/69), all 16 theme blocks present.
+
+**Files touched:** `app/api/ai/chat/route.ts`, `app/api/ollama/route.ts`, `app/api/providers/route.ts`, `app/api/ollama/{serve,config,deps}/route.ts` (new), `app/api/skills/import/route.ts` (new), `app/api/workspace/**` (new), `app/dashboard/ide/page.tsx`, `app/dashboard/settings/{appearance,cookbook}/page.tsx`, `app/dashboard/skills/page.tsx`, `app/globals.css`, `app/layout.tsx`, `components/chat/{chat-interface,message-bubble,thinking-block}.tsx`, `components/ide/{file-tree,editor-tabs,monaco-editor}.tsx`, `components/layout/{dashboard-shell,theme-style,theme-toggle}.tsx`, `components/settings/provider-form.tsx`, `components/ui/tabs.tsx` (new), `lib/ai/registry.ts`, `lib/db/{client,schema,settings}.ts`, `lib/services/{ollama,ollama-shared,workspace}.ts`, `lib/themes.ts` (new), `lib/utils/logger.ts` (new), `types/{ai-provider,settings,workspace}.ts`, `README.md` (new).
+
 ## 12/06/2026 @ 18:27:46 IST — "claude-fable-5"
 
 **Goal:** Complete Jarvis phases 6–12 in one push: real email with AI triage, calendar with CalDAV, vector embeddings + uploads + RAG, Deep Research, Compare, Cookbook-lite (Ollama), platform hardening (PWA, 2FA, API tokens, vault, webhooks, backups, contacts), and Delight (image gen, personas, theme editor, diagnostics).

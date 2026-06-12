@@ -30,5 +30,6 @@ export function getAppSettings(): AppSettings {
     autoInject: all.autoInject !== "0",
     maxInjectedMemories: Math.max(1, parseInt(all.maxInjectedMemories, 10) || 10),
     systemPrompt: all.systemPrompt ?? "",
+    enableThinking: all.enableThinking !== "0",
   };
 }
