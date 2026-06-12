@@ -5,6 +5,7 @@ import { scheduledJobs, tasks } from "@/lib/db/schema";
 import { runAgent } from "@/lib/ai/runner";
 import { notify, fireWebhooks } from "./notify";
 import { decayMemories } from "@/lib/ai/consolidation";
+import { syncAllAccounts } from "./email";
 
 // The daemon is a singleton background loop, cached on globalThis so Next.js
 // HMR / multiple route imports don't spawn duplicates.
@@ -13,6 +14,7 @@ const g = globalThis as unknown as {
     started: boolean;
     jobs: Map<string, ScheduledTask>;
     heartbeat?: ScheduledTask;
+    emailPoll?: ScheduledTask;
   };
 };
 
@@ -107,6 +109,11 @@ export function startDaemon() {
         /* ignore */
       }
     }
+  });
+
+  // Email polling every 5 minutes (no-op when no accounts configured).
+  s.emailPoll = cron.schedule("*/5 * * * *", () => {
+    void syncAllAccounts().catch(() => {});
   });
 
   syncScheduledJobs();

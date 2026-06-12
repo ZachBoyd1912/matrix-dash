@@ -1,40 +1,75 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { Plus, RefreshCw, Trash2, Mail } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/lib/stores/use-feedback";
+import { Switch } from "@/components/ui/switch";
+import { toast, confirm } from "@/lib/stores/use-feedback";
 import { useGsapEntrance } from "@/lib/hooks/use-gsap-entrance";
+import { timeAgo } from "@/lib/utils/time";
+import type { EmailAccountPublic } from "@/types/jarvis";
 
 export default function EmailSettingsPage() {
   const ref = useGsapEntrance();
   const [from, setFrom] = useState("");
   const [signature, setSignature] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [accounts, setAccounts] = useState<EmailAccountPublic[]>([]);
+  const [syncing, setSyncing] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetch("/api/settings")
-      .then((r) => r.json())
-      .then((s: Record<string, string>) => {
-        setFrom(s.emailFrom ?? "");
-        setSignature(s.emailSignature ?? "");
-      });
+  const refresh = useCallback(async () => {
+    const [s, a] = await Promise.all([
+      fetch("/api/settings").then((r) => r.json()),
+      fetch("/api/email-accounts").then((r) => r.json()),
+    ]);
+    setFrom(s.emailFrom ?? "");
+    setSignature(s.emailSignature ?? "");
+    setAccounts(Array.isArray(a) ? a : []);
   }, []);
 
-  const save = async () => {
-    setSaving(true);
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const saveDefaults = async () => {
+    await fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ emailFrom: from, emailSignature: signature }),
+    });
+    toast.success("Email settings saved");
+  };
+
+  const sync = async (id: string) => {
+    setSyncing(id);
     try {
-      await fetch("/api/settings", {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ emailFrom: from, emailSignature: signature }),
-      });
-      toast.success("Email settings saved");
+      const res = await fetch(`/api/email-accounts/${id}`, { method: "POST" });
+      const data = await res.json();
+      if (data.ok) toast.success(`Synced`, `${data.imported} new message(s)`);
+      else toast.error("Sync failed", data.error);
+      refresh();
     } finally {
-      setSaving(false);
+      setSyncing(null);
     }
+  };
+
+  const toggleTriage = async (a: EmailAccountPublic) => {
+    await fetch(`/api/email-accounts/${a.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ triageEnabled: !a.triageEnabled }),
+    });
+    refresh();
+  };
+
+  const remove = async (a: EmailAccountPublic) => {
+    const ok = await confirm({ title: `Remove ${a.address}?`, confirmLabel: "Remove", danger: true });
+    if (!ok) return;
+    await fetch(`/api/email-accounts/${a.id}`, { method: "DELETE" });
+    toast.success("Account removed");
+    refresh();
   };
 
   return (
@@ -42,42 +77,137 @@ export default function EmailSettingsPage() {
       <div>
         <h2 className="text-xl font-bold tracking-tight">Email</h2>
         <p className="text-text-secondary text-sm mt-1">
-          The mailbox is fully local today — composing saves to Sent/Drafts in your database.
+          Connect a real IMAP/SMTP account for live sync, sending, and AI triage. Credentials are
+          AES-256-GCM encrypted at rest.
         </p>
       </div>
+
+      {accounts.length > 0 && (
+        <div className="space-y-2">
+          {accounts.map((a) => (
+            <Card key={a.id} className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <Mail size={14} className="text-emerald-400" />
+                  <p className="text-sm font-medium text-text-primary">{a.address}</p>
+                  {a.triageEnabled && (
+                    <Badge className="bg-emerald-400/10 border-emerald-400/20 text-emerald-400">Triage</Badge>
+                  )}
+                </div>
+                <p className="text-[11px] text-text-muted mt-0.5">
+                  {a.imapHost} · {a.lastSyncAt ? `synced ${timeAgo(a.lastSyncAt)}` : "never synced"}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-[10px] text-text-muted">AI triage</span>
+                <Switch checked={!!a.triageEnabled} onCheckedChange={() => toggleTriage(a)} label="Triage" />
+                <Button size="icon" variant="ghost" onClick={() => sync(a.id)} disabled={syncing === a.id} aria-label="Sync">
+                  <RefreshCw size={14} className={syncing === a.id ? "animate-spin" : ""} />
+                </Button>
+                <Button size="icon" variant="ghost" onClick={() => remove(a)} aria-label="Remove">
+                  <Trash2 size={14} className="text-rose-400" />
+                </Button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <AccountForm onAdded={refresh} />
+
       <Card>
+        <p className="text-sm font-medium mb-3">Compose defaults</p>
         <div className="space-y-3">
           <div>
             <label className="block text-[10px] uppercase text-text-muted mb-1">From address</label>
-            <Input
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-              placeholder="you@dash.local"
-            />
+            <Input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="you@dash.local" />
           </div>
           <div>
             <label className="block text-[10px] uppercase text-text-muted mb-1">Signature</label>
-            <Textarea
-              value={signature}
-              onChange={(e) => setSignature(e.target.value)}
-              rows={3}
-              placeholder="— Zach, sent from Matrix Dash"
-            />
+            <Textarea value={signature} onChange={(e) => setSignature(e.target.value)} rows={3} placeholder="— Zach" />
           </div>
           <div className="flex justify-end">
-            <Button variant="primary" onClick={save} disabled={saving}>
-              {saving ? "Saving…" : "Save"}
-            </Button>
+            <Button variant="primary" onClick={saveDefaults}>Save</Button>
           </div>
         </div>
       </Card>
-      <Card className="flex items-start gap-3">
-        <Badge className="bg-amber-400/10 border-amber-400/20 text-amber-400 shrink-0 mt-0.5">Soon</Badge>
-        <p className="text-xs text-text-secondary">
-          SMTP / IMAP connection for real sending and receiving is planned — keys will be stored with
-          the same AES-256-GCM encryption as AI providers.
-        </p>
-      </Card>
     </div>
+  );
+}
+
+function AccountForm({ onAdded }: { onAdded: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [f, setF] = useState({
+    label: "",
+    address: "",
+    imapHost: "",
+    imapPort: 993,
+    smtpHost: "",
+    smtpPort: 465,
+    username: "",
+    password: "",
+    triageEnabled: false,
+  });
+
+  const set = (k: keyof typeof f, v: string | number | boolean) => setF((prev) => ({ ...prev, [k]: v }));
+
+  const submit = async () => {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/email-accounts", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ...f, username: f.username || f.address, test: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error("Could not connect", typeof data.error === "string" ? data.error : "Check IMAP settings.");
+        return;
+      }
+      toast.success("Account connected");
+      setOpen(false);
+      setF({ label: "", address: "", imapHost: "", imapPort: 993, smtpHost: "", smtpPort: 465, username: "", password: "", triageEnabled: false });
+      onAdded();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!open) {
+    return (
+      <Button variant="secondary" onClick={() => setOpen(true)}>
+        <Plus size={14} /> Connect email account
+      </Button>
+    );
+  }
+
+  return (
+    <Card className="space-y-3">
+      <p className="text-sm font-medium">Connect account</p>
+      <div className="grid grid-cols-2 gap-2">
+        <Input placeholder="Label" value={f.label} onChange={(e) => set("label", e.target.value)} />
+        <Input placeholder="you@gmail.com" value={f.address} onChange={(e) => set("address", e.target.value)} />
+        <Input placeholder="imap.gmail.com" value={f.imapHost} onChange={(e) => set("imapHost", e.target.value)} />
+        <Input placeholder="993" type="number" value={f.imapPort} onChange={(e) => set("imapPort", parseInt(e.target.value) || 993)} />
+        <Input placeholder="smtp.gmail.com" value={f.smtpHost} onChange={(e) => set("smtpHost", e.target.value)} />
+        <Input placeholder="465" type="number" value={f.smtpPort} onChange={(e) => set("smtpPort", parseInt(e.target.value) || 465)} />
+        <Input placeholder="Username (optional)" value={f.username} onChange={(e) => set("username", e.target.value)} />
+        <Input placeholder="Password / app password" type="password" value={f.password} onChange={(e) => set("password", e.target.value)} />
+      </div>
+      <label className="flex items-center gap-2 text-xs text-text-secondary">
+        <input type="checkbox" checked={f.triageEnabled} onChange={(e) => set("triageEnabled", e.target.checked)} className="accent-emerald-400" />
+        Enable AI triage (auto-tag, summarize, flag urgent)
+      </label>
+      <div className="flex justify-end gap-2">
+        <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+        <Button variant="primary" onClick={submit} disabled={busy || !f.address || !f.imapHost || !f.password}>
+          {busy ? "Testing…" : "Test & connect"}
+        </Button>
+      </div>
+      <p className="text-[10px] text-text-muted">
+        Gmail/Outlook need an app password with IMAP enabled. The connection is tested before saving.
+      </p>
+    </Card>
   );
 }

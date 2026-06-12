@@ -300,9 +300,24 @@ export function getSqlite(): Database.Database {
   sqlite.pragma("foreign_keys = ON");
   sqlite.pragma("busy_timeout = 5000");
   sqlite.exec(INIT_SQL);
+  runColumnMigrations(sqlite);
   seedWelcomeEmail(sqlite);
   g.__matrixSqlite = sqlite;
   return sqlite;
+}
+
+/** Idempotently add columns introduced after a DB may already exist. */
+function runColumnMigrations(sqlite: Database.Database) {
+  const ensureColumn = (table: string, column: string, ddl: string) => {
+    const cols = sqlite.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+    if (!cols.some((c) => c.name === column)) {
+      sqlite.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl}`);
+    }
+  };
+  ensureColumn("emails", "account_id", "account_id TEXT");
+  ensureColumn("emails", "message_id", "message_id TEXT");
+  ensureColumn("emails", "tags", "tags TEXT NOT NULL DEFAULT ''");
+  ensureColumn("emails", "summary", "summary TEXT");
 }
 
 function seedWelcomeEmail(sqlite: Database.Database) {

@@ -108,6 +108,10 @@ export const emails = sqliteTable("emails", {
   body: text("body").notNull().default(""),
   isRead: integer("is_read", { mode: "boolean" }).default(false),
   isStarred: integer("is_starred", { mode: "boolean" }).default(false),
+  accountId: text("account_id"),
+  messageId: text("message_id"),
+  tags: text("tags").notNull().default(""),
+  summary: text("summary"),
   createdAt: text("created_at").notNull(),
 });
 
