@@ -1,5 +1,19 @@
 # Changelog
 
+## 13/06/2026 @ 19:55:18 IST — "opencode/deepseek-v4-flash-free"
+
+**Goal:** Set up persistent cross-session memory via agentmemory and seed the project with key context.
+
+**Added — persistent memory:**
+- Confirmed agentmemory backend is already running at `http://localhost:3111` with 263 registered functions, auto-started via OpenCode MCP config.
+- Seeded 5 project memories (project overview, architecture, latest work, 8GB RAM constraint, memory setup) via agentmemory HTTP API so future sessions can recall context.
+- Cloned `webzler/agentMemory` GitHub repo to `.agent/skills/agent-memory/` (compiled, ready) as a reference implementation.
+- Added `.agent/` to `.gitignore` to prevent the 153MB skill directory from being committed.
+
+**Verification:** Backend health check returns `"status":"healthy"`. Memory save/search round-trips confirmed — all 5 seeded memories return correctly ranked by relevance score.
+
+**Files touched:** `.gitignore`.
+
 ## 13/06/2026 @ 12:27:19 IST — "claude-sonnet-4.6"
 
 **Goal:** Let users pick a *specific model* (and its reasoning/thinking level) per provider instead of a single hand-typed `defaultModel`. Query each provider's live model catalogue via its stored API key, and expose an advanced model selector in chat/agent plus model dropdowns in AI Providers settings.

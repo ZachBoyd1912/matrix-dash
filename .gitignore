@@ -20,5 +20,8 @@ pnpm-debug.log*
 .env.local
 .env*.local
 
+# agent skill directories
+.agent/
+
 # typescript
 *.tsbuildinfo
