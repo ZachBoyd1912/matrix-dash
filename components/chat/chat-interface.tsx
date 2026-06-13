@@ -21,9 +21,15 @@ interface Props {
   initialMessages?: ChatMessage[];
   /** Hide the giant "Matrix Dash" hero when embedded in a session view. */
   embedded?: boolean;
+  /**
+   * Optional extra context (e.g. the file open in the IDE) injected as a leading
+   * system message on each send. It is sent to the model but never rendered as a
+   * chat bubble, so the conversation stays clean. Evaluated at send time.
+   */
+  contextText?: () => string | null | undefined;
 }
 
-export function ChatInterface({ sessionId, initialMessages, embedded }: Props) {
+export function ChatInterface({ sessionId, initialMessages, embedded, contextText }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages ?? []);
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -94,11 +100,17 @@ export function ChatInterface({ sessionId, initialMessages, embedded }: Props) {
       abortRef.current = controller;
 
       try {
+        const convo = history.map(({ role, content }) => ({ role, content }));
+        // Inject host context (e.g. the IDE's open file) as a leading system
+        // message — visible to the model, hidden from the rendered transcript.
+        const ctx = contextText?.();
+        const outgoing =
+          ctx && ctx.trim() ? [{ role: "system", content: ctx }, ...convo] : convo;
         const res = await fetch("/api/ai/chat", {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
-            messages: history.map(({ role, content }) => ({ role, content })),
+            messages: outgoing,
             providerId,
             sessionId,
             mode: chatMode,
@@ -168,7 +180,7 @@ export function ChatInterface({ sessionId, initialMessages, embedded }: Props) {
         abortRef.current = null;
       }
     },
-    [messages, providerId, sessionId, chatMode, autoSpeak, attachment]
+    [messages, providerId, sessionId, chatMode, autoSpeak, attachment, contextText]
   );
 
   const empty = messages.length === 0;

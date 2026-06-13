@@ -20,6 +20,9 @@ import {
   Loader2,
   Gauge,
   Save,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -276,6 +279,64 @@ function HardwareBanner({ data, onRescan }: { data: CookbookData | null; onResca
 
 const TAG_OPTIONS: (ModelTag | "all")[] = ["all", "general", "coding", "reasoning", "vision", "embed"];
 
+type SortKey = "fit" | "label" | "param" | "vram" | "ctx" | "speed" | "score";
+type SortDir = "asc" | "desc";
+type SortState = { key: SortKey; dir: SortDir };
+
+// Higher = fits better, so a "desc" sort puts the best fit on top.
+const FIT_RANK: Record<string, number> = { PERFECT: 3, OK: 2, MARGINAL: 1, NO: 0 };
+
+// The intuitive first-click direction for each column.
+const SORT_DEFAULT_DIR: Record<SortKey, SortDir> = {
+  fit: "desc",
+  label: "asc",
+  param: "asc",
+  vram: "asc",
+  ctx: "asc",
+  speed: "desc",
+  score: "desc",
+};
+
+/** A clickable table header that drives sorting and shows the active direction. */
+function SortTh({
+  label,
+  sortKey,
+  sort,
+  onSort,
+  align = "left",
+}: {
+  label: string;
+  sortKey: SortKey;
+  sort: SortState;
+  onSort: (k: SortKey) => void;
+  align?: "left" | "right";
+}) {
+  const active = sort.key === sortKey;
+  return (
+    <th className={`py-2 pr-2 font-medium ${align === "right" ? "text-right" : ""}`}>
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className={`inline-flex items-center gap-0.5 uppercase tracking-wider transition-colors hover:text-text-secondary ${
+          active ? "text-text-secondary" : ""
+        }`}
+        title={`Sort by ${label}`}
+      >
+        {label}
+        {active ? (
+          sort.dir === "asc" ? (
+            <ArrowUp size={10} />
+          ) : (
+            <ArrowDown size={10} />
+          )
+        ) : (
+          <ArrowUpDown size={10} className="opacity-30" />
+        )}
+      </button>
+    </th>
+  );
+}
+
 function DownloadTab({
   data,
   pulling,
@@ -295,12 +356,21 @@ function DownloadTab({
   const [tag, setTag] = useState<ModelTag | "all">("all");
   const [quant, setQuant] = useState<Quant>("Q4_K_M");
   const [showAll, setShowAll] = useState(false);
+  const [sort, setSort] = useState<SortState>({ key: "score", dir: "desc" });
+
+  const onSort = (key: SortKey) =>
+    setSort((cur) =>
+      cur.key === key
+        ? { key, dir: cur.dir === "asc" ? "desc" : "asc" }
+        : { key, dir: SORT_DEFAULT_DIR[key] }
+    );
 
   const usable = data?.hardware?.usableVramGb ?? 8;
   const installedNames = useMemo(() => new Set((data?.models ?? []).map((m) => m.name)), [data]);
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase();
+    const dir = sort.dir === "asc" ? 1 : -1;
     return MODEL_REGISTRY.map((m) => ({ m, s: scoreModel(m, usable, quant) }))
       .filter(({ m, s }) => {
         if (tag !== "all" && !m.tags.includes(tag)) return false;
@@ -308,8 +378,34 @@ function DownloadTab({
         if (q && !(`${m.label} ${m.name}`.toLowerCase().includes(q))) return false;
         return true;
       })
-      .sort((a, b) => b.s.score - a.s.score);
-  }, [search, tag, quant, showAll, usable]);
+      .sort((a, b) => {
+        let cmp = 0;
+        switch (sort.key) {
+          case "fit":
+            cmp = (FIT_RANK[a.s.fit] ?? 0) - (FIT_RANK[b.s.fit] ?? 0);
+            break;
+          case "label":
+            cmp = a.m.label.localeCompare(b.m.label);
+            break;
+          case "param":
+            cmp = a.m.paramsB - b.m.paramsB;
+            break;
+          case "vram":
+            cmp = a.s.vramGb - b.s.vramGb;
+            break;
+          case "ctx":
+            cmp = a.m.ctx - b.m.ctx;
+            break;
+          case "speed":
+            cmp = a.s.speed - b.s.speed;
+            break;
+          default:
+            cmp = a.s.score - b.s.score;
+        }
+        if (cmp !== 0) return cmp * dir;
+        return b.s.score - a.s.score; // stable tie-break: best score first
+      });
+  }, [search, tag, quant, showAll, usable, sort]);
 
   const isInstalled = (name: string) =>
     installedNames.has(name) ||
@@ -378,14 +474,14 @@ function DownloadTab({
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="text-[10px] uppercase tracking-wider text-text-muted">
-                <th className="py-2 pr-2 font-medium">Fit</th>
-                <th className="py-2 pr-2 font-medium">Model</th>
-                <th className="py-2 pr-2 font-medium">Param</th>
+                <SortTh label="Fit" sortKey="fit" sort={sort} onSort={onSort} />
+                <SortTh label="Model" sortKey="label" sort={sort} onSort={onSort} />
+                <SortTh label="Param" sortKey="param" sort={sort} onSort={onSort} />
                 <th className="py-2 pr-2 font-medium">Quant</th>
-                <th className="py-2 pr-2 font-medium">VRAM</th>
-                <th className="py-2 pr-2 font-medium">Ctx</th>
-                <th className="py-2 pr-2 font-medium">t/s</th>
-                <th className="py-2 pr-2 font-medium">Score</th>
+                <SortTh label="VRAM" sortKey="vram" sort={sort} onSort={onSort} />
+                <SortTh label="Ctx" sortKey="ctx" sort={sort} onSort={onSort} />
+                <SortTh label="t/s" sortKey="speed" sort={sort} onSort={onSort} />
+                <SortTh label="Score" sortKey="score" sort={sort} onSort={onSort} />
                 <th className="py-2 pr-2 font-medium text-right">Action</th>
               </tr>
             </thead>

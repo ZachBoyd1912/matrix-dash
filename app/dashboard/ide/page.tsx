@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FolderOpen, FolderPlus, Plus, Save, X, Clock, HardDrive } from "lucide-react";
+import { FolderOpen, FolderPlus, Plus, Save, X, Clock, HardDrive, PanelRight, MessageSquare } from "lucide-react";
 import { FileTree } from "@/components/ide/file-tree";
 import { EditorTabs } from "@/components/ide/editor-tabs";
 import { MonacoEditor } from "@/components/ide/monaco-editor";
+import { ChatInterface } from "@/components/chat/chat-interface";
 import { EmptyState } from "@/components/ui/empty";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -47,6 +48,24 @@ export default function IdePage() {
   const [activePath, setActivePath] = useState<string | null>(null);
   const [cursor, setCursor] = useState<{ line: number; col: number }>({ line: 1, col: 1 });
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Docked AI chat panel (remembers its open/closed state across visits).
+  const [chatOpen, setChatOpen] = useState(false);
+  const persistChat = useCallback((open: boolean) => {
+    setChatOpen(open);
+    try {
+      localStorage.setItem("ide:chatOpen", open ? "1" : "0");
+    } catch {
+      /* private mode / storage disabled — non-critical */
+    }
+  }, []);
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("ide:chatOpen") === "1") setChatOpen(true);
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   // ─── Workspace lifecycle ───────────────────────────────
   const loadRecents = useCallback(async () => {
@@ -468,7 +487,13 @@ export default function IdePage() {
 
   // Workspace open mode.
   return (
-    <div className="page-h grid grid-cols-[200px_1fr] md:grid-cols-[260px_1fr]">
+    <div
+      className={`page-h grid ${
+        chatOpen
+          ? "grid-cols-[180px_1fr_300px] md:grid-cols-[240px_1fr_380px]"
+          : "grid-cols-[200px_1fr] md:grid-cols-[260px_1fr]"
+      }`}
+    >
       <aside className="border-r border-white/5 bg-white/[0.01] flex flex-col min-h-0">
         <div className="px-3 py-2 border-b border-white/5 flex items-center justify-between gap-1">
           <div className="flex items-center gap-1.5 min-w-0">
@@ -478,6 +503,17 @@ export default function IdePage() {
             </span>
           </div>
           <div className="flex items-center gap-0.5 shrink-0">
+            <button
+              onClick={() => persistChat(!chatOpen)}
+              className={`p-1 rounded-md hover:bg-white/5 transition-colors ${
+                chatOpen ? "text-emerald-400" : "text-text-muted hover:text-text-primary"
+              }`}
+              aria-label="Toggle AI chat"
+              aria-pressed={chatOpen}
+              title="Toggle AI chat panel"
+            >
+              <PanelRight size={13} />
+            </button>
             <button
               onClick={() => promptNewFile(workspace.root)}
               className="text-text-muted hover:text-text-primary p-1 rounded-md hover:bg-white/5 transition-colors"
@@ -577,9 +613,57 @@ export default function IdePage() {
         </div>
       </section>
 
+      {chatOpen && (
+        <aside className="border-l border-white/5 bg-white/[0.01] flex flex-col min-h-0">
+          <div className="px-3 py-2 border-b border-white/5 flex items-center justify-between gap-2">
+            <span className="text-xs font-semibold text-text-primary flex items-center gap-1.5">
+              <MessageSquare size={13} className="text-emerald-400" /> AI Chat
+            </span>
+            <div className="flex items-center gap-2 min-w-0">
+              {active ? (
+                <span
+                  className="text-[10px] text-text-muted truncate max-w-[140px] font-mono"
+                  title={`Context: ${active.path}`}
+                >
+                  {active.name}
+                </span>
+              ) : (
+                <span className="text-[10px] text-text-muted">no file context</span>
+              )}
+              <button
+                onClick={() => persistChat(false)}
+                className="text-text-muted hover:text-rose-400 p-1 rounded-md hover:bg-white/5 transition-colors shrink-0"
+                aria-label="Close AI chat"
+                title="Close chat"
+              >
+                <X size={13} />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 min-h-0">
+            <ChatInterface embedded contextText={() => (active ? fileChatContext(active) : null)} />
+          </div>
+        </aside>
+      )}
+
       <NewEntryDialog dialog={dialog} setDialog={setDialog} submit={submitDialog} />
     </div>
   );
+}
+
+/** Builds the hidden system context handed to the IDE chat for the open file. */
+function fileChatContext(f: OpenFile): string {
+  const MAX = 16000;
+  const body = f.content.length > MAX ? f.content.slice(0, MAX) + "\n… (truncated)" : f.content;
+  return [
+    "You are an AI pair-programmer embedded in the Matrix IDE.",
+    "The user is editing the file below. Use it as context and reference real lines when relevant.",
+    "",
+    `File: ${f.path}`,
+    `Language: ${f.language}`,
+    "",
+    "```" + (f.language || "") + "\n" + body + "\n```",
+  ].join("\n");
 }
 
 function NewEntryDialog({

@@ -1,5 +1,26 @@
 # Changelog
 
+## 13/06/2026 @ 09:06:26 IST — "claude-opus-4.8-ultracode"
+
+**Goal:** Three UX fixes — sortable Cookbook model columns, near-instant page navigation, and a docked AI chat panel inside the IDE that's aware of the open file.
+
+**Added — Sortable Cookbook columns:**
+- *Cause:* The Download tab's model table was fixed-sorted by score; users couldn't reorder by context, tokens/sec, params, VRAM, etc.
+- *Fix:* `app/dashboard/settings/cookbook/page.tsx` — added `SortKey`/`SortDir`/`SortState` types, a `FIT_RANK` map, `SORT_DEFAULT_DIR` per-column defaults, and a clickable `SortTh` header component (ArrowUp/ArrowDown when active, faint ArrowUpDown when inactive). The `rows` `useMemo` now switches on `sort.key` (fit→rank, label→localeCompare, param→paramsB, vram, ctx, speed, score) with a score tie-break; clicking a header toggles direction, clicking a new one applies that column's natural default. Fit / Model / Param / VRAM / Ctx / t-s / Score are sortable; Quant + Action stay static.
+- *Verification:* `pnpm typecheck` clean; sort state added to the memo deps so re-sorts are reactive.
+
+**Added — Docked AI chat panel in the IDE:**
+- *Cause:* The IDE had no in-page chat (unlike a typical agentic IDE), forcing a context switch to the chat route.
+- *Fix:* `app/dashboard/ide/page.tsx` — a `PanelRight` toggle in the workspace sidebar opens a right-hand `<aside>` hosting `<ChatInterface embedded>`; the grid switches between 2- and 3-column templates. Open/closed state persists to `localStorage` (`ide:chatOpen`) via a write-only `persistChat` + a separate restore effect (avoids the mount-overwrites-restore bug). The panel is context-aware: `fileChatContext()` packages the active file (path, language, content capped at 16 KB) and is injected through a new `contextText` prop on `components/chat/chat-interface.tsx` as a **leading system message** — sent to the model each turn but never rendered as a bubble.
+- *Verification:* Confirmed by reading source that `Dialog` returns `null` when closed (no phantom grid row) and that the AI SDK (5.0.199) only warns — never throws — on system messages within `messages`, with no ordering/count limit; the chat route already injects its own leading system message, so the second one rides the same validated path.
+
+**Changed — Near-instant page navigation:**
+- *Cause:* The app had **zero** route-segment loading boundaries, so navigating to a not-yet-compiled segment (dev) froze on the previous screen — read as "the app is slow". The `lucide-react` barrel (imported on nearly every page) also inflated per-route compile.
+- *Fix:* Added `app/dashboard/loading.tsx` (skeleton inside the shell `<main>`) and `app/dashboard/settings/loading.tsx` (skeleton inside the settings `<section>`, keeping the settings sidebar visible) for instant transition feedback; set `experimental.optimizePackageImports: ["lucide-react"]` in `next.config.ts` to tree-shake the icon barrel.
+- *Verification:* `pnpm typecheck` clean; verified `fadeIn` keyframe + `Skeleton` component exist and the boundaries render in the correct containers.
+
+**Files touched:** `app/dashboard/settings/cookbook/page.tsx`, `app/dashboard/ide/page.tsx`, `components/chat/chat-interface.tsx`, `next.config.ts`, `app/dashboard/loading.tsx` (new), `app/dashboard/settings/loading.tsx` (new).
+
 ## 12/06/2026 @ 23:41:39 IST — "claude-opus-4.8-ultracode"
 
 **Goal:** Execute the 8-enhancement plan to its fullest — real on-disk IDE, chat streaming + thinking, a full 20+ provider catalog, GitHub skill import, pretty server logs, a 16-theme studio, and an Odysseus-style hardware-aware Cookbook.
