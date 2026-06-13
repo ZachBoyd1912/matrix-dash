@@ -1,0 +1,7 @@
+# Source and build tooling are not shipped in the .vsix — only dist/ + media/ + manifest.
+src/**
+node_modules/**
+esbuild.mjs
+tsconfig.json
+**/*.map
+.gitignore

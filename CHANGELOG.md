@@ -1,5 +1,30 @@
 # Changelog
 
+## 13/06/2026 @ 23:05:13 IST — "claude-opus-4-8"
+
+**Goal:** Make the IDE tab a *real, branded VS Code* (the Antigravity model) embedded inside the web app — by managing a local `code-server` instance from the dashboard and embedding it in an iframe, with an AI agent extension wired to the existing chat backend. Built via multi-agent orchestration.
+
+**Added — real VS Code in the IDE tab:**
+- `lib/services/code-server.ts` — code-server lifecycle service (mirrors the Ollama pattern in `lib/services/ollama.ts`): `detectCodeServer`, `codeServerStatus` (loopback `/healthz` + a `ps` probe scoped to our data dir), `startCodeServer` (argv-array `spawn`, `detached`+`unref`, bound to `127.0.0.1`, `--auth none`, scoped `--user-data-dir`/`--extensions-dir`), `stopCodeServer`/`restartCodeServer`, `installCodeServer` (official installer with a manual `brew` fallback), and `writeBrandedSettings` (emerald-on-`#0a0a0a` theme, JetBrains Mono, telemetry off).
+- `app/api/ide/server/route.ts` — GET status + POST `{action: start|stop|restart, folder?}`.
+- `app/api/ide/server/install/route.ts` — GET detect + POST install.
+- `components/ide/code-server-gate.tsx` + `code-server-embed.tsx` + `code-server-install-panel.tsx` — the install → folder-picker → iframe state machine; unmount-safe start polling; reuses the existing `/api/workspace` recents.
+- `vscode-extension/matrix-agent/**` — a VS Code extension (sidebar webview) that streams from `/api/ai/chat` (NDJSON text/reasoning/error) and offers reviewable `applyEdit` (diff + modal confirm) and `runInTerminal` host helpers. Strict CSP, nonce-gated script; API keys never leave the dashboard server.
+
+**Changed:**
+- `app/dashboard/ide/page.tsx` — added a "VS Code" / "Lite editor" view toggle (defaults to VS Code, persisted in `localStorage["ide:view"]`, rendered in all branches so it's never a one-way trip); the VS Code view renders `<CodeServerGate/>`, the Lite view keeps the existing Monaco workspace untouched.
+- `types/settings.ts` — added `ideServerPort` (`3010`) and `ideServerAutoStart` (`0`) defaults.
+- `tsconfig.json` — excluded `vscode-extension` from the root typecheck (it's a self-contained subproject with its own `@types/vscode`).
+- `.gitignore` — ignore runtime `/data/` (sqlite + agentmemory state store).
+
+**Security (cause → fix):** an embedded editor that spawns processes is an injection surface → code-server is spawned via an **argv array** (never a shell string), the launch folder is validated (absolute, no null bytes, existing directory) before reaching argv, the bind address is **loopback-only** (`--auth none` is only safe because of this), and stop/status are scoped to our `.matrix-dash` data dir so an unrelated code-server is never killed or reported. The install route's `curl … | sh` is a fixed literal, user-initiated only.
+
+**Orchestration:** invoked `antigravity-skill-orchestrator`, then a `Workflow` with 3 parallel builders → integrate → review. Skills applied (≥10): nodejs-best-practices, backend-dev-guidelines, backend-security-coder, nextjs-best-practices, senior-frontend, react-best-practices, tailwind-patterns, typescript-pro, ai-engineer, claude-api, systematic-debugging. The two review subagents hit the session quota, so security + correctness review was completed directly.
+
+**Verification:** `pnpm typecheck` → **0 errors** on the fully integrated tree. Self-review confirmed: argv-array spawn, loopback bind, validated folder, scoped kill, CSP-locked webview, server-side keys, unmount-safe polling, view toggle present in every render branch. Not run (8GB RAM rule): `pnpm build`, code-server install, live server launch.
+
+**Files touched:** `lib/services/code-server.ts`; `app/api/ide/server/route.ts`; `app/api/ide/server/install/route.ts`; `components/ide/code-server-gate.tsx`; `components/ide/code-server-embed.tsx`; `components/ide/code-server-install-panel.tsx`; `app/dashboard/ide/page.tsx`; `types/settings.ts`; `tsconfig.json`; `.gitignore`; `vscode-extension/matrix-agent/**` (package.json, tsconfig.json, esbuild.mjs, .vscodeignore, README.md, src/extension.ts, media/{main.js,main.css,icon.svg}); `CHANGELOG.md`.
+
 ## 13/06/2026 @ 19:55:18 IST — "opencode/deepseek-v4-flash-free"
 
 **Goal:** Set up persistent cross-session memory via agentmemory and seed the project with key context.

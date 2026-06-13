@@ -23,5 +23,8 @@ pnpm-debug.log*
 # agent skill directories
 .agent/
 
+# runtime data stores (sqlite db, agentmemory state) — never commit
+/data/
+
 # typescript
 *.tsbuildinfo
