@@ -1,0 +1,321 @@
+/*
+ * Matrix Agent webview styling — mirrors the dashboard's emerald-on-near-black
+ * palette (accent #34d399, surface #0a0a0a, foreground #e8e8e8, JetBrains Mono),
+ * the same tokens lib/services/code-server.ts writes into code-server's settings.
+ */
+
+:root {
+  --bg: #0a0a0a;
+  --surface: #111111;
+  --surface-2: #161616;
+  --border: #1f1f1f;
+  --accent: #34d399;
+  --accent-dim: #34d39933;
+  --text: #e8e8e8;
+  --text-muted: #8b8b8b;
+  --danger: #f87171;
+  --radius: 10px;
+  --mono: "JetBrains Mono", "SF Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+/* ------------------------------------------------------------------ *
+ * Layout: scrolling message log above a docked composer.
+ * ------------------------------------------------------------------ */
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+#messages {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 12px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+#messages:empty::after {
+  content: "Ask the agent anything about this workspace.";
+  color: var(--text-muted);
+  font-style: italic;
+  margin: auto;
+  padding: 0 16px;
+  text-align: center;
+}
+
+/* ------------------------------------------------------------------ *
+ * Message rows.
+ * ------------------------------------------------------------------ */
+
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: fade-in 120ms ease-out;
+}
+
+.row .label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.row.assistant .label {
+  color: var(--accent);
+}
+
+.row .body {
+  white-space: pre-wrap;
+  word-break: break-word;
+  border-radius: var(--radius);
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.row.user .body {
+  background: var(--surface-2);
+  border-color: #262626;
+}
+
+.row.assistant .body {
+  background: var(--surface);
+  border-left: 2px solid var(--accent);
+}
+
+.row.system .body {
+  background: rgba(248, 113, 113, 0.08);
+  border-color: rgba(248, 113, 113, 0.3);
+  color: var(--danger);
+  font-size: 12px;
+}
+
+/* Subtle pulsing accent border while a reply streams in. */
+.row .body.streaming {
+  border-left-color: var(--accent);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.prose {
+  white-space: pre-wrap;
+}
+
+/* ------------------------------------------------------------------ *
+ * Code fences + action buttons (Apply edit / Run in terminal).
+ * ------------------------------------------------------------------ */
+
+.code {
+  margin: 8px 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #0d0d0d;
+}
+
+.code pre {
+  margin: 0;
+  padding: 10px 12px;
+  overflow-x: auto;
+}
+
+.code code {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: #d4d4d4;
+}
+
+.action {
+  display: block;
+  width: 100%;
+  border: none;
+  border-top: 1px solid var(--border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 11px;
+  text-align: left;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.action:hover {
+  background: rgba(52, 211, 153, 0.22);
+}
+
+/* ------------------------------------------------------------------ *
+ * Reasoning trace (collapsible).
+ * ------------------------------------------------------------------ */
+
+.reasoning {
+  margin-top: 8px;
+  border-top: 1px dashed var(--border);
+  padding-top: 6px;
+}
+
+.reasoning summary {
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  list-style: none;
+}
+
+.reasoning summary::-webkit-details-marker {
+  display: none;
+}
+
+.reasoning summary::before {
+  content: "▸ ";
+  color: var(--accent);
+}
+
+.reasoning[open] summary::before {
+  content: "▾ ";
+}
+
+.reasoning-body {
+  margin-top: 6px;
+  padding: 8px 10px;
+  background: #0d0d0d;
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ------------------------------------------------------------------ *
+ * Composer.
+ * ------------------------------------------------------------------ */
+
+#composer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+
+#input {
+  flex: 1 1 auto;
+  resize: none;
+  min-height: 36px;
+  max-height: 160px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.45;
+  outline: none;
+  transition: border-color 120ms ease;
+}
+
+#input:focus {
+  border-color: var(--accent);
+}
+
+#input:disabled {
+  opacity: 0.6;
+}
+
+#input::placeholder {
+  color: var(--text-muted);
+}
+
+#composer button {
+  flex: 0 0 auto;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--accent);
+  color: #03110b;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease, opacity 120ms ease;
+}
+
+#composer button:hover {
+  background: #2dd4a7;
+}
+
+#composer #stop {
+  background: transparent;
+  color: var(--accent);
+}
+
+#composer #stop:hover {
+  background: var(--accent-dim);
+}
+
+/* ------------------------------------------------------------------ *
+ * Scrollbar + motion.
+ * ------------------------------------------------------------------ */
+
+#messages::-webkit-scrollbar,
+.code pre::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+#messages::-webkit-scrollbar-thumb,
+.code pre::-webkit-scrollbar-thumb {
+  background: #262626;
+  border-radius: 8px;
+}
+
+#messages::-webkit-scrollbar-thumb:hover {
+  background: #333333;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    border-left-color: var(--accent);
+  }
+  50% {
+    border-left-color: rgba(52, 211, 153, 0.35);
+  }
+}

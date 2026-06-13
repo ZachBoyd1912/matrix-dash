@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { FolderOpen, FolderPlus, Plus, Save, X, Clock, HardDrive, PanelRight, MessageSquare } from "lucide-react";
+import { FolderOpen, FolderPlus, Plus, Save, X, Clock, HardDrive, PanelRight, MessageSquare, Code2, FileCode } from "lucide-react";
 import { FileTree } from "@/components/ide/file-tree";
 import { EditorTabs } from "@/components/ide/editor-tabs";
 import { MonacoEditor } from "@/components/ide/monaco-editor";
+import CodeServerGate from "@/components/ide/code-server-gate";
 
 // Client-only: keeps the chat dependency tree out of the IDE page's SSR bundle,
 // so edits to ChatInterface (or its deps) can't bust the server build for this route.
@@ -55,6 +56,25 @@ export default function IdePage() {
   const [activePath, setActivePath] = useState<string | null>(null);
   const [cursor, setCursor] = useState<{ line: number; col: number }>({ line: 1, col: 1 });
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Top-level editor surface: real VS Code (code-server) or the built-in Lite
+  // editor. Defaults to "vscode"; the choice persists across visits.
+  const [view, setView] = useState<"vscode" | "lite">("vscode");
+  const persistView = useCallback((next: "vscode" | "lite") => {
+    setView(next);
+    try {
+      localStorage.setItem("ide:view", next);
+    } catch {
+      /* private mode / storage disabled — non-critical */
+    }
+  }, []);
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("ide:view") === "lite") setView("lite");
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   // Docked AI chat panel (remembers its open/closed state across visits).
   const [chatOpen, setChatOpen] = useState(false);
@@ -412,79 +432,94 @@ export default function IdePage() {
     if (f.content !== f.originalContent) dirty.add(p);
   }
 
+  // Real VS Code (code-server) surface — its own lifecycle lives in the gate.
+  if (view === "vscode") {
+    return (
+      <div className="page-h flex flex-col min-h-0">
+        <ViewToggle view={view} onChange={persistView} />
+        <div className="flex-1 min-h-0">
+          <CodeServerGate />
+        </div>
+      </div>
+    );
+  }
+
   // Empty state — workspace picker.
   if (!workspace) {
     return (
-      <div className="page-h grid place-items-center p-6">
-        <div className="w-full max-w-xl space-y-6">
-          <div className="text-center">
-            <div className="inline-grid place-items-center h-14 w-14 rounded-2xl bg-emerald-400/10 border border-emerald-400/20 mb-4">
-              <FolderOpen size={24} className="text-emerald-400" />
-            </div>
-            <h2 className="text-xl font-bold tracking-tight">Open a project folder</h2>
-            <p className="text-text-secondary text-sm mt-1">
-              Edit real files on disk — a full Monaco workspace, like VS Code inside Matrix.
-            </p>
-          </div>
-
-          <div className="glass rounded-xl p-4 space-y-3">
-            <label className="text-[10px] uppercase tracking-wider text-text-muted block">Folder path</label>
-            <div className="flex gap-2">
-              <Input
-                autoFocus
-                value={pathInput}
-                onChange={(e) => setPathInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") openWorkspace(pathInput);
-                }}
-                placeholder="/Users/you/projects/my-app"
-                className="font-mono text-xs"
-              />
-              <Button variant="primary" onClick={() => openWorkspace(pathInput)} disabled={opening || !pathInput.trim()}>
-                <FolderOpen size={14} /> {opening ? "Opening…" : "Open"}
-              </Button>
-            </div>
-            <p className="text-[10px] text-text-muted">
-              Paste an absolute path. Heavy folders (node_modules, .git, dist…) are skipped automatically.
-            </p>
-          </div>
-
-          {recents.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-[10px] uppercase tracking-wider text-text-muted flex items-center gap-1.5">
-                <Clock size={11} /> Recent workspaces
-              </p>
-              <div className="space-y-1.5">
-                {recents.map((r) => (
-                  <div
-                    key={r.id}
-                    className="group flex items-center gap-3 px-3 py-2.5 rounded-lg glass-input cursor-pointer hover:bg-white/5 transition-colors"
-                    onClick={() => openWorkspace(r.path)}
-                  >
-                    <HardDrive size={15} className="text-text-muted shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-text-primary truncate">{r.name}</p>
-                      <p className="text-[10px] text-text-muted font-mono truncate">{r.path}</p>
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeRecent(r.id);
-                      }}
-                      className="text-text-muted hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity p-1"
-                      aria-label="Remove from recents"
-                    >
-                      <X size={13} />
-                    </button>
-                  </div>
-                ))}
+      <div className="page-h flex flex-col min-h-0">
+        <ViewToggle view={view} onChange={persistView} />
+        <div className="flex-1 min-h-0 grid place-items-center p-6">
+          <div className="w-full max-w-xl space-y-6">
+            <div className="text-center">
+              <div className="inline-grid place-items-center h-14 w-14 rounded-2xl bg-emerald-400/10 border border-emerald-400/20 mb-4">
+                <FolderOpen size={24} className="text-emerald-400" />
               </div>
+              <h2 className="text-xl font-bold tracking-tight">Open a project folder</h2>
+              <p className="text-text-secondary text-sm mt-1">
+                Edit real files on disk — a full Monaco workspace, like VS Code inside Matrix.
+              </p>
             </div>
-          )}
 
-          {booted && recents.length === 0 && (
-            <p className="text-center text-[11px] text-text-muted">No recent workspaces yet.</p>
-          )}
+            <div className="glass rounded-xl p-4 space-y-3">
+              <label className="text-[10px] uppercase tracking-wider text-text-muted block">Folder path</label>
+              <div className="flex gap-2">
+                <Input
+                  autoFocus
+                  value={pathInput}
+                  onChange={(e) => setPathInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") openWorkspace(pathInput);
+                  }}
+                  placeholder="/Users/you/projects/my-app"
+                  className="font-mono text-xs"
+                />
+                <Button variant="primary" onClick={() => openWorkspace(pathInput)} disabled={opening || !pathInput.trim()}>
+                  <FolderOpen size={14} /> {opening ? "Opening…" : "Open"}
+                </Button>
+              </div>
+              <p className="text-[10px] text-text-muted">
+                Paste an absolute path. Heavy folders (node_modules, .git, dist…) are skipped automatically.
+              </p>
+            </div>
+
+            {recents.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-[10px] uppercase tracking-wider text-text-muted flex items-center gap-1.5">
+                  <Clock size={11} /> Recent workspaces
+                </p>
+                <div className="space-y-1.5">
+                  {recents.map((r) => (
+                    <div
+                      key={r.id}
+                      className="group flex items-center gap-3 px-3 py-2.5 rounded-lg glass-input cursor-pointer hover:bg-white/5 transition-colors"
+                      onClick={() => openWorkspace(r.path)}
+                    >
+                      <HardDrive size={15} className="text-text-muted shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-text-primary truncate">{r.name}</p>
+                        <p className="text-[10px] text-text-muted font-mono truncate">{r.path}</p>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeRecent(r.id);
+                        }}
+                        className="text-text-muted hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                        aria-label="Remove from recents"
+                      >
+                        <X size={13} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {booted && recents.length === 0 && (
+              <p className="text-center text-[11px] text-text-muted">No recent workspaces yet.</p>
+            )}
+          </div>
         </div>
 
         <NewEntryDialog dialog={dialog} setDialog={setDialog} submit={submitDialog} />
@@ -494,14 +529,16 @@ export default function IdePage() {
 
   // Workspace open mode.
   return (
-    <div
-      className={`page-h grid ${
-        chatOpen
-          ? "grid-cols-[180px_1fr_300px] md:grid-cols-[240px_1fr_380px]"
-          : "grid-cols-[200px_1fr] md:grid-cols-[260px_1fr]"
-      }`}
-    >
-      <aside className="border-r border-white/5 bg-white/[0.01] flex flex-col min-h-0">
+    <div className="page-h flex flex-col min-h-0">
+      <ViewToggle view={view} onChange={persistView} />
+      <div
+        className={`flex-1 min-h-0 grid ${
+          chatOpen
+            ? "grid-cols-[180px_1fr_300px] md:grid-cols-[240px_1fr_380px]"
+            : "grid-cols-[200px_1fr] md:grid-cols-[260px_1fr]"
+        }`}
+      >
+        <aside className="border-r border-white/5 bg-white/[0.01] flex flex-col min-h-0">
         <div className="px-3 py-2 border-b border-white/5 flex items-center justify-between gap-1">
           <div className="flex items-center gap-1.5 min-w-0">
             <FolderOpen size={13} className="text-emerald-400 shrink-0" />
@@ -652,8 +689,53 @@ export default function IdePage() {
           </div>
         </aside>
       )}
+      </div>
 
       <NewEntryDialog dialog={dialog} setDialog={setDialog} submit={submitDialog} />
+    </div>
+  );
+}
+
+/**
+ * Tiny header that switches the IDE surface between the real VS Code
+ * (code-server) view and the built-in Lite editor. Reused by every render
+ * branch so the user can always flip back.
+ */
+function ViewToggle({
+  view,
+  onChange,
+}: {
+  view: "vscode" | "lite";
+  onChange: (next: "vscode" | "lite") => void;
+}) {
+  return (
+    <div className="shrink-0 border-b border-white/5 bg-white/[0.01] px-3 py-1.5 flex items-center gap-1">
+      <div className="inline-flex items-center rounded-lg border border-white/5 bg-black/20 p-0.5">
+        <button
+          onClick={() => onChange("vscode")}
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+            view === "vscode"
+              ? "bg-emerald-400/10 text-emerald-400"
+              : "text-text-muted hover:text-text-primary"
+          }`}
+          aria-pressed={view === "vscode"}
+          title="Real VS Code (code-server)"
+        >
+          <Code2 size={13} /> VS Code
+        </button>
+        <button
+          onClick={() => onChange("lite")}
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+            view === "lite"
+              ? "bg-emerald-400/10 text-emerald-400"
+              : "text-text-muted hover:text-text-primary"
+          }`}
+          aria-pressed={view === "lite"}
+          title="Built-in Lite editor"
+        >
+          <FileCode size={13} /> Lite editor
+        </button>
+      </div>
     </div>
   );
 }

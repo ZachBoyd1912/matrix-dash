@@ -13,4 +13,8 @@ export const SETTING_DEFAULTS: Record<string, string> = {
   maxInjectedMemories: "10",
   systemPrompt: "",
   enableThinking: "1",
+  /** Local code-server (web VS Code) bind port. */
+  ideServerPort: "3010",
+  /** Auto-start code-server when the IDE page mounts ("1" on / "0" off). */
+  ideServerAutoStart: "0",
 };

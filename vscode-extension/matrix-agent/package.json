@@ -1,0 +1,97 @@
+{
+  "name": "matrix-agent",
+  "displayName": "Matrix Agent",
+  "description": "An AI agent sidebar for code-server that streams from the Matrix Dash dashboard. Chat, reason, apply edits, and run terminal commands without leaving the editor.",
+  "version": "0.1.0",
+  "publisher": "matrix-dash",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ZachBoyd1912/matrix-dash.git",
+    "directory": "vscode-extension/matrix-agent"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Machine Learning",
+    "Chat"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onView:matrixAgent.chat",
+    "onCommand:matrixAgent.newChat"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "matrixAgent",
+          "title": "Matrix Agent",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "matrixAgent": [
+        {
+          "type": "webview",
+          "id": "matrixAgent.chat",
+          "name": "Agent"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "matrixAgent.newChat",
+        "title": "Matrix Agent: New Chat",
+        "icon": "$(add)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "matrixAgent.newChat",
+          "when": "view == matrixAgent.chat",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Matrix Agent",
+      "properties": {
+        "matrixAgent.dashboardUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:3000",
+          "markdownDescription": "Base URL of the Matrix Dash dashboard. The extension POSTs to `<dashboardUrl>/api/ai/chat` and reads the NDJSON stream."
+        },
+        "matrixAgent.mode": {
+          "type": "string",
+          "enum": [
+            "chat",
+            "agent"
+          ],
+          "default": "agent",
+          "enumDescriptions": [
+            "Plain chat — no tool use.",
+            "Agent — the assistant can call dashboard tools and take initiative."
+          ],
+          "markdownDescription": "Conversation mode passed to `/api/ai/chat`."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "// build/package": "These require the devDependencies below to be installed elsewhere (npm install) — they are intentionally NOT run on the constrained authoring machine.",
+    "build": "node esbuild.mjs",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^2.24.0",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.4.0"
+  }
+}
