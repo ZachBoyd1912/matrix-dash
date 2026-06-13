@@ -298,12 +298,27 @@ export async function startCodeServer(folder?: string): Promise<{ ok: boolean; e
   if (validatedFolder) args.push(validatedFolder);
 
   try {
+    // Log code-server's own stdout/stderr to a file so a failed start is
+    // diagnosable. Previously stdio was "ignore", which made bind failures
+    // (the process runs but never listens) completely invisible.
+    const logPath = path.join(path.dirname(dataDir()), "code-server.log");
+    const out = fs.openSync(logPath, "a");
+
+    // Strip PORT/BIND_ADDR from the inherited env. Under `next dev`,
+    // process.env.PORT is "3000", and code-server honors PORT over our
+    // --bind-addr flag — so it would bind :3000 (colliding with the dashboard)
+    // instead of :3010 and never become reachable. Hand it a cleaned env.
+    const childEnv = { ...process.env };
+    delete childEnv.PORT;
+    delete childEnv.BIND_ADDR;
+
     const child = spawn(bin, args, {
       detached: true,
-      stdio: "ignore",
-      env: process.env,
+      stdio: ["ignore", out, out],
+      env: childEnv,
     });
     child.unref();
+    fs.closeSync(out);
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
