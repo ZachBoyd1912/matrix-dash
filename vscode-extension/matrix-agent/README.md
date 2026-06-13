@@ -1,7 +1,7 @@
 # Matrix Agent
 
 A VS Code / code-server extension that adds an AI agent sidebar to the editor. It
-talks to your running [Matrix Dash](../../) dashboard: every message is POSTed to
+talks to your running [Matrix Dash](https://github.com/ZachBoyd1912/matrix-dash) dashboard: every message is POSTed to
 `<dashboardUrl>/api/ai/chat` and the NDJSON stream (`{type:"text"|"reasoning"|"error"}`)
 is rendered live in a webview, mirroring the dashboard's own chat client.
 

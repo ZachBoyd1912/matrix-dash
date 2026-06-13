@@ -5,6 +5,11 @@
   "version": "0.1.0",
   "publisher": "matrix-dash",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ZachBoyd1912/matrix-dash.git",
+    "directory": "vscode-extension/matrix-agent"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
