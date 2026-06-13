@@ -1,11 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { FolderOpen, FolderPlus, Plus, Save, X, Clock, HardDrive, PanelRight, MessageSquare } from "lucide-react";
 import { FileTree } from "@/components/ide/file-tree";
 import { EditorTabs } from "@/components/ide/editor-tabs";
 import { MonacoEditor } from "@/components/ide/monaco-editor";
-import { ChatInterface } from "@/components/chat/chat-interface";
+
+// Client-only: keeps the chat dependency tree out of the IDE page's SSR bundle,
+// so edits to ChatInterface (or its deps) can't bust the server build for this route.
+const ChatInterface = dynamic(
+  () => import("@/components/chat/chat-interface").then((m) => m.ChatInterface),
+  { ssr: false, loading: () => null }
+);
 import { EmptyState } from "@/components/ui/empty";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";

@@ -1,5 +1,16 @@
 # Changelog
 
+## 13/06/2026 @ 12:11:31 IST — "claude-opus-4.8-ultracode"
+
+**Goal:** Fix the `Error: Cannot find module './4243.js'` 500 on `/dashboard/ide` and prevent the whole class of stale-`.next` errors from recurring.
+
+**Fixed — `/dashboard/ide` 500 from a stale webpack chunk reference [HIGH]:**
+- *Cause:* The previous commit (`6da5688`) edited `ChatInterface`, which reshuffled webpack's chunk IDs. The dev server's partial HMR recompile left a stale `.next/server/app/dashboard/ide/page.js` still requiring `./4243.js` relative to its own dir, while the chunk had actually moved to `.next/server/chunks/4243.js`. First request 500'd, subsequent ones recompiled and 200'd. The `api/memories/[id]` route appeared in the stack trace only because it shares the same poisoned `webpack-runtime.js` singleton — it was never the source.
+- *Fix:* (1) Cleared the corrupt cache (`rm -rf .next`). (2) Added a `predev` npm hook (`"predev": "rm -rf .next"`) to `package.json` so every `pnpm dev` cold-starts from a clean build, eliminating HMR-staleness 500s. (3) Converted the IDE page's static `ChatInterface` import to a client-only dynamic import (`ssr: false`) in `app/dashboard/ide/page.tsx`, removing the entire chat dependency tree from this route's SSR bundle so future `ChatInterface` edits can no longer invalidate the IDE server build. The chat panel is client-only anyway (uses `useAppStore`, `localStorage`).
+- *Verification:* `pnpm typecheck` — zero errors. Fresh `pnpm dev` (predev confirmed): `/dashboard/ide` → **200** on 3 consecutive requests; `/api/memories` → **200**; `cannot find module` occurrences in dev log: **0**.
+
+**Files touched:** `package.json`, `app/dashboard/ide/page.tsx`.
+
 ## 13/06/2026 @ 09:21:37 IST — "claude-opus-4.8-ultracode"
 
 **Goal:** Apply the confirmed findings from a 26-agent adversarial review of the previous commit (5 review dimensions, each finding majority-voted by 3 skeptics). 5 of 7 findings confirmed; 2 correctly rejected (the "contextText in deps" claims — that dependency is intentional and removing it would create a stale-closure bug).
