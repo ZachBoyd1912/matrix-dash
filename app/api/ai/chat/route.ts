@@ -30,11 +30,32 @@ interface ChatPayload {
   reasoningEffort?: ReasoningEffort;
 }
 
+// Enabled skills are concatenated into the system prompt. With a large imported
+// catalog a user can enable hundreds, so cap the injected text by a character
+// budget to keep the prompt (and cost) bounded; any overflow is summarised.
+const SKILLS_PROMPT_BUDGET = 60_000;
+
 function buildSkillsPrompt(): string {
   const enabled = getDb().select().from(skills).where(eq(skills.isEnabled, true)).all();
   if (enabled.length === 0) return "";
-  const lines = enabled.map((s) => `### ${s.name}\n${s.instructions}`);
-  return `You have the following skills — apply them when relevant:\n\n${lines.join("\n\n")}`;
+
+  const lines: string[] = [];
+  let used = 0;
+  let omitted = 0;
+  for (const s of enabled) {
+    const block = `### ${s.name}\n${s.instructions}`;
+    if (used + block.length > SKILLS_PROMPT_BUDGET && lines.length > 0) {
+      omitted++;
+      continue;
+    }
+    lines.push(block);
+    used += block.length;
+  }
+  const note =
+    omitted > 0
+      ? `\n\n(${omitted} more enabled skill${omitted === 1 ? "" : "s"} omitted to fit the context budget — disable some to surface others.)`
+      : "";
+  return `You have the following skills — apply them when relevant:\n\n${lines.join("\n\n")}${note}`;
 }
 
 export async function POST(req: Request) {

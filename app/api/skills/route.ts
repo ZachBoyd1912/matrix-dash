@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { desc } from "drizzle-orm";
+import { desc, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { skills } from "@/lib/db/schema";
@@ -11,6 +11,12 @@ const createSchema = z.object({
   description: z.string().optional(),
   instructions: z.string().optional(),
   isEnabled: z.boolean().optional(),
+});
+
+// Bulk enable/disable. Omit `ids` to apply to every skill ("enable/disable all").
+const bulkSchema = z.object({
+  isEnabled: z.boolean(),
+  ids: z.array(z.string()).optional(),
 });
 
 export async function GET() {
@@ -42,4 +48,23 @@ export async function POST(req: Request) {
     })
     .run();
   return Response.json({ id });
+}
+
+// Bulk toggle — used by "Enable all" / "Disable all" on the skills page.
+export async function PATCH(req: Request) {
+  let payload: unknown;
+  try {
+    payload = await req.json();
+  } catch {
+    return Response.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+  const parsed = bulkSchema.safeParse(payload);
+  if (!parsed.success) return Response.json({ error: parsed.error.flatten() }, { status: 400 });
+
+  const { isEnabled, ids } = parsed.data;
+  const base = getDb()
+    .update(skills)
+    .set({ isEnabled, updatedAt: new Date().toISOString() });
+  const res = (ids && ids.length > 0 ? base.where(inArray(skills.id, ids)) : base).run();
+  return Response.json({ ok: true, updated: res.changes });
 }
