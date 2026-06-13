@@ -1,4 +1,4 @@
-import { spawn, exec } from "child_process";
+import { spawn, exec, execFile } from "child_process";
 import { promisify } from "util";
 import fs from "fs";
 import os from "os";
@@ -6,6 +6,7 @@ import path from "path";
 import { getSetting } from "@/lib/db/settings";
 
 const pexec = promisify(exec);
+const pexecFile = promisify(execFile);
 
 const DEFAULT_PORT = 3010;
 
@@ -221,6 +222,48 @@ function assertAbsoluteDir(p: string): string {
   return resolved;
 }
 
+/** Absolute path to the latest built matrix-agent .vsix, if one exists in the repo. */
+function agentVsix(): string | undefined {
+  // Next runs from the repo root, so the extension lives at a fixed relative path.
+  const dir = path.join(process.cwd(), "vscode-extension", "matrix-agent");
+  try {
+    const vsix = fs
+      .readdirSync(dir)
+      .filter((f) => f.endsWith(".vsix"))
+      .sort();
+    if (vsix.length) return path.join(dir, vsix[vsix.length - 1]); // newest by name
+  } catch {
+    /* extension not built yet — nothing to install */
+  }
+  return undefined;
+}
+
+/**
+ * Install the matrix-agent extension into our scoped extensions dir, once, if it
+ * has been built (a .vsix exists) and isn't already present. Best-effort: a
+ * failure just means the agent sidebar won't appear, not that VS Code can't start.
+ * Uses execFile (argv array, no shell) — all inputs are internally derived.
+ */
+async function ensureAgentExtension(bin: string): Promise<void> {
+  try {
+    const already = fs
+      .readdirSync(extDir())
+      .some((d) => d.toLowerCase().startsWith("matrix-dash.matrix-agent"));
+    if (already) return;
+  } catch {
+    /* extensions dir doesn't exist yet — fall through and install */
+  }
+  const vsix = agentVsix();
+  if (!vsix) return;
+  try {
+    await pexecFile(bin, ["--install-extension", vsix, "--extensions-dir", extDir()], {
+      timeout: 60000,
+    });
+  } catch {
+    /* best-effort install — leave the editor usable without the agent */
+  }
+}
+
 export async function startCodeServer(folder?: string): Promise<{ ok: boolean; error?: string }> {
   // Already up? No-op so repeated "start" clicks are idempotent.
   if (await isReachable(ideUrl())) return { ok: true };
@@ -238,6 +281,7 @@ export async function startCodeServer(folder?: string): Promise<{ ok: boolean; e
   if (!bin) return { ok: false, error: "code-server not installed" };
 
   writeBrandedSettings();
+  await ensureAgentExtension(bin);
 
   // argv array only — never a shell string — so paths can't inject commands.
   const args = [
