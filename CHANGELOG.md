@@ -1,5 +1,17 @@
 # Changelog
 
+## 14/06/2026 @ 00:30:03 IST — "claude-opus-4-8"
+
+**Goal:** Add bulk deletion to the skills page — a "Delete all" and a multi-select "Delete selected" flow — so a 1500-skill catalog can be cleaned up without deleting one row at a time.
+
+**Added:**
+- `DELETE /api/skills` (`app/api/skills/route.ts`) — bulk delete: `{ids:[…]}` removes those rows; an empty/absent body removes **every** skill. Returns `{ok, deleted}`. Empty body is tolerated (try/catch → delete-all); malformed `ids` → 400.
+- Skills page (`app/dashboard/skills/page.tsx`): a **Select** mode (per-card checkboxes with a selected-ring, "Select shown", a live selected count, "Delete selected", "Done") and a **Delete all** button guarded by a type-`DELETE`-to-confirm dialog (`requireText`).
+
+**Verification:** `pnpm typecheck` → **0 errors**. Live on :3001 — create+delete-by-ids is net-zero (`{deleted:1}`, count returns to 1540), malformed `ids` → 400, `/dashboard/skills` renders 200, dev log clean. Did not exercise live "delete all" against the real catalog (destructive); it shares the verified `inArray`-vs-all branch with the bulk PATCH.
+
+**Files touched:** `app/api/skills/route.ts`; `app/dashboard/skills/page.tsx`; `CHANGELOG.md`.
+
 ## 14/06/2026 @ 00:25:14 IST — "claude-opus-4-8"
 
 **Goal:** Fix the skills catalog import after pulling `sickn33/antigravity-awesome-skills` into Matrix — toggling a skill 500'd, the importer reported 4892 found but capped at 150, and there was no way to bulk-enable.

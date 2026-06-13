@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, Wand2, Trash2, Github, Loader2, Search, CheckCheck, CircleSlash } from "lucide-react";
+import { Plus, Wand2, Trash2, Github, Loader2, Search, CheckCheck, CircleSlash, ListChecks } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
@@ -30,6 +30,8 @@ export default function SkillsPage() {
   // Search + bulk actions (a catalog import can add 1000+ skills).
   const [query, setQuery] = useState("");
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const RENDER_CAP = 300;
 
   const refresh = useCallback(async () => {
@@ -78,6 +80,59 @@ export default function SkillsPage() {
     } finally {
       setBulkBusy(false);
     }
+  };
+
+  const toggleSelect = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelected(new Set());
+  };
+
+  const deleteSelected = async () => {
+    if (selected.size === 0) return;
+    const n = selected.size;
+    const ok = await confirm({
+      title: `Delete ${n} selected skill${n === 1 ? "" : "s"}?`,
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
+    await fetch("/api/skills", {
+      method: "DELETE",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ids: [...selected] }),
+    });
+    toast.success(`Deleted ${n} skill${n === 1 ? "" : "s"}`);
+    exitSelectMode();
+    refresh();
+  };
+
+  const deleteAll = async () => {
+    if (!list || list.length === 0) return;
+    const ok = await confirm({
+      title: `Delete all ${list.length} skills?`,
+      description:
+        "This permanently removes every skill, including any you created by hand. This can't be undone.",
+      confirmLabel: "Delete all",
+      danger: true,
+      requireText: "DELETE",
+    });
+    if (!ok) return;
+    await fetch("/api/skills", {
+      method: "DELETE",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    toast.success("All skills deleted");
+    exitSelectMode();
+    refresh();
   };
 
   useEffect(() => {
@@ -189,17 +244,48 @@ export default function SkillsPage() {
                 className="pl-8"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-text-muted tabular-nums">
-                {enabledCount} / {list.length} enabled
-              </span>
-              <Button variant="ghost" size="sm" onClick={() => bulkSet(true)} disabled={bulkBusy}>
-                <CheckCheck size={13} /> Enable all
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => bulkSet(false)} disabled={bulkBusy}>
-                <CircleSlash size={13} /> Disable all
-              </Button>
-            </div>
+            {selectMode ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-text-muted tabular-nums">{selected.size} selected</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelected(new Set(shown.map((s) => s.id)))}
+                >
+                  <CheckCheck size={13} /> Select shown
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={deleteSelected}
+                  disabled={selected.size === 0}
+                  className="text-rose-400"
+                >
+                  <Trash2 size={13} /> Delete selected
+                </Button>
+                <Button variant="ghost" size="sm" onClick={exitSelectMode}>
+                  Done
+                </Button>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-text-muted tabular-nums">
+                  {enabledCount} / {list.length} enabled
+                </span>
+                <Button variant="ghost" size="sm" onClick={() => bulkSet(true)} disabled={bulkBusy}>
+                  <CheckCheck size={13} /> Enable all
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => bulkSet(false)} disabled={bulkBusy}>
+                  <CircleSlash size={13} /> Disable all
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setSelectMode(true)}>
+                  <ListChecks size={13} /> Select
+                </Button>
+                <Button variant="ghost" size="sm" onClick={deleteAll} className="text-rose-400">
+                  <Trash2 size={13} /> Delete all
+                </Button>
+              </div>
+            )}
           </div>
 
           {filtered.length === 0 ? (
@@ -207,11 +293,27 @@ export default function SkillsPage() {
           ) : (
             <div className="space-y-2">
               {shown.map((s) => (
-                <Card key={s.id} className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-text-primary">{s.name}</p>
-                    {s.description && <p className="text-xs text-text-secondary mt-0.5">{s.description}</p>}
-                    <p className="text-[11px] text-text-muted mt-1 line-clamp-2 font-mono">{s.instructions}</p>
+                <Card
+                  key={s.id}
+                  className={`flex items-start justify-between gap-4 ${
+                    selectMode && selected.has(s.id) ? "ring-1 ring-emerald-500/60" : ""
+                  }`}
+                >
+                  <div className="flex items-start gap-3 min-w-0">
+                    {selectMode && (
+                      <input
+                        type="checkbox"
+                        checked={selected.has(s.id)}
+                        onChange={() => toggleSelect(s.id)}
+                        aria-label={`Select ${s.name}`}
+                        className="mt-1 h-4 w-4 shrink-0 cursor-pointer accent-emerald-500"
+                      />
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-text-primary">{s.name}</p>
+                      {s.description && <p className="text-xs text-text-secondary mt-0.5">{s.description}</p>}
+                      <p className="text-[11px] text-text-muted mt-1 line-clamp-2 font-mono">{s.instructions}</p>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <Switch checked={!!s.isEnabled} onCheckedChange={() => toggle(s)} label="Enabled" />

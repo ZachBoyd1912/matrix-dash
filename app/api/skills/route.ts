@@ -19,6 +19,9 @@ const bulkSchema = z.object({
   ids: z.array(z.string()).optional(),
 });
 
+// Bulk delete. Omit `ids` (or send no body) to delete EVERY skill ("delete all").
+const deleteSchema = z.object({ ids: z.array(z.string()).optional() }).optional();
+
 export async function GET() {
   const rows = getDb().select().from(skills).orderBy(desc(skills.updatedAt)).all();
   return Response.json(rows.map((s) => ({ ...s, isEnabled: !!s.isEnabled })));
@@ -67,4 +70,21 @@ export async function PATCH(req: Request) {
     .set({ isEnabled, updatedAt: new Date().toISOString() });
   const res = (ids && ids.length > 0 ? base.where(inArray(skills.id, ids)) : base).run();
   return Response.json({ ok: true, updated: res.changes });
+}
+
+// Bulk delete — used by "Delete selected" / "Delete all" on the skills page.
+export async function DELETE(req: Request) {
+  let payload: unknown;
+  try {
+    payload = await req.json();
+  } catch {
+    payload = undefined; // empty body == delete all
+  }
+  const parsed = deleteSchema.safeParse(payload);
+  if (!parsed.success) return Response.json({ error: parsed.error.flatten() }, { status: 400 });
+  const ids = parsed.data?.ids;
+
+  const base = getDb().delete(skills);
+  const res = (ids && ids.length > 0 ? base.where(inArray(skills.id, ids)) : base).run();
+  return Response.json({ ok: true, deleted: res.changes });
 }
