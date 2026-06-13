@@ -5,8 +5,10 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { useState } from "react";
 import { toast, confirm } from "@/lib/stores/use-feedback";
+import type { ModelInfo } from "@/lib/ai/models";
 import type { AiProviderPublic } from "@/types/ai-provider";
 
 interface Props {
@@ -18,6 +20,26 @@ export function ProviderList({ providers, onChange }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [model, setModel] = useState("");
   const [testingId, setTestingId] = useState<string | null>(null);
+  const [models, setModels] = useState<ModelInfo[]>([]);
+  const [loadingModels, setLoadingModels] = useState(false);
+
+  // Begin editing a provider's default model: open the field and fetch its live
+  // model catalogue (falls back to free-text if the listing fails or is empty).
+  const startEdit = async (p: AiProviderPublic) => {
+    setEditingId(p.id);
+    setModel(p.defaultModel ?? "");
+    setModels([]);
+    setLoadingModels(true);
+    try {
+      const res = await fetch(`/api/providers/${p.id}/models`);
+      const data = (await res.json()) as { models: ModelInfo[]; error?: string };
+      setModels(data.models ?? []);
+    } catch {
+      /* keep free-text fallback */
+    } finally {
+      setLoadingModels(false);
+    }
+  };
 
   const test = async (p: AiProviderPublic) => {
     setTestingId(p.id);
@@ -47,13 +69,14 @@ export function ProviderList({ providers, onChange }: Props) {
     onChange();
   };
 
-  const updateModel = async (id: string) => {
+  const updateModel = async (id: string, value: string) => {
     await fetch(`/api/providers/${id}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ defaultModel: model }),
+      body: JSON.stringify({ defaultModel: value }),
     });
     setEditingId(null);
+    setModels([]);
     onChange();
   };
 
@@ -83,25 +106,40 @@ export function ProviderList({ providers, onChange }: Props) {
               <span className="capitalize">{p.provider}</span>
               <span>·</span>
               {editingId === p.id ? (
-                <Input
-                  value={model}
-                  onChange={(e) => setModel(e.target.value)}
-                  onBlur={() => updateModel(p.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") updateModel(p.id);
-                    if (e.key === "Escape") setEditingId(null);
-                  }}
-                  className="h-6 text-[11px] w-48"
-                  autoFocus
-                />
+                loadingModels ? (
+                  <span className="text-[11px] text-text-muted">Loading models…</span>
+                ) : models.length > 0 ? (
+                  <Select
+                    value={model}
+                    onChange={(e) => updateModel(p.id, e.target.value)}
+                    onBlur={() => setEditingId(null)}
+                    className="h-6 text-[11px] w-56 py-0"
+                    autoFocus
+                  >
+                    {/* Keep the current value selectable even if the API omits it. */}
+                    {model && !models.some((m) => m.id === model) && <option value={model}>{model}</option>}
+                    {models.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.label || m.id}
+                        {m.reasoning ? " · reasoning" : ""}
+                      </option>
+                    ))}
+                  </Select>
+                ) : (
+                  <Input
+                    value={model}
+                    onChange={(e) => setModel(e.target.value)}
+                    onBlur={() => updateModel(p.id, model)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") updateModel(p.id, model);
+                      if (e.key === "Escape") setEditingId(null);
+                    }}
+                    className="h-6 text-[11px] w-48"
+                    autoFocus
+                  />
+                )
               ) : (
-                <button
-                  onClick={() => {
-                    setEditingId(p.id);
-                    setModel(p.defaultModel ?? "");
-                  }}
-                  className="hover:text-text-secondary"
-                >
+                <button onClick={() => startEdit(p)} className="hover:text-text-secondary">
                   {p.defaultModel || "no model"}
                 </button>
               )}

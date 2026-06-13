@@ -13,7 +13,7 @@ import { buildMemoryContext } from "@/lib/ai/injection";
 import { extractMemories } from "@/lib/ai/extraction";
 import { getAppSettings } from "@/lib/db/settings";
 import { buildAgentTools } from "@/lib/ai/tools";
-import { providerSpec } from "@/types/ai-provider";
+import { buildProviderOptions, type ReasoningEffort } from "@/lib/ai/models";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +26,8 @@ interface ChatPayload {
   presetId?: string;
   /** Ephemeral host context (e.g. the IDE's open file). Merged into the system prompt, never stored. */
   systemContext?: string;
+  /** Per-request reasoning/thinking level; falls back to the global setting when omitted. */
+  reasoningEffort?: ReasoningEffort;
 }
 
 function buildSkillsPrompt(): string {
@@ -43,7 +45,7 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { messages, providerId, modelOverride, sessionId, mode, presetId, systemContext } = body;
+  const { messages, providerId, modelOverride, sessionId, mode, presetId, systemContext, reasoningEffort } = body;
   if (!Array.isArray(messages) || messages.length === 0) {
     return Response.json({ error: "messages required" }, { status: 400 });
   }
@@ -126,12 +128,16 @@ export async function POST(req: Request) {
   const capturedProvider = provider;
   const tools = isAgent ? buildAgentTools() : undefined;
 
-  // Extended thinking: only Anthropic supports it, and only when the user hasn't disabled it.
-  const isAnthropic = providerSpec(provider.provider)?.sdk === "anthropic";
-  const thinkingOn = isAnthropic && appSettings.enableThinking;
-  const providerOptions = thinkingOn
-    ? { anthropic: { thinking: { type: "enabled" as const, budgetTokens: 8000 } } }
-    : undefined;
+  // Reasoning/thinking: scoped to the provider's SDK + the model's capability.
+  // An explicit per-request effort wins; otherwise the global enableThinking
+  // setting decides (preserving prior Anthropic-only behavior).
+  const modelId = modelOverride || provider.defaultModel || "";
+  const providerOptions = buildProviderOptions(
+    provider.provider,
+    modelId,
+    reasoningEffort,
+    appSettings.enableThinking
+  );
 
   const result = streamText({
     model,

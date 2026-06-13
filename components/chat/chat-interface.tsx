@@ -40,6 +40,8 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
   const providers = useAppStore((s) => s.providers);
   const chatMode = useAppStore((s) => s.chatMode);
   const autoSpeak = useAppStore((s) => s.autoSpeak);
+  const modelOverride = useAppStore((s) => s.modelOverride);
+  const reasoningEffort = useAppStore((s) => s.reasoningEffort);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [attachment, setAttachment] = useState<{ name: string; text: string } | null>(null);
 
@@ -116,6 +118,8 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
             sessionId,
             mode: chatMode,
             systemContext: ctx && ctx.trim() ? ctx : undefined,
+            modelOverride: modelOverride ?? undefined,
+            reasoningEffort,
           }),
           signal: controller.signal,
         });
@@ -182,7 +186,7 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
         abortRef.current = null;
       }
     },
-    [messages, providerId, sessionId, chatMode, autoSpeak, attachment, contextText]
+    [messages, providerId, sessionId, chatMode, autoSpeak, attachment, contextText, modelOverride, reasoningEffort]
   );
 
   const empty = messages.length === 0;

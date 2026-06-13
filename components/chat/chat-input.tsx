@@ -5,6 +5,7 @@ import { ArrowUp, Square, Paperclip, Mic, Volume2, VolumeX } from "lucide-react"
 import { cn } from "@/lib/utils/cn";
 import { useAppStore } from "@/lib/stores/use-app-store";
 import { useSpeechInput } from "@/lib/hooks/use-voice";
+import { ModelSelector } from "./model-selector";
 
 interface Props {
   onSubmit: (text: string) => void;
@@ -121,18 +122,21 @@ export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeh
               ))}
             </div>
             {providers.length > 0 ? (
-              <select
-                value={activeId ?? ""}
-                onChange={(e) => setActive(e.target.value || null)}
-                className="glass-input text-xs h-7 px-2 rounded-md text-text-secondary"
-                aria-label="Provider"
-              >
-                {providers.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+              <>
+                <select
+                  value={activeId ?? ""}
+                  onChange={(e) => setActive(e.target.value || null)}
+                  className="glass-input text-xs h-7 px-2 rounded-md text-text-secondary"
+                  aria-label="Provider"
+                >
+                  {providers.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+                <ModelSelector />
+              </>
             ) : (
               <span className="text-[11px] text-text-muted">No provider configured</span>
             )}

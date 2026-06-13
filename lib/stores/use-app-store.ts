@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import type { AiProviderPublic } from "@/types/ai-provider";
+import type { ReasoningEffort } from "@/lib/ai/models";
 
 interface AppState {
   sidebarCollapsed: boolean;
@@ -19,6 +20,13 @@ interface AppState {
   activeProviderId: string | null;
   setProviders: (providers: AiProviderPublic[]) => void;
   setActiveProviderId: (id: string | null) => void;
+
+  /** Per-conversation model override; null = use the active provider's defaultModel. */
+  modelOverride: string | null;
+  setModelOverride: (model: string | null) => void;
+  /** Per-conversation reasoning/thinking level. */
+  reasoningEffort: ReasoningEffort;
+  setReasoningEffort: (effort: ReasoningEffort) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -39,5 +47,11 @@ export const useAppStore = create<AppState>((set) => ({
     const active = providers.find((p) => p.isActive);
     set({ providers, activeProviderId: active ? active.id : providers[0]?.id ?? null });
   },
-  setActiveProviderId: (id) => set({ activeProviderId: id }),
+  // Switching provider clears the model override — a model id is provider-specific.
+  setActiveProviderId: (id) => set({ activeProviderId: id, modelOverride: null }),
+
+  modelOverride: null,
+  setModelOverride: (modelOverride) => set({ modelOverride }),
+  reasoningEffort: "off",
+  setReasoningEffort: (reasoningEffort) => set({ reasoningEffort }),
 }));

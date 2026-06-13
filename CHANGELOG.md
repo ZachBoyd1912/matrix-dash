@@ -1,5 +1,30 @@
 # Changelog
 
+## 13/06/2026 @ 12:27:19 IST — "claude-sonnet-4.6"
+
+**Goal:** Let users pick a *specific model* (and its reasoning/thinking level) per provider instead of a single hand-typed `defaultModel`. Query each provider's live model catalogue via its stored API key, and expose an advanced model selector in chat/agent plus model dropdowns in AI Providers settings.
+
+**Added — live model listing [`lib/ai/models.ts`]:**
+- `listModels({ kind, apiKey, baseUrl })` fetches a provider's real model list by SDK family: Anthropic (`/v1/models`, `x-api-key` + `anthropic-version`), Google (`/v1beta/models?key=`, filtered to `generateContent`), Mistral/xAI/OpenAI-compat (Bearer `{base}/models` → `data[].id`). Results are normalized, deduped, sorted, and cached in-memory (10-min TTL keyed by `kind|baseUrl`); failures return `{ models: [], error }` so callers fall back to free-text.
+- `supportsReasoning(id)` — heuristic over known reasoning families (o-series, gpt-5, deepseek-r, grok reasoning, gemini-2.5, claude sonnet/opus 4 & 3-7).
+- `buildProviderOptions(kind, modelId, effort, enableThinking)` — maps Off/Low/Med/High to the correct per-SDK option: Anthropic `thinking.budgetTokens` (4k/8k/16k), Google `thinkingConfig.thinkingBudget`, OpenAI/xAI `reasoningEffort`; only applies when the model supports reasoning; falls back to the global `enableThinking` when no effort is sent.
+
+**Added — model-listing routes:**
+- `GET /api/providers/[id]/models` (decrypts the saved key) and `POST /api/providers/models` (raw key from the Add form, used in-memory only — `withLog` records method/path/status, never bodies).
+
+**Added — advanced model selector [`components/chat/model-selector.tsx`]:**
+- Searchable live-model dropdown beside the provider switcher in the composer (lands in chat, agent, and the docked IDE chat since all render `ChatInput`). Per-conversation model override, a Brain thinking-level control shown only for reasoning models, and "Set as default" that PATCHes the provider's `defaultModel`. Client-side per-provider cache; manual free-text entry when listing fails.
+
+**Changed:**
+- `app/api/ai/chat/route.ts` accepts `reasoningEffort` and routes thinking through `buildProviderOptions` (replacing the Anthropic-only hardcoded 8k budget). *Behavior:* in the chat UI, thinking is now opt-in via the selector (default Off); the global Enable Thinking still governs callers that don't send a level.
+- `lib/stores/use-app-store.ts` gained `modelOverride` + `reasoningEffort`; switching provider clears the override (a model id is provider-specific).
+- `components/chat/chat-interface.tsx` sends `modelOverride` + `reasoningEffort` (added to the `send` deps).
+- `components/settings/provider-form.tsx` and `provider-list.tsx`: "Default model" is now a live dropdown ("Load models") with a free-text fallback.
+
+**Verification:** `pnpm typecheck` — zero errors. Manual: Add a provider → Load models populates the dropdown; existing provider → click model lists live models → persists; chat → model selector overrides per message and resets on provider switch; reasoning models show the thinking control; a provider whose `/models` errors falls back to free-text without crashing.
+
+**Files touched:** `lib/ai/models.ts` (new), `app/api/providers/[id]/models/route.ts` (new), `app/api/providers/models/route.ts` (new), `components/chat/model-selector.tsx` (new), `app/api/ai/chat/route.ts`, `lib/stores/use-app-store.ts`, `components/chat/chat-input.tsx`, `components/chat/chat-interface.tsx`, `components/settings/provider-form.tsx`, `components/settings/provider-list.tsx`.
+
 ## 13/06/2026 @ 12:11:31 IST — "claude-opus-4.8-ultracode"
 
 **Goal:** Fix the `Error: Cannot find module './4243.js'` 500 on `/dashboard/ide` and prevent the whole class of stale-`.next` errors from recurring.
