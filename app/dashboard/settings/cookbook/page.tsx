@@ -321,6 +321,7 @@ function SortTh({
           active ? "text-text-secondary" : ""
         }`}
         title={`Sort by ${label}`}
+        aria-label={`Sort by ${label}${active ? ` (${sort.dir === "asc" ? "ascending" : "descending"})` : ""}`}
       >
         {label}
         {active ? (

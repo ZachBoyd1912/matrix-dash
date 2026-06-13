@@ -1,5 +1,30 @@
 # Changelog
 
+## 13/06/2026 @ 09:21:37 IST — "claude-opus-4.8-ultracode"
+
+**Goal:** Apply the confirmed findings from a 26-agent adversarial review of the previous commit (5 review dimensions, each finding majority-voted by 3 skeptics). 5 of 7 findings confirmed; 2 correctly rejected (the "contextText in deps" claims — that dependency is intentional and removing it would create a stale-closure bug).
+
+**Fixed — Hidden IDE chat context now merged server-side (was: two consecutive system messages) [HIGH]:**
+- *Cause:* The IDE chat injected the open-file context as its own leading `{role:"system"}` message, and the chat route *also* prepends a system message — so the model received two consecutive system messages. The AI SDK (5.0.199) only warns rather than throws, but provider adapters differ (e.g. Gemini's `systemInstruction` is singular), so behavior was untested/unsafe on Google/Mistral/xAI.
+- *Fix:* The client now sends the context in a separate `systemContext` body field (`components/chat/chat-interface.tsx`); the route bounds it (20 KB) and folds it into the *single* leading system message via `systemBits` (`app/api/ai/chat/route.ts`). The model now only ever sees one system message — provider-agnostic. This one change also resolves findings #2 and #3 below, since the context never enters the `messages` array.
+
+**Fixed — File content can no longer leak into memory extraction [MEDIUM]:**
+- *Cause:* `extractMemories()` was built from the raw incoming `messages`; with the old client-side injection that array contained the whole open file, so the extractor could mine code/secrets and persist them as bogus "memories".
+- *Fix:* Extraction now filters out all `system` messages (`route.ts`) — only real user/assistant turns are mined. Belt-and-suspenders on top of the architectural fix above.
+
+**Fixed — Session-history asymmetry for injected context [LOW]:**
+- Resolved for free by the HIGH fix: host context is now ephemeral and server-side, never a chat message, so there's nothing to persist or lose.
+
+**Fixed — Unbounded combined system-prompt size [LOW]:**
+- *Fix:* Server-side clamp of `systemContext` to 20 KB before it joins `systemBits` (`route.ts`), on top of the existing 16 KB client-side file cap.
+
+**Fixed — Sort headers now announce direction to screen readers [MEDIUM/a11y]:**
+- *Fix:* `SortTh` buttons gained a direction-aware `aria-label` (`Sort by Ctx (ascending)` etc.) in `app/dashboard/settings/cookbook/page.tsx`; previously only a static `title` was present and the arrow was visual-only.
+
+**Verification:** `pnpm typecheck` — zero errors. Review run `wf_7bf0965d-a2a`: 7 raw findings → 5 confirmed (majority 3/3), 2 rejected (1/3).
+
+**Files touched:** `components/chat/chat-interface.tsx`, `app/api/ai/chat/route.ts`, `app/dashboard/settings/cookbook/page.tsx`.
+
 ## 13/06/2026 @ 09:06:26 IST — "claude-opus-4.8-ultracode"
 
 **Goal:** Three UX fixes — sortable Cookbook model columns, near-instant page navigation, and a docked AI chat panel inside the IDE that's aware of the open file.

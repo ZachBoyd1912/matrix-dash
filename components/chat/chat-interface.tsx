@@ -22,9 +22,10 @@ interface Props {
   /** Hide the giant "Matrix Dash" hero when embedded in a session view. */
   embedded?: boolean;
   /**
-   * Optional extra context (e.g. the file open in the IDE) injected as a leading
-   * system message on each send. It is sent to the model but never rendered as a
-   * chat bubble, so the conversation stays clean. Evaluated at send time.
+   * Optional host context (e.g. the file open in the IDE). Sent as a separate
+   * `systemContext` field and merged into the system prompt server-side, so it
+   * never becomes a chat bubble, never enters chat history, and never reaches
+   * memory extraction. Evaluated fresh at send time.
    */
   contextText?: () => string | null | undefined;
 }
@@ -101,19 +102,20 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
 
       try {
         const convo = history.map(({ role, content }) => ({ role, content }));
-        // Inject host context (e.g. the IDE's open file) as a leading system
-        // message — visible to the model, hidden from the rendered transcript.
+        // Host context (e.g. the IDE's open file) goes in a separate field and is
+        // merged into the system prompt server-side — so the transcript stays clean,
+        // it never reaches memory extraction, and the model only ever sees a single
+        // leading system message (safe across every provider, incl. Gemini).
         const ctx = contextText?.();
-        const outgoing =
-          ctx && ctx.trim() ? [{ role: "system", content: ctx }, ...convo] : convo;
         const res = await fetch("/api/ai/chat", {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
-            messages: outgoing,
+            messages: convo,
             providerId,
             sessionId,
             mode: chatMode,
+            systemContext: ctx && ctx.trim() ? ctx : undefined,
           }),
           signal: controller.signal,
         });

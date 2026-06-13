@@ -24,6 +24,8 @@ interface ChatPayload {
   sessionId?: string;
   mode?: "chat" | "agent";
   presetId?: string;
+  /** Ephemeral host context (e.g. the IDE's open file). Merged into the system prompt, never stored. */
+  systemContext?: string;
 }
 
 function buildSkillsPrompt(): string {
@@ -41,7 +43,7 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { messages, providerId, modelOverride, sessionId, mode, presetId } = body;
+  const { messages, providerId, modelOverride, sessionId, mode, presetId, systemContext } = body;
   if (!Array.isArray(messages) || messages.length === 0) {
     return Response.json({ error: "messages required" }, { status: 400 });
   }
@@ -78,7 +80,14 @@ export async function POST(req: Request) {
     : "";
   const skillsPrompt = isAgent ? buildSkillsPrompt() : "";
 
-  const systemBits = [presetPrompt || appSettings.systemPrompt, agentPreamble, skillsPrompt, memoryContext]
+  // Host-supplied ephemeral context (e.g. the IDE's open file). Bounded server-side
+  // and folded into the single leading system message rather than sent as its own
+  // message — so it can't pollute the transcript, session history, or extraction,
+  // and no provider adapter has to cope with two consecutive system messages.
+  const hostContext =
+    typeof systemContext === "string" ? systemContext.slice(0, 20000) : "";
+
+  const systemBits = [presetPrompt || appSettings.systemPrompt, agentPreamble, skillsPrompt, memoryContext, hostContext]
     .map((b) => b?.trim())
     .filter((b): b is string => !!b);
 
@@ -152,7 +161,10 @@ export async function POST(req: Request) {
       }
       // Trigger extraction in the background.
       const fullMessages: ModelMessage[] = [
-        ...messages,
+        // Only real user/assistant turns feed extraction — never system messages
+        // (host context, presets, memory blocks), which would otherwise get mined
+        // and persisted as bogus "memories".
+        ...messages.filter((m) => m.role !== "system"),
         { role: "assistant", content: text },
       ];
       void extractMemories(fullMessages).catch((err) =>
