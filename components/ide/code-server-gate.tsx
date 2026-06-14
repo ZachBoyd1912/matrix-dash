@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Clock, HardDrive, Loader2, Play, ServerCog, X } from "lucide-react";
+import { Clock, HardDrive, Loader2, Play, ServerCog, Sparkles, X } from "lucide-react";
 import { CodeServerInstallPanel } from "@/components/ide/code-server-install-panel";
 import { CodeServerEmbed } from "@/components/ide/code-server-embed";
 import { Button } from "@/components/ui/button";
@@ -315,8 +315,8 @@ export default function CodeServerGate() {
   if (phase === "loading") {
     return (
       <div className="page-h grid place-items-center p-6">
-        <div className="flex items-center gap-2 text-text-muted text-sm">
-          <Loader2 size={16} className="animate-spin" /> Checking VS Code server…
+        <div className="glass rounded-full px-4 py-2.5 flex items-center gap-2.5 text-text-muted text-sm border border-white/5 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]">
+          <Loader2 size={16} className="animate-spin text-text-secondary" /> Checking VS Code server…
         </div>
       </div>
     );
@@ -340,7 +340,7 @@ export default function CodeServerGate() {
   if (phase === "starting") {
     return (
       <div className="page-h grid place-items-center p-6">
-        <div className="flex items-center gap-2 text-text-muted text-sm">
+        <div className="glass rounded-full px-4 py-2.5 flex items-center gap-2.5 text-emerald-300 text-sm border border-emerald-400/30 bg-emerald-400/10 shadow-[0_0_18px_-6px_rgba(52,211,153,0.6)] transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]">
           <Loader2 size={16} className="animate-spin text-emerald-400" /> Starting VS Code…
         </div>
       </div>
@@ -351,10 +351,14 @@ export default function CodeServerGate() {
   return (
     <div className="page-h grid place-items-center p-6">
       <div className="w-full max-w-xl space-y-6">
-        <div className="text-center">
-          <div className="inline-grid place-items-center h-14 w-14 rounded-2xl bg-emerald-400/10 border border-emerald-400/20 mb-4">
-            <ServerCog size={24} className="text-emerald-400" />
+        <div className="flex flex-col items-center text-center">
+          <div className="inline-grid place-items-center h-14 w-14 rounded-2xl bg-emerald-400/10 border border-emerald-400/30 mb-4 shadow-[0_0_24px_-6px_rgba(52,211,153,0.6)]">
+            <ServerCog size={24} className="text-emerald-300" />
           </div>
+          <span className="eyebrow inline-flex items-center gap-1.5 mb-3">
+            <Sparkles size={11} className="text-emerald-300" />
+            Embedded editor
+          </span>
           <h2 className="text-xl font-bold tracking-tight">Real VS Code in Matrix</h2>
           <p className="text-text-secondary text-sm mt-1">
             Launch a full code-server workspace and use it right inside this tab.
@@ -369,47 +373,48 @@ export default function CodeServerGate() {
           />
         ) : (
           <>
-            <div className="glass rounded-xl p-4 space-y-3">
-              <label className="text-[10px] uppercase tracking-wider text-text-muted block">
-                Folder path
-              </label>
-              <div className="flex gap-2">
-                <Input
-                  autoFocus
-                  value={pathInput}
-                  onChange={(e) => setPathInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") launch(pathInput);
-                  }}
-                  placeholder="/Users/you/projects/my-app"
-                  className="font-mono text-xs"
-                />
-                <Button
-                  variant="primary"
-                  onClick={() => launch(pathInput)}
-                  disabled={launching || !pathInput.trim()}
-                >
-                  <Play size={14} /> {launching ? "Launching…" : "Launch in workspace"}
-                </Button>
+            <div className="bezel sheen rounded-2xl p-1.5">
+              <div className="bezel-core rounded-[calc(1.5rem-6px)] p-4 space-y-3">
+                <label className="eyebrow block w-fit">Folder path</label>
+                <div className="flex gap-2">
+                  <Input
+                    autoFocus
+                    value={pathInput}
+                    onChange={(e) => setPathInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") launch(pathInput);
+                    }}
+                    placeholder="/Users/you/projects/my-app"
+                    className="font-mono text-xs"
+                  />
+                  <Button
+                    variant="primary"
+                    onClick={() => launch(pathInput)}
+                    disabled={launching || !pathInput.trim()}
+                    className="rounded-full active:scale-[0.98] transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                  >
+                    <Play size={14} /> {launching ? "Launching…" : "Launch in workspace"}
+                  </Button>
+                </div>
+                <p className="text-[10px] text-text-muted">
+                  Paste an absolute path. VS Code opens this folder as its workspace root.
+                </p>
               </div>
-              <p className="text-[10px] text-text-muted">
-                Paste an absolute path. VS Code opens this folder as its workspace root.
-              </p>
             </div>
 
             {recents.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-[10px] uppercase tracking-wider text-text-muted flex items-center gap-1.5">
-                  <Clock size={11} /> Recent workspaces
+              <div className="space-y-2.5">
+                <p className="eyebrow inline-flex items-center gap-1.5">
+                  <Clock size={11} className="text-emerald-300" /> Recent workspaces
                 </p>
                 <div className="space-y-1.5">
                   {recents.map((r) => (
                     <div
                       key={r.id}
-                      className="group flex items-center gap-3 px-3 py-2.5 rounded-lg glass-input cursor-pointer hover:bg-white/5 transition-colors"
+                      className="group flex items-center gap-3 px-3 py-2.5 rounded-xl glass-input border border-white/5 cursor-pointer hover:border-emerald-400/30 hover:bg-emerald-400/10 hover:shadow-[0_0_18px_-8px_rgba(52,211,153,0.6)] active:scale-[0.98] transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]"
                       onClick={() => launch(r.path)}
                     >
-                      <HardDrive size={15} className="text-text-muted shrink-0" />
+                      <HardDrive size={15} className="text-text-muted shrink-0 group-hover:text-emerald-300 transition-colors duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]" />
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-text-primary truncate">{r.name}</p>
                         <p className="text-[10px] text-text-muted font-mono truncate">{r.path}</p>
@@ -419,7 +424,7 @@ export default function CodeServerGate() {
                           e.stopPropagation();
                           removeRecent(r.id);
                         }}
-                        className="text-text-muted hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                        className="text-text-muted hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.9] p-1"
                         aria-label="Remove from recents"
                       >
                         <X size={13} />

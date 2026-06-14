@@ -108,7 +108,7 @@ export default function EmailPage() {
     <div ref={ref} className="page-h grid grid-cols-1 md:grid-cols-[170px_minmax(240px,330px)_1fr]">
       {/* Folder rail */}
       <aside className="border-r border-white/5 p-3 bg-white/[0.01] hidden md:flex flex-col gap-1">
-        <Button variant="primary" size="sm" className="mb-3" onClick={() => setComposeOpen(true)}>
+        <Button variant="primary" size="sm" className="mb-3 rounded-full" onClick={() => setComposeOpen(true)}>
           <PenSquare size={13} /> Compose
         </Button>
         {EMAIL_FOLDERS.map((f) => (
@@ -116,10 +116,10 @@ export default function EmailPage() {
             key={f.value}
             onClick={() => setFolder(f.value)}
             className={cn(
-              "flex items-center gap-2 px-3 h-8 rounded-md text-xs transition-colors",
+              "flex items-center gap-2 px-3 h-8 rounded-full text-xs border transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98]",
               folder === f.value
-                ? "bg-white/[0.06] text-text-primary"
-                : "text-text-secondary hover:bg-white/[0.04]"
+                ? "bg-emerald-400/10 border-emerald-400/30 text-emerald-300 shadow-[0_0_18px_-6px_rgba(52,211,153,0.6)]"
+                : "border-transparent text-text-secondary hover:bg-white/[0.04] hover:text-text-primary"
             )}
           >
             {FOLDER_ICONS[f.value]}
@@ -129,10 +129,10 @@ export default function EmailPage() {
         <button
           onClick={() => setFolder("starred")}
           className={cn(
-            "flex items-center gap-2 px-3 h-8 rounded-md text-xs transition-colors",
+            "flex items-center gap-2 px-3 h-8 rounded-full text-xs border transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98]",
             folder === "starred"
-              ? "bg-white/[0.06] text-text-primary"
-              : "text-text-secondary hover:bg-white/[0.04]"
+              ? "bg-emerald-400/10 border-emerald-400/30 text-emerald-300 shadow-[0_0_18px_-6px_rgba(52,211,153,0.6)]"
+              : "border-transparent text-text-secondary hover:bg-white/[0.04] hover:text-text-primary"
           )}
         >
           <Star size={14} />
@@ -148,14 +148,16 @@ export default function EmailPage() {
               key={f}
               onClick={() => setFolder(f as EmailFolder | "starred")}
               className={cn(
-                "px-3 h-7 rounded-md text-[11px] capitalize shrink-0",
-                folder === f ? "bg-white/10 text-text-primary" : "text-text-muted"
+                "px-3 h-7 rounded-full text-[11px] capitalize shrink-0 border transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98]",
+                folder === f
+                  ? "bg-emerald-400/10 border-emerald-400/30 text-emerald-300 shadow-[0_0_18px_-6px_rgba(52,211,153,0.6)]"
+                  : "border-transparent text-text-muted hover:text-text-primary"
               )}
             >
               {f}
             </button>
           ))}
-          <Button variant="primary" size="sm" className="ml-auto shrink-0" onClick={() => setComposeOpen(true)}>
+          <Button variant="primary" size="sm" className="ml-auto shrink-0 rounded-full" onClick={() => setComposeOpen(true)}>
             <PenSquare size={12} />
           </Button>
         </div>
@@ -180,8 +182,10 @@ export default function EmailPage() {
                 key={email.id}
                 onClick={() => open(email)}
                 className={cn(
-                  "w-full text-left px-4 py-3 border-b border-white/5 transition-colors",
-                  selected?.id === email.id ? "bg-white/[0.05]" : "hover:bg-white/[0.03]"
+                  "w-full text-left px-4 py-3 border-b border-white/5 border-l-2 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.99]",
+                  selected?.id === email.id
+                    ? "bg-emerald-400/[0.07] border-l-emerald-400/60 shadow-[inset_0_0_18px_-10px_rgba(52,211,153,0.7)]"
+                    : "border-l-transparent hover:bg-white/[0.03]"
                 )}
               >
                 <div className="flex items-center gap-2">
@@ -216,36 +220,54 @@ export default function EmailPage() {
       <section className="hidden md:flex flex-col min-h-0">
         {selected ? (
           <>
-            <div className="px-6 py-4 border-b border-white/5 flex items-start justify-between gap-3">
+            <div className="px-6 py-4 border-b border-white/5 bg-white/[0.015] flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <h2 className="text-base font-semibold text-text-primary">
+                <h2 className="text-base font-semibold text-text-primary tracking-tight">
                   {selected.subject || "(no subject)"}
                 </h2>
-                <p className="text-xs text-text-muted mt-1">
+                <p className="text-xs text-text-muted mt-1.5">
                   From <span className="text-text-secondary">{selected.fromAddr}</span> · To{" "}
                   <span className="text-text-secondary">{selected.toAddr}</span> ·{" "}
                   {timeAgo(selected.createdAt)}
                 </p>
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                <Button size="icon" variant="ghost" onClick={() => toggleStar(selected)} aria-label="Star">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => toggleStar(selected)}
+                  aria-label="Star"
+                  className="transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.92] hover:text-amber-400"
+                >
                   <Star
                     size={14}
                     className={selected.isStarred ? "text-amber-400 fill-amber-400" : ""}
                   />
                 </Button>
                 {selected.folder === "trash" && (
-                  <Button size="icon" variant="ghost" onClick={() => restore(selected)} aria-label="Restore">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => restore(selected)}
+                    aria-label="Restore"
+                    className="transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.92] hover:bg-emerald-400/10"
+                  >
                     <ArchiveRestore size={14} className="text-emerald-400" />
                   </Button>
                 )}
-                <Button size="icon" variant="ghost" onClick={() => moveToTrash(selected)} aria-label="Trash">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => moveToTrash(selected)}
+                  aria-label="Trash"
+                  className="transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.92] hover:bg-rose-400/10"
+                >
                   <Trash2 size={14} className="text-rose-400" />
                 </Button>
               </div>
             </div>
             <div className="flex-1 overflow-y-auto p-6">
-              <p className="text-sm text-text-primary leading-relaxed whitespace-pre-wrap max-w-2xl">
+              <p className="text-sm text-text-primary/90 leading-7 whitespace-pre-wrap max-w-2xl">
                 {selected.body}
               </p>
             </div>

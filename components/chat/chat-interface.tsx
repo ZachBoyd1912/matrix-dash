@@ -196,15 +196,20 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
     <div className="flex flex-col h-full min-h-0">
       {empty && !embedded ? (
         <div className="flex-1 flex flex-col items-center justify-center px-4">
-          <div className="flex flex-col items-center gap-2 mb-8">
-            <LogoMark size={48} />
-            <h1 className="text-3xl font-extrabold tracking-tight">Matrix Dash</h1>
-            <p className="text-text-secondary text-sm">Your AI command center.</p>
+          <div className="flex flex-col items-center gap-3 mb-8">
+            <div className="grid place-items-center w-16 h-16 rounded-2xl glass bezel sheen transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]">
+              <LogoMark size={40} />
+            </div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-text-primary">Matrix Dash</h1>
+            <p className="eyebrow text-text-muted">Your AI command center</p>
           </div>
           {noProvider && (
-            <div className="mb-6 glass rounded-xl px-4 py-3 text-xs text-text-secondary max-w-md text-center">
+            <div className="mb-6 glass rounded-xl px-4 py-3 text-xs text-text-secondary max-w-md text-center transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]">
               No AI provider yet. Add one in{" "}
-              <Link href="/dashboard/settings" className="text-emerald-400 hover:underline">
+              <Link
+                href="/dashboard/settings"
+                className="text-emerald-300 hover:text-emerald-200 underline decoration-emerald-400/40 underline-offset-2 transition-colors duration-200"
+              >
                 Settings → Add Models
               </Link>{" "}
               to start chatting.
@@ -216,7 +221,10 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
         </div>
       ) : (
         <>
-          <div ref={scrollRef} className="flex-1 overflow-y-auto">
+          <div
+            ref={scrollRef}
+            className="flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.12)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb:hover]:bg-white/20"
+          >
             <div className="max-w-3xl mx-auto px-4 md:px-6 py-8 space-y-6">
               {messages.map((m) => (
                 <MessageBubble
@@ -228,7 +236,7 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
                 />
               ))}
               {error && (
-                <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-200 text-xs px-4 py-3">
+                <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-200 text-xs px-4 py-3 shadow-[0_0_18px_-8px_rgba(244,63,94,0.6)]">
                   {error}
                 </div>
               )}
@@ -237,10 +245,14 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
           <div className="py-4 bg-gradient-to-t from-bg-base via-bg-base/80 to-transparent">
             {attachment && (
               <div className="max-w-3xl mx-auto px-4 mb-2">
-                <div className="inline-flex items-center gap-2 glass-input rounded-full px-3 py-1 text-xs text-text-secondary">
-                  <Paperclip size={11} />
+                <div className="inline-flex items-center gap-2 glass-input rounded-full px-3 py-1 text-xs text-text-secondary border border-emerald-400/20 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]">
+                  <Paperclip size={11} className="text-emerald-300" />
                   <span className="max-w-[200px] truncate">{attachment.name}</span>
-                  <button onClick={() => setAttachment(null)} className="text-text-muted hover:text-rose-400" aria-label="Remove attachment">
+                  <button
+                    onClick={() => setAttachment(null)}
+                    className="text-text-muted hover:text-rose-400 transition-colors duration-200 active:scale-[0.98]"
+                    aria-label="Remove attachment"
+                  >
                     <X size={11} />
                   </button>
                 </div>
