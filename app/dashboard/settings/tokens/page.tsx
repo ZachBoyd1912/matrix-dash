@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Trash2, KeyRound, Copy, Check } from "lucide-react";
+import { Plus, Trash2, KeyRound, Copy, Check, Webhook } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,14 +57,26 @@ export default function TokensPage() {
   };
 
   return (
-    <div ref={ref} className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold tracking-tight">API Tokens</h2>
-        <p className="text-text-secondary text-sm mt-1">
-          Bearer tokens for the inbound webhook endpoint at{" "}
-          <code className="text-emerald-300">/api/hooks/&lt;token&gt;</code>. Use them from Shortcuts, Home
-          Assistant, or any script.
-        </p>
+    <div ref={ref} className="space-y-8">
+      <div className="relative overflow-hidden py-10">
+        <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
+        <div
+          className="orb -top-10 right-16 h-44 w-44 bg-sky-500/15"
+          style={{ animationDelay: "-6s" }}
+        />
+        <div className="relative">
+          <span className="eyebrow">
+            <KeyRound size={11} /> API Access
+          </span>
+          <h2 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">
+            API Tokens
+          </h2>
+          <p className="text-text-secondary text-sm mt-3 max-w-2xl">
+            Bearer tokens for the inbound webhook endpoint at{" "}
+            <code className="text-emerald-300">/api/hooks/&lt;token&gt;</code>. Use them from Shortcuts, Home
+            Assistant, or any script.
+          </p>
+        </div>
       </div>
 
       <Button variant="primary" onClick={() => setOpen(true)}>
@@ -74,14 +86,19 @@ export default function TokensPage() {
       {list.length === 0 ? (
         <EmptyState icon={<KeyRound size={16} />} title="No tokens yet" description="Create one to call Jarvis from outside." />
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {list.map((t) => (
-            <Card key={t.id} className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-text-primary">{t.label}</p>
-                <p className="text-[11px] text-text-muted mt-0.5 font-mono">
-                  {t.token} · {t.lastUsedAt ? `used ${timeAgo(t.lastUsedAt)}` : "never used"}
-                </p>
+            <Card key={t.id} interactive className="flex items-center justify-between gap-3 rounded-2xl">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-500/10 text-emerald-400">
+                  <Webhook size={15} />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-text-primary">{t.label}</p>
+                  <p className="text-[11px] text-text-muted mt-0.5 font-mono">
+                    {t.token} · {t.lastUsedAt ? `used ${timeAgo(t.lastUsedAt)}` : "never used"}
+                  </p>
+                </div>
               </div>
               <Button size="icon" variant="ghost" onClick={() => remove(t)} aria-label="Revoke">
                 <Trash2 size={13} className="text-rose-400" />
@@ -94,7 +111,7 @@ export default function TokensPage() {
       <Dialog open={open} onClose={() => { setOpen(false); setCreated(null); }} title={created ? "Token created" : "New API token"} description={created ? "Copy this now — you won't see it again." : "Give your token a memorable label."}>
         {created ? (
           <div className="space-y-3">
-            <code className="block text-xs text-emerald-300 bg-white/[0.03] p-3 rounded-md break-all font-mono">
+            <code className="block text-xs text-emerald-300 bg-white/[0.03] p-3 rounded-xl break-all font-mono">
               {created}
             </code>
             <div className="flex justify-end gap-2">

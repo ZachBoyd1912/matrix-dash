@@ -67,23 +67,29 @@ export default function WebhooksPage() {
 
   return (
     <div ref={ref} className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold tracking-tight">Webhooks</h2>
-        <p className="text-text-secondary text-sm mt-1">
-          Outbound HTTP callbacks fired on events. Useful for Discord, Slack, IFTTT, n8n.
-        </p>
+      <div className="relative overflow-hidden py-10">
+        <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
+        <div className="orb top-0 right-16 h-44 w-44 bg-sky-500/15" style={{ animationDelay: "-6s" }} />
+        <div className="relative">
+          <span className="eyebrow"><Webhook size={11} /> Integrations</span>
+          <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">Webhooks</h1>
+          <p className="text-text-secondary text-sm mt-3 max-w-xl">
+            Outbound HTTP callbacks fired on events. Useful for Discord, Slack, IFTTT, n8n.
+          </p>
+          <div className="mt-6">
+            <Button variant="primary" onClick={() => setOpen(true)}>
+              <Plus size={14} /> New webhook
+            </Button>
+          </div>
+        </div>
       </div>
-
-      <Button variant="primary" onClick={() => setOpen(true)}>
-        <Plus size={14} /> New webhook
-      </Button>
 
       {list.length === 0 ? (
         <EmptyState icon={<Webhook size={16} />} title="No webhooks" />
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {list.map((w) => (
-            <Card key={w.id} className="flex items-center justify-between gap-3">
+            <Card key={w.id} interactive className="flex items-center justify-between gap-3 rounded-2xl">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-medium text-text-primary">{w.label}</p>

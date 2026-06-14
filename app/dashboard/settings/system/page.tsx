@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Download, Trash2 } from "lucide-react";
+import { Download, Trash2, Database, AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useGsapEntrance } from "@/lib/hooks/use-gsap-entrance";
@@ -41,14 +41,26 @@ export default function SystemPage() {
 
   return (
     <div ref={ref} className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold tracking-tight">System</h2>
-        <p className="text-text-secondary text-sm mt-1">
-          Export everything as JSON or wipe scoped data. The database lives at ~/MatrixDash/matrix.db.
-        </p>
+      <div className="relative overflow-hidden py-10">
+        <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
+        <div
+          className="orb -top-10 right-16 h-44 w-44 bg-sky-500/15"
+          style={{ animationDelay: "-6s" }}
+        />
+        <div className="relative">
+          <span className="eyebrow">
+            <Database size={11} /> System
+          </span>
+          <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">
+            System
+          </h1>
+          <p className="text-text-secondary text-sm mt-3 max-w-xl">
+            Export everything as JSON or wipe scoped data. The database lives at ~/MatrixDash/matrix.db.
+          </p>
+        </div>
       </div>
 
-      <Card>
+      <Card interactive className="rounded-2xl">
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-medium text-text-primary">Export local data</p>
@@ -62,12 +74,14 @@ export default function SystemPage() {
         </div>
       </Card>
 
-      <Card className="border-rose-500/20 bg-rose-500/[0.02]">
-        <p className="text-sm font-medium text-rose-300">Danger zone</p>
+      <Card className="rounded-2xl border-rose-500/20 bg-rose-500/[0.02]">
+        <p className="flex items-center gap-1.5 text-sm font-medium text-rose-300">
+          <AlertTriangle size={13} /> Danger zone
+        </p>
         <p className="text-xs text-text-secondary mt-1 mb-3">
           These operations are permanent and not recoverable. Export first.
         </p>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2.5">
           <Button variant="danger" size="sm" onClick={() => wipe("memories")} disabled={wiping}>
             <Trash2 size={13} /> Wipe memories
           </Button>

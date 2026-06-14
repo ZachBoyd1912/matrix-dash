@@ -1,5 +1,19 @@
 # Changelog
 
+## 14/06/2026 @ 13:14:01 IST — "claude-opus-4-8"
+
+**Goal:** Finish the Aurora Spatial rollout — the final 8 pages the earlier workflow skipped when it hit the account session limit.
+
+**Changed — Aurora Spatial applied to the last 8 pages** (visual-only; behavior preserved): `tasks` and `settings/{landing, presets, shortcuts, system, tokens, vault, webhooks}`. Same treatment as the rest — eyebrow + gradient display header, ambient orbs, `interactive`/`lift` cards. (System settings' destructive "danger zone" card deliberately keeps no glow.)
+
+**Method:** `Workflow` (`aurora-rollout-finish`), 8/8 agents succeeded after the limit reset at 1pm.
+
+**Status:** Every dashboard page is now on Aurora Spatial except `chat`, `email`, and `ide`, which are intentionally full-height panes with no page header (they still inherit the redesigned shell, tokens, and cards).
+
+**Verification:** `pnpm typecheck` → **0 errors**. Live on :3001 — 8/8 routes render 200. Not run (8GB RAM): `pnpm build`.
+
+**Files touched:** `app/dashboard/tasks/page.tsx`; `app/dashboard/settings/{page,presets,shortcuts,system,tokens,vault,webhooks}/page.tsx` (settings landing is `settings/page.tsx`); `CHANGELOG.md`.
+
 ## 14/06/2026 @ 13:11:13 IST — "claude-opus-4-8"
 
 **Goal:** Roll the Aurora Spatial treatment across the remaining inner dashboard pages (the "redesign the entire website" follow-up), via a multi-agent workflow.
