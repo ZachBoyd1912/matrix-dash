@@ -1,7 +1,7 @@
 "use client";
 
 import { TranscriptRenderer } from "./transcript-renderer";
-import { blocksToText, type Block } from "@/lib/chat/blocks";
+import { blocksToText, type Block, type ApprovalDecision } from "@/lib/chat/blocks";
 import { cn } from "@/lib/utils/cn";
 import { Sparkles, User } from "lucide-react";
 
@@ -9,9 +9,10 @@ interface Props {
   role: "user" | "assistant" | "system";
   blocks: Block[];
   streaming?: boolean;
+  onApprove?: (id: string, decision: ApprovalDecision) => void;
 }
 
-export function MessageBubble({ role, blocks, streaming }: Props) {
+export function MessageBubble({ role, blocks, streaming, onApprove }: Props) {
   if (role === "system") return null;
 
   const isUser = role === "user";
@@ -34,7 +35,7 @@ export function MessageBubble({ role, blocks, streaming }: Props) {
         {isUser ? (
           <div className="text-sm leading-relaxed whitespace-pre-wrap">{blocksToText(blocks)}</div>
         ) : (
-          <TranscriptRenderer blocks={blocks} streaming={streaming} />
+          <TranscriptRenderer blocks={blocks} streaming={streaming} onApprove={onApprove} />
         )}
       </div>
       {isUser && (

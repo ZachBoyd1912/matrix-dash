@@ -23,6 +23,8 @@ import {
   type Block,
   type StreamEvent,
 } from "@/lib/chat/blocks";
+import { getPowerLevel } from "@/lib/ai/power";
+import type { AgentRequestContext } from "@/lib/ai/approvals";
 
 export const dynamic = "force-dynamic";
 
@@ -196,6 +198,17 @@ export async function POST(req: Request) {
   const capturedProvider = provider;
   const tools = isAgent ? buildAgentTools() : undefined;
 
+  // Per-request context for tools: lets a tool's execute() emit an interactive
+  // approval request into the live response stream and block until the user decides.
+  // `emit` is bound to the real stream controller below (tools only run while we
+  // consume fullStream, by which point it's wired).
+  const reqCtx: AgentRequestContext = {
+    emit: () => {},
+    signal: req.signal,
+    sessionId: sessionId ?? null,
+    powerLevel: getPowerLevel(),
+  };
+
   // Reasoning/thinking: scoped to the provider's SDK + the model's capability.
   // An explicit per-request effort wins; otherwise the global enableThinking
   // setting decides (preserving prior Anthropic-only behavior).
@@ -213,6 +226,8 @@ export async function POST(req: Request) {
     tools,
     stopWhen: isAgent ? stepCountIs(8) : undefined,
     providerOptions,
+    abortSignal: req.signal,
+    experimental_context: reqCtx,
     onFinish: async ({ text }) => {
       // Memory extraction runs in the background. Assistant-row persistence happens
       // in the stream's `finally` below, where the full block transcript is assembled.
@@ -244,6 +259,9 @@ export async function POST(req: Request) {
         appendEvent(serverBlocks, idMap, ev);
         controller.enqueue(line(ev));
       };
+      // Bind the per-request context so tools can emit approval requests into this
+      // same stream (tools run during the fullStream loop below, after this point).
+      reqCtx.emit = emit;
       try {
         for await (const part of result.fullStream) {
           if (part.type === "text-delta") {

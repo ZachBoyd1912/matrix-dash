@@ -6,7 +6,8 @@ import { getSetting } from "@/lib/db/settings";
 import { readFileContent, writeFileContent, WorkspaceError } from "@/lib/services/workspace";
 import { resolveInRoot, relToRoot } from "@/lib/services/workspace-root";
 import { runBash } from "@/lib/ai/bash";
-import { isToolAllowed, type PowerLevel } from "@/lib/ai/power";
+import { isToolAllowed, requiresApproval, type PowerLevel } from "@/lib/ai/power";
+import { requestApproval, type AgentRequestContext } from "@/lib/ai/approvals";
 
 /** Directories never searched/listed — heavy, generated, or VCS internals. */
 const IGNORED = new Set([
@@ -28,17 +29,27 @@ function countOccurrences(haystack: string, needle: string): number {
 }
 
 /**
- * Interim approval gate for Phase 3 (`approval` level): block a mutating tool unless
- * its `approve_<tool>` flag is set. Phase 4 replaces this with interactive inline
- * Allow/Deny. `unrestricted` skips it; `sandboxed` never registers these tools.
+ * Approval gate for mutating tools. At `approval` level (and unless the user has
+ * persisted "allow always" for this tool), pause and request interactive Allow/Deny
+ * via the streamText `experimental_context` emitter. `unrestricted` skips it;
+ * `sandboxed` never registers these tools. Falls safe to deny with no interactive
+ * stream (e.g. headless scheduled runs).
  */
-function approvalGuard(toolName: string, level: PowerLevel): { blocked: true; reason: string } | null {
-  if (level === "approval" && getSetting(`approve_${toolName}`) !== "1") {
-    return {
-      blocked: true,
-      reason: `'${toolName}' needs approval. Enable it in Settings → Agent Tools, or set the power level to Unrestricted.`,
-    };
+async function gate(
+  toolName: string,
+  summary: string,
+  input: unknown,
+  level: PowerLevel,
+  options: { toolCallId: string; experimental_context?: unknown }
+): Promise<{ blocked: true; reason: string } | null> {
+  if (!requiresApproval(toolName, level)) return null;
+  if (getSetting(`approve_${toolName}`) === "1") return null; // remembered "allow always"
+  const ctx = options.experimental_context as AgentRequestContext | undefined;
+  if (!ctx?.emit) {
+    return { blocked: true, reason: `'${toolName}' requires approval but no interactive session is available.` };
   }
+  const decision = await requestApproval(ctx, { toolCallId: options.toolCallId, toolName, input, summary });
+  if (decision === "deny") return { blocked: true, reason: "Denied by the user." };
   return null;
 }
 
@@ -199,8 +210,8 @@ export function buildCodingTools(level: PowerLevel, root: string): ToolSet {
       description:
         "Create or overwrite a file in the workspace with the given content. Paths are relative to the workspace root.",
       inputSchema: z.object({ path: z.string(), content: z.string() }),
-      execute: async ({ path: p, content }) => {
-        const guard = approvalGuard("writeFileFs", level);
+      execute: async ({ path: p, content }, options) => {
+        const guard = await gate("writeFileFs", `Write ${p}`, { path: p }, level, options);
         if (guard) return guard;
         try {
           const abs = resolveInRoot(root, p);
@@ -222,8 +233,8 @@ export function buildCodingTools(level: PowerLevel, root: string): ToolSet {
         newString: z.string(),
         replaceAll: z.boolean().optional(),
       }),
-      execute: async ({ path: p, oldString, newString, replaceAll }) => {
-        const guard = approvalGuard("editFile", level);
+      execute: async ({ path: p, oldString, newString, replaceAll }, options) => {
+        const guard = await gate("editFile", `Edit ${p}`, { path: p }, level, options);
         if (guard) return guard;
         try {
           const abs = resolveInRoot(root, p);
@@ -249,8 +260,8 @@ export function buildCodingTools(level: PowerLevel, root: string): ToolSet {
           z.object({ oldString: z.string(), newString: z.string(), replaceAll: z.boolean().optional() })
         ),
       }),
-      execute: async ({ path: p, edits }) => {
-        const guard = approvalGuard("multiEdit", level);
+      execute: async ({ path: p, edits }, options) => {
+        const guard = await gate("multiEdit", `Edit ${p} (${edits.length} changes)`, { path: p }, level, options);
         if (guard) return guard;
         try {
           const abs = resolveInRoot(root, p);
@@ -280,10 +291,10 @@ export function buildCodingTools(level: PowerLevel, root: string): ToolSet {
         command: z.string(),
         timeout: z.number().int().optional().describe("ms, default 120000, max 600000"),
       }),
-      execute: async ({ command, timeout }, { abortSignal }) => {
-        const guard = approvalGuard("bash", level);
+      execute: async ({ command, timeout }, options) => {
+        const guard = await gate("bash", `Run: ${command}`, { command }, level, options);
         if (guard) return guard;
-        return runBash({ command, root, timeoutMs: timeout, signal: abortSignal });
+        return runBash({ command, root, timeoutMs: timeout, signal: options.abortSignal });
       },
     });
   }

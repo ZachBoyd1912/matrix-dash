@@ -1,5 +1,23 @@
 # Changelog
 
+## 14/06/2026 @ 23:42:06 IST — "claude-opus-4-8"
+
+**Goal:** Phase 4 of Claude Code mode — **interactive inline Allow/Deny approvals**. In `approval` power level the agent now pauses mid-run, shows an Allow / Allow always / Deny card, and resumes on your click.
+
+**Added:**
+- **`lib/ai/approvals.ts`** — the side-channel. A `globalThis`-pinned pending-approval registry (safe: single self-hosted Node process). `requestApproval(ctx, …)` emits an `approval_request` event and returns a Promise that a tool's `execute()` awaits — which holds the streamText step open with no extra plumbing (the SDK awaits the execute promise before emitting the tool-result). Auto-denies after 5 min and on request-abort so the loop never wedges; always emits a matching `approval_resolved`. `settleApproval()` is delete-before-resolve (idempotent; first decision wins) and persists `approve_<tool>` on "allow always". Exports `AgentRequestContext`.
+- **`app/api/ai/approve/route.ts`** — `POST {approvalId, decision}` → `settleApproval`; 404 if expired/already-decided/server-restarted.
+- **`components/chat/blocks/approval-card.tsx`** — the inline amber "Approval required" card (Allow / Allow always / Deny), flipping to a resolved chip when the decision lands.
+
+**Changed:**
+- **`app/api/ai/chat/route.ts`**: threads a per-request `AgentRequestContext` into `streamText` via `experimental_context` (+ `abortSignal: req.signal`); its `emit` is bound to the live stream controller inside the ReadableStream, so a tool can write an approval request into the same stream it's blocking.
+- **`lib/ai/coding-tools.ts`**: the interim boolean gate is now an async `gate()` that calls `requestApproval` at `approval` level (skipped if `approve_<tool>` is already remembered, or auto-denied with no interactive stream — safe for headless runs).
+- **Client threading** (`transcript-renderer.tsx`, `message-bubble.tsx`, `chat-interface.tsx`): an `onApprove` callback POSTs the decision to `/api/ai/approve`; the card resolves when the streamed `approval_resolved` updates the block.
+
+**Verification:** `pnpm typecheck` → **0 errors**. Lifecycle hazards handled: timeout auto-deny, abort release, idempotent settle, restart → 404, "allow always" persisted via the existing `approve_*` convention.
+
+**Files touched:** `lib/ai/approvals.ts`, `app/api/ai/approve/route.ts`, `components/chat/blocks/approval-card.tsx`, `app/api/ai/chat/route.ts`, `lib/ai/coding-tools.ts`, `components/chat/transcript-renderer.tsx`, `components/chat/message-bubble.tsx`, `components/chat/chat-interface.tsx`; `CHANGELOG.md`.
+
 ## 14/06/2026 @ 23:35:02 IST — "claude-opus-4-8"
 
 **Goal:** Phase 3 of Claude Code mode — give the agent **real coding tools on the real filesystem**, gated by a three-level power setting (sandboxed / approval / unrestricted).

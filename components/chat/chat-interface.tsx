@@ -17,6 +17,7 @@ import {
   blocksToText,
   parseBlocksJson,
   textToBlocks,
+  type ApprovalDecision,
   type Block,
   type StreamEvent,
 } from "@/lib/chat/blocks";
@@ -103,6 +104,17 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
     abortRef.current?.abort();
     abortRef.current = null;
     setStreaming(false);
+  }, []);
+
+  // Settle an interactive tool approval — resumes the paused tool in the open
+  // stream. The approval block flips to its resolved state when the server's
+  // `approval_resolved` event arrives.
+  const approve = useCallback((approvalId: string, decision: ApprovalDecision) => {
+    void fetch("/api/ai/approve", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ approvalId, decision }),
+    }).catch(() => {});
   }, []);
 
   const send = useCallback(
@@ -264,6 +276,7 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
                   role={m.role}
                   blocks={m.blocks}
                   streaming={streaming && m.role === "assistant" && m.id === messages[messages.length - 1].id}
+                  onApprove={approve}
                 />
               ))}
               {error && (

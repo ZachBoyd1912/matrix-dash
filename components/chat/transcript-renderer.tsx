@@ -3,7 +3,8 @@
 import { Markdown } from "./markdown";
 import { ThinkingBlock } from "./thinking-block";
 import { ToolCallBlock } from "./blocks/tool-call-block";
-import type { Block } from "@/lib/chat/blocks";
+import { ApprovalCard } from "./blocks/approval-card";
+import type { Block, ApprovalDecision } from "@/lib/chat/blocks";
 
 /**
  * Renders an assistant turn's ordered `Block[]` as an interleaved Claude-Code-style
@@ -11,7 +12,15 @@ import type { Block } from "@/lib/chat/blocks";
  * todo/approval blocks are wired in later phases (no-op until then). Non-tool models
  * emit only text/reasoning blocks, so this renders identically to the old flat view.
  */
-export function TranscriptRenderer({ blocks, streaming }: { blocks: Block[]; streaming?: boolean }) {
+export function TranscriptRenderer({
+  blocks,
+  streaming,
+  onApprove,
+}: {
+  blocks: Block[];
+  streaming?: boolean;
+  onApprove?: (id: string, decision: ApprovalDecision) => void;
+}) {
   const lastIndex = blocks.length - 1;
 
   // Empty assistant placeholder while the first token is in flight.
@@ -42,6 +51,8 @@ export function TranscriptRenderer({ blocks, streaming }: { blocks: Block[]; str
             return <ThinkingBlock key={i} thinking={block.text} active={!!streaming && isLast} />;
           case "tool_call":
             return <ToolCallBlock key={block.id} block={block} />;
+          case "approval":
+            return <ApprovalCard key={block.id} block={block} onDecide={onApprove ?? (() => {})} />;
           case "error":
             return (
               <div
