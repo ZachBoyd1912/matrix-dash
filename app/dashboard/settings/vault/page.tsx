@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Trash2, Eye, EyeOff, Shield } from "lucide-react";
+import { Plus, Trash2, Eye, EyeOff, Shield, Lock } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,12 +65,19 @@ export default function VaultPage() {
 
   return (
     <div ref={ref} className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold tracking-tight">Vault</h2>
-        <p className="text-text-secondary text-sm mt-1">
-          Encrypted local key-value store for secrets the agent or your scripts need. Same AES-256-GCM
-          as API keys.
-        </p>
+      <div className="relative overflow-hidden py-10">
+        <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
+        <div className="orb top-0 right-16 h-44 w-44 bg-sky-500/15" style={{ animationDelay: "-6s" }} />
+        <div className="relative">
+          <span className="eyebrow">
+            <Lock size={11} /> Secrets
+          </span>
+          <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">Vault</h1>
+          <p className="text-text-secondary text-sm mt-3 max-w-xl">
+            Encrypted local key-value store for secrets the agent or your scripts need. Same AES-256-GCM
+            as API keys.
+          </p>
+        </div>
       </div>
 
       <Button variant="primary" onClick={() => setOpen(true)}>
@@ -80,9 +87,9 @@ export default function VaultPage() {
       {list.length === 0 ? (
         <EmptyState icon={<Shield size={16} />} title="Vault is empty" description="Store API keys, passwords, anything." />
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {list.map((e) => (
-            <Card key={e.id} className="flex items-center justify-between gap-3">
+            <Card key={e.id} interactive className="flex items-center justify-between gap-3 rounded-xl">
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-text-primary">{e.label}</p>
                 {revealed[e.id] ? (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { Plug } from "lucide-react";
 import { ProviderForm } from "@/components/settings/provider-form";
 import { ProviderList } from "@/components/settings/provider-list";
 import { useAppStore } from "@/lib/stores/use-app-store";
@@ -24,12 +25,24 @@ export default function ProvidersPage() {
   }, [refresh]);
 
   return (
-    <div ref={ref} className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold tracking-tight">AI Providers</h2>
-        <p className="text-text-secondary text-sm mt-1">
-          Plug in any Anthropic, OpenAI, Google, or OpenAI-compatible endpoint.
-        </p>
+    <div ref={ref} className="space-y-8">
+      <div className="relative overflow-hidden py-10">
+        <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
+        <div
+          className="orb -top-8 right-16 h-44 w-44 bg-sky-500/15"
+          style={{ animationDelay: "-6s" }}
+        />
+        <div className="relative">
+          <span className="eyebrow">
+            <Plug size={11} /> AI Providers
+          </span>
+          <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">
+            AI Providers
+          </h1>
+          <p className="text-text-secondary text-sm mt-3 max-w-xl">
+            Plug in any Anthropic, OpenAI, Google, or OpenAI-compatible endpoint.
+          </p>
+        </div>
       </div>
       <ProviderList providers={providers} onChange={refresh} />
       <ProviderForm onCreated={refresh} />

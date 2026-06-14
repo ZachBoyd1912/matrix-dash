@@ -88,8 +88,10 @@ export default function MemoryBankPage() {
 
   return (
     <div ref={ref} className="page-h flex flex-col">
-      <div className="px-4 md:px-6 py-4 border-b border-white/5 flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[200px] max-w-md">
+      <div className="relative px-4 md:px-6 py-4 border-b border-white/5 flex flex-wrap items-center gap-3 overflow-hidden">
+        <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" aria-hidden />
+        <div className="orb -top-12 right-24 h-40 w-40 bg-sky-500/15" style={{ animationDelay: "-6s" }} aria-hidden />
+        <div className="relative z-10 flex-1 min-w-[200px] max-w-md">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
           <Input
             value={query}
@@ -99,7 +101,7 @@ export default function MemoryBankPage() {
           />
         </div>
 
-        <div className="flex items-center gap-1 glass-input rounded-md p-0.5">
+        <div className="relative z-10 flex items-center gap-1 glass-input rounded-md p-0.5">
           {(["all", ...MEMORY_TYPES] as const).map((t) => (
             <button
               key={t}
@@ -116,7 +118,7 @@ export default function MemoryBankPage() {
           ))}
         </div>
 
-        <div className="flex items-center gap-1 glass-input rounded-md p-0.5">
+        <div className="relative z-10 flex items-center gap-1 glass-input rounded-md p-0.5">
           <button
             onClick={() => setView("list")}
             className={cn(
@@ -139,10 +141,10 @@ export default function MemoryBankPage() {
           </button>
         </div>
 
-        <Button variant="outline" size="sm" onClick={tidy} disabled={tidying}>
+        <Button variant="outline" size="sm" onClick={tidy} disabled={tidying} className="relative z-10">
           <Wand2 size={13} /> {tidying ? "Tidying…" : "Tidy"}
         </Button>
-        <Button variant="primary" size="sm" onClick={() => setDialogOpen(true)}>
+        <Button variant="primary" size="sm" onClick={() => setDialogOpen(true)} className="relative z-10">
           <Plus size={13} /> New
         </Button>
       </div>
@@ -178,7 +180,7 @@ export default function MemoryBankPage() {
             </div>
           ) : (
             <div className="h-full p-4">
-              <div className="glass rounded-xl h-full overflow-hidden">
+              <div className="glass rounded-2xl h-full overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]">
                 {graph && graph.nodes.length > 0 ? (
                   <MemoryGraph data={graph} onSelect={setSelectedId} />
                 ) : (

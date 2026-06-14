@@ -1,6 +1,6 @@
 "use client";
 
-import { Github, HardDrive, Slack, Webhook, Calendar, Globe } from "lucide-react";
+import { Github, HardDrive, Slack, Webhook, Calendar, Globe, Plug } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useGsapEntrance } from "@/lib/hooks/use-gsap-entrance";
@@ -17,14 +17,26 @@ const INTEGRATIONS = [
 export default function IntegrationsPage() {
   const ref = useGsapEntrance();
   return (
-    <div ref={ref} className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold tracking-tight">Integrations</h2>
-        <p className="text-text-secondary text-sm mt-1">
-          Matrix Dash is local-first — integrations are opt-in bridges to the outside world.
-        </p>
+    <div ref={ref} className="space-y-8">
+      <div className="relative overflow-hidden py-10">
+        <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
+        <div
+          className="orb top-0 right-16 h-44 w-44 bg-sky-500/15"
+          style={{ animationDelay: "-6s" }}
+        />
+        <div className="relative">
+          <span className="eyebrow">
+            <Plug size={11} /> Integrations
+          </span>
+          <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">
+            Integrations
+          </h1>
+          <p className="text-text-secondary text-sm mt-3 max-w-2xl">
+            Matrix Dash is local-first — integrations are opt-in bridges to the outside world.
+          </p>
+        </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {INTEGRATIONS.map((integration) => {
           const Icon = integration.icon;
           return (

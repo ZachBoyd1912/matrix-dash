@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Clock, Trash2, Play, CalendarClock, CheckSquare, Bot } from "lucide-react";
+import { Plus, Clock, Trash2, Play, CalendarClock, CheckSquare, Bot, ListChecks } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -20,13 +20,18 @@ export default function TasksPage() {
   const [tab, setTab] = useState<"todos" | "jobs">("todos");
 
   return (
-    <div ref={ref} className="px-4 md:px-8 py-8 max-w-3xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Tasks & Automations</h1>
-          <p className="text-text-secondary text-sm mt-1">
-            To-dos with reminders, plus scheduled jobs Jarvis runs for you.
-          </p>
+    <div ref={ref} className="px-4 md:px-8 py-10 max-w-3xl mx-auto space-y-6">
+      <div className="relative">
+        <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
+        <div className="orb -top-10 right-16 h-44 w-44 bg-sky-500/15" style={{ animationDelay: "-6s" }} />
+        <div className="relative flex items-center justify-between">
+          <div>
+            <span className="eyebrow"><ListChecks size={11} /> Tasks &amp; Automations</span>
+            <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">Tasks &amp; Automations</h1>
+            <p className="text-text-secondary text-sm mt-2">
+              To-dos with reminders, plus scheduled jobs Jarvis runs for you.
+            </p>
+          </div>
         </div>
       </div>
 
@@ -114,7 +119,7 @@ function Todos() {
 
   return (
     <div className="space-y-4">
-      <Card className="space-y-3">
+      <Card interactive className="space-y-3 rounded-2xl">
         <Input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -140,9 +145,9 @@ function Todos() {
       {list === null ? null : list.length === 0 ? (
         <EmptyState icon={<CheckSquare size={16} />} title="No tasks" description="Add your first to-do above." />
       ) : (
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           {list.map((t) => (
-            <Card key={t.id} className={cn("flex items-center gap-3 py-3", t.isDone && "opacity-50")}>
+            <Card key={t.id} className={cn("flex items-center gap-3 py-3 rounded-xl transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]", t.isDone && "opacity-50")}>
               <button
                 onClick={() => toggle(t)}
                 className={cn(
@@ -256,9 +261,9 @@ function Jobs() {
           action={<Button variant="primary" size="sm" onClick={() => setOpen(true)}><Plus size={13} /> New job</Button>}
         />
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           {list.map((j) => (
-            <Card key={j.id} className="space-y-2">
+            <Card key={j.id} interactive className="space-y-2 rounded-2xl">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">

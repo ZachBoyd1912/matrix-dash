@@ -80,7 +80,7 @@ export default function SessionPage() {
       <div className="px-4 md:px-6 py-3 border-b border-white/5 flex items-center gap-3">
         <Link
           href="/dashboard/sessions"
-          className="text-text-muted hover:text-text-primary p-1 rounded-md hover:bg-white/5 transition-colors"
+          className="text-text-muted hover:text-text-primary p-1 rounded-lg hover:bg-white/5 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
           aria-label="Back to sessions"
         >
           <ArrowLeft size={14} />

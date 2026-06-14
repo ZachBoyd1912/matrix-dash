@@ -63,17 +63,24 @@ export default function ImagesPage() {
   };
 
   return (
-    <div ref={ref} className="px-4 md:px-8 py-8 max-w-5xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <Sparkles size={20} className="text-emerald-400" /> Image generation
-        </h1>
-        <p className="text-text-secondary text-sm mt-1">
-          Uses your OpenAI-compatible provider&apos;s images endpoint. Results saved to your local gallery.
-        </p>
+    <div ref={ref} className="px-4 md:px-8 py-10 max-w-5xl mx-auto space-y-8">
+      <div className="relative">
+        <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
+        <div className="orb -top-10 right-16 h-44 w-44 bg-sky-500/15" style={{ animationDelay: "-6s" }} />
+        <div className="relative">
+          <span className="eyebrow">
+            <Sparkles size={11} /> Image Studio
+          </span>
+          <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">
+            Image generation
+          </h1>
+          <p className="text-text-secondary text-sm mt-3 max-w-2xl">
+            Uses your OpenAI-compatible provider&apos;s images endpoint. Results saved to your local gallery.
+          </p>
+        </div>
       </div>
 
-      <Card className="space-y-3">
+      <Card interactive className="space-y-3 rounded-2xl">
         <Textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
@@ -91,9 +98,9 @@ export default function ImagesPage() {
       {list.length === 0 ? (
         <EmptyState icon={<ImageIcon size={16} />} title="No images yet" description="Type a prompt above to start." />
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {list.map((img) => (
-            <Card key={img.id} className="overflow-hidden p-0 group">
+            <Card key={img.id} interactive className="overflow-hidden p-0 group rounded-2xl">
               <div className="relative">
                 <img src={img.dataUrl} alt={img.prompt} className="w-full aspect-square object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">

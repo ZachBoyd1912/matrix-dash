@@ -33,13 +33,20 @@ export default function DiagnosticsPage() {
   if (!data) return <div className="p-4 text-xs text-text-muted">Loading…</div>;
 
   return (
-    <div ref={ref} className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold tracking-tight">Diagnostics</h2>
-        <p className="text-text-secondary text-sm mt-1">Health of every subsystem at a glance.</p>
+    <div ref={ref} className="space-y-8">
+      <div className="relative overflow-hidden py-10">
+        <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
+        <div className="orb top-0 left-48 h-40 w-40 bg-sky-500/15" style={{ animationDelay: "-6s" }} />
+        <div className="relative">
+          <span className="eyebrow">
+            <Sparkles size={11} /> System health
+          </span>
+          <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">Diagnostics</h1>
+          <p className="text-text-secondary text-sm mt-2">Health of every subsystem at a glance.</p>
+        </div>
       </div>
 
-      <Card>
+      <Card interactive className="rounded-2xl">
         <p className="text-xs font-semibold text-text-primary mb-3 flex items-center gap-2">
           <Activity size={13} /> Subsystems
         </p>
@@ -48,7 +55,7 @@ export default function DiagnosticsPage() {
         <Row label="Ollama" value={data.ollama.ok ? `v${data.ollama.version}` : data.ollama.error ?? "down"} ok={data.ollama.ok} optional />
       </Card>
 
-      <Card>
+      <Card interactive className="rounded-2xl">
         <p className="text-xs font-semibold text-text-primary mb-3 flex items-center gap-2">
           <Database size={13} /> Local data
         </p>
@@ -59,7 +66,7 @@ export default function DiagnosticsPage() {
         ))}
       </Card>
 
-      <Card>
+      <Card interactive className="rounded-2xl">
         <p className="text-xs font-semibold text-text-primary mb-3 flex items-center gap-2">
           <Cpu size={13} /> Runtime
         </p>

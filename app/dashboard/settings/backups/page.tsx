@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Archive, Download, Trash2 } from "lucide-react";
+import { Archive, Download, Trash2, DatabaseBackup } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -63,15 +63,27 @@ export default function BackupsPage() {
   };
 
   return (
-    <div ref={ref} className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold tracking-tight">Backups</h2>
-        <p className="text-text-secondary text-sm mt-1">
-          Auto-snapshots of everything in <code className="text-emerald-300">~/MatrixDash/backups</code>. Last 10 kept.
-        </p>
+    <div ref={ref} className="space-y-8">
+      <div className="relative py-10">
+        <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
+        <div
+          className="orb -top-8 left-44 h-44 w-44 bg-sky-500/15"
+          style={{ animationDelay: "-6s" }}
+        />
+        <div className="relative">
+          <span className="eyebrow">
+            <DatabaseBackup size={11} /> Snapshots
+          </span>
+          <h2 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">
+            Backups
+          </h2>
+          <p className="text-text-secondary text-sm mt-3">
+            Auto-snapshots of everything in <code className="text-emerald-300">~/MatrixDash/backups</code>. Last 10 kept.
+          </p>
+        </div>
       </div>
 
-      <Card>
+      <Card interactive>
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-text-primary">Nightly auto-backup</p>
@@ -88,9 +100,9 @@ export default function BackupsPage() {
       {list.length === 0 ? (
         <EmptyState icon={<Archive size={16} />} title="No backups yet" />
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {list.map((b) => (
-            <Card key={b.name} className="flex items-center justify-between gap-3">
+            <Card key={b.name} interactive className="flex items-center justify-between gap-3 rounded-xl">
               <div className="min-w-0">
                 <p className="text-sm font-medium text-text-primary font-mono">{b.name}</p>
                 <p className="text-[11px] text-text-muted mt-0.5">

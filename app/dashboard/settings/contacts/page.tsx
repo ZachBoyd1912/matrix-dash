@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Trash2, Users } from "lucide-react";
+import { Plus, Trash2, Users, Contact as ContactIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
@@ -51,11 +51,18 @@ export default function ContactsPage() {
 
   return (
     <div ref={ref} className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold tracking-tight">Contacts</h2>
-        <p className="text-text-secondary text-sm mt-1">
-          A tiny address book the agent uses when you say &ldquo;email Alice&rdquo;.
-        </p>
+      <div className="relative overflow-hidden py-10">
+        <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
+        <div className="orb top-0 right-16 h-44 w-44 bg-sky-500/15" style={{ animationDelay: "-6s" }} />
+        <div className="relative">
+          <span className="eyebrow">
+            <ContactIcon size={11} /> Address Book
+          </span>
+          <h2 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">Contacts</h2>
+          <p className="text-text-secondary text-sm mt-2">
+            A tiny address book the agent uses when you say &ldquo;email Alice&rdquo;.
+          </p>
+        </div>
       </div>
 
       <Button variant="primary" onClick={() => setOpen(true)}>
@@ -65,9 +72,9 @@ export default function ContactsPage() {
       {list.length === 0 ? (
         <EmptyState icon={<Users size={16} />} title="No contacts" />
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {list.map((c) => (
-            <Card key={c.id} className="flex items-center justify-between gap-3">
+            <Card key={c.id} interactive className="flex items-center justify-between gap-3 rounded-xl">
               <div className="min-w-0">
                 <p className="text-sm font-medium text-text-primary">{c.name}</p>
                 <p className="text-[11px] text-text-muted">{c.email || "—"}</p>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
@@ -49,12 +49,19 @@ export default function PresetsPage() {
   };
 
   return (
-    <div ref={ref} className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold tracking-tight">Personas</h2>
-        <p className="text-text-secondary text-sm mt-1">
-          Pre-built system prompts you can swap into a chat (&ldquo;Jarvis butler&rdquo;, &ldquo;Senior reviewer&rdquo;, etc.).
-        </p>
+    <div ref={ref} className="space-y-8">
+      <div className="relative overflow-hidden py-10">
+        <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
+        <div className="orb top-0 right-16 h-44 w-44 bg-sky-500/15" style={{ animationDelay: "-6s" }} />
+        <div className="relative">
+          <span className="eyebrow">
+            <Sparkles size={11} /> Personas
+          </span>
+          <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">Personas</h1>
+          <p className="text-text-secondary text-sm mt-3 max-w-2xl">
+            Pre-built system prompts you can swap into a chat (&ldquo;Jarvis butler&rdquo;, &ldquo;Senior reviewer&rdquo;, etc.).
+          </p>
+        </div>
       </div>
 
       <Button variant="primary" onClick={() => setOpen(true)}>
@@ -64,9 +71,9 @@ export default function PresetsPage() {
       {list.length === 0 ? (
         <EmptyState title="No personas yet" />
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {list.map((p) => (
-            <Card key={p.id} className="flex items-start justify-between gap-3">
+            <Card key={p.id} interactive className="flex items-start justify-between gap-4 rounded-2xl">
               <div className="min-w-0">
                 <p className="text-sm font-medium text-text-primary">{p.name}</p>
                 <p className="text-xs text-text-secondary mt-1 line-clamp-2 font-mono">{p.systemPrompt}</p>

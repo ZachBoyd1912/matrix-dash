@@ -461,6 +461,139 @@
   animation: shimmer 2s linear infinite;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   AURORA SPATIAL — premium design layer. Theme-agnostic: everything keys off
+   the accent + surface/text tokens via color-mix, so all 18 named themes
+   inherit the upgrade. Motion is transform/opacity only (GPU-safe) and is
+   zeroed by the prefers-reduced-motion block below.
+   ═══════════════════════════════════════════════════════════════════════ */
+:root {
+  --ease-spatial: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-soft: cubic-bezier(0.16, 1, 0.3, 1);
+  --accent: var(--color-emerald-accent);
+}
+
+@layer components {
+  /* Microscopic uppercase pill that precedes big headings. */
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--accent) 82%, var(--color-text-primary));
+    background: color-mix(in srgb, var(--accent) 9%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+    backdrop-filter: blur(8px);
+  }
+
+  /* Display gradient text — hero numerals + titles. */
+  .text-gradient {
+    background: linear-gradient(
+      135deg,
+      var(--color-text-primary) 0%,
+      color-mix(in srgb, var(--accent) 55%, var(--color-text-primary)) 55%,
+      var(--accent) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+  .display {
+    letter-spacing: -0.04em;
+    line-height: 0.95;
+  }
+
+  /* Double-bezel: a glass plate seated in a machined tray (outer shell + core). */
+  .bezel {
+    position: relative;
+    border-radius: 1.5rem;
+    padding: 6px;
+    background: color-mix(in srgb, var(--color-text-primary) 4%, transparent);
+    border: 1px solid var(--border-subtle);
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.05),
+      0 24px 60px -24px rgba(0, 0, 0, 0.65);
+  }
+  .bezel-core {
+    border-radius: calc(1.5rem - 6px);
+    background: var(--color-bg-surface);
+    box-shadow:
+      inset 0 1px 1px rgba(255, 255, 255, 0.06),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  }
+
+  /* Premium hover — lift + accent glow. Pair with .glass on cards. */
+  .lift {
+    transition:
+      transform 0.5s var(--ease-soft),
+      box-shadow 0.5s var(--ease-soft),
+      border-color 0.5s var(--ease-soft);
+    will-change: transform;
+  }
+  .lift:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--accent) 26%, transparent);
+    box-shadow:
+      var(--shadow-elevated),
+      0 20px 55px -24px color-mix(in srgb, var(--accent) 55%, transparent);
+  }
+
+  /* Hairline accent sheen along a card's top edge. */
+  .sheen {
+    position: relative;
+  }
+  .sheen::before {
+    content: "";
+    position: absolute;
+    inset: 0 12% auto 12%;
+    height: 1px;
+    border-radius: 9999px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in srgb, var(--accent) 50%, rgba(255, 255, 255, 0.5)),
+      transparent
+    );
+    opacity: 0.55;
+    pointer-events: none;
+  }
+
+  /* Magnetic island button — nested trailing icon drifts on group hover. */
+  .island-icon {
+    transition: transform 0.4s var(--ease-soft);
+  }
+  .group:hover .island-icon {
+    transform: translate(2px, -1px);
+  }
+
+  /* Soft floating accent orb behind hero content. */
+  .orb {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(64px);
+    opacity: 0.45;
+    pointer-events: none;
+    will-change: transform;
+    animation: float-slow 16s ease-in-out infinite;
+  }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(0, -16px, 0) scale(1.07); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

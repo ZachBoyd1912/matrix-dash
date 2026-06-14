@@ -11,11 +11,11 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 const variantClasses: Record<Variant, string> = {
   primary:
-    "bg-emerald-400 text-black hover:bg-emerald-300 active:scale-[0.98] shadow-[0_0_24px_-8px_rgba(52,211,153,0.6)]",
-  secondary: "glass-input text-text-primary hover:bg-white/5",
+    "bg-emerald-400 text-black hover:bg-emerald-300 active:scale-[0.97] shadow-[0_0_24px_-8px_rgba(52,211,153,0.55)] hover:shadow-[0_10px_34px_-8px_rgba(52,211,153,0.7)]",
+  secondary: "glass-input text-text-primary hover:bg-white/5 hover:border-white/15",
   ghost: "text-text-secondary hover:text-text-primary hover:bg-white/5",
   outline:
-    "border border-white/15 bg-transparent text-text-primary hover:bg-white/5",
+    "border border-white/15 bg-transparent text-text-primary hover:bg-white/5 hover:border-white/25",
   danger:
     "bg-rose-500/15 text-rose-300 hover:bg-rose-500/25 border border-rose-500/20",
 };
@@ -32,7 +32,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     <button
       ref={ref}
       className={cn(
-        "inline-flex items-center justify-center gap-2 font-medium transition-all duration-150 disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40",
+        "inline-flex items-center justify-center gap-2 font-medium transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40",
         variantClasses[variant],
         sizeClasses[size],
         className

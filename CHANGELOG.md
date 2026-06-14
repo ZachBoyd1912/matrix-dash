@@ -1,5 +1,55 @@
 # Changelog
 
+## 14/06/2026 @ 13:14:01 IST — "claude-opus-4-8"
+
+**Goal:** Finish the Aurora Spatial rollout — the final 8 pages the earlier workflow skipped when it hit the account session limit.
+
+**Changed — Aurora Spatial applied to the last 8 pages** (visual-only; behavior preserved): `tasks` and `settings/{landing, presets, shortcuts, system, tokens, vault, webhooks}`. Same treatment as the rest — eyebrow + gradient display header, ambient orbs, `interactive`/`lift` cards. (System settings' destructive "danger zone" card deliberately keeps no glow.)
+
+**Method:** `Workflow` (`aurora-rollout-finish`), 8/8 agents succeeded after the limit reset at 1pm.
+
+**Status:** Every dashboard page is now on Aurora Spatial except `chat`, `email`, and `ide`, which are intentionally full-height panes with no page header (they still inherit the redesigned shell, tokens, and cards).
+
+**Verification:** `pnpm typecheck` → **0 errors**. Live on :3001 — 8/8 routes render 200. Not run (8GB RAM): `pnpm build`.
+
+**Files touched:** `app/dashboard/tasks/page.tsx`; `app/dashboard/settings/{page,presets,shortcuts,system,tokens,vault,webhooks}/page.tsx` (settings landing is `settings/page.tsx`); `CHANGELOG.md`.
+
+## 14/06/2026 @ 13:11:13 IST — "claude-opus-4-8"
+
+**Goal:** Roll the Aurora Spatial treatment across the remaining inner dashboard pages (the "redesign the entire website" follow-up), via a multi-agent workflow.
+
+**Changed — Aurora Spatial applied to 19 inner pages** (visual-only; imports/hooks/handlers/data-fetching/exports preserved; theme-agnostic, reusing the existing `globals.css` utilities — no new components or tokens): `calendar`, `images`, `memory-bank` (index / `[id]` / `new`), `research`, `sessions` (index / `[id]`), and `settings/{account, agent-tools, appearance, auth, backups, contacts, cookbook, diagnostics, email, integrations, memory}`. Each gained the eyebrow + gradient display header, ambient orbs, and `interactive`/`lift` cards.
+
+**Method:** `Workflow` (`aurora-rollout`) fanned out one agent per page with hard guardrails (edit only the target file; no shell; no logic/prop changes).
+
+**Not done yet (account session limit hit mid-run):** 8 pages remain untouched — `tasks` + `settings/{landing, presets, shortcuts, system, tokens, vault, webhooks}`. `chat` + `email` were intentionally skipped (full-height panes with no header).
+
+**Verification:** `pnpm typecheck` → **0 errors** across all 19 files. Live on :3001 — 18/18 sampled routes render 200, dev log clean. Not run (8GB RAM): `pnpm build`.
+
+**Files touched:** 19 `app/dashboard/**/page.tsx` files (listed above) + `CHANGELOG.md`.
+
+## 14/06/2026 @ 11:14:26 IST — "claude-opus-4-8"
+
+**Goal:** Fix the model-config bugs visible in the Compare screenshots and ship a high-end "Aurora Spatial" redesign of the dashboard. Orchestrated via `antigravity-skill-orchestrator` + `high-end-visual-design` + `antigravity-design-expert`.
+
+**Fixed (cause → fix):**
+- **DeepSeek `messages[0].role: unknown variant "developer"` (500).** `@ai-sdk/openai` (`node_modules/@ai-sdk/openai/dist/index.js:59-61`) flags *any* model id not starting with `gpt-3/gpt-4/chatgpt-4o/gpt-5-chat` as a reasoning model and sends the system message as role `developer`; first-party OpenAI accepts it but third-party openai-compat endpoints (deepseek, opencode) reject it. `app/api/ai/chat/route.ts` now folds the system prompt into the first user turn for third-party openai-compat providers, so no `system`/`developer` role is ever sent. Verified live: deepseek streams `{"type":"text",…}` instead of erroring.
+- **Compare dumped raw NDJSON** (`{"type":"text","value":…}` on screen). `app/dashboard/compare/page.tsx` accumulated raw stream bytes into `<Markdown>`; it now line-buffers and parses the NDJSON, separating `text` / `reasoning` / `error`.
+- **Ollama errored when unwanted.** Removed the Ollama provider record; Compare now renders any failed model as a clean inline error card (never raw JSON).
+
+**Added:**
+- **Live artifact preview** (`components/chat/artifact.tsx`) — detects an HTML/SVG block in a model reply and renders it in a sandboxed `<iframe srcDoc sandbox="allow-scripts">` with Preview/Code tabs, Copy, Open-in-new-tab, and Download `.html`. Wired into Compare so "make me a website" now renders a real page instead of spitting code. Directly addresses the "just spit it in my face" complaint.
+
+**Changed — Aurora Spatial design system (theme-agnostic; all 18 themes inherit it via accent/surface tokens + `color-mix`):**
+- `app/globals.css` — new premium layer: `.eyebrow`, `.text-gradient`, `.display`, double-bezel (`.bezel`/`.bezel-core`), `.lift` (hover lift + accent glow), `.sheen`, `.island-icon` (magnetic), `.orb` + `float-slow`/`glow-pulse` keyframes, spring easing tokens. GPU-safe (transform/opacity only), reduced-motion respected.
+- `components/ui/card.tsx` — adds opt-in `interactive` (lift + glow) and a default top `sheen`; backward compatible. `components/ui/button.tsx` — spring easing + stronger primary glow.
+- `components/layout/sidebar.tsx` + `topbar.tsx` — gradient active rail with glow, brand glow, magnetic nav icons, aurora hairlines, refined provider switcher and search/⌘K island.
+- `app/dashboard/page.tsx` + `app/dashboard/compare/page.tsx` — bespoke flagship redesigns: ambient orbs, eyebrow tags, gradient display headings, premium lift/bezel cards.
+
+**Verification:** `pnpm typecheck` → **0 errors**. Live on :3001 — all 10 sampled dashboard routes render 200, deepseek chat streams clean text, Ollama removed (openrouter/opencode/deepseek remain), dev log clean. Not run (8GB RAM rule): `pnpm build`. Remaining 30 inner pages inherit the foundation (tokens/cards/shell) but not yet the bespoke hero treatment.
+
+**Files touched:** `app/globals.css`; `app/api/ai/chat/route.ts`; `app/dashboard/page.tsx`; `app/dashboard/compare/page.tsx`; `components/chat/artifact.tsx`; `components/ui/card.tsx`; `components/ui/button.tsx`; `components/layout/sidebar.tsx`; `components/layout/topbar.tsx`; `CHANGELOG.md`.
+
 ## 14/06/2026 @ 00:30:03 IST — "claude-opus-4-8"
 
 **Goal:** Add bulk deletion to the skills page — a "Delete all" and a multi-select "Delete selected" flow — so a 1500-skill catalog can be cleaned up without deleting one row at a time.

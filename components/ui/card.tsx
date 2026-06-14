@@ -1,11 +1,20 @@
 import * as React from "react";
 import { cn } from "@/lib/utils/cn";
 
-export const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
+export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+  /** Adds the premium hover lift + accent glow (use for clickable/feature cards). */
+  interactive?: boolean;
+}
+
+export const Card = React.forwardRef<HTMLDivElement, CardProps>(
+  ({ className, interactive, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("glass rounded-xl p-4 transition-all duration-200", className)}
+      className={cn(
+        "glass sheen rounded-xl p-4 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
+        interactive && "lift",
+        className
+      )}
       {...props}
     />
   )
