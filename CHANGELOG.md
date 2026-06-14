@@ -1,5 +1,21 @@
 # Changelog
 
+## 14/06/2026 @ 23:54:07 IST — "claude-opus-4-8"
+
+**Goal:** Pivot Claude Code mode to **wrap the REAL Claude Code CLI** (not just reimplement its experience). The chat can now run through the actual `claude` agent — routed through claude-code-router so it uses any Matrix provider key — with its event stream rendered in Matrix's existing block UI. The native agent (Phases 1–4) remains the fallback when the CLI isn't installed.
+
+**Added:**
+- **`lib/services/claude-code.ts`** — spawns `claude -p … --output-format stream-json --verbose` headlessly (mirrors `ollama.ts`/`code-server.ts`); maps Claude Code's stream-json events (`system/init`, `assistant` text + `tool_use`, `user` `tool_result`, `result`) onto Matrix's `StreamEvent`/`Block` protocol so it renders in the same transcript UI. `detectClaude()` probes the binary; power level → permission flags (`--dangerously-skip-permissions` / `acceptEdits` / `plan`); per-session `--resume` via a process-wide session map; `ANTHROPIC_BASE_URL` from the `claude_code_base_url` setting (point at claude-code-router for any provider).
+- **`app/api/ai/claude-code/route.ts`** — `GET` status probe; `POST` streams a turn through the CLI over the same NDJSON block protocol and persists the transcript like the native route.
+- **Engine toggle** — `useClaudeCode` in the app store + a "Claude Code" pill in the chat input; `chat-interface` routes to `/api/ai/claude-code` vs `/api/ai/chat` accordingly.
+- **Settings** (`types/settings.ts`): `claude_code_bin` (defaults to `claude` on PATH) and `claude_code_base_url`.
+
+**Removed:** the abandoned native-unification stubs (`lib/ai/capabilities.ts`, `lib/ai/agent-prompt.ts`) — superseded by the wrapper pivot.
+
+**Verification:** `pnpm typecheck` → **0 errors**. NOTE: end-to-end runtime requires the `claude` CLI installed (and, for non-Anthropic providers, claude-code-router running with `claude_code_base_url` pointed at it) — that can't be exercised in this environment. Reuses the Phase 1–2 block model/renderer/persistence, so its output renders identically to the native agent.
+
+**Files touched:** `lib/services/claude-code.ts`, `app/api/ai/claude-code/route.ts`, `lib/stores/use-app-store.ts`, `components/chat/chat-input.tsx`, `components/chat/chat-interface.tsx`, `types/settings.ts`; removed `lib/ai/capabilities.ts`, `lib/ai/agent-prompt.ts`; `CHANGELOG.md`.
+
 ## 14/06/2026 @ 23:42:06 IST — "claude-opus-4-8"
 
 **Goal:** Phase 4 of Claude Code mode — **interactive inline Allow/Deny approvals**. In `approval` power level the agent now pauses mid-run, shows an Allow / Allow always / Deny card, and resumes on your click.

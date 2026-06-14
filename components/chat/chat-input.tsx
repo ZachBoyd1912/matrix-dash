@@ -24,6 +24,8 @@ export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeh
   const setActive = useAppStore((s) => s.setActiveProviderId);
   const chatMode = useAppStore((s) => s.chatMode);
   const setChatMode = useAppStore((s) => s.setChatMode);
+  const useClaudeCode = useAppStore((s) => s.useClaudeCode);
+  const setUseClaudeCode = useAppStore((s) => s.setUseClaudeCode);
   const autoSpeak = useAppStore((s) => s.autoSpeak);
   const setAutoSpeak = useAppStore((s) => s.setAutoSpeak);
   const { listening, supported: micSupported, toggle: toggleMic } = useSpeechInput((text) =>
@@ -106,6 +108,19 @@ export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeh
             </button>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setUseClaudeCode(!useClaudeCode)}
+              className={cn(
+                "hidden sm:inline-flex items-center h-6 px-2.5 rounded-full text-[10px] border transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98]",
+                useClaudeCode
+                  ? "bg-amber-400/15 text-amber-300 border-amber-400/30 shadow-[0_0_18px_-6px_rgba(251,191,36,0.6)]"
+                  : "text-text-muted border-white/5 hover:text-text-secondary"
+              )}
+              title="Run the chat through the real Claude Code CLI engine"
+            >
+              Claude Code
+            </button>
             <div className="hidden sm:flex items-center glass-input rounded-full p-0.5 text-[10px] border border-white/5">
               {(["chat", "agent"] as const).map((mode) => (
                 <button

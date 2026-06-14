@@ -68,6 +68,7 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
   const providerId = useAppStore((s) => s.activeProviderId);
   const providers = useAppStore((s) => s.providers);
   const chatMode = useAppStore((s) => s.chatMode);
+  const useClaudeCode = useAppStore((s) => s.useClaudeCode);
   const autoSpeak = useAppStore((s) => s.autoSpeak);
   const modelOverride = useAppStore((s) => s.modelOverride);
   const reasoningEffort = useAppStore((s) => s.reasoningEffort);
@@ -149,7 +150,9 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
         // it never reaches memory extraction, and the model only ever sees a single
         // leading system message (safe across every provider, incl. Gemini).
         const ctx = contextText?.();
-        const res = await fetch("/api/ai/chat", {
+        // Route to the real Claude Code CLI engine when enabled, else the native agent.
+        const endpoint = useClaudeCode ? "/api/ai/claude-code" : "/api/ai/chat";
+        const res = await fetch(endpoint, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
@@ -230,7 +233,7 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
         abortRef.current = null;
       }
     },
-    [messages, providerId, sessionId, chatMode, autoSpeak, attachment, contextText, modelOverride, reasoningEffort]
+    [messages, providerId, sessionId, chatMode, useClaudeCode, autoSpeak, attachment, contextText, modelOverride, reasoningEffort]
   );
 
   const empty = messages.length === 0;

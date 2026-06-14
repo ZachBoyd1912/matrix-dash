@@ -13,6 +13,9 @@ interface AppState {
   setMobileNavOpen: (open: boolean) => void;
   chatMode: "chat" | "agent";
   setChatMode: (mode: "chat" | "agent") => void;
+  /** When true, the chat runs through the real Claude Code CLI engine. */
+  useClaudeCode: boolean;
+  setUseClaudeCode: (on: boolean) => void;
   autoSpeak: boolean;
   setAutoSpeak: (on: boolean) => void;
 
@@ -38,6 +41,8 @@ export const useAppStore = create<AppState>((set) => ({
   setMobileNavOpen: (mobileNavOpen) => set({ mobileNavOpen }),
   chatMode: "chat",
   setChatMode: (chatMode) => set({ chatMode }),
+  useClaudeCode: false,
+  setUseClaudeCode: (useClaudeCode) => set({ useClaudeCode }),
   autoSpeak: false,
   setAutoSpeak: (autoSpeak) => set({ autoSpeak }),
 

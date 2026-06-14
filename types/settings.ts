@@ -21,4 +21,8 @@ export const SETTING_DEFAULTS: Record<string, string> = {
   agent_power_level: "approval",
   /** Directory the coding tools operate within (empty → ~/MatrixDash). */
   agent_workspace_root: "",
+  /** Path to the real Claude Code CLI binary (empty → "claude" on PATH). */
+  claude_code_bin: "",
+  /** ANTHROPIC_BASE_URL for Claude Code — point at claude-code-router to use any provider. */
+  claude_code_base_url: "",
 };
