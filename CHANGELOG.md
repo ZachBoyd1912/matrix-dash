@@ -1,5 +1,36 @@
 # Changelog
 
+## 14/06/2026 @ 00:30:03 IST — "claude-opus-4-8"
+
+**Goal:** Add bulk deletion to the skills page — a "Delete all" and a multi-select "Delete selected" flow — so a 1500-skill catalog can be cleaned up without deleting one row at a time.
+
+**Added:**
+- `DELETE /api/skills` (`app/api/skills/route.ts`) — bulk delete: `{ids:[…]}` removes those rows; an empty/absent body removes **every** skill. Returns `{ok, deleted}`. Empty body is tolerated (try/catch → delete-all); malformed `ids` → 400.
+- Skills page (`app/dashboard/skills/page.tsx`): a **Select** mode (per-card checkboxes with a selected-ring, "Select shown", a live selected count, "Delete selected", "Done") and a **Delete all** button guarded by a type-`DELETE`-to-confirm dialog (`requireText`).
+
+**Verification:** `pnpm typecheck` → **0 errors**. Live on :3001 — create+delete-by-ids is net-zero (`{deleted:1}`, count returns to 1540), malformed `ids` → 400, `/dashboard/skills` renders 200, dev log clean. Did not exercise live "delete all" against the real catalog (destructive); it shares the verified `inArray`-vs-all branch with the bulk PATCH.
+
+**Files touched:** `app/api/skills/route.ts`; `app/dashboard/skills/page.tsx`; `CHANGELOG.md`.
+
+## 14/06/2026 @ 00:25:14 IST — "claude-opus-4-8"
+
+**Goal:** Fix the skills catalog import after pulling `sickn33/antigravity-awesome-skills` into Matrix — toggling a skill 500'd, the importer reported 4892 found but capped at 150, and there was no way to bulk-enable.
+
+**Fixed (cause → fix):**
+- **Toggle 500 (`Cannot read properties of undefined (reading 'call')` on `PATCH /api/skills/[id]`)** — stale `.next` webpack chunk, not a code bug (the route's imports are valid and work in sibling routes), so every enable/disable 500'd. Cleared `.next` + restarted dev. Verified: the exact id from the error log now returns 200.
+- **Reported 4892 found / only imported 150** — the repo carries a canonical `skills/` dir (1541) **plus** a `plugins/**/skills/` mirror (3351); the old `MAX=150` cap took the first 150 paths (all plugin copies). `app/api/skills/import/route.ts` now prefers the top-level `skills/` dir, dedups by folder basename, fetches in a 24-way bounded pool, and inserts in one transaction. Verified live: **1541 found, 1391 imported, 150 deduped, ~12s**.
+
+**Added:**
+- `PATCH /api/skills` bulk enable/disable (`{isEnabled, ids?}`; omit `ids` = all) — `app/api/skills/route.ts`. Verified: enabled 1541 / disabled 1541.
+- Skills page (`app/dashboard/skills/page.tsx`): search box, `enabled/total` counter, **Enable all / Disable all** controls (Enable-all asks for confirmation), and a 300-row render cap for the 1500+ catalog.
+
+**Changed:**
+- `app/api/ai/chat/route.ts` `buildSkillsPrompt()` — enabled skills are concatenated verbatim into the agent system prompt, so added a 60k-char budget with an overflow summary; imported skills remain `isEnabled:false` by default (opt-in) to avoid a prompt/cost blow-up when a large catalog is imported.
+
+**Verification:** `pnpm typecheck` → **0 errors**. Live against dev on :3001 — single toggle 200, bulk enable/disable 1541, full import 1541→1391, `/dashboard/skills` renders 200, dev log clean. Not run (8GB RAM rule): `pnpm build`.
+
+**Files touched:** `app/api/skills/import/route.ts`; `app/api/skills/route.ts`; `app/api/ai/chat/route.ts`; `app/dashboard/skills/page.tsx`; `CHANGELOG.md`.
+
 ## 13/06/2026 @ 23:05:13 IST — "claude-opus-4-8"
 
 **Goal:** Make the IDE tab a *real, branded VS Code* (the Antigravity model) embedded inside the web app — by managing a local `code-server` instance from the dashboard and embedding it in an iframe, with an AI agent extension wired to the existing chat backend. Built via multi-agent orchestration.

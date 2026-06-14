@@ -6,6 +6,8 @@ import { withLog, logger } from "@/lib/utils/logger";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+// Importing a large skill catalog fans out to many raw.githubusercontent fetches.
+export const maxDuration = 300;
 
 const schema = z.object({ repoUrl: z.string().min(1) });
 
@@ -14,6 +16,11 @@ const GH_HEADERS = {
   "User-Agent": "matrix-dash",
   Accept: "application/vnd.github+json",
 };
+
+// Hard ceiling so a pathological repo can't queue an unbounded import.
+const MAX_SKILLS = 5000;
+// raw.githubusercontent is a CDN (no 60/hr API limit) but still be polite.
+const FETCH_CONCURRENCY = 24;
 
 interface ParsedSkill {
   name: string;
@@ -74,6 +81,26 @@ function parseSkillMd(raw: string, fallbackName: string): ParsedSkill {
   };
 }
 
+/** Run an async fn over items with a bounded number of in-flight calls. */
+async function mapPool<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let cursor = 0;
+  const worker = async () => {
+    while (cursor < items.length) {
+      const i = cursor++;
+      results[i] = await fn(items[i], i);
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, () => worker()),
+  );
+  return results;
+}
+
 export const POST = withLog(async (req) => {
   let payload: unknown;
   try {
@@ -123,16 +150,38 @@ export const POST = withLog(async (req) => {
       tree?: { path: string; type: string }[];
       truncated?: boolean;
     };
-    const skillPaths = (tree.tree ?? [])
+
+    const allSkillMd = (tree.tree ?? [])
       .filter((e) => e.type === "blob" && /(^|\/)SKILL\.md$/i.test(e.path))
       .map((e) => e.path);
 
-    if (skillPaths.length === 0) {
+    // Many catalog repos vendor a second, packaged copy of every skill under
+    // plugins/** (or vendor/**, dist/**). Those inflate the count and import
+    // duplicates. Prefer a canonical top-level `skills/` directory when present;
+    // only fall back to "everything" for repos that don't have one.
+    const canonical = allSkillMd.filter((p) => /^skills\//i.test(p));
+    let skillPaths = canonical.length ? canonical : allSkillMd;
+
+    // Collapse paths that point at the same skill folder (same basename dir),
+    // keeping the shortest path (the least-nested / canonical copy).
+    const byFolder = new Map<string, string>();
+    for (const p of skillPaths) {
+      const folder = p.split("/").slice(-2, -1)[0] || p;
+      const key = folder.toLowerCase();
+      const prev = byFolder.get(key);
+      if (!prev || p.length < prev.length) byFolder.set(key, p);
+    }
+    skillPaths = [...byFolder.values()];
+
+    const found = skillPaths.length;
+    if (found === 0) {
       return Response.json(
-        { imported: 0, skipped: 0, error: "No SKILL.md files found in that repo." },
+        { imported: 0, skipped: 0, found: 0, error: "No SKILL.md files found in that repo." },
         { status: 404 },
       );
     }
+
+    const cappedPaths = skillPaths.slice(0, MAX_SKILLS);
 
     // 3. Existing names (case-insensitive) so we skip duplicates.
     const db = getDb();
@@ -144,61 +193,68 @@ export const POST = withLog(async (req) => {
         .map((r) => r.name.toLowerCase()),
     );
 
-    let imported = 0;
-    let skipped = 0;
-    const seenThisRun = new Set<string>();
-
-    // Cap to keep one import bounded + polite to raw.githubusercontent.
-    const MAX = 150;
-    const targets = skillPaths.slice(0, MAX);
-
-    for (const path of targets) {
-      let rawText: string;
+    // 4. Fetch every SKILL.md in parallel (bounded) and parse it.
+    let fetchFailures = 0;
+    const fetched = await mapPool(cappedPaths, FETCH_CONCURRENCY, async (path) => {
       try {
         const rawRes = await fetch(
           `https://raw.githubusercontent.com/${repo.owner}/${repo.repo}/${branch}/${path}`,
           { headers: { "User-Agent": "matrix-dash" } },
         );
         if (!rawRes.ok) {
-          skipped++;
-          continue;
+          fetchFailures++;
+          return null;
         }
-        rawText = await rawRes.text();
+        const rawText = await rawRes.text();
+        const folder = path.split("/").slice(-2, -1)[0] || path.replace(/\.md$/i, "");
+        return parseSkillMd(rawText, folder);
       } catch {
-        skipped++;
-        continue;
+        fetchFailures++;
+        return null;
       }
+    });
 
-      const folder = path.split("/").slice(-2, -1)[0] || path.replace(/\.md$/i, "");
-      const skill = parseSkillMd(rawText, folder);
+    // 5. Dedup by name and insert everything in one transaction (fast + atomic).
+    const seenThisRun = new Set<string>();
+    const now = new Date().toISOString();
+    const toInsert: (typeof skills.$inferInsert)[] = [];
+    let duplicates = 0;
+    for (const skill of fetched) {
+      if (!skill) continue;
       const key = skill.name.toLowerCase();
       if (existing.has(key) || seenThisRun.has(key)) {
-        skipped++;
+        duplicates++;
         continue;
       }
       seenThisRun.add(key);
-
-      const now = new Date().toISOString();
-      db.insert(skills)
-        .values({
-          id: randomUUID(),
-          name: skill.name,
-          description: skill.description,
-          instructions: skill.instructions,
-          isEnabled: false, // imported skills start disabled — user opts in
-          createdAt: now,
-          updatedAt: now,
-        })
-        .run();
-      imported++;
+      toInsert.push({
+        id: randomUUID(),
+        name: skill.name,
+        description: skill.description,
+        instructions: skill.instructions,
+        isEnabled: false, // imported skills start disabled — user opts in (see chat route)
+        createdAt: now,
+        updatedAt: now,
+      });
     }
 
-    logger.ok(`Imported ${imported} skill(s) from ${repo.owner}/${repo.repo} (${skipped} skipped)`);
+    if (toInsert.length > 0) {
+      db.transaction((tx) => {
+        for (const row of toInsert) tx.insert(skills).values(row).run();
+      });
+    }
+
+    const imported = toInsert.length;
+    const skipped = duplicates + fetchFailures;
+    logger.ok(
+      `Imported ${imported} skill(s) from ${repo.owner}/${repo.repo} ` +
+        `(${found} found, ${duplicates} dup, ${fetchFailures} fetch-fail)`,
+    );
     return Response.json({
       imported,
       skipped,
-      found: skillPaths.length,
-      truncated: !!tree.truncated || skillPaths.length > MAX,
+      found,
+      truncated: !!tree.truncated || found > MAX_SKILLS,
       repo: `${repo.owner}/${repo.repo}`,
     });
   } catch (err) {
