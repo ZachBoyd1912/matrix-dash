@@ -2,6 +2,13 @@
 
 import { create } from "zustand";
 
+// crypto.randomUUID() is undefined in some SSR/Node contexts; fall back to a
+// simple random string which is sufficient for ephemeral client-side IDs.
+const uid = () =>
+  typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2);
+
 export interface Toast {
   id: string;
   title: string;
@@ -31,7 +38,7 @@ interface FeedbackState {
 export const useFeedback = create<FeedbackState>((set, get) => ({
   toasts: [],
   pushToast: (toast) => {
-    const id = crypto.randomUUID();
+    const id = uid();
     set((s) => ({ toasts: [...s.toasts, { ...toast, id }] }));
     setTimeout(() => get().dismissToast(id), 4000);
   },
