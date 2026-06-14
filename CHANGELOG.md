@@ -1,5 +1,21 @@
 # Changelog
 
+## 14/06/2026 @ 18:19:41 IST — "claude-opus-4-8"
+
+**Goal:** Make the AI provider form dynamic — only require fields that a given provider actually needs. Concretely: local providers (Ollama, LM Studio) run on the user's machine and need no API key, but the form (and API) hard-required one.
+
+**Added:**
+- `local?: boolean` on `ProviderSpec` (marked on `ollama` + `lmstudio`), plus `requiresApiKey(kind)` and a `LOCAL_API_KEY` placeholder constant (`types/ai-provider.ts`).
+
+**Changed:**
+- **Form** (`components/settings/provider-form.tsx`): the API-key field is now labelled "(optional — local)" with a "Not needed for local models" placeholder when the selected provider is local; "Load models", submit-disabled, and the footer note all key off `requiresApiKey(provider)` instead of unconditionally demanding a key. Cloud providers behave exactly as before.
+- **Create route** (`app/api/providers/route.ts`): `apiKey` is now optional in the schema, with a server-side backstop that still returns **400** for cloud providers missing a key; local providers store the `LOCAL_API_KEY` placeholder (so `createOpenAI` always has a non-empty key — local endpoints ignore it).
+- **Unsaved-form model listing** (`app/api/providers/models/route.ts`): `apiKey` optional, defaults to the placeholder so local catalogues list without a key.
+
+**Verification:** `pnpm typecheck` → **0 errors**. Live API test on :3000 — cloud provider with no key → `400 "An API key is required"`; local Ollama provider with no key → `200` (created); test row deleted afterward.
+
+**Files touched:** `types/ai-provider.ts`, `components/settings/provider-form.tsx`, `app/api/providers/route.ts`, `app/api/providers/models/route.ts`; `CHANGELOG.md`.
+
 ## 14/06/2026 @ 18:13:56 IST — "claude-opus-4-8"
 
 **Goal:** Fix `TypeError: crypto.randomUUID is not a function` that crashed the confirm dialog when deleting a model provider.

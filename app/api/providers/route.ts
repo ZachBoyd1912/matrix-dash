@@ -6,6 +6,7 @@ import { aiProviders } from "@/lib/db/schema";
 import { encrypt } from "@/lib/utils/crypto";
 import { listProviders } from "@/lib/ai/registry";
 import { withLog } from "@/lib/utils/logger";
+import { requiresApiKey, LOCAL_API_KEY } from "@/types/ai-provider";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,9 @@ const createSchema = z.object({
   name: z.string().min(1),
   // Any catalog kind — validated as a non-empty string so new kinds need no code change here.
   provider: z.string().min(1),
-  apiKey: z.string().min(1),
+  // Optional: local providers (Ollama, LM Studio) need no key. Required cloud
+  // providers are enforced below against the catalog.
+  apiKey: z.string().optional(),
   baseUrl: z.string().nullable().optional(),
   defaultModel: z.string().nullable().optional(),
   isActive: z.boolean().optional(),
@@ -34,6 +37,10 @@ export const POST = withLog(async (req) => {
   if (!parsed.success) {
     return Response.json({ error: parsed.error.flatten() }, { status: 400 });
   }
+  const apiKey = parsed.data.apiKey?.trim();
+  if (requiresApiKey(parsed.data.provider) && !apiKey) {
+    return Response.json({ error: "An API key is required for this provider." }, { status: 400 });
+  }
   const id = randomUUID();
   const db = getDb();
 
@@ -46,7 +53,7 @@ export const POST = withLog(async (req) => {
       id,
       name: parsed.data.name,
       provider: parsed.data.provider,
-      apiKeyEncrypted: encrypt(parsed.data.apiKey),
+      apiKeyEncrypted: encrypt(apiKey || LOCAL_API_KEY),
       baseUrl: parsed.data.baseUrl ?? null,
       defaultModel: parsed.data.defaultModel ?? null,
       isActive: parsed.data.isActive ?? false,
