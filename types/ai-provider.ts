@@ -32,6 +32,8 @@ export interface ProviderSpec {
   defaultModel: string;
   /** When true, the base URL must be supplied by the user. */
   requiresBaseUrl?: boolean;
+  /** Runs on the user's machine (Ollama, LM Studio) — no API key needed. */
+  local?: boolean;
 }
 
 /** Single source of truth for every selectable provider. */
@@ -52,8 +54,8 @@ export const PROVIDER_CATALOG: ProviderSpec[] = [
   { value: "hyperbolic", label: "Hyperbolic", sdk: "openai-compat", baseUrl: "https://api.hyperbolic.xyz/v1", defaultModel: "Qwen/Qwen2.5-72B-Instruct" },
   { value: "novita", label: "Novita AI", sdk: "openai-compat", baseUrl: "https://api.novita.ai/v3/openai", defaultModel: "meta-llama/llama-3.1-70b-instruct" },
   { value: "opencode", label: "OpenCode", sdk: "openai-compat", baseUrl: "https://api.opencode.ai/v1", defaultModel: "opencode-latest" },
-  { value: "ollama", label: "Ollama (Local)", sdk: "openai-compat", baseUrl: "http://localhost:11434/v1", defaultModel: "llama3.2:3b" },
-  { value: "lmstudio", label: "LM Studio (Local)", sdk: "openai-compat", baseUrl: "http://localhost:1234/v1", defaultModel: "", requiresBaseUrl: true },
+  { value: "ollama", label: "Ollama (Local)", sdk: "openai-compat", baseUrl: "http://localhost:11434/v1", defaultModel: "llama3.2:3b", local: true },
+  { value: "lmstudio", label: "LM Studio (Local)", sdk: "openai-compat", baseUrl: "http://localhost:1234/v1", defaultModel: "", requiresBaseUrl: true, local: true },
   { value: "azure", label: "Azure OpenAI", sdk: "openai-compat", baseUrl: null, defaultModel: "gpt-4o", requiresBaseUrl: true },
   { value: "custom", label: "Custom (OpenAI-compatible)", sdk: "openai-compat", baseUrl: null, defaultModel: "", requiresBaseUrl: true },
 ];
@@ -90,3 +92,11 @@ export function showsBaseUrl(kind: string): boolean {
   const spec = providerSpec(kind);
   return !!spec && (spec.baseUrl !== null || !!spec.requiresBaseUrl);
 }
+
+/** Whether a kind needs an API key. Local providers (Ollama, LM Studio) don't. */
+export function requiresApiKey(kind: string): boolean {
+  return !providerSpec(kind)?.local;
+}
+
+/** Placeholder key stored for local providers, which authenticate no requests. */
+export const LOCAL_API_KEY = "local";

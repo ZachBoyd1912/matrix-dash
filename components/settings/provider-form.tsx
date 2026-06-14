@@ -11,6 +11,7 @@ import {
   PROVIDER_KINDS,
   providerSpec,
   showsBaseUrl,
+  requiresApiKey,
   type ProviderKind,
 } from "@/types/ai-provider";
 
@@ -41,7 +42,7 @@ export function ProviderForm({ onCreated }: Props) {
 
   // Query the provider's live model catalogue using the entered (unsaved) key.
   const loadModels = async () => {
-    if (!apiKey.trim()) return;
+    if (keyRequired && !apiKey.trim()) return;
     setLoadingModels(true);
     setModelError(null);
     try {
@@ -64,9 +65,10 @@ export function ProviderForm({ onCreated }: Props) {
 
   const spec = providerSpec(provider);
   const needsBaseUrl = !!spec?.requiresBaseUrl;
+  const keyRequired = requiresApiKey(provider);
 
   const submit = async () => {
-    if (!name.trim() || !apiKey.trim()) return;
+    if (!name.trim() || (keyRequired && !apiKey.trim())) return;
     setSubmitting(true);
     try {
       await fetch("/api/providers", {
@@ -117,12 +119,14 @@ export function ProviderForm({ onCreated }: Props) {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
-            <label className="text-[10px] uppercase text-text-muted block mb-1">API key</label>
+            <label className="text-[10px] uppercase text-text-muted block mb-1">
+              API key {!keyRequired && <span className="text-text-muted/60 normal-case">(optional — local)</span>}
+            </label>
             <Input
               type="password"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
-              placeholder="sk-…"
+              placeholder={keyRequired ? "sk-…" : "Not needed for local models"}
               autoComplete="off"
             />
           </div>
@@ -132,7 +136,7 @@ export function ProviderForm({ onCreated }: Props) {
               <button
                 type="button"
                 onClick={loadModels}
-                disabled={!apiKey.trim() || loadingModels}
+                disabled={(keyRequired && !apiKey.trim()) || loadingModels}
                 className="text-[10px] text-emerald-400 hover:underline disabled:opacity-40 disabled:no-underline flex items-center gap-1"
               >
                 <RefreshCw size={10} className={loadingModels ? "animate-spin" : ""} />
@@ -179,13 +183,15 @@ export function ProviderForm({ onCreated }: Props) {
           <Button
             variant="primary"
             onClick={submit}
-            disabled={!name.trim() || !apiKey.trim() || (needsBaseUrl && !baseUrl.trim()) || submitting}
+            disabled={!name.trim() || (keyRequired && !apiKey.trim()) || (needsBaseUrl && !baseUrl.trim()) || submitting}
           >
             <Plus size={14} /> {submitting ? "Adding…" : "Add provider"}
           </Button>
         </div>
         <p className="text-[10px] text-text-muted">
-          API keys are encrypted with AES-256-GCM. The key lives in ~/MatrixDash/.key (mode 0600).
+          {keyRequired
+            ? "API keys are encrypted with AES-256-GCM. The key lives in ~/MatrixDash/.key (mode 0600)."
+            : "Local models run on your machine — no API key needed. Make sure the server is running at the base URL above."}
         </p>
       </div>
     </Card>
