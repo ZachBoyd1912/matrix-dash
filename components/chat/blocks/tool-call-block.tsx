@@ -1,0 +1,105 @@
+"use client";
+
+import { useState } from "react";
+import { ChevronRight, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
+import type { Block, ToolStatus } from "@/lib/chat/blocks";
+
+type ToolBlock = Extract<Block, { kind: "tool_call" }>;
+
+/** The single status indicator (running spinner / emerald dot / rose x). */
+export function StatusGlyph({ status }: { status: ToolStatus }) {
+  if (status === "running") return <Loader2 size={12} className="text-emerald-300 animate-spin shrink-0" />;
+  if (status === "error") return <span className="text-rose-400 shrink-0 leading-none">✗</span>;
+  return (
+    <span className="text-emerald-400 shrink-0 leading-none drop-shadow-[0_0_4px_rgba(52,211,153,0.7)]">●</span>
+  );
+}
+
+/** Pull the most meaningful single argument to show in the header, Claude-Code style. */
+function primaryArg(args: unknown): string {
+  if (typeof args === "string") return args;
+  if (!args || typeof args !== "object") return "";
+  const o = args as Record<string, unknown>;
+  for (const k of ["path", "file", "command", "query", "url", "pattern", "title", "name", "id"]) {
+    if (typeof o[k] === "string") return o[k] as string;
+  }
+  const first = Object.values(o).find((v) => typeof v === "string");
+  return typeof first === "string" ? first : "";
+}
+
+function toText(value: unknown): string {
+  if (value == null) return "";
+  if (typeof value === "string") return value;
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
+
+/**
+ * A single tool invocation rendered as a collapsible "● Tool(arg)" card — the
+ * machined-glass family used by the artifact panel, scaled down for many-per-turn.
+ */
+export function ToolCallBlock({ block }: { block: ToolBlock }) {
+  const [open, setOpen] = useState(false);
+  const arg = primaryArg(block.args);
+  const body = block.error ? block.error : toText(block.result);
+  const hasBody = !!body && block.status !== "running";
+
+  return (
+    <div
+      className={cn(
+        "group my-1.5 rounded-xl border bg-white/[0.02] overflow-hidden transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
+        block.status === "error" ? "border-rose-500/20" : "border-white/5 hover:border-white/10"
+      )}
+    >
+      <button
+        type="button"
+        onClick={() => hasBody && setOpen((v) => !v)}
+        className={cn(
+          "w-full flex items-center gap-2 px-3 h-9 text-[12px] font-mono text-text-secondary transition-colors duration-200",
+          hasBody ? "hover:text-text-primary cursor-pointer" : "cursor-default"
+        )}
+      >
+        <StatusGlyph status={block.status} />
+        <span className="text-text-primary">{block.name}</span>
+        {arg && (
+          <span className="truncate">
+            <span className="text-text-muted">(</span>
+            <span className="text-emerald-200/90">{arg}</span>
+            <span className="text-text-muted">)</span>
+          </span>
+        )}
+        {hasBody && (
+          <ChevronRight
+            size={12}
+            className={cn("ml-auto shrink-0 transition-transform duration-200", open && "rotate-90")}
+          />
+        )}
+      </button>
+      {hasBody && (
+        <div
+          className={cn(
+            "grid transition-[grid-template-rows] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
+            open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+          )}
+        >
+          <div className="overflow-hidden">
+            <pre
+              className={cn(
+                "mx-3 mb-2.5 px-3 py-2 text-[11px] leading-relaxed whitespace-pre-wrap break-words font-mono max-h-72 overflow-y-auto rounded-lg bg-black/30 border-l-2",
+                block.status === "error"
+                  ? "text-rose-300/90 border-rose-500/40"
+                  : "text-text-muted border-emerald-400/30"
+              )}
+            >
+              {body}
+            </pre>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

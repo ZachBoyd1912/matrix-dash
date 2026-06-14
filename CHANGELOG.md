@@ -1,5 +1,23 @@
 # Changelog
 
+## 14/06/2026 @ 23:12:27 IST — "claude-opus-4-8"
+
+**Goal:** Phase 1 of bringing the Claude Code agent experience into Matrix's unified chat: replace the flat-string assistant transcript with an ordered **block model** and start rendering tool calls. Until now the chat ran a server-side agent loop but the NDJSON stream **dropped every tool-call/tool-result part**, so the tools the agent already ran in agent mode were invisible. This is the backbone every later phase (real coding tools, interactive approvals, diffs/todos) renders on top of — backward-compatible, no new tools or power levels yet.
+
+**Added:**
+- **`lib/chat/blocks.ts`** — the canonical, isomorphic transcript model shared by server + client: a `Block` discriminated union (text · reasoning · tool_call · todo · approval · error), the `StreamEvent` NDJSON vocabulary, a pure `appendEvent(blocks, idMap, ev)` reducer that folds events into blocks in arrival order (matching each `tool_result` to its `tool_call` by id), plus `blocksToText` / `textToBlocks` helpers for TTS, persistence, and legacy-row hydration.
+- **`components/chat/transcript-renderer.tsx`** — maps an assistant turn's `Block[]` to components (text → Markdown, reasoning → ThinkingBlock, tool_call → ToolCallBlock); shows a "Working…" pulse for the empty streaming placeholder. todo/approval are no-ops until later phases.
+- **`components/chat/blocks/tool-call-block.tsx`** — a collapsible "● Tool(arg)" card with a running-spinner / emerald-dot / rose-✗ `StatusGlyph` and a mono output body, in the artifact-panel machined-glass family.
+
+**Changed:**
+- **`app/api/ai/chat/route.ts`**: the `result.fullStream` loop now forwards the previously-dropped `tool-call` → `{type:"tool_call",id,name,args}`, `tool-result` → `{type:"tool_result",id,name,result}`, and `tool-error` → `{type:"tool_result",id,name,error}` (field names verified against the AI SDK v5 `TextStreamPart` typings). Existing text/reasoning/error lines unchanged.
+- **`components/chat/chat-interface.tsx`**: `ChatMessage` now carries `blocks: Block[]` instead of `content`/`thinking`; the streaming reducer uses `appendEvent` (flushing a fresh array ref each tick so React re-renders); the API payload derives `content` via `blocksToText`; an `InitialMessage` prop type keeps persisted sessions passing `{id,role,content}` (converted to a single text block on load — so existing callers and old rows need no change).
+- **`components/chat/message-bubble.tsx`**: the assistant branch delegates to `TranscriptRenderer`; the user branch + avatar chrome are untouched.
+
+**Verification:** `pnpm typecheck` → **0 errors**. Backward-compat preserved on both the wire (legacy `text`/`reasoning`/`error` lines retained) and load path (old `content` rows hydrate as one text block); non-tool-capable models simply emit no tool blocks and render exactly as before.
+
+**Files touched:** `lib/chat/blocks.ts`, `components/chat/transcript-renderer.tsx`, `components/chat/blocks/tool-call-block.tsx`, `app/api/ai/chat/route.ts`, `components/chat/chat-interface.tsx`, `components/chat/message-bubble.tsx`; `CHANGELOG.md`.
+
 ## 14/06/2026 @ 18:19:41 IST — "claude-opus-4-8"
 
 **Goal:** Make the AI provider form dynamic — only require fields that a given provider actually needs. Concretely: local providers (Ollama, LM Studio) run on the user's machine and need no API key, but the form (and API) hard-required one.

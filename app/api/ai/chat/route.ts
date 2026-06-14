@@ -253,6 +253,21 @@ export async function POST(req: Request) {
             controller.enqueue(line({ type: "text", value: part.text }));
           } else if (part.type === "reasoning-delta") {
             controller.enqueue(line({ type: "reasoning", value: part.text }));
+          } else if (part.type === "tool-call") {
+            // Surface each agent tool invocation so the client can render it as a
+            // Claude-Code-style tool card (matched to its result by toolCallId).
+            controller.enqueue(
+              line({ type: "tool_call", id: part.toolCallId, name: part.toolName, args: part.input })
+            );
+          } else if (part.type === "tool-result") {
+            controller.enqueue(
+              line({ type: "tool_result", id: part.toolCallId, name: part.toolName, result: part.output })
+            );
+          } else if (part.type === "tool-error") {
+            const msg = part.error instanceof Error ? part.error.message : String(part.error);
+            controller.enqueue(
+              line({ type: "tool_result", id: part.toolCallId, name: part.toolName, error: msg })
+            );
           } else if (part.type === "error") {
             const msg = part.error instanceof Error ? part.error.message : String(part.error);
             controller.enqueue(line({ type: "error", value: msg }));

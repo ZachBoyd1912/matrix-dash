@@ -12,18 +12,31 @@ import { ChatInput } from "./chat-input";
 import { LogoMark } from "@/components/layout/logo";
 import { useAppStore } from "@/lib/stores/use-app-store";
 import { speak } from "@/lib/hooks/use-voice";
+import { appendEvent, blocksToText, textToBlocks, type Block, type StreamEvent } from "@/lib/chat/blocks";
 import Link from "next/link";
 
 interface ChatMessage {
   id: string;
   role: "user" | "assistant" | "system";
-  content: string;
-  thinking?: string;
+  blocks: Block[];
 }
+
+/** Shape persisted sessions pass in — converted to blocks on load. */
+interface InitialMessage {
+  id: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+}
+
+const toChatMessage = (m: InitialMessage): ChatMessage => ({
+  id: m.id,
+  role: m.role,
+  blocks: textToBlocks(m.content),
+});
 
 interface Props {
   sessionId?: string;
-  initialMessages?: ChatMessage[];
+  initialMessages?: InitialMessage[];
   /** Hide the giant "Matrix Dash" hero when embedded in a session view. */
   embedded?: boolean;
   /**
@@ -36,7 +49,7 @@ interface Props {
 }
 
 export function ChatInterface({ sessionId, initialMessages, embedded, contextText }: Props) {
-  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages ?? []);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => (initialMessages ?? []).map(toChatMessage));
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -68,7 +81,7 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
   }, []);
 
   useEffect(() => {
-    if (initialMessages) setMessages(initialMessages);
+    if (initialMessages) setMessages(initialMessages.map(toChatMessage));
   }, [initialMessages]);
 
   useEffect(() => {
@@ -91,14 +104,14 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
       const userMessage: ChatMessage = {
         id: uid(),
         role: "user",
-        content: composedText,
+        blocks: textToBlocks(composedText),
       };
       setAttachment(null);
       const assistantId = uid();
       const assistantPlaceholder: ChatMessage = {
         id: assistantId,
         role: "assistant",
-        content: "",
+        blocks: [],
       };
       const history = [...messages, userMessage];
       setMessages([...history, assistantPlaceholder]);
@@ -108,7 +121,7 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
       abortRef.current = controller;
 
       try {
-        const convo = history.map(({ role, content }) => ({ role, content }));
+        const convo = history.map((m) => ({ role: m.role, content: blocksToText(m.blocks) }));
         // Host context (e.g. the IDE's open file) goes in a separate field and is
         // merged into the system prompt server-side — so the transcript stays clean,
         // it never reaches memory extraction, and the model only ever sees a single
@@ -136,25 +149,36 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
 
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
-        let acc = "";
-        let thinking = "";
+        // Accumulate the assistant turn as an ordered list of typed blocks. `idMap`
+        // matches each tool_result back to its tool_call by id.
+        const blocks: Block[] = [];
+        const idMap = new Map<string, number>();
         let streamError = "";
         let buffer = "";
 
-        // Parse the NDJSON stream line-by-line: {type:"text"|"reasoning"|"error", value}.
+        // Parse the NDJSON stream line-by-line into stream events, folding each into
+        // the block list. Top-level stream errors stay a banner (not a block).
         const handleLine = (raw: string) => {
           const trimmed = raw.trim();
           if (!trimmed) return;
           try {
-            const evt = JSON.parse(trimmed) as { type?: string; value?: string };
-            if (evt.type === "text") acc += evt.value ?? "";
-            else if (evt.type === "reasoning") thinking += evt.value ?? "";
-            else if (evt.type === "error") streamError = evt.value ?? "Stream error";
+            const evt = JSON.parse(trimmed) as StreamEvent;
+            if (evt.type === "error") {
+              streamError = evt.value || "Stream error";
+              return;
+            }
+            appendEvent(blocks, idMap, evt);
           } catch {
             // Backward-compat: a server that streams plain text → treat as reply text.
-            acc += raw;
+            appendEvent(blocks, idMap, { type: "text", value: raw });
           }
         };
+
+        // A fresh array reference each tick so React re-renders the streamed blocks.
+        const flush = () =>
+          setMessages((prev) =>
+            prev.map((m) => (m.id === assistantId ? { ...m, blocks: [...blocks] } : m))
+          );
 
         while (true) {
           const { done, value } = await reader.read();
@@ -163,21 +187,14 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
           const lines = buffer.split("\n");
           buffer = lines.pop() ?? ""; // keep the trailing partial line
           for (const l of lines) handleLine(l);
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === assistantId ? { ...m, content: acc, thinking: thinking || undefined } : m
-            )
-          );
+          flush();
         }
         if (buffer) handleLine(buffer);
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantId ? { ...m, content: acc, thinking: thinking || undefined } : m
-          )
-        );
+        flush();
 
-        if (streamError && !acc.trim()) throw new Error(streamError);
-        if (autoSpeak && acc.trim()) speak(acc);
+        const replyText = blocksToText(blocks);
+        if (streamError && !replyText.trim()) throw new Error(streamError);
+        if (autoSpeak && replyText.trim()) speak(replyText);
       } catch (err) {
         if ((err as Error).name === "AbortError") {
           /* user-cancelled */
@@ -235,8 +252,7 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
                 <MessageBubble
                   key={m.id}
                   role={m.role}
-                  content={m.content}
-                  thinking={m.thinking}
+                  blocks={m.blocks}
                   streaming={streaming && m.role === "assistant" && m.id === messages[messages.length - 1].id}
                 />
               ))}

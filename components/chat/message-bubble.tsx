@@ -1,23 +1,20 @@
 "use client";
 
-import { Markdown } from "./markdown";
-import { ThinkingBlock } from "./thinking-block";
+import { TranscriptRenderer } from "./transcript-renderer";
+import { blocksToText, type Block } from "@/lib/chat/blocks";
 import { cn } from "@/lib/utils/cn";
 import { Sparkles, User } from "lucide-react";
 
 interface Props {
   role: "user" | "assistant" | "system";
-  content: string;
-  thinking?: string;
+  blocks: Block[];
   streaming?: boolean;
 }
 
-export function MessageBubble({ role, content, thinking, streaming }: Props) {
+export function MessageBubble({ role, blocks, streaming }: Props) {
   if (role === "system") return null;
 
   const isUser = role === "user";
-  // While streaming with no answer text yet, the reasoning is the "live" part.
-  const thinkingActive = !!streaming && !content;
 
   return (
     <div className={cn("group flex gap-3 w-full", isUser && "justify-end")}>
@@ -35,21 +32,9 @@ export function MessageBubble({ role, content, thinking, streaming }: Props) {
         )}
       >
         {isUser ? (
-          <div className="text-sm leading-relaxed whitespace-pre-wrap">{content}</div>
+          <div className="text-sm leading-relaxed whitespace-pre-wrap">{blocksToText(blocks)}</div>
         ) : (
-          <>
-            {thinking ? <ThinkingBlock thinking={thinking} active={thinkingActive} /> : null}
-            {thinkingActive && !thinking && (
-              <span className="inline-flex items-center gap-1.5 text-[11px] text-text-muted">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-violet-300 animate-pulse" />
-                Thinking…
-              </span>
-            )}
-            <Markdown content={content || (streaming && !thinkingActive ? " " : "")} />
-            {streaming && content && (
-              <span className="inline-block w-[6px] h-3 -mb-0.5 ml-0.5 bg-emerald-400 rounded-sm animate-pulse" />
-            )}
-          </>
+          <TranscriptRenderer blocks={blocks} streaming={streaming} />
         )}
       </div>
       {isUser && (
