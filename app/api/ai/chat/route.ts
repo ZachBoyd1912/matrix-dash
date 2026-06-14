@@ -1,7 +1,8 @@
 import { streamText, stepCountIs, type ModelMessage } from "ai";
 import { randomUUID } from "crypto";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { searchSkillsFts } from "@/lib/db/fts";
 import { sessionMessages, skills, presets } from "@/lib/db/schema";
 import {
   getProvider,
@@ -31,19 +32,34 @@ interface ChatPayload {
   reasoningEffort?: ReasoningEffort;
 }
 
-// Enabled skills are concatenated into the system prompt. With a large imported
-// catalog a user can enable hundreds, so cap the injected text by a character
-// budget to keep the prompt (and cost) bounded; any overflow is summarised.
+// Rather than concatenate every enabled skill into the prompt (a user can have
+// hundreds enabled from an imported catalog), retrieve only the skills relevant
+// to the current turn via FTS — this is the retrieval half of skill RAG. A
+// character budget still caps the injected text as a final safety net.
 const SKILLS_PROMPT_BUDGET = 60_000;
+const SKILLS_TOP_K = 8;
 
-function buildSkillsPrompt(): string {
-  const enabled = getDb().select().from(skills).where(eq(skills.isEnabled, true)).all();
-  if (enabled.length === 0) return "";
+function buildSkillsPrompt(userText: string): string {
+  // Top-K skills matching this turn. When there's no query signal (e.g. an
+  // empty/non-text opener), fall back to the most recently enabled skills.
+  let selected: { name: string; instructions: string }[] = userText
+    ? searchSkillsFts(userText, SKILLS_TOP_K)
+    : [];
+  if (selected.length === 0) {
+    selected = getDb()
+      .select({ name: skills.name, instructions: skills.instructions })
+      .from(skills)
+      .where(eq(skills.isEnabled, true))
+      .orderBy(desc(skills.updatedAt))
+      .limit(SKILLS_TOP_K)
+      .all();
+  }
+  if (selected.length === 0) return "";
 
   const lines: string[] = [];
   let used = 0;
   let omitted = 0;
-  for (const s of enabled) {
+  for (const s of selected) {
     const block = `### ${s.name}\n${s.instructions}`;
     if (used + block.length > SKILLS_PROMPT_BUDGET && lines.length > 0) {
       omitted++;
@@ -54,9 +70,9 @@ function buildSkillsPrompt(): string {
   }
   const note =
     omitted > 0
-      ? `\n\n(${omitted} more enabled skill${omitted === 1 ? "" : "s"} omitted to fit the context budget — disable some to surface others.)`
+      ? `\n\n(${omitted} more relevant skill${omitted === 1 ? "" : "s"} omitted to fit the context budget.)`
       : "";
-  return `You have the following skills — apply them when relevant:\n\n${lines.join("\n\n")}${note}`;
+  return `These skills are relevant to the current request — apply them when useful. Call findSkills/loadSkill to pull in others if the task needs them.\n\n${lines.join("\n\n")}${note}`;
 }
 
 export async function POST(req: Request) {
@@ -102,7 +118,7 @@ export async function POST(req: Request) {
   const agentPreamble = isAgent
     ? "You are Jarvis, an autonomous personal assistant. You can use tools to search memory, notes, the web, manage tasks and calendar, and draft email. Take initiative: call tools to gather what you need, then act. Be concise."
     : "";
-  const skillsPrompt = isAgent ? buildSkillsPrompt() : "";
+  const skillsPrompt = isAgent ? buildSkillsPrompt(userText) : "";
 
   // Host-supplied ephemeral context (e.g. the IDE's open file). Bounded server-side
   // and folded into the single leading system message rather than sent as its own

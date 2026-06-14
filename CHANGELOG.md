@@ -1,5 +1,20 @@
 # Changelog
 
+## 14/06/2026 @ 18:06:48 IST — "claude-opus-4-8"
+
+**Goal:** Stop dumping every enabled skill into the agent system prompt and replace it with skill RAG — retrieve only the skills relevant to each turn, and give the agent tools to discover/load more on demand. With 1540 enabled skills, the old `buildSkillsPrompt()` concatenated all of them and leaned on a 60k-char truncation, so the agent got an arbitrary alphabetical slice rather than the relevant ones.
+
+**Added:**
+- **`skills_fts` FTS5 index** (`lib/db/client.ts`): a virtual table over `skills(name, description, instructions)` with insert/delete/update triggers mirroring `memories_fts`/`notes_fts`. A `backfillSkillsFts()` step rebuilds the index on boot whenever it drifts from the base table, so the 1540 already-imported skills get indexed without a re-import.
+- **`searchSkillsFts(query, limit)`** (`lib/db/fts.ts`): ranked retrieval of *enabled* skills via FTS5, reusing the existing `toFtsQuery()` sanitizer.
+- **`findSkills` / `loadSkill` agent tools** (`lib/ai/tools.ts`): the orchestrator layer — the agent can search the catalog (names + descriptions) and pull a skill's full instructions on demand mid-reasoning. Gated by a new `skills` tool flag (default on), surfaced in Settings → Agent Tools.
+
+**Changed:** `buildSkillsPrompt()` (`app/api/ai/chat/route.ts`) now takes the user message and injects the top-8 FTS-matched enabled skills (falling back to the most recently enabled when there's no query signal), instead of all enabled skills. The 60k budget cap remains as a final safety net.
+
+**Verification:** `pnpm typecheck` → **0 errors**. Proved the retrieval pipeline on a copy of the live DB (`~/MatrixDash/matrix.db`, 1540 skills): `rebuild` indexed all 1540; query "react frontend component design" → `frontend-developer`, `senior-frontend`, …; "stripe payment subscription" → `stripe-integration`, `payment-integration`, … — tightly relevant top-K.
+
+**Files touched:** `lib/db/client.ts`, `lib/db/fts.ts`, `lib/ai/tools.ts`, `app/api/ai/chat/route.ts`, `app/dashboard/settings/agent-tools/page.tsx`; `CHANGELOG.md`.
+
 ## 14/06/2026 @ 13:43:40 IST — "claude-opus-4-8"
 
 **Goal:** Fix the broken "Pull" button in the Cookbook model catalog (`/dashboard/settings/cookbook`) — while pulling, it wrapped to three lines and burst out of the pill.

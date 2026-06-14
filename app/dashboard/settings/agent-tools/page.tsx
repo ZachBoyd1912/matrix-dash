@@ -18,6 +18,7 @@ interface ToolDef {
 
 const TOOLS: ToolDef[] = [
   { key: "memory", name: "Memory", description: "Search and save long-term memories." },
+  { key: "skills", name: "Skills", description: "Discover and load relevant capability packs on demand." },
   { key: "notes", name: "Notes", description: "Search, read, and create notes." },
   { key: "tasks", name: "Tasks", description: "Create and list to-do items." },
   { key: "calendar", name: "Calendar", description: "List and create calendar events." },
