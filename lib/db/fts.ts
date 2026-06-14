@@ -58,3 +58,35 @@ export function searchNotesFts(query: string, limit = 10): Note[] {
     return [];
   }
 }
+
+export interface SkillHit {
+  id: string;
+  name: string;
+  description: string;
+  instructions: string;
+  rank: number;
+}
+
+/**
+ * Retrieve the *enabled* skills whose name/description/instructions match the
+ * query, ranked by FTS5 relevance. This is the retrieval half of skill RAG:
+ * it lets us inject only the skills relevant to a turn rather than the whole
+ * enabled catalog.
+ */
+export function searchSkillsFts(query: string, limit = 8): SkillHit[] {
+  const fts = toFtsQuery(query);
+  if (!fts) return [];
+  try {
+    const rows = getSqlite()
+      .prepare(
+        `SELECT s.id, s.name, s.description, s.instructions, f.rank AS rank
+         FROM skills_fts f JOIN skills s ON s.rowid = f.rowid
+         WHERE skills_fts MATCH ? AND s.is_enabled = 1
+         ORDER BY f.rank LIMIT ?`
+      )
+      .all(fts, limit) as SkillHit[];
+    return rows;
+  } catch {
+    return [];
+  }
+}

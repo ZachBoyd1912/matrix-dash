@@ -14,8 +14,9 @@ import {
   emails,
   contacts,
   attachments,
+  skills,
 } from "@/lib/db/schema";
-import { searchMemoriesFts, searchNotesFts } from "@/lib/db/fts";
+import { searchMemoriesFts, searchNotesFts, searchSkillsFts } from "@/lib/db/fts";
 import { autoLink } from "@/lib/ai/extraction";
 import { getSetting } from "@/lib/db/settings";
 import { fetchReadable, webSearch } from "@/lib/services/web";
@@ -58,6 +59,31 @@ export function buildAgentTools() {
         getDb().insert(memories).values({ id, content, type, source: "agent", createdAt: now() }).run();
         autoLink(id, content);
         return { saved: true, id };
+      },
+    });
+  }
+
+  if (enabled("skills")) {
+    toolset.findSkills = tool({
+      description:
+        "Find skills (capability packs) relevant to the task at hand. Returns matching skill names and descriptions — call loadSkill to read a skill's full instructions before applying it.",
+      inputSchema: z.object({
+        query: z.string().describe("A short description of what you're trying to do"),
+      }),
+      execute: async ({ query }) =>
+        searchSkillsFts(query, 8).map((s) => ({ name: s.name, description: s.description })),
+    });
+    toolset.loadSkill = tool({
+      description:
+        "Load the full instructions for a skill by its exact name (as returned by findSkills), then follow them.",
+      inputSchema: z.object({ name: z.string() }),
+      execute: async ({ name }) => {
+        const s = getDb()
+          .select({ name: skills.name, instructions: skills.instructions })
+          .from(skills)
+          .where(and(eq(skills.name, name), eq(skills.isEnabled, true)))
+          .get();
+        return s ?? { error: `No enabled skill named "${name}". Use findSkills to discover available skills.` };
       },
     });
   }

@@ -290,6 +290,21 @@ CREATE TRIGGER IF NOT EXISTS notes_au AFTER UPDATE ON notes BEGIN
   INSERT INTO notes_fts(notes_fts, rowid, title, content) VALUES('delete', old.rowid, old.title, old.content);
   INSERT INTO notes_fts(rowid, title, content) VALUES (new.rowid, new.title, new.content);
 END;
+
+CREATE VIRTUAL TABLE IF NOT EXISTS skills_fts USING fts5(
+  name, description, instructions, content=skills, content_rowid=rowid
+);
+
+CREATE TRIGGER IF NOT EXISTS skills_ai AFTER INSERT ON skills BEGIN
+  INSERT INTO skills_fts(rowid, name, description, instructions) VALUES (new.rowid, new.name, new.description, new.instructions);
+END;
+CREATE TRIGGER IF NOT EXISTS skills_ad AFTER DELETE ON skills BEGIN
+  INSERT INTO skills_fts(skills_fts, rowid, name, description, instructions) VALUES('delete', old.rowid, old.name, old.description, old.instructions);
+END;
+CREATE TRIGGER IF NOT EXISTS skills_au AFTER UPDATE ON skills BEGIN
+  INSERT INTO skills_fts(skills_fts, rowid, name, description, instructions) VALUES('delete', old.rowid, old.name, old.description, old.instructions);
+  INSERT INTO skills_fts(rowid, name, description, instructions) VALUES (new.rowid, new.name, new.description, new.instructions);
+END;
 `;
 
 type DB = BetterSQLite3Database<typeof schema>;
@@ -309,6 +324,7 @@ export function getSqlite(): Database.Database {
   sqlite.exec(INIT_SQL);
   runColumnMigrations(sqlite);
   seedWelcomeEmail(sqlite);
+  backfillSkillsFts(sqlite);
   g.__matrixSqlite = sqlite;
   return sqlite;
 }
@@ -341,6 +357,24 @@ function seedWelcomeEmail(sqlite: Database.Database) {
       "This inbox lives entirely in ~/MatrixDash/matrix.db.\n\nUse Compose to draft messages, star what matters, and organize across Inbox, Sent, Drafts, and Trash. Connect a real provider later from Settings → Email.",
       new Date().toISOString()
     );
+}
+
+/**
+ * The skills_fts triggers only index rows written after they exist, so a DB
+ * that already holds imported skills (or one upgraded to this version) starts
+ * with an empty index. Rebuild from the content table whenever the counts drift.
+ */
+function backfillSkillsFts(sqlite: Database.Database) {
+  try {
+    const base = (sqlite.prepare("SELECT COUNT(*) AS c FROM skills").get() as { c: number }).c;
+    if (base === 0) return;
+    const indexed = (sqlite.prepare("SELECT COUNT(*) AS c FROM skills_fts").get() as { c: number }).c;
+    if (indexed !== base) {
+      sqlite.exec("INSERT INTO skills_fts(skills_fts) VALUES('rebuild')");
+    }
+  } catch {
+    /* FTS rebuild is best-effort; retrieval falls back to recent skills */
+  }
 }
 
 export function getDb(): DB {
