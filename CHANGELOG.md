@@ -1,5 +1,26 @@
 # Changelog
 
+## 14/06/2026 @ 23:35:02 IST — "claude-opus-4-8"
+
+**Goal:** Phase 3 of Claude Code mode — give the agent **real coding tools on the real filesystem**, gated by a three-level power setting (sandboxed / approval / unrestricted).
+
+**Added:**
+- **`lib/ai/power.ts`** — the power model: `PowerLevel`, `getPowerLevel()` (fails closed to `sandboxed`), `getWorkspaceRoot()` (default `~/MatrixDash`), `isToolAllowed`/`requiresApproval`, and the `MUTATING_TOOLS` set.
+- **`lib/services/workspace-root.ts`** — `resolveInRoot()`: the root-containment check `workspace.ts`'s `assertAbsolute` lacks (it doesn't stop `../` escape). Confines every coding-tool path to the workspace root and re-checks the parent's realpath to defeat symlink escapes. Plus `relToRoot()` for short display paths.
+- **`lib/ai/bash.ts`** — `runBash()`: real shell via `spawn({shell:true, cwd:root, detached:true})` with a **process-group SIGTERM→SIGKILL timeout** (execFile leaks grandchildren), `AbortSignal` teardown, scrubbed env (drops `PORT`/`BIND_ADDR`), and head+tail output truncation (~40 KB) to protect the 8 GB box.
+- **`lib/ai/coding-tools.ts`** — `buildCodingTools(level, root)`: `readFileFs`, `grep`, `glob`, `todoWrite` (always), plus `writeFileFs`, `editFile`, `multiEdit`, `bash` (only at approval/unrestricted). grep/glob are dependency-free Node walkers honoring an ignore set; `editFile`/`multiEdit` require a unique `oldString` unless `replaceAll`.
+- **Settings UI** (`app/dashboard/settings/agent-tools/page.tsx`): a three-way power-level control + a workspace-root input, and a "Coding tools" toggle.
+
+**Changed:**
+- **`lib/ai/tools.ts`**: spreads `buildCodingTools(getPowerLevel(), getWorkspaceRoot())` into the agent toolset (gated by a `coding` flag, default on).
+- **`types/settings.ts`**: `agent_power_level` (default `approval`) and `agent_workspace_root` defaults.
+
+**Interim note:** in `approval` mode, mutating tools currently block unless their `approve_<tool>` flag is set (the existing boolean convention). Phase 4 replaces that with **interactive inline Allow/Deny** prompts.
+
+**Verification:** `pnpm typecheck` → **0 errors**. `sandboxed` is the fail-closed default for any unknown value; mutating tools aren't even registered there.
+
+**Files touched:** `lib/ai/power.ts`, `lib/services/workspace-root.ts`, `lib/ai/bash.ts`, `lib/ai/coding-tools.ts`, `lib/ai/tools.ts`, `types/settings.ts`, `app/dashboard/settings/agent-tools/page.tsx`; `CHANGELOG.md`.
+
 ## 14/06/2026 @ 23:26:43 IST — "claude-opus-4-8"
 
 **Goal:** Phase 2 of Claude Code mode — persist the structured block transcript so an assistant turn's tool calls (and later diffs/todos) **replay on session reload**, not just the final text.

@@ -21,6 +21,8 @@ import { autoLink } from "@/lib/ai/extraction";
 import { getSetting } from "@/lib/db/settings";
 import { fetchReadable, webSearch } from "@/lib/services/web";
 import { notify } from "@/lib/services/notify";
+import { buildCodingTools } from "@/lib/ai/coding-tools";
+import { getPowerLevel, getWorkspaceRoot } from "@/lib/ai/power";
 
 const now = () => new Date().toISOString();
 
@@ -311,6 +313,12 @@ export function buildAgentTools() {
         return { sent: true };
       },
     });
+  }
+
+  // Claude-Code-parity coding tools (Read/Write/Edit/Bash/Grep/Glob/Todo), scoped
+  // to the configured workspace root and gated by the agent power level.
+  if (enabled("coding")) {
+    Object.assign(toolset, buildCodingTools(getPowerLevel(), getWorkspaceRoot()));
   }
 
   return toolset;

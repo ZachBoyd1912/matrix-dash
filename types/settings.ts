@@ -17,4 +17,8 @@ export const SETTING_DEFAULTS: Record<string, string> = {
   ideServerPort: "3010",
   /** Auto-start code-server when the IDE page mounts ("1" on / "0" off). */
   ideServerAutoStart: "0",
+  /** Coding-agent power level: "sandboxed" | "approval" | "unrestricted". */
+  agent_power_level: "approval",
+  /** Directory the coding tools operate within (empty → ~/MatrixDash). */
+  agent_workspace_root: "",
 };
