@@ -156,9 +156,13 @@ export default function CookbookPage() {
           try {
             const evt = JSON.parse(line) as { status?: string; completed?: number; total?: number };
             if (evt.completed && evt.total) {
+              // Just the percent — the raw status here is a layer digest
+              // ("pulling aabd4debf0c8") that would overflow the button.
               const pct = Math.round((evt.completed / evt.total) * 100);
-              setProgress(`${evt.status ?? "downloading"} ${pct}%`);
+              setProgress(`${pct}%`);
             } else if (evt.status) {
+              // Phase labels ("pulling manifest", "verifying sha256 digest"…);
+              // the button truncates so long ones can't break the pill.
               setProgress(evt.status);
             }
           } catch {
@@ -536,14 +540,16 @@ function DownloadTab({
                           variant={s.fit === "NO" ? "ghost" : "primary"}
                           onClick={() => onPull(m.name)}
                           disabled={pulling !== null || !data?.status?.ok}
+                          className="min-w-[92px] max-w-[124px] whitespace-nowrap tabular-nums"
                         >
                           {busy ? (
                             <>
-                              <Loader2 size={11} className="animate-spin" /> {progress || "Pulling…"}
+                              <Loader2 size={11} className="animate-spin shrink-0" />
+                              <span className="truncate">{progress || "Pulling…"}</span>
                             </>
                           ) : (
                             <>
-                              <Download size={11} /> Pull
+                              <Download size={11} className="shrink-0" /> Pull
                             </>
                           )}
                         </Button>

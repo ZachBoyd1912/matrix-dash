@@ -1,5 +1,15 @@
 # Changelog
 
+## 14/06/2026 @ 13:43:40 IST — "claude-opus-4-8"
+
+**Goal:** Fix the broken "Pull" button in the Cookbook model catalog (`/dashboard/settings/cookbook`) — while pulling, it wrapped to three lines and burst out of the pill.
+
+**Fixed (cause → fix):** Ollama's pull stream emits per-layer statuses like `pulling aabd4debf0c8` with a `completed/total`; the button label was set to `"<status> <pct>%"`, so it rendered the long layer digest (`pulling aabd4debf0c8 15%`) inside a small `size="sm"` pill with no width constraint → it wrapped and overflowed. `app/dashboard/settings/cookbook/page.tsx` now (1) shows just the percentage during layer downloads (drops the digest) and (2) constrains the button (`min-w-[92px] max-w-[124px] whitespace-nowrap`, `truncate` label, `shrink-0` icon) so even long phase labels (e.g. "verifying sha256 digest") ellipsize instead of breaking the box.
+
+**Verification:** `pnpm typecheck` → **0 errors**. Live on :3001 — `/dashboard/settings/cookbook` renders 200.
+
+**Files touched:** `app/dashboard/settings/cookbook/page.tsx`; `CHANGELOG.md`.
+
 ## 14/06/2026 @ 13:28:04 IST — "claude-opus-4-8"
 
 **Goal:** Bring the three interactive surfaces that were intentionally skipped — Chat, Email, and the IDE — onto Aurora Spatial, using the "material" language (glass, accent states, spring motion) rather than hero headers that would clip a full-height pane.
