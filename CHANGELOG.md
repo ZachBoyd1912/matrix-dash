@@ -1,5 +1,22 @@
 # Changelog
 
+## 14/06/2026 @ 13:28:04 IST — "claude-opus-4-8"
+
+**Goal:** Bring the three interactive surfaces that were intentionally skipped — Chat, Email, and the IDE — onto Aurora Spatial, using the "material" language (glass, accent states, spring motion) rather than hero headers that would clip a full-height pane.
+
+**Changed (visual/className-only; all interaction logic preserved):**
+- **Chat** — `components/chat/chat-interface.tsx` (glass empty-state tile with bezel/sheen, refined scrollbar + error toast), `components/chat/message-bubble.tsx` (rounded-2xl bubbles, soft emerald-tinted user bubble + glow, spring easing), `components/chat/chat-input.tsx` (rounded-2xl glass composer with emerald focus ring, spring/active-scale on all controls, glowing send pill — Enter/Shift+Enter and all handlers untouched).
+- **Email** — `app/dashboard/email/page.tsx` (3-pane client: emerald accent-pill active folders, selected message rows with left accent bar + inset glow, refined reading pane and star/restore/delete buttons).
+- **IDE** — `components/ide/code-server-gate.tsx` + `code-server-install-panel.tsx` (bezel/glass panels, eyebrow tags, glowing primary CTAs, emerald selected states for recent workspaces), `app/dashboard/ide/page.tsx` (VS Code / Lite view toggle as an emerald segmented control). Code-server lifecycle, polling, Monaco, and persistence untouched.
+
+**Method:** `Workflow` (`aurora-chat-email-ide`), 7/7 agents, each editing only its file with hard "preserve every hook/ref/handler/control-flow" guardrails; none flagged risk above low.
+
+**Status:** The **entire dashboard** is now on Aurora Spatial — every page and every interactive surface.
+
+**Verification:** `pnpm typecheck` → **0 errors**. Live on :3001 — chat/email/ide all render 200, dev log clean. Not run (8GB RAM): `pnpm build`.
+
+**Files touched:** `components/chat/{chat-interface,message-bubble,chat-input}.tsx`; `app/dashboard/email/page.tsx`; `components/ide/{code-server-gate,code-server-install-panel}.tsx`; `app/dashboard/ide/page.tsx`; `CHANGELOG.md`.
+
 ## 14/06/2026 @ 13:14:01 IST — "claude-opus-4-8"
 
 **Goal:** Finish the Aurora Spatial rollout — the final 8 pages the earlier workflow skipped when it hit the account session limit.

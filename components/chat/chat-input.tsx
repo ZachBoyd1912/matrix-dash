@@ -52,7 +52,7 @@ export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeh
 
   return (
     <div className="w-full max-w-3xl mx-auto px-4">
-      <div className="glass-strong rounded-2xl p-3 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.6)]">
+      <div className="group glass-input rounded-2xl p-3 border border-white/10 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.6)] transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] focus-within:border-emerald-400/30 focus-within:shadow-[0_24px_64px_-16px_rgba(0,0,0,0.6),0_0_24px_-8px_rgba(52,211,153,0.5)]">
         <textarea
           ref={ref}
           value={value}
@@ -61,7 +61,7 @@ export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeh
           placeholder={placeholder ?? "Message Matrix Dash…"}
           disabled={disabled}
           rows={1}
-          className="w-full bg-transparent resize-none text-sm text-text-primary placeholder:text-text-muted focus:outline-none px-2 py-2 min-h-[40px] max-h-[200px]"
+          className="w-full bg-transparent resize-none text-sm leading-relaxed text-text-primary placeholder:text-text-muted focus:outline-none px-2 py-2 min-h-[40px] max-h-[200px] disabled:opacity-50"
         />
         <div className="flex items-center justify-between mt-2 px-1">
           <div className="flex items-center gap-1">
@@ -69,7 +69,7 @@ export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeh
               <button
                 type="button"
                 onClick={onAttach}
-                className="h-7 w-7 grid place-items-center rounded-md text-text-muted hover:text-text-primary hover:bg-white/5 transition-colors"
+                className="h-7 w-7 grid place-items-center rounded-md text-text-muted hover:text-text-primary hover:bg-white/5 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98]"
                 aria-label="Attach file"
               >
                 <Paperclip size={14} />
@@ -80,7 +80,7 @@ export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeh
                 type="button"
                 onClick={toggleMic}
                 className={cn(
-                  "h-7 w-7 grid place-items-center rounded-md transition-colors",
+                  "h-7 w-7 grid place-items-center rounded-md transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98]",
                   listening
                     ? "text-rose-400 bg-rose-400/10 animate-pulse"
                     : "text-text-muted hover:text-text-primary hover:bg-white/5"
@@ -94,8 +94,10 @@ export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeh
               type="button"
               onClick={() => setAutoSpeak(!autoSpeak)}
               className={cn(
-                "h-7 w-7 grid place-items-center rounded-md transition-colors",
-                autoSpeak ? "text-emerald-400 bg-emerald-400/10" : "text-text-muted hover:text-text-primary hover:bg-white/5"
+                "h-7 w-7 grid place-items-center rounded-md transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98]",
+                autoSpeak
+                  ? "text-emerald-300 bg-emerald-400/10 border border-emerald-400/30 shadow-[0_0_18px_-6px_rgba(52,211,153,0.6)]"
+                  : "text-text-muted hover:text-text-primary hover:bg-white/5"
               )}
               aria-label={autoSpeak ? "Mute replies" : "Speak replies"}
               title={autoSpeak ? "Replies spoken aloud" : "Speak replies aloud"}
@@ -104,15 +106,15 @@ export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeh
             </button>
           </div>
           <div className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center glass-input rounded-full p-0.5 text-[10px]">
+            <div className="hidden sm:flex items-center glass-input rounded-full p-0.5 text-[10px] border border-white/5">
               {(["chat", "agent"] as const).map((mode) => (
                 <button
                   key={mode}
                   onClick={() => setChatMode(mode)}
                   className={cn(
-                    "h-6 px-2.5 rounded-full capitalize transition-colors",
+                    "h-6 px-2.5 rounded-full capitalize transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98]",
                     chatMode === mode
-                      ? "bg-emerald-400/20 text-emerald-300"
+                      ? "bg-emerald-400/15 text-emerald-300 border border-emerald-400/30 shadow-[0_0_18px_-6px_rgba(52,211,153,0.6)]"
                       : "text-text-muted hover:text-text-secondary"
                   )}
                   title={mode === "agent" ? "Agent tools configurable in Settings → Agent Tools" : "Plain conversation"}
@@ -126,7 +128,7 @@ export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeh
                 <select
                   value={activeId ?? ""}
                   onChange={(e) => setActive(e.target.value || null)}
-                  className="glass-input text-xs h-7 px-2 rounded-md text-text-secondary"
+                  className="glass-input text-xs h-7 px-2 rounded-md text-text-secondary border border-white/5 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-white/10 focus:outline-none focus:border-emerald-400/30 focus:shadow-[0_0_18px_-6px_rgba(52,211,153,0.6)]"
                   aria-label="Provider"
                 >
                   {providers.map((p) => (
@@ -143,7 +145,7 @@ export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeh
             {busy ? (
               <button
                 onClick={onCancel}
-                className="h-8 w-8 grid place-items-center rounded-full bg-white/10 hover:bg-white/15 text-text-primary transition-colors"
+                className="h-8 w-8 grid place-items-center rounded-full bg-white/10 hover:bg-white/15 text-text-primary border border-white/5 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98]"
                 aria-label="Stop"
               >
                 <Square size={12} fill="currentColor" />
@@ -153,10 +155,10 @@ export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeh
                 onClick={send}
                 disabled={disabled || !value.trim()}
                 className={cn(
-                  "h-8 w-8 grid place-items-center rounded-full transition-all duration-150 active:scale-95",
+                  "h-8 w-8 grid place-items-center rounded-full transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98]",
                   value.trim()
-                    ? "bg-emerald-400 text-black shadow-[0_0_20px_-4px_rgba(52,211,153,0.6)] hover:bg-emerald-300"
-                    : "bg-white/10 text-text-muted cursor-not-allowed"
+                    ? "bg-emerald-400 text-black shadow-[0_0_22px_-4px_rgba(52,211,153,0.7)] hover:bg-emerald-300"
+                    : "bg-white/10 text-text-muted border border-white/5 cursor-not-allowed"
                 )}
                 aria-label="Send"
               >

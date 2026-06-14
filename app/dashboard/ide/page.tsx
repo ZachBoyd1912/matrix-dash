@@ -492,10 +492,10 @@ export default function IdePage() {
                   {recents.map((r) => (
                     <div
                       key={r.id}
-                      className="group flex items-center gap-3 px-3 py-2.5 rounded-lg glass-input cursor-pointer hover:bg-white/5 transition-colors"
+                      className="group flex items-center gap-3 px-3 py-2.5 rounded-lg glass-input cursor-pointer hover:bg-white/5 hover:border-emerald-400/20 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]"
                       onClick={() => openWorkspace(r.path)}
                     >
-                      <HardDrive size={15} className="text-text-muted shrink-0" />
+                      <HardDrive size={15} className="text-text-muted group-hover:text-emerald-400/80 shrink-0 transition-colors" />
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-text-primary truncate">{r.name}</p>
                         <p className="text-[10px] text-text-muted font-mono truncate">{r.path}</p>
@@ -505,7 +505,7 @@ export default function IdePage() {
                           e.stopPropagation();
                           removeRecent(r.id);
                         }}
-                        className="text-text-muted hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                        className="text-text-muted hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98] p-1"
                         aria-label="Remove from recents"
                       >
                         <X size={13} />
@@ -549,7 +549,7 @@ export default function IdePage() {
           <div className="flex items-center gap-0.5 shrink-0">
             <button
               onClick={() => persistChat(!chatOpen)}
-              className={`p-1 rounded-md hover:bg-white/5 transition-colors ${
+              className={`p-1 rounded-md hover:bg-white/5 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98] ${
                 chatOpen ? "text-emerald-400" : "text-text-muted hover:text-text-primary"
               }`}
               aria-label="Toggle AI chat"
@@ -560,7 +560,7 @@ export default function IdePage() {
             </button>
             <button
               onClick={() => promptNewFile(workspace.root)}
-              className="text-text-muted hover:text-text-primary p-1 rounded-md hover:bg-white/5 transition-colors"
+              className="text-text-muted hover:text-text-primary p-1 rounded-md hover:bg-white/5 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98]"
               aria-label="New file"
               title="New file at root"
             >
@@ -568,7 +568,7 @@ export default function IdePage() {
             </button>
             <button
               onClick={() => promptNewFolder(workspace.root)}
-              className="text-text-muted hover:text-text-primary p-1 rounded-md hover:bg-white/5 transition-colors"
+              className="text-text-muted hover:text-text-primary p-1 rounded-md hover:bg-white/5 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98]"
               aria-label="New folder"
               title="New folder at root"
             >
@@ -576,7 +576,7 @@ export default function IdePage() {
             </button>
             <button
               onClick={closeWorkspace}
-              className="text-text-muted hover:text-rose-400 p-1 rounded-md hover:bg-white/5 transition-colors"
+              className="text-text-muted hover:text-rose-400 p-1 rounded-md hover:bg-white/5 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98]"
               aria-label="Close workspace"
               title="Close workspace"
             >
@@ -676,7 +676,7 @@ export default function IdePage() {
               )}
               <button
                 onClick={() => persistChat(false)}
-                className="text-text-muted hover:text-rose-400 p-1 rounded-md hover:bg-white/5 transition-colors shrink-0"
+                className="text-text-muted hover:text-rose-400 p-1 rounded-md hover:bg-white/5 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98] shrink-0"
                 aria-label="Close AI chat"
                 title="Close chat"
               >
@@ -709,14 +709,14 @@ function ViewToggle({
   onChange: (next: "vscode" | "lite") => void;
 }) {
   return (
-    <div className="shrink-0 border-b border-white/5 bg-white/[0.01] px-3 py-1.5 flex items-center gap-1">
-      <div className="inline-flex items-center rounded-lg border border-white/5 bg-black/20 p-0.5">
+    <div className="shrink-0 border-b border-white/5 glass-strong px-3 py-1.5 flex items-center gap-1">
+      <div className="inline-flex items-center rounded-full border border-white/5 bg-black/20 p-0.5">
         <button
           onClick={() => onChange("vscode")}
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98] ${
             view === "vscode"
-              ? "bg-emerald-400/10 text-emerald-400"
-              : "text-text-muted hover:text-text-primary"
+              ? "bg-emerald-400/10 border border-emerald-400/30 text-emerald-300 shadow-[0_0_18px_-6px_rgba(52,211,153,0.6)]"
+              : "border border-transparent text-text-muted hover:text-text-primary hover:bg-white/5"
           }`}
           aria-pressed={view === "vscode"}
           title="Real VS Code (code-server)"
@@ -725,10 +725,10 @@ function ViewToggle({
         </button>
         <button
           onClick={() => onChange("lite")}
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98] ${
             view === "lite"
-              ? "bg-emerald-400/10 text-emerald-400"
-              : "text-text-muted hover:text-text-primary"
+              ? "bg-emerald-400/10 border border-emerald-400/30 text-emerald-300 shadow-[0_0_18px_-6px_rgba(52,211,153,0.6)]"
+              : "border border-transparent text-text-muted hover:text-text-primary hover:bg-white/5"
           }`}
           aria-pressed={view === "lite"}
           title="Built-in Lite editor"
