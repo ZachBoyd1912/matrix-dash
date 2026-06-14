@@ -1,5 +1,15 @@
 # Changelog
 
+## 14/06/2026 @ 18:13:56 IST — "claude-opus-4-8"
+
+**Goal:** Fix `TypeError: crypto.randomUUID is not a function` that crashed the confirm dialog when deleting a model provider.
+
+**Fixed (cause → fix):** Zustand store initializers (`lib/stores/use-feedback.ts`) and client components (`components/chat/chat-interface.tsx`) called `crypto.randomUUID()` — the browser Web Crypto global. Next.js evaluates these modules at SSR time where that global is absent. Replaced all call sites with a `uid()` helper that guards the call and falls back to `Math.random().toString(36).slice(2)` when `crypto.randomUUID` is unavailable.
+
+**Verification:** `pnpm typecheck` → **0 errors**.
+
+**Files touched:** `lib/stores/use-feedback.ts`, `components/chat/chat-interface.tsx`; `CHANGELOG.md`.
+
 ## 14/06/2026 @ 18:06:48 IST — "claude-opus-4-8"
 
 **Goal:** Stop dumping every enabled skill into the agent system prompt and replace it with skill RAG — retrieve only the skills relevant to each turn, and give the agent tools to discover/load more on demand. With 1540 enabled skills, the old `buildSkillsPrompt()` concatenated all of them and leaned on a 60k-char truncation, so the agent got an arbitrary alphabetical slice rather than the relevant ones.

@@ -1,6 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+
+const uid = (): string =>
+  typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    ? (crypto.randomUUID as () => string)()
+    : Math.random().toString(36).slice(2);
 import { Paperclip, X } from "lucide-react";
 import { MessageBubble } from "./message-bubble";
 import { ChatInput } from "./chat-input";
@@ -84,12 +89,12 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
         ? `${text}\n\n[Attached: ${attachment.name}]\n${attachment.text.slice(0, 12000)}`
         : text;
       const userMessage: ChatMessage = {
-        id: crypto.randomUUID(),
+        id: uid(),
         role: "user",
         content: composedText,
       };
       setAttachment(null);
-      const assistantId = crypto.randomUUID();
+      const assistantId = uid();
       const assistantPlaceholder: ChatMessage = {
         id: assistantId,
         role: "assistant",
