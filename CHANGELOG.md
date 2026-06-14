@@ -1,5 +1,27 @@
 # Changelog
 
+## 14/06/2026 @ 11:14:26 IST — "claude-opus-4-8"
+
+**Goal:** Fix the model-config bugs visible in the Compare screenshots and ship a high-end "Aurora Spatial" redesign of the dashboard. Orchestrated via `antigravity-skill-orchestrator` + `high-end-visual-design` + `antigravity-design-expert`.
+
+**Fixed (cause → fix):**
+- **DeepSeek `messages[0].role: unknown variant "developer"` (500).** `@ai-sdk/openai` (`node_modules/@ai-sdk/openai/dist/index.js:59-61`) flags *any* model id not starting with `gpt-3/gpt-4/chatgpt-4o/gpt-5-chat` as a reasoning model and sends the system message as role `developer`; first-party OpenAI accepts it but third-party openai-compat endpoints (deepseek, opencode) reject it. `app/api/ai/chat/route.ts` now folds the system prompt into the first user turn for third-party openai-compat providers, so no `system`/`developer` role is ever sent. Verified live: deepseek streams `{"type":"text",…}` instead of erroring.
+- **Compare dumped raw NDJSON** (`{"type":"text","value":…}` on screen). `app/dashboard/compare/page.tsx` accumulated raw stream bytes into `<Markdown>`; it now line-buffers and parses the NDJSON, separating `text` / `reasoning` / `error`.
+- **Ollama errored when unwanted.** Removed the Ollama provider record; Compare now renders any failed model as a clean inline error card (never raw JSON).
+
+**Added:**
+- **Live artifact preview** (`components/chat/artifact.tsx`) — detects an HTML/SVG block in a model reply and renders it in a sandboxed `<iframe srcDoc sandbox="allow-scripts">` with Preview/Code tabs, Copy, Open-in-new-tab, and Download `.html`. Wired into Compare so "make me a website" now renders a real page instead of spitting code. Directly addresses the "just spit it in my face" complaint.
+
+**Changed — Aurora Spatial design system (theme-agnostic; all 18 themes inherit it via accent/surface tokens + `color-mix`):**
+- `app/globals.css` — new premium layer: `.eyebrow`, `.text-gradient`, `.display`, double-bezel (`.bezel`/`.bezel-core`), `.lift` (hover lift + accent glow), `.sheen`, `.island-icon` (magnetic), `.orb` + `float-slow`/`glow-pulse` keyframes, spring easing tokens. GPU-safe (transform/opacity only), reduced-motion respected.
+- `components/ui/card.tsx` — adds opt-in `interactive` (lift + glow) and a default top `sheen`; backward compatible. `components/ui/button.tsx` — spring easing + stronger primary glow.
+- `components/layout/sidebar.tsx` + `topbar.tsx` — gradient active rail with glow, brand glow, magnetic nav icons, aurora hairlines, refined provider switcher and search/⌘K island.
+- `app/dashboard/page.tsx` + `app/dashboard/compare/page.tsx` — bespoke flagship redesigns: ambient orbs, eyebrow tags, gradient display headings, premium lift/bezel cards.
+
+**Verification:** `pnpm typecheck` → **0 errors**. Live on :3001 — all 10 sampled dashboard routes render 200, deepseek chat streams clean text, Ollama removed (openrouter/opencode/deepseek remain), dev log clean. Not run (8GB RAM rule): `pnpm build`. Remaining 30 inner pages inherit the foundation (tokens/cards/shell) but not yet the bespoke hero treatment.
+
+**Files touched:** `app/globals.css`; `app/api/ai/chat/route.ts`; `app/dashboard/page.tsx`; `app/dashboard/compare/page.tsx`; `components/chat/artifact.tsx`; `components/ui/card.tsx`; `components/ui/button.tsx`; `components/layout/sidebar.tsx`; `components/layout/topbar.tsx`; `CHANGELOG.md`.
+
 ## 14/06/2026 @ 00:30:03 IST — "claude-opus-4-8"
 
 **Goal:** Add bulk deletion to the skills page — a "Delete all" and a multi-select "Delete selected" flow — so a 1500-skill catalog can be cleaned up without deleting one row at a time.

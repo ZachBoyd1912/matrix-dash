@@ -14,6 +14,7 @@ import { extractMemories } from "@/lib/ai/extraction";
 import { getAppSettings } from "@/lib/db/settings";
 import { buildAgentTools } from "@/lib/ai/tools";
 import { buildProviderOptions, type ReasoningEffort } from "@/lib/ai/models";
+import { providerSpec } from "@/types/ai-provider";
 
 export const dynamic = "force-dynamic";
 
@@ -114,9 +115,32 @@ export async function POST(req: Request) {
     .map((b) => b?.trim())
     .filter((b): b is string => !!b);
 
-  const finalMessages: ModelMessage[] = systemBits.length
-    ? [{ role: "system", content: systemBits.join("\n\n") }, ...messages]
-    : messages;
+  // @ai-sdk/openai sends the system message as role "developer" for any model id
+  // that isn't gpt-3 / gpt-4 / chatgpt-4o / gpt-5-chat. First-party OpenAI accepts
+  // that, but third-party openai-compat endpoints (deepseek, opencode, openrouter…)
+  // reject the "developer" role. For those, fold the system text into the first
+  // user turn so no "system"/"developer" message is ever sent.
+  const spec = providerSpec(provider.provider);
+  const foldSystem =
+    (spec?.sdk ?? "openai-compat") === "openai-compat" && provider.provider !== "openai";
+
+  const systemContent = systemBits.join("\n\n");
+  let finalMessages: ModelMessage[];
+  if (!systemContent) {
+    finalMessages = messages;
+  } else if (!foldSystem) {
+    finalMessages = [{ role: "system", content: systemContent }, ...messages];
+  } else {
+    const i = messages.findIndex((m) => m.role === "user" && typeof m.content === "string");
+    finalMessages =
+      i === -1
+        ? [{ role: "user", content: systemContent } as ModelMessage, ...messages]
+        : messages.map((m, idx) =>
+            idx === i
+              ? ({ ...m, content: `${systemContent}\n\n———\n\n${m.content as string}` } as ModelMessage)
+              : m
+          );
+  }
 
   // Persist the user message immediately if we have a session.
   if (sessionId && lastUser && typeof lastUser.content === "string") {
