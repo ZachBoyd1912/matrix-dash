@@ -137,3 +137,44 @@ export function blocksToText(blocks: Block[]): string {
 export function textToBlocks(content: string): Block[] {
   return content ? [{ kind: "text", text: content }] : [];
 }
+
+const STORE_CAP = 6000;
+
+function capForStorage(value: unknown): unknown {
+  if (value == null) return value;
+  const s = typeof value === "string" ? value : safeStringify(value);
+  if (s.length <= STORE_CAP) return value;
+  return s.slice(0, STORE_CAP) + "\n…[truncated]";
+}
+
+function safeStringify(value: unknown): string {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+/**
+ * Serialize a turn's blocks for the `session_messages.blocks` column, capping
+ * large tool outputs so a runaway result can't bloat the row.
+ */
+export function serializeBlocksForStorage(blocks: Block[]): string {
+  const capped = blocks.map((b) =>
+    b.kind === "tool_call"
+      ? { ...b, result: capForStorage(b.result), error: b.error ? b.error.slice(0, STORE_CAP) : b.error }
+      : b
+  );
+  return JSON.stringify(capped);
+}
+
+/** Parse a persisted `blocks` JSON string, falling back to `null` on any error. */
+export function parseBlocksJson(json: string | null | undefined): Block[] | null {
+  if (!json) return null;
+  try {
+    const parsed = JSON.parse(json);
+    return Array.isArray(parsed) ? (parsed as Block[]) : null;
+  } catch {
+    return null;
+  }
+}

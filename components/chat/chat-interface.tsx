@@ -12,7 +12,14 @@ import { ChatInput } from "./chat-input";
 import { LogoMark } from "@/components/layout/logo";
 import { useAppStore } from "@/lib/stores/use-app-store";
 import { speak } from "@/lib/hooks/use-voice";
-import { appendEvent, blocksToText, textToBlocks, type Block, type StreamEvent } from "@/lib/chat/blocks";
+import {
+  appendEvent,
+  blocksToText,
+  parseBlocksJson,
+  textToBlocks,
+  type Block,
+  type StreamEvent,
+} from "@/lib/chat/blocks";
 import Link from "next/link";
 
 interface ChatMessage {
@@ -26,12 +33,15 @@ interface InitialMessage {
   id: string;
   role: "user" | "assistant" | "system";
   content: string;
+  /** JSON-encoded Block[] from session_messages.blocks (assistant turns). */
+  blocks?: string | null;
 }
 
 const toChatMessage = (m: InitialMessage): ChatMessage => ({
   id: m.id,
   role: m.role,
-  blocks: textToBlocks(m.content),
+  // Prefer the structured transcript; fall back to the legacy content string.
+  blocks: parseBlocksJson(m.blocks) ?? textToBlocks(m.content),
 });
 
 interface Props {

@@ -1,5 +1,21 @@
 # Changelog
 
+## 14/06/2026 @ 23:26:43 IST — "claude-opus-4-8"
+
+**Goal:** Phase 2 of Claude Code mode — persist the structured block transcript so an assistant turn's tool calls (and later diffs/todos) **replay on session reload**, not just the final text.
+
+**Added:**
+- **`session_messages.blocks`** — a nullable `TEXT` column (JSON-encoded `Block[]`) added to the schema (`lib/db/schema.ts`) and backfilled idempotently on boot via `ensureColumn("session_messages","blocks","blocks TEXT")` (`lib/db/client.ts`). Strictly additive: legacy rows keep `blocks` NULL and render from `content`.
+- **`serializeBlocksForStorage` / `parseBlocksJson`** (`lib/chat/blocks.ts`): serialize a turn's blocks (capping large tool outputs at ~6 KB so a runaway result can't bloat the row) and safely parse them back, falling back to `null` on any error.
+
+**Changed:**
+- **`app/api/ai/chat/route.ts`**: the stream now folds every emitted event into a server-side `Block[]` (same `appendEvent` reducer the client uses) and persists the assistant row in the stream's `finally` — `content` stays the concatenated text (so memory extraction/search/export are untouched) and `blocks` stores the JSON transcript. Assistant-row persistence moved out of `onFinish` (which now only triggers background extraction) so the block array is guaranteed fully assembled before the write.
+- **Hydration** (`app/dashboard/sessions/[id]/page.tsx`, `components/chat/chat-interface.tsx`, `types/session.ts`): saved sessions pass `blocks` through; `toChatMessage` prefers `parseBlocksJson(blocks)` and falls back to `textToBlocks(content)` for legacy rows.
+
+**Verification:** `pnpm typecheck` → **0 errors**. Additive column + null-tolerant hydration keep old sessions loading unchanged.
+
+**Files touched:** `lib/db/schema.ts`, `lib/db/client.ts`, `lib/chat/blocks.ts`, `app/api/ai/chat/route.ts`, `app/dashboard/sessions/[id]/page.tsx`, `components/chat/chat-interface.tsx`, `types/session.ts`; `CHANGELOG.md`.
+
 ## 14/06/2026 @ 23:12:27 IST — "claude-opus-4-8"
 
 **Goal:** Phase 1 of bringing the Claude Code agent experience into Matrix's unified chat: replace the flat-string assistant transcript with an ordered **block model** and start rendering tool calls. Until now the chat ran a server-side agent loop but the NDJSON stream **dropped every tool-call/tool-result part**, so the tools the agent already ran in agent mode were invisible. This is the backbone every later phase (real coding tools, interactive approvals, diffs/todos) renders on top of — backward-compatible, no new tools or power levels yet.
@@ -7,7 +23,7 @@
 **Added:**
 - **`lib/chat/blocks.ts`** — the canonical, isomorphic transcript model shared by server + client: a `Block` discriminated union (text · reasoning · tool_call · todo · approval · error), the `StreamEvent` NDJSON vocabulary, a pure `appendEvent(blocks, idMap, ev)` reducer that folds events into blocks in arrival order (matching each `tool_result` to its `tool_call` by id), plus `blocksToText` / `textToBlocks` helpers for TTS, persistence, and legacy-row hydration.
 - **`components/chat/transcript-renderer.tsx`** — maps an assistant turn's `Block[]` to components (text → Markdown, reasoning → ThinkingBlock, tool_call → ToolCallBlock); shows a "Working…" pulse for the empty streaming placeholder. todo/approval are no-ops until later phases.
-- **`components/chat/blocks/tool-call-block.tsx`** — a collapsible "● Tool(arg)" card with a running-spinner / emerald-dot / rose-✗ `StatusGlyph` and a mono output body, in the artifact-panel machined-glass family.
+- **`components/chat/blocks/tool-call-block.tsx`** — a collapsible "● Tool(arg)" card with a running-spinner / emerald-dot / rose-✗ `StatusGlyph` and a mono output body, in the artifact-panel machined-glass famil
 
 **Changed:**
 - **`app/api/ai/chat/route.ts`**: the `result.fullStream` loop now forwards the previously-dropped `tool-call` → `{type:"tool_call",id,name,args}`, `tool-result` → `{type:"tool_result",id,name,result}`, and `tool-error` → `{type:"tool_result",id,name,error}` (field names verified against the AI SDK v5 `TextStreamPart` typings). Existing text/reasoning/error lines unchanged.

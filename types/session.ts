@@ -17,6 +17,8 @@ export interface SessionMessage {
   sessionId: string;
   role: MessageRole;
   content: string;
+  /** JSON-encoded Block[] — the structured transcript. Null for legacy/plain rows. */
+  blocks: string | null;
   providerId: string | null;
   modelName: string | null;
   createdAt: string;

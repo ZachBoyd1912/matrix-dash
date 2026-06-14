@@ -69,6 +69,9 @@ export const sessionMessages = sqliteTable("session_messages", {
     .references(() => sessions.id, { onDelete: "cascade" }),
   role: text("role", { enum: ["user", "assistant", "system"] }).notNull(),
   content: text("content").notNull(),
+  // JSON-encoded Block[] (the structured transcript). Nullable: legacy rows and
+  // plain user turns keep blocks NULL and render from `content`.
+  blocks: text("blocks"),
   providerId: text("provider_id"),
   modelName: text("model_name"),
   createdAt: text("created_at").notNull(),

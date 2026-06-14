@@ -341,6 +341,7 @@ function runColumnMigrations(sqlite: Database.Database) {
   ensureColumn("emails", "message_id", "message_id TEXT");
   ensureColumn("emails", "tags", "tags TEXT NOT NULL DEFAULT ''");
   ensureColumn("emails", "summary", "summary TEXT");
+  ensureColumn("session_messages", "blocks", "blocks TEXT");
 }
 
 function seedWelcomeEmail(sqlite: Database.Database) {

@@ -16,6 +16,13 @@ import { getAppSettings } from "@/lib/db/settings";
 import { buildAgentTools } from "@/lib/ai/tools";
 import { buildProviderOptions, type ReasoningEffort } from "@/lib/ai/models";
 import { providerSpec } from "@/types/ai-provider";
+import {
+  appendEvent,
+  blocksToText,
+  serializeBlocksForStorage,
+  type Block,
+  type StreamEvent,
+} from "@/lib/chat/blocks";
 
 export const dynamic = "force-dynamic";
 
@@ -207,26 +214,8 @@ export async function POST(req: Request) {
     stopWhen: isAgent ? stepCountIs(8) : undefined,
     providerOptions,
     onFinish: async ({ text }) => {
-      // Persist assistant reply.
-      if (sessionId) {
-        try {
-          getDb()
-            .insert(sessionMessages)
-            .values({
-              id: randomUUID(),
-              sessionId,
-              role: "assistant",
-              content: text,
-              providerId: capturedProvider.id,
-              modelName: modelOverride || capturedProvider.defaultModel || null,
-              createdAt: new Date().toISOString(),
-            })
-            .run();
-        } catch (err) {
-          console.error("[chat] failed to persist assistant message:", err);
-        }
-      }
-      // Trigger extraction in the background.
+      // Memory extraction runs in the background. Assistant-row persistence happens
+      // in the stream's `finally` below, where the full block transcript is assembled.
       const fullMessages: ModelMessage[] = [
         // Only real user/assistant turns feed extraction — never system messages
         // (host context, presets, memory blocks), which would otherwise get mined
@@ -240,43 +229,66 @@ export async function POST(req: Request) {
     },
   });
 
-  // NDJSON stream: one JSON object per line so the client can separate the main
-  // reply ({type:"text"}) from the thinking trace ({type:"reasoning"}).
+  // NDJSON stream: one JSON object per line. Each event is also folded into a
+  // server-side block array (via the same reducer the client uses) so the
+  // structured transcript can be persisted for replay on reload.
   const encoder = new TextEncoder();
-  const line = (obj: Record<string, unknown>) => encoder.encode(JSON.stringify(obj) + "\n");
+  const line = (obj: object) => encoder.encode(JSON.stringify(obj) + "\n");
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
+      const serverBlocks: Block[] = [];
+      const idMap = new Map<string, number>();
+      // Emit one event to the client AND fold it into the persisted transcript.
+      const emit = (ev: StreamEvent) => {
+        appendEvent(serverBlocks, idMap, ev);
+        controller.enqueue(line(ev));
+      };
       try {
         for await (const part of result.fullStream) {
           if (part.type === "text-delta") {
-            controller.enqueue(line({ type: "text", value: part.text }));
+            emit({ type: "text", value: part.text });
           } else if (part.type === "reasoning-delta") {
-            controller.enqueue(line({ type: "reasoning", value: part.text }));
+            emit({ type: "reasoning", value: part.text });
           } else if (part.type === "tool-call") {
             // Surface each agent tool invocation so the client can render it as a
             // Claude-Code-style tool card (matched to its result by toolCallId).
-            controller.enqueue(
-              line({ type: "tool_call", id: part.toolCallId, name: part.toolName, args: part.input })
-            );
+            emit({ type: "tool_call", id: part.toolCallId, name: part.toolName, args: part.input });
           } else if (part.type === "tool-result") {
-            controller.enqueue(
-              line({ type: "tool_result", id: part.toolCallId, name: part.toolName, result: part.output })
-            );
+            emit({ type: "tool_result", id: part.toolCallId, name: part.toolName, result: part.output });
           } else if (part.type === "tool-error") {
             const msg = part.error instanceof Error ? part.error.message : String(part.error);
-            controller.enqueue(
-              line({ type: "tool_result", id: part.toolCallId, name: part.toolName, error: msg })
-            );
+            emit({ type: "tool_result", id: part.toolCallId, name: part.toolName, error: msg });
           } else if (part.type === "error") {
             const msg = part.error instanceof Error ? part.error.message : String(part.error);
-            controller.enqueue(line({ type: "error", value: msg }));
+            emit({ type: "error", value: msg });
           }
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        controller.enqueue(line({ type: "error", value: msg }));
+        emit({ type: "error", value: msg });
       } finally {
+        // Persist the assistant turn with its structured block transcript. `content`
+        // stays the concatenated text so extraction/search/export keep working.
+        if (sessionId && serverBlocks.length) {
+          try {
+            getDb()
+              .insert(sessionMessages)
+              .values({
+                id: randomUUID(),
+                sessionId,
+                role: "assistant",
+                content: blocksToText(serverBlocks),
+                blocks: serializeBlocksForStorage(serverBlocks),
+                providerId: capturedProvider.id,
+                modelName: modelOverride || capturedProvider.defaultModel || null,
+                createdAt: new Date().toISOString(),
+              })
+              .run();
+          } catch (err) {
+            console.error("[chat] failed to persist assistant message:", err);
+          }
+        }
         controller.close();
       }
     },

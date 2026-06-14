@@ -73,6 +73,7 @@ export default function SessionPage() {
     id: m.id,
     role: m.role,
     content: m.content,
+    blocks: m.blocks,
   }));
 
   return (
