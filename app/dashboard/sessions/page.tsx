@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, MessageSquare, ArrowRight, Trash2 } from "lucide-react";
+import { Plus, MessageSquare, ArrowRight, Trash2, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty";
@@ -59,23 +59,28 @@ export default function SessionsPage() {
   };
 
   return (
-    <div ref={ref} className="px-4 md:px-8 py-8 max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Sessions</h1>
-          <p className="text-text-secondary text-sm mt-1">
-            Every conversation is stored locally — resume any thread.
-          </p>
+    <div ref={ref} className="px-4 md:px-8 py-10 max-w-5xl mx-auto space-y-8">
+      <div className="relative">
+        <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
+        <div className="orb -top-10 right-16 h-44 w-44 bg-sky-500/15" style={{ animationDelay: "-6s" }} />
+        <div className="relative flex items-start justify-between gap-4">
+          <div>
+            <span className="eyebrow"><History size={11} /> Conversations</span>
+            <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">Sessions</h1>
+            <p className="text-text-secondary text-sm mt-2">
+              Every conversation is stored locally — resume any thread.
+            </p>
+          </div>
+          <Button variant="primary" onClick={create}>
+            <Plus size={14} /> New session
+          </Button>
         </div>
-        <Button variant="primary" onClick={create}>
-          <Plus size={14} /> New session
-        </Button>
       </div>
 
       {sessions === null ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-24" />
+            <Skeleton key={i} className="h-24 rounded-2xl" />
           ))}
         </div>
       ) : sessions.length === 0 ? (
@@ -86,9 +91,9 @@ export default function SessionsPage() {
           action={<Button variant="primary" onClick={create}><Plus size={14} /> New session</Button>}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {sessions.map((s) => (
-            <Card key={s.id} className="group hover:-translate-y-[1px]">
+            <Card key={s.id} interactive className="group rounded-2xl">
               <Link href={`/dashboard/sessions/${s.id}`} className="block">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
@@ -99,7 +104,7 @@ export default function SessionsPage() {
                       {s.messageCount} {s.messageCount === 1 ? "message" : "messages"} · {timeAgo(s.updatedAt)}
                     </p>
                   </div>
-                  <ArrowRight size={14} className="text-text-muted group-hover:text-emerald-400 transition-colors mt-1 shrink-0" />
+                  <ArrowRight size={14} className="island-icon text-text-muted group-hover:text-emerald-400 transition-colors mt-1 shrink-0" />
                 </div>
               </Link>
               <div className="mt-3 pt-3 border-t border-white/5 flex justify-end">

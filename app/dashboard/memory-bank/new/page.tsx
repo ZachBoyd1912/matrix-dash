@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, BrainCircuit } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea, Input } from "@/components/ui/input";
@@ -39,22 +39,34 @@ export default function NewMemoryPage() {
   };
 
   return (
-    <div ref={ref} className="px-4 md:px-8 py-8 max-w-2xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <Link
-          href="/dashboard/memory-bank"
-          className="text-text-muted hover:text-text-primary p-1 rounded-md hover:bg-white/5"
-          aria-label="Back"
-        >
-          <ArrowLeft size={15} />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">New memory</h1>
-          <p className="text-text-secondary text-sm">Capture a fact worth remembering.</p>
+    <div ref={ref} className="px-4 md:px-8 py-10 max-w-2xl mx-auto space-y-8">
+      <div className="relative">
+        <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
+        <div
+          className="orb -top-10 right-16 h-44 w-44 bg-sky-500/15"
+          style={{ animationDelay: "-6s" }}
+        />
+        <div className="relative flex items-start gap-3">
+          <Link
+            href="/dashboard/memory-bank"
+            className="text-text-muted hover:text-text-primary mt-1 p-1 rounded-md hover:bg-white/5 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            aria-label="Back"
+          >
+            <ArrowLeft size={15} />
+          </Link>
+          <div className="space-y-2">
+            <span className="eyebrow">
+              <BrainCircuit size={11} /> Memory Bank
+            </span>
+            <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold">
+              New memory
+            </h1>
+            <p className="text-text-secondary text-sm">Capture a fact worth remembering.</p>
+          </div>
         </div>
       </div>
 
-      <Card className="space-y-4">
+      <Card interactive className="rounded-2xl space-y-4">
         <Textarea
           autoFocus
           rows={4}

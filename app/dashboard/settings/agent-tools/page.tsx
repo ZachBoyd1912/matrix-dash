@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useGsapEntrance } from "@/lib/hooks/use-gsap-entrance";
+import { Wrench } from "lucide-react";
 
 interface ToolDef {
   key: string;
@@ -50,17 +51,22 @@ export default function AgentToolsPage() {
   const approveOn = (name: string) => settings[`approve_${name}`] === "1";
 
   return (
-    <div ref={ref} className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold tracking-tight">Agent tools</h2>
-        <p className="text-text-secondary text-sm mt-1">
-          Capabilities the agent may use in <span className="text-emerald-400">Agent</span> mode. Build reusable
-          instruction packs on the <Link href="/dashboard/skills" className="text-emerald-400 hover:underline">Skills</Link> page.
-        </p>
+    <div ref={ref} className="space-y-8">
+      <div className="relative overflow-hidden py-10">
+        <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
+        <div className="orb top-4 right-16 h-44 w-44 bg-sky-500/15" style={{ animationDelay: "-6s" }} />
+        <div className="relative">
+          <span className="eyebrow"><Wrench size={11} /> Agent capabilities</span>
+          <h2 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">Agent tools</h2>
+          <p className="text-text-secondary text-sm mt-3 max-w-2xl">
+            Capabilities the agent may use in <span className="text-emerald-400">Agent</span> mode. Build reusable
+            instruction packs on the <Link href="/dashboard/skills" className="text-emerald-400 hover:underline">Skills</Link> page.
+          </p>
+        </div>
       </div>
-      <div className="space-y-2">
+      <div className="space-y-3">
         {TOOLS.map((tool) => (
-          <Card key={tool.key} className="space-y-3">
+          <Card key={tool.key} interactive className="space-y-3 rounded-2xl">
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">

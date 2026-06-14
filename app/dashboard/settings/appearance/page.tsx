@@ -164,12 +164,24 @@ export default function AppearancePage() {
   };
 
   return (
-    <div ref={ref} className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold tracking-tight">Appearance</h2>
-        <p className="text-text-secondary text-sm mt-1">
-          16 named themes plus a full custom theme studio.
-        </p>
+    <div ref={ref} className="space-y-8">
+      <div className="relative overflow-hidden py-10">
+        <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
+        <div
+          className="orb -top-10 right-16 h-44 w-44 bg-sky-500/15"
+          style={{ animationDelay: "-6s" }}
+        />
+        <div className="relative">
+          <span className="eyebrow">
+            <Palette size={11} /> Appearance
+          </span>
+          <h2 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">
+            Appearance
+          </h2>
+          <p className="text-text-secondary text-sm mt-3 max-w-xl">
+            16 named themes plus a full custom theme studio.
+          </p>
+        </div>
       </div>
 
       <Tabs
@@ -182,14 +194,14 @@ export default function AppearancePage() {
       />
 
       {tab === "themes" ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {THEMES.map((t) => {
             const active = (theme ?? DEFAULT_THEME) === t.id;
             return (
               <button
                 key={t.id}
                 onClick={() => applyNamedTheme(t.id)}
-                className="text-left rounded-xl p-3 transition-all border"
+                className="lift text-left rounded-2xl p-3.5 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] border"
                 style={{
                   background: t.bg,
                   borderColor: active ? t.accent : "rgba(255,255,255,0.08)",
@@ -216,7 +228,7 @@ export default function AppearancePage() {
       ) : (
         <div className="space-y-5">
           {/* Colors */}
-          <Card>
+          <Card interactive className="rounded-2xl">
             <p className="text-sm font-medium mb-3">Colors</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {COLOR_FIELDS.map((f) => (
@@ -242,7 +254,7 @@ export default function AppearancePage() {
           </Card>
 
           {/* Color harmony */}
-          <Card>
+          <Card interactive className="rounded-2xl">
             <div className="flex items-center gap-2 mb-3">
               <Wand2 size={14} className="text-violet-300" />
               <p className="text-sm font-medium">Color harmony generator</p>
@@ -288,7 +300,7 @@ export default function AppearancePage() {
           </Card>
 
           {/* Font & layout */}
-          <Card>
+          <Card interactive className="rounded-2xl">
             <p className="text-sm font-medium mb-3">Font &amp; layout</p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
@@ -318,7 +330,7 @@ export default function AppearancePage() {
           </Card>
 
           {/* Save / share */}
-          <Card>
+          <Card interactive className="rounded-2xl">
             <p className="text-sm font-medium mb-3">Save &amp; share</p>
             <div className="flex flex-wrap items-end gap-2">
               <div className="flex-1 min-w-[180px]">

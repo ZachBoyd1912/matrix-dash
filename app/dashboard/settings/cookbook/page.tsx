@@ -23,6 +23,7 @@ import {
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
+  Sparkles,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -199,11 +200,23 @@ export default function CookbookPage() {
 
   return (
     <div ref={ref} className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold tracking-tight">Cookbook</h2>
-        <p className="text-text-secondary text-sm mt-1">
-          Hardware-aware model downloads, server control, and dependencies for local LLMs via Ollama.
-        </p>
+      <div className="relative overflow-hidden py-10">
+        <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
+        <div
+          className="orb -top-10 left-44 h-44 w-44 bg-sky-500/15"
+          style={{ animationDelay: "-6s" }}
+        />
+        <div className="relative">
+          <span className="eyebrow">
+            <Sparkles size={11} /> Local LLM Cookbook
+          </span>
+          <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">
+            Cookbook
+          </h1>
+          <p className="text-text-secondary text-sm mt-3 max-w-2xl">
+            Hardware-aware model downloads, server control, and dependencies for local LLMs via Ollama.
+          </p>
+        </div>
       </div>
 
       <HardwareBanner data={data} onRescan={refresh} />
@@ -232,7 +245,7 @@ export default function CookbookPage() {
 function HardwareBanner({ data, onRescan }: { data: CookbookData | null; onRescan: () => void }) {
   const hw = data?.hardware;
   return (
-    <Card>
+    <Card interactive>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-semibold text-text-primary mb-2 flex items-center gap-2">
@@ -421,7 +434,7 @@ function DownloadTab({
           <p className="text-xs font-semibold text-text-primary mb-3">Installed ({data.models.length})</p>
           <div className="space-y-2">
             {data.models.map((m) => (
-              <div key={m.name} className="flex items-center justify-between gap-3 px-3 py-2 rounded-md bg-white/[0.02] border border-white/5">
+              <div key={m.name} className="lift flex items-center justify-between gap-3 px-3 py-2 rounded-xl bg-white/[0.02] border border-white/5">
                 <div className="min-w-0">
                   <p className="text-xs font-medium text-text-primary truncate">{m.name}</p>
                   <p className="text-[10px] text-text-muted">
@@ -755,7 +768,7 @@ function DepsTab() {
               {deps
                 .filter((d) => d.group === g.key)
                 .map((d) => (
-                  <div key={d.name} className="flex items-center justify-between gap-3 px-3 py-2 rounded-md bg-white/[0.02] border border-white/5">
+                  <div key={d.name} className="lift flex items-center justify-between gap-3 px-3 py-2 rounded-xl bg-white/[0.02] border border-white/5">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-medium text-text-primary">{d.name}</span>

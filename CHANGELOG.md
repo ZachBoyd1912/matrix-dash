@@ -1,5 +1,19 @@
 # Changelog
 
+## 14/06/2026 @ 13:11:13 IST — "claude-opus-4-8"
+
+**Goal:** Roll the Aurora Spatial treatment across the remaining inner dashboard pages (the "redesign the entire website" follow-up), via a multi-agent workflow.
+
+**Changed — Aurora Spatial applied to 19 inner pages** (visual-only; imports/hooks/handlers/data-fetching/exports preserved; theme-agnostic, reusing the existing `globals.css` utilities — no new components or tokens): `calendar`, `images`, `memory-bank` (index / `[id]` / `new`), `research`, `sessions` (index / `[id]`), and `settings/{account, agent-tools, appearance, auth, backups, contacts, cookbook, diagnostics, email, integrations, memory}`. Each gained the eyebrow + gradient display header, ambient orbs, and `interactive`/`lift` cards.
+
+**Method:** `Workflow` (`aurora-rollout`) fanned out one agent per page with hard guardrails (edit only the target file; no shell; no logic/prop changes).
+
+**Not done yet (account session limit hit mid-run):** 8 pages remain untouched — `tasks` + `settings/{landing, presets, shortcuts, system, tokens, vault, webhooks}`. `chat` + `email` were intentionally skipped (full-height panes with no header).
+
+**Verification:** `pnpm typecheck` → **0 errors** across all 19 files. Live on :3001 — 18/18 sampled routes render 200, dev log clean. Not run (8GB RAM): `pnpm build`.
+
+**Files touched:** 19 `app/dashboard/**/page.tsx` files (listed above) + `CHANGELOG.md`.
+
 ## 14/06/2026 @ 11:14:26 IST — "claude-opus-4-8"
 
 **Goal:** Fix the model-config bugs visible in the Compare screenshots and ship a high-end "Aurora Spatial" redesign of the dashboard. Orchestrated via `antigravity-skill-orchestrator` + `high-end-visual-design` + `antigravity-design-expert`.

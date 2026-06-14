@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, Trash2, MapPin, Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Trash2, MapPin, Clock, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Dialog } from "@/components/ui/dialog";
@@ -72,31 +72,40 @@ export default function CalendarPage() {
   };
 
   return (
-    <div ref={ref} className="px-4 md:px-8 py-8 max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold tracking-tight">
-            {cursor.toLocaleString("default", { month: "long", year: "numeric" })}
-          </h1>
-          <div className="flex items-center gap-1">
-            <Button size="icon" variant="ghost" onClick={() => setCursor(addMonths(cursor, -1))} aria-label="Previous month">
-              <ChevronLeft size={15} />
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setCursor(startOfMonth(new Date()))}>
-              Today
-            </Button>
-            <Button size="icon" variant="ghost" onClick={() => setCursor(addMonths(cursor, 1))} aria-label="Next month">
-              <ChevronRight size={15} />
-            </Button>
+    <div ref={ref} className="px-4 md:px-8 py-10 max-w-5xl mx-auto space-y-8">
+      <div className="relative overflow-hidden">
+        <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
+        <div className="orb -top-10 right-24 h-44 w-44 bg-sky-500/15" style={{ animationDelay: "-6s" }} />
+        <div className="relative flex flex-wrap items-end justify-between gap-4">
+          <div className="space-y-3">
+            <span className="eyebrow">
+              <CalendarDays size={11} /> Calendar
+            </span>
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold">
+                {cursor.toLocaleString("default", { month: "long", year: "numeric" })}
+              </h1>
+              <div className="flex items-center gap-1">
+                <Button size="icon" variant="ghost" onClick={() => setCursor(addMonths(cursor, -1))} aria-label="Previous month">
+                  <ChevronLeft size={15} />
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setCursor(startOfMonth(new Date()))}>
+                  Today
+                </Button>
+                <Button size="icon" variant="ghost" onClick={() => setCursor(addMonths(cursor, 1))} aria-label="Next month">
+                  <ChevronRight size={15} />
+                </Button>
+              </div>
+            </div>
           </div>
+          <Button variant="primary" onClick={() => setOpen(true)}>
+            <Plus size={14} /> New event
+          </Button>
         </div>
-        <Button variant="primary" onClick={() => setOpen(true)}>
-          <Plus size={14} /> New event
-        </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-4">
-        <Card className="p-3">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
+        <Card interactive className="p-3 rounded-2xl">
           <div className="grid grid-cols-7 mb-1">
             {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
               <div key={d} className="text-center text-[10px] uppercase tracking-wider text-text-muted py-1">
@@ -115,7 +124,7 @@ export default function CalendarPage() {
                   key={i}
                   onClick={() => setSelectedDay(day)}
                   className={cn(
-                    "aspect-square rounded-md p-1 flex flex-col items-center justify-start text-xs transition-colors",
+                    "aspect-square rounded-lg p-1 flex flex-col items-center justify-start text-xs transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
                     isSelected ? "bg-white/[0.08] ring-1 ring-emerald-400/30" : "hover:bg-white/[0.04]"
                   )}
                 >
@@ -148,7 +157,7 @@ export default function CalendarPage() {
             <EmptyState title="No events" description="Nothing scheduled this day." />
           ) : (
             dayEvents.map((e) => (
-              <Card key={e.id} className="group py-3">
+              <Card key={e.id} interactive className="group py-3 rounded-xl">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-text-primary">{e.title}</p>

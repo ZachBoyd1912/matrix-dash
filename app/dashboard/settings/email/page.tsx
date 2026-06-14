@@ -73,19 +73,26 @@ export default function EmailSettingsPage() {
   };
 
   return (
-    <div ref={ref} className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold tracking-tight">Email</h2>
-        <p className="text-text-secondary text-sm mt-1">
-          Connect a real IMAP/SMTP account for live sync, sending, and AI triage. Credentials are
-          AES-256-GCM encrypted at rest.
-        </p>
+    <div ref={ref} className="space-y-8">
+      <div className="relative isolate py-10">
+        <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
+        <div className="orb top-0 left-40 h-40 w-40 bg-sky-500/15" style={{ animationDelay: "-6s" }} />
+        <div className="relative">
+          <span className="eyebrow">
+            <Mail size={11} /> Email
+          </span>
+          <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">Email</h1>
+          <p className="text-text-secondary text-sm mt-3 max-w-2xl">
+            Connect a real IMAP/SMTP account for live sync, sending, and AI triage. Credentials are
+            AES-256-GCM encrypted at rest.
+          </p>
+        </div>
       </div>
 
       {accounts.length > 0 && (
         <div className="space-y-2">
           {accounts.map((a) => (
-            <Card key={a.id} className="flex items-center justify-between gap-3">
+            <Card key={a.id} interactive className="flex items-center justify-between gap-3 rounded-2xl">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <Mail size={14} className="text-emerald-400" />
@@ -115,7 +122,7 @@ export default function EmailSettingsPage() {
 
       <AccountForm onAdded={refresh} />
 
-      <Card>
+      <Card interactive className="rounded-2xl">
         <p className="text-sm font-medium mb-3">Compose defaults</p>
         <div className="space-y-3">
           <div>

@@ -73,17 +73,27 @@ export default function ResearchPage() {
   };
 
   return (
-    <div ref={ref} className="px-4 md:px-8 py-8 max-w-3xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <FlaskConical size={20} className="text-emerald-400" /> Deep Research
-        </h1>
-        <p className="text-text-secondary text-sm mt-1">
-          The agent plans sub-questions, searches the web, reads sources, and synthesizes a cited report.
-        </p>
+    <div ref={ref} className="px-4 md:px-8 py-10 max-w-3xl mx-auto space-y-6">
+      <div className="relative overflow-hidden">
+        <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
+        <div
+          className="orb -top-10 right-16 h-44 w-44 bg-sky-500/15"
+          style={{ animationDelay: "-6s" }}
+        />
+        <div className="relative">
+          <span className="eyebrow">
+            <FlaskConical size={11} /> Deep Research
+          </span>
+          <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold tracking-tight mt-3">
+            Deep Research
+          </h1>
+          <p className="text-text-secondary text-sm mt-2">
+            The agent plans sub-questions, searches the web, reads sources, and synthesizes a cited report.
+          </p>
+        </div>
       </div>
 
-      <Card className="space-y-3">
+      <Card interactive className="space-y-3 rounded-2xl">
         <Textarea
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
@@ -99,7 +109,7 @@ export default function ResearchPage() {
       </Card>
 
       {(running || statuses.length > 0) && (
-        <Card>
+        <Card interactive className="rounded-2xl">
           <div className="flex items-center gap-2 mb-2">
             <p className="text-xs font-semibold text-text-primary">Progress</p>
             {running && <Loader2 size={12} className="animate-spin text-emerald-400" />}
@@ -133,7 +143,7 @@ export default function ResearchPage() {
       )}
 
       {report ? (
-        <Card>
+        <Card interactive className="rounded-2xl">
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm font-semibold text-text-primary">Report</p>
             <Button size="sm" variant="secondary" onClick={saveAsNote}>

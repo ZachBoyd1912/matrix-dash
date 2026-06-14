@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Lock, Check, ShieldOff } from "lucide-react";
+import { Lock, Check, ShieldOff, ShieldCheck } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,15 +61,24 @@ export default function AuthPage() {
   };
 
   return (
-    <div ref={ref} className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold tracking-tight">Security (2FA)</h2>
-        <p className="text-text-secondary text-sm mt-1">
-          TOTP-based two-factor authentication. Pair with any authenticator app (Google, Authy, 1Password).
-        </p>
+    <div ref={ref} className="space-y-8">
+      <div className="relative overflow-hidden py-10">
+        <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
+        <div className="orb top-0 left-44 h-44 w-44 bg-sky-500/15" style={{ animationDelay: "-6s" }} />
+        <div className="relative">
+          <span className="eyebrow">
+            <ShieldCheck size={11} /> Security
+          </span>
+          <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">
+            Security (2FA)
+          </h1>
+          <p className="text-text-secondary text-sm mt-3 max-w-2xl">
+            TOTP-based two-factor authentication. Pair with any authenticator app (Google, Authy, 1Password).
+          </p>
+        </div>
       </div>
 
-      <Card>
+      <Card interactive className="rounded-2xl">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Lock size={14} className="text-emerald-400" />
@@ -113,7 +122,7 @@ export default function AuthPage() {
         )}
       </Card>
 
-      <Card>
+      <Card interactive className="rounded-2xl">
         <p className="text-xs text-text-secondary">
           <strong className="text-text-primary">Note:</strong> Auth is currently informational — the local app binds
           to <code className="text-text-primary">localhost</code> by default and doesn&apos;t enforce login. Enable
