@@ -74,6 +74,30 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
   const reasoningEffort = useAppStore((s) => s.reasoningEffort);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [attachment, setAttachment] = useState<{ name: string; text: string } | null>(null);
+  const [ccInstalled, setCcInstalled] = useState<boolean | null>(null);
+
+  // When the Claude Code engine is toggled on, check whether the CLI is present.
+  useEffect(() => {
+    if (!useClaudeCode) {
+      setCcInstalled(null);
+      return;
+    }
+    fetch("/api/ai/claude-code")
+      .then((r) => r.json())
+      .then((s) => setCcInstalled(!!s.installed))
+      .catch(() => setCcInstalled(false));
+  }, [useClaudeCode]);
+
+  const ccBanner =
+    useClaudeCode && ccInstalled === false ? (
+      <div className="max-w-3xl mx-auto px-4 mb-2">
+        <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 text-amber-200 text-xs px-4 py-3 leading-relaxed">
+          Claude Code isn&apos;t installed yet. Run{" "}
+          <code className="font-mono bg-black/30 px-1 rounded">npm i -g @anthropic-ai/claude-code</code> in a terminal,
+          then reload — Matrix wires up your models automatically.
+        </div>
+      </div>
+    ) : null;
 
   const handleFile = useCallback(async (file: File) => {
     const form = new FormData();

@@ -1,6 +1,10 @@
 import { spawn, execFile } from "child_process";
+import fs from "fs";
+import path from "path";
+import os from "os";
 import { getSetting } from "@/lib/db/settings";
 import { getWorkspaceRoot, getPowerLevel, type PowerLevel } from "@/lib/ai/power";
+import { getActiveProvider } from "@/lib/ai/registry";
 import type { StreamEvent } from "@/lib/chat/blocks";
 
 /**
@@ -17,18 +21,53 @@ export interface ClaudeStatus {
   baseUrl: string | null;
 }
 
-function binPath(): string {
-  return getSetting("claude_code_bin")?.trim() || "claude";
+/** Locate the `claude` binary: explicit setting → common install paths → PATH. */
+function findClaudeBin(): string {
+  const override = getSetting("claude_code_bin")?.trim();
+  if (override) return override;
+  const home = os.homedir();
+  const candidates = [
+    "/usr/local/bin/claude",
+    "/opt/homebrew/bin/claude",
+    path.join(home, ".local/bin/claude"),
+    path.join(home, ".npm-global/bin/claude"),
+    path.join(home, ".bun/bin/claude"),
+    path.join(home, "node_modules/.bin/claude"),
+  ];
+  for (const c of candidates) {
+    try {
+      if (fs.existsSync(c)) return c;
+    } catch {
+      /* ignore */
+    }
+  }
+  return "claude"; // fall back to PATH resolution
 }
 
-/** Detect whether the `claude` CLI is available (and the configured router URL). */
+/**
+ * Auto-wire credentials so the user configures nothing: ALWAYS route Claude Code
+ * through Matrix's own built-in Anthropic-compatible proxy, which runs the user's
+ * ACTIVE Matrix provider and selected model — so Claude Code uses whatever model is
+ * picked in Matrix, regardless of provider. Nothing to configure.
+ */
+function autoCredentials(matrixOrigin?: string): { env: Record<string, string>; model?: string } {
+  const overrideUrl = getSetting("claude_code_base_url")?.trim();
+  const active = getActiveProvider();
+  const base = overrideUrl || (matrixOrigin ? `${matrixOrigin}/api/ai/proxy` : "");
+  const env: Record<string, string> = { ANTHROPIC_API_KEY: "matrix" };
+  if (base) env.ANTHROPIC_BASE_URL = base;
+  // Pass the Matrix model id along (via Claude Code's --model) so the proxy can run
+  // exactly the model selected in Matrix; the proxy falls back to the provider default.
+  return { env, model: active?.defaultModel ?? undefined };
+}
+
+/** Detect whether the `claude` CLI is available. */
 export function detectClaude(): Promise<ClaudeStatus> {
-  const bin = binPath();
-  const baseUrl = getSetting("claude_code_base_url")?.trim() || null;
+  const bin = findClaudeBin();
   return new Promise((resolve) => {
     execFile(bin, ["--version"], { timeout: 8000 }, (err, stdout) => {
-      if (err) resolve({ installed: false, bin: null, version: null, baseUrl });
-      else resolve({ installed: true, bin, version: String(stdout).trim().slice(0, 80), baseUrl });
+      if (err) resolve({ installed: false, bin: null, version: null, baseUrl: null });
+      else resolve({ installed: true, bin, version: String(stdout).trim().slice(0, 80), baseUrl: null });
     });
   });
 }
@@ -86,22 +125,23 @@ function mapEvent(ev: CCEvent, emit: (e: StreamEvent) => void, matrixSessionId?:
 export function runClaudeTurn(opts: {
   prompt: string;
   matrixSessionId?: string;
+  matrixOrigin?: string;
   model?: string;
   signal?: AbortSignal;
   emit: (ev: StreamEvent) => void;
 }): Promise<{ ok: boolean; error?: string }> {
-  const { prompt, matrixSessionId, model, signal, emit } = opts;
-  const bin = binPath();
+  const { prompt, matrixSessionId, matrixOrigin, signal, emit } = opts;
+  const bin = findClaudeBin();
   const root = getWorkspaceRoot();
-  const baseUrl = getSetting("claude_code_base_url")?.trim();
   const resume = matrixSessionId ? ccSessions.get(matrixSessionId) : undefined;
+  const creds = autoCredentials(matrixOrigin);
+  const model = opts.model || creds.model;
 
   const args = ["-p", prompt, "--output-format", "stream-json", "--verbose", ...permissionArgs(getPowerLevel())];
   if (model) args.push("--model", model);
   if (resume) args.push("--resume", resume);
 
-  const env = { ...process.env };
-  if (baseUrl) env.ANTHROPIC_BASE_URL = baseUrl;
+  const env = { ...process.env, ...creds.env };
 
   return new Promise((resolve) => {
     let child: ReturnType<typeof spawn>;

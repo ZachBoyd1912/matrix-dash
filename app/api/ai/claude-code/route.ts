@@ -60,7 +60,14 @@ export async function POST(req: Request) {
         controller.enqueue(line(ev));
       };
       try {
-        await runClaudeTurn({ prompt, matrixSessionId: sessionId, model: body.modelOverride, signal: req.signal, emit });
+        await runClaudeTurn({
+          prompt,
+          matrixSessionId: sessionId,
+          matrixOrigin: new URL(req.url).origin,
+          model: body.modelOverride,
+          signal: req.signal,
+          emit,
+        });
       } catch (e) {
         emit({ type: "error", value: e instanceof Error ? e.message : String(e) });
       } finally {

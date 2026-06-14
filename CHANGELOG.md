@@ -1,5 +1,23 @@
 # Changelog
 
+## 15/06/2026 @ 00:09:06 IST — "claude-opus-4-8"
+
+**Goal:** Make the Claude Code engine **zero-config and "just work" with any Matrix-selected model** — no base URLs, no bin paths, no separate router to install.
+
+**Added:**
+- **`app/api/ai/proxy/v1/messages/route.ts`** — Matrix's own built-in **Anthropic-compatible `/v1/messages` endpoint**. Translates the request Claude Code sends into an AI SDK `streamText` call on the user's **active Matrix provider** (tools passed through as definitions only — the model emits `tool_use`, Claude Code runs the tool locally), and translates the output back into Anthropic SSE (`message_start` → text/`tool_use` content blocks → `message_delta`/`message_stop`). So Matrix *is* the router — no claude-code-router needed. Honors the model id Matrix passes (`resolveModel(provider, body.model)`), so Claude Code runs exactly the model selected in Matrix.
+
+**Changed (`lib/services/claude-code.ts`):**
+- **Auto-detect the binary** — `findClaudeBin()` searches the setting, then common install paths (`/usr/local/bin`, Homebrew, `~/.local/bin`, npm/bun global), then PATH. No "bin" field to fill in.
+- **Auto-wire credentials** — `autoCredentials()` always points `ANTHROPIC_BASE_URL` at Matrix's own proxy (derived from the request origin — `app/api/ai/claude-code/route.ts` passes `matrixOrigin`) and passes the active model via `--model`. The user configures nothing.
+- **Status banner** (`components/chat/chat-interface.tsx`): when the Claude Code engine is on but the CLI isn't installed, a banner shows the one install command.
+
+**Removed:** the earlier Anthropic-key-direct shortcut — per the user, Claude Code must always run on the **Matrix-selected model** (any provider), never fall back to a separate Anthropic key.
+
+**Verification:** `pnpm typecheck` → **0 errors**. NOTE: still needs the `claude` CLI installed (`npm i -g @anthropic-ai/claude-code`); the proxy translation is typecheck-proven, not runtime-proven — first real run may need a tweak. A non-Claude `--model` could be rejected by some CLI versions; the proxy falls back to the provider default if so.
+
+**Files touched:** `app/api/ai/proxy/v1/messages/route.ts`, `lib/services/claude-code.ts`, `app/api/ai/claude-code/route.ts`, `components/chat/chat-interface.tsx`; `CHANGELOG.md`.
+
 ## 14/06/2026 @ 23:54:07 IST — "claude-opus-4-8"
 
 **Goal:** Pivot Claude Code mode to **wrap the REAL Claude Code CLI** (not just reimplement its experience). The chat can now run through the actual `claude` agent — routed through claude-code-router so it uses any Matrix provider key — with its event stream rendered in Matrix's existing block UI. The native agent (Phases 1–4) remains the fallback when the CLI isn't installed.
