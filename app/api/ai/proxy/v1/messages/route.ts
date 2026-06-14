@@ -128,9 +128,10 @@ export async function POST(req: Request) {
 
   let result;
   try {
-    // Run the model Matrix selected (passed through as the Anthropic `model`),
-    // falling back to the active provider's default.
-    result = streamText({ model: resolveModel(provider, body.model), messages, tools: buildTools(body) });
+    // Always run the user's ACTIVE Matrix provider/model. We IGNORE the model name
+    // Claude Code sends — it's always a Claude id (e.g. "claude-opus-4-7") that other
+    // providers reject. The user chooses the model in Matrix.
+    result = streamText({ model: resolveModel(provider), messages, tools: buildTools(body) });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return Response.json({ type: "error", error: { type: "api_error", message: msg } }, { status: 500 });

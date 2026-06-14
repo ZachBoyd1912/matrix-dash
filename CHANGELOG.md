@@ -1,5 +1,15 @@
 # Changelog
 
+## 15/06/2026 @ 00:27:18 IST — "claude-opus-4-8"
+
+**Goal:** Fix the empty-response bug found during live end-to-end testing of the Claude Code wrapper.
+
+**Fixed (cause → fix):** The built-in proxy honored the `model` field Claude Code sends — but Claude Code always sends *its own* model id (e.g. `claude-opus-4-7`), which other providers reject (`400 The supported API model names are deepseek-v4-pro or deepseek-v4-flash, but you passed claude-opus-4-7`). So the provider 400'd and Claude Code reported an empty result. Now the proxy **ignores the requested model and always runs the active Matrix provider/model** (`resolveModel(provider)` in `app/api/ai/proxy/v1/messages/route.ts`), and `lib/services/claude-code.ts` **no longer passes `--model`** (Claude Code's Claude id would never match another provider). The user picks the model in Matrix as usual.
+
+**Verified live (this session):** real `claude` CLI → Matrix proxy → Deepseek round-trip ran for **$0.00006** (not $0.18 — confirming it used the Matrix provider, NOT Claude credits), and after the fix the proxy streamed real text (`"it works"`) while Claude Code requested `claude-opus-4-7`. `pnpm typecheck` → **0 errors**.
+
+**Files touched:** `app/api/ai/proxy/v1/messages/route.ts`, `lib/services/claude-code.ts`; `CHANGELOG.md`.
+
 ## 15/06/2026 @ 00:09:06 IST — "claude-opus-4-8"
 
 **Goal:** Make the Claude Code engine **zero-config and "just work" with any Matrix-selected model** — no base URLs, no bin paths, no separate router to install.

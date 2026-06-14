@@ -135,10 +135,10 @@ export function runClaudeTurn(opts: {
   const root = getWorkspaceRoot();
   const resume = matrixSessionId ? ccSessions.get(matrixSessionId) : undefined;
   const creds = autoCredentials(matrixOrigin);
-  const model = opts.model || creds.model;
 
+  // We deliberately DON'T pass --model: Claude Code always sends its own Claude model
+  // id to the proxy, which Matrix ignores in favour of the active provider/model.
   const args = ["-p", prompt, "--output-format", "stream-json", "--verbose", ...permissionArgs(getPowerLevel())];
-  if (model) args.push("--model", model);
   if (resume) args.push("--resume", resume);
 
   const env = { ...process.env, ...creds.env };
