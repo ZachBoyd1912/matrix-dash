@@ -1,5 +1,21 @@
 # Changelog
 
+## 15/06/2026 @ 07:54:31 IST — "claude-opus-4-8"
+
+**Goal:** Give the Chat tab the *actual* Claude Code input bar with **all** its features (slash commands, model/effort/thinking, MCP, agents, hooks, output styles, plugins, usage, context) — by embedding the real extension rather than reimplementing it, and running it on the Matrix model.
+
+**Added / Changed:**
+- **`app/dashboard/chat/page.tsx`**: when the Claude Code engine is toggled, the Chat tab now embeds the **real Claude Code extension** via the existing code-server gate (`CodeServerGate`) instead of the custom chat — the genuine panel with every feature. A slim header (Claude logo + "runs on your active Matrix model" + "Use Matrix chat") lets you switch back. A `[&>div]:!h-full` override fits the gate's `page-h` shell into the chat area.
+- **Process Wrapper (machine config, outside the repo):** created `~/.matrix-dash/claude-proxy-wrapper.sh` and set `claudeCode.claudeProcessWrapper` in code-server's `data/User/settings.json` so the extension launches Claude through Matrix's proxy → the full real UI runs on the **active Matrix provider/model**, not Claude credits.
+
+**Why embed (not reimplement):** those features are Claude Code's own frontend; a hand-built copy would be brittle and perpetually behind. The real extension (already installed in Matrix's code-server) has all of them — we just feed it Matrix's models.
+
+**Verified live:** the wrapper routed the real `claude` → Matrix proxy → Deepseek (`"wired"`, `is_error:false`, **$0.00006** — not Claude credits). `pnpm typecheck` → **0 errors**.
+
+**Known limitation:** the embed shows inside code-server's frame (open the ✳ Claude Code panel within it). A fully chrome-less, auto-opened panel isn't reliably achievable via code-server URL params without hiding the IDE-tab chrome too.
+
+**Files touched:** `app/dashboard/chat/page.tsx`; `CHANGELOG.md`. (Plus machine config: `~/.matrix-dash/claude-proxy-wrapper.sh`, code-server `settings.json`.)
+
 ## 15/06/2026 @ 07:19:42 IST — "claude-opus-4-8"
 
 **Goal:** Make the chat's empty state look identical to the real Claude Code UI when the Claude Code engine is active.
