@@ -13,6 +13,8 @@ import { ClaudeCodeEmpty } from "./claude-code-hero";
 import { LogoMark } from "@/components/layout/logo";
 import { useAppStore } from "@/lib/stores/use-app-store";
 import { speak } from "@/lib/hooks/use-voice";
+import { SLASH_COMMANDS } from "@/lib/chat/slash-commands";
+import { useRouter } from "next/navigation";
 import {
   appendEvent,
   blocksToText,
@@ -70,7 +72,9 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
   const providers = useAppStore((s) => s.providers);
   const chatMode = useAppStore((s) => s.chatMode);
   const useClaudeCode = useAppStore((s) => s.useClaudeCode);
+  const setModelSelectorOpen = useAppStore((s) => s.setModelSelectorOpen);
   const autoSpeak = useAppStore((s) => s.autoSpeak);
+  const router = useRouter();
   const modelOverride = useAppStore((s) => s.modelOverride);
   const reasoningEffort = useAppStore((s) => s.reasoningEffort);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -146,10 +150,52 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
   const send = useCallback(
     async (text: string) => {
       setError(null);
-      // /clear is handled client-side: reset the transcript instead of sending.
-      if (text.trim() === "/clear") {
-        setMessages([]);
-        return;
+      // Slash commands → Matrix UI actions. compact/init/review fall through to the engine.
+      const t = text.trim();
+      if (t.startsWith("/")) {
+        const cmd = t.slice(1).split(/\s+/)[0].toLowerCase();
+        const inject = (msg: string) =>
+          setMessages((prev) => [
+            ...prev,
+            { id: uid(), role: "assistant" as const, blocks: [{ kind: "text" as const, text: msg }] },
+          ]);
+        let handled = true;
+        switch (cmd) {
+          case "clear":
+            setMessages([]);
+            break;
+          case "model":
+            setModelSelectorOpen(true);
+            break;
+          case "agents":
+          case "permissions":
+            router.push("/dashboard/settings/agent-tools");
+            break;
+          case "mcp":
+            router.push("/dashboard/settings/integrations");
+            break;
+          case "memory":
+            router.push("/dashboard/memory-bank");
+            break;
+          case "usage":
+            router.push("/dashboard/settings/diagnostics");
+            break;
+          case "context": {
+            const active = providers.find((p) => p.id === providerId);
+            inject(
+              `Context — ${messages.length} message(s) · provider: ${active?.name ?? "none"} · model: ${
+                modelOverride ?? active?.defaultModel ?? "default"
+              }.`
+            );
+            break;
+          }
+          case "help":
+            inject("Slash commands:\n" + SLASH_COMMANDS.map((c) => `/${c.name} — ${c.description}`).join("\n"));
+            break;
+          default:
+            handled = false; // compact / init / review → send to the engine
+        }
+        if (handled) return;
       }
       const composedText = attachment
         ? `${text}\n\n[Attached: ${attachment.name}]\n${attachment.text.slice(0, 12000)}`
@@ -264,7 +310,7 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
         abortRef.current = null;
       }
     },
-    [messages, providerId, sessionId, chatMode, useClaudeCode, autoSpeak, attachment, contextText, modelOverride, reasoningEffort]
+    [messages, providers, providerId, sessionId, chatMode, useClaudeCode, autoSpeak, attachment, contextText, modelOverride, reasoningEffort, router, setModelSelectorOpen]
   );
 
   const empty = messages.length === 0;

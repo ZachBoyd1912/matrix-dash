@@ -1,5 +1,18 @@
 # Changelog
 
+## 15/06/2026 @ 18:03:06 IST — "claude-opus-4-8"
+
+**Goal:** Wire **every** slash command to a real Matrix action (not just `/clear`), and fix the `SQLITE_CORRUPT_VTAB` crash that broke skill toggling.
+
+**Fixed (cause → fix):** Toggling skills threw `SqliteError: database disk image is malformed (SQLITE_CORRUPT_VTAB)` — the `skills_fts` FTS5 index was corrupt, and the `skills_au` trigger writes to it on every change. Repaired the live DB (drop → recreate → rebuild `skills_fts`; main DB `quick_check` was clean, 1540 skills intact). Hardened `backfillSkillsFts()` (`lib/db/client.ts`) to **self-heal on boot**: a failing read or rebuild now drops + recreates the virtual table and rebuilds from content, so corruption can't permanently break skill writes.
+
+**Added — full slash-command dispatch (`components/chat/chat-interface.tsx`):**
+- `/clear` → reset transcript · `/model` → opens the model dropdown (new `modelSelectorOpen` store flag + `model-selector.tsx` sync) · `/agents` + `/permissions` → Settings → Agent Tools · `/mcp` → Settings → Integrations · `/memory` → Memory Bank · `/usage` → Settings → Diagnostics · `/context` → injects a session/provider/model summary · `/help` → injects the command list · `/compact` `/init` `/review` → passed through to the OpenClaude engine.
+
+**Verification:** `pnpm typecheck` → **0 errors**. Live: `skills_fts` rebuilt (1540 rows), trigger-write succeeds.
+
+**Files touched:** `lib/db/client.ts`, `components/chat/chat-interface.tsx`, `components/chat/model-selector.tsx`, `lib/stores/use-app-store.ts`; `CHANGELOG.md`.
+
 ## 15/06/2026 @ 17:54:52 IST — "claude-opus-4-8"
 
 **Goal:** Two chat-input fixes — remove the redundant Matrix chat/agent toggle, and open a slash-command menu when typing `/`.

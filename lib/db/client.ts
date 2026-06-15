@@ -369,12 +369,28 @@ function backfillSkillsFts(sqlite: Database.Database) {
   try {
     const base = (sqlite.prepare("SELECT COUNT(*) AS c FROM skills").get() as { c: number }).c;
     if (base === 0) return;
-    const indexed = (sqlite.prepare("SELECT COUNT(*) AS c FROM skills_fts").get() as { c: number }).c;
-    if (indexed !== base) {
+    // A corrupt FTS index throws SQLITE_CORRUPT_VTAB on read/write — which breaks
+    // every skills insert/update/delete (the triggers write to it). Treat any read
+    // failure as "needs rebuild" so the index self-heals on boot.
+    let indexed = -1;
+    try {
+      indexed = (sqlite.prepare("SELECT COUNT(*) AS c FROM skills_fts").get() as { c: number }).c;
+    } catch {
+      indexed = -1;
+    }
+    if (indexed === base) return;
+    try {
       sqlite.exec("INSERT INTO skills_fts(skills_fts) VALUES('rebuild')");
+    } catch {
+      // Index is corrupt: recreate the virtual table, then rebuild from content.
+      sqlite.exec(
+        "DROP TABLE IF EXISTS skills_fts;" +
+          "CREATE VIRTUAL TABLE skills_fts USING fts5(name, description, instructions, content=skills, content_rowid=rowid);" +
+          "INSERT INTO skills_fts(skills_fts) VALUES('rebuild');"
+      );
     }
   } catch {
-    /* FTS rebuild is best-effort; retrieval falls back to recent skills */
+    /* best-effort; retrieval falls back to recent skills */
   }
 }
 

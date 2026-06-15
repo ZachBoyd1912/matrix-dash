@@ -36,6 +36,8 @@ export function ModelSelector() {
   const currentModel = modelOverride ?? active?.defaultModel ?? "";
 
   const [open, setOpen] = useState(false);
+  const modelSelectorOpen = useAppStore((s) => s.modelSelectorOpen);
+  const setModelSelectorOpen = useAppStore((s) => s.setModelSelectorOpen);
   const [models, setModels] = useState<ModelInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,6 +73,14 @@ export function ModelSelector() {
   useEffect(() => {
     if (open) load();
   }, [open, load]);
+
+  // The /model slash command pulses this flag to open the dropdown.
+  useEffect(() => {
+    if (modelSelectorOpen) {
+      setOpen(true);
+      setModelSelectorOpen(false);
+    }
+  }, [modelSelectorOpen, setModelSelectorOpen]);
 
   // Close on outside click / Escape.
   useEffect(() => {

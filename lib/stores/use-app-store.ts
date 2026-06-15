@@ -16,6 +16,9 @@ interface AppState {
   /** When true, the chat runs through the real Claude Code CLI engine. */
   useClaudeCode: boolean;
   setUseClaudeCode: (on: boolean) => void;
+  /** Pulsed true by the /model slash command to open the model dropdown. */
+  modelSelectorOpen: boolean;
+  setModelSelectorOpen: (open: boolean) => void;
   autoSpeak: boolean;
   setAutoSpeak: (on: boolean) => void;
 
@@ -43,6 +46,8 @@ export const useAppStore = create<AppState>((set) => ({
   setChatMode: (chatMode) => set({ chatMode }),
   useClaudeCode: false,
   setUseClaudeCode: (useClaudeCode) => set({ useClaudeCode }),
+  modelSelectorOpen: false,
+  setModelSelectorOpen: (modelSelectorOpen) => set({ modelSelectorOpen }),
   autoSpeak: false,
   setAutoSpeak: (autoSpeak) => set({ autoSpeak }),
 
