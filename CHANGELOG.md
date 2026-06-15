@@ -1,5 +1,20 @@
 # Changelog
 
+## 15/06/2026 @ 17:45:09 IST — "claude-opus-4-8"
+
+**Goal:** The Chat tab should be a **standalone Claude chat**, not the VS Code/code-server IDE. Revert the IDE embed and integrate **OpenClaude** (github.com/Gitlawb/openclaude) as the chat engine.
+
+**Changed:**
+- **`app/dashboard/chat/page.tsx`**: reverted the code-server embed — the Chat tab is the standalone `ChatInterface` again.
+- **`components/chat/chat-interface.tsx`**: the engine toggle now routes to `/api/ai/openclaude`; install banner + status check point at OpenClaude (`npm install -g @gitlawb/openclaude@latest`).
+
+**Added:**
+- **`lib/services/openclaude.ts`** + **`app/api/ai/openclaude/route.ts`**: spawn OpenClaude headless (`openclaude -p --output-format stream-json`) and stream its events into the block UI. OpenClaude is a provider-agnostic Claude Code fork, so it runs the **active Matrix provider/model natively** — `providerEnv()` maps the provider to `CLAUDE_CODE_USE_OPENAI=1` + `OPENAI_BASE_URL/_API_KEY/_MODEL` (or Gemini/Anthropic env). **No Anthropic proxy needed.** Auto-detects the `openclaude` binary; power level → permission flags; per-session `--resume`. Reuses the existing stream-json → Block mapping.
+
+**Verified live:** `POST /api/ai/openclaude` → OpenClaude on Deepseek → streamed `{"type":"text","value":"openclaude works"}` (the missing piece was `CLAUDE_CODE_USE_OPENAI=1`, which selects the OpenAI-compatible provider instead of OpenClaude's default Opengateway). `pnpm typecheck` → **0 errors**.
+
+**Files touched:** `app/dashboard/chat/page.tsx`, `components/chat/chat-interface.tsx`, `lib/services/openclaude.ts`, `app/api/ai/openclaude/route.ts`; `CHANGELOG.md`.
+
 ## 15/06/2026 @ 07:54:31 IST — "claude-opus-4-8"
 
 **Goal:** Give the Chat tab the *actual* Claude Code input bar with **all** its features (slash commands, model/effort/thinking, MCP, agents, hooks, output styles, plugins, usage, context) — by embedding the real extension rather than reimplementing it, and running it on the Matrix model.

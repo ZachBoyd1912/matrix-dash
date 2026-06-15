@@ -83,7 +83,7 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
       setCcInstalled(null);
       return;
     }
-    fetch("/api/ai/claude-code")
+    fetch("/api/ai/openclaude")
       .then((r) => r.json())
       .then((s) => setCcInstalled(!!s.installed))
       .catch(() => setCcInstalled(false));
@@ -93,9 +93,9 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
     useClaudeCode && ccInstalled === false ? (
       <div className="max-w-3xl mx-auto px-4 mb-2">
         <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 text-amber-200 text-xs px-4 py-3 leading-relaxed">
-          Claude Code isn&apos;t installed yet. Run{" "}
-          <code className="font-mono bg-black/30 px-1 rounded">npm i -g @anthropic-ai/claude-code</code> in a terminal,
-          then reload — Matrix wires up your models automatically.
+          OpenClaude isn&apos;t installed yet. Run{" "}
+          <code className="font-mono bg-black/30 px-1 rounded">npm install -g @gitlawb/openclaude@latest</code> in a
+          terminal, then reload — it runs on your active Matrix model automatically.
         </div>
       </div>
     ) : null;
@@ -175,8 +175,9 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
         // it never reaches memory extraction, and the model only ever sees a single
         // leading system message (safe across every provider, incl. Gemini).
         const ctx = contextText?.();
-        // Route to the real Claude Code CLI engine when enabled, else the native agent.
-        const endpoint = useClaudeCode ? "/api/ai/claude-code" : "/api/ai/chat";
+        // Route to the OpenClaude engine when enabled (runs the active Matrix
+        // provider natively), else Matrix's native agent.
+        const endpoint = useClaudeCode ? "/api/ai/openclaude" : "/api/ai/chat";
         const res = await fetch(endpoint, {
           method: "POST",
           headers: { "content-type": "application/json" },
