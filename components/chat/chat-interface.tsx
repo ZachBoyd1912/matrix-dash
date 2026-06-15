@@ -146,6 +146,11 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
   const send = useCallback(
     async (text: string) => {
       setError(null);
+      // /clear is handled client-side: reset the transcript instead of sending.
+      if (text.trim() === "/clear") {
+        setMessages([]);
+        return;
+      }
       const composedText = attachment
         ? `${text}\n\n[Attached: ${attachment.name}]\n${attachment.text.slice(0, 12000)}`
         : text;

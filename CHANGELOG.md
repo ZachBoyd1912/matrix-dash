@@ -1,5 +1,21 @@
 # Changelog
 
+## 15/06/2026 @ 17:54:52 IST — "claude-opus-4-8"
+
+**Goal:** Two chat-input fixes — remove the redundant Matrix chat/agent toggle, and open a slash-command menu when typing `/`.
+
+**Changed (`components/chat/chat-input.tsx`):**
+- **Removed the Chat / Agent segmented toggle** (and its `chatMode` store reads) — the input now has just the **Claude Code** button plus the provider/model selectors.
+- **Slash-command menu**: typing `/` at the start of the input opens a popover of commands (filtered as you type), with ↑/↓ to navigate, Enter/Tab to insert, Esc to dismiss, and click-to-select. Placeholder updated to hint "/ for commands".
+
+**Added:**
+- **`lib/chat/slash-commands.ts`** — the command registry (clear, compact, init, review, context, usage, model, agents, mcp, memory, permissions, help).
+- **`/clear` handled client-side** (`components/chat/chat-interface.tsx`): resets the transcript instead of sending; other commands pass through to the OpenClaude engine.
+
+**Verification:** `pnpm typecheck` → **0 errors**.
+
+**Files touched:** `components/chat/chat-input.tsx`, `lib/chat/slash-commands.ts`, `components/chat/chat-interface.tsx`; `CHANGELOG.md`.
+
 ## 15/06/2026 @ 17:45:09 IST — "claude-opus-4-8"
 
 **Goal:** The Chat tab should be a **standalone Claude chat**, not the VS Code/code-server IDE. Revert the IDE embed and integrate **OpenClaude** (github.com/Gitlawb/openclaude) as the chat engine.

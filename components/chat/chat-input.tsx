@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils/cn";
 import { useAppStore } from "@/lib/stores/use-app-store";
 import { useSpeechInput } from "@/lib/hooks/use-voice";
 import { ModelSelector } from "./model-selector";
+import { SLASH_COMMANDS } from "@/lib/chat/slash-commands";
 
 interface Props {
   onSubmit: (text: string) => void;
@@ -22,8 +23,6 @@ export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeh
   const providers = useAppStore((s) => s.providers);
   const activeId = useAppStore((s) => s.activeProviderId);
   const setActive = useAppStore((s) => s.setActiveProviderId);
-  const chatMode = useAppStore((s) => s.chatMode);
-  const setChatMode = useAppStore((s) => s.setChatMode);
   const useClaudeCode = useAppStore((s) => s.useClaudeCode);
   const setUseClaudeCode = useAppStore((s) => s.setUseClaudeCode);
   const autoSpeak = useAppStore((s) => s.autoSpeak);
@@ -32,20 +31,69 @@ export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeh
     setValue((v) => (v ? `${v} ${text}` : text))
   );
 
+  // Slash-command menu: opens while the input is a bare "/command" (no space yet).
+  const [slashOpen, setSlashOpen] = useState(false);
+  const [slashIndex, setSlashIndex] = useState(0);
+  const slashQuery =
+    value.startsWith("/") && !value.includes(" ") && !value.includes("\n") ? value.slice(1).toLowerCase() : null;
+  const slashMatches = slashQuery !== null ? SLASH_COMMANDS.filter((c) => c.name.startsWith(slashQuery)) : [];
+  const showSlash = slashOpen && slashMatches.length > 0;
+
   useEffect(() => {
     if (!ref.current) return;
     ref.current.style.height = "auto";
     ref.current.style.height = `${Math.min(200, ref.current.scrollHeight)}px`;
   }, [value]);
 
+  const onChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const v = e.target.value;
+    setValue(v);
+    if (v.startsWith("/") && !v.includes(" ") && !v.includes("\n")) {
+      setSlashOpen(true);
+      setSlashIndex(0);
+    } else {
+      setSlashOpen(false);
+    }
+  };
+
+  const selectSlash = (name: string) => {
+    setValue(`/${name} `);
+    setSlashOpen(false);
+    ref.current?.focus();
+  };
+
   const send = () => {
     const trimmed = value.trim();
     if (!trimmed || disabled || busy) return;
     onSubmit(trimmed);
     setValue("");
+    setSlashOpen(false);
   };
 
   const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (showSlash) {
+      const n = slashMatches.length;
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSlashIndex((i) => (i + 1) % n);
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSlashIndex((i) => (i - 1 + n) % n);
+        return;
+      }
+      if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        selectSlash(slashMatches[Math.min(slashIndex, n - 1)].name);
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setSlashOpen(false);
+        return;
+      }
+    }
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       send();
@@ -53,14 +101,33 @@ export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeh
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto px-4">
+    <div className="w-full max-w-3xl mx-auto px-4 relative">
+      {showSlash && (
+        <div className="absolute bottom-full left-4 right-4 mb-2 z-50 rounded-xl border border-white/10 bg-[#0f0f0f]/95 backdrop-blur-md shadow-[0_24px_64px_-16px_rgba(0,0,0,0.7)] overflow-hidden py-1">
+          {slashMatches.map((c, i) => (
+            <button
+              key={c.name}
+              type="button"
+              onMouseEnter={() => setSlashIndex(i)}
+              onClick={() => selectSlash(c.name)}
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-1.5 text-left transition-colors duration-150",
+                i === Math.min(slashIndex, slashMatches.length - 1) ? "bg-emerald-400/10" : "hover:bg-white/5"
+              )}
+            >
+              <span className="font-mono text-[12px] text-emerald-300">/{c.name}</span>
+              <span className="text-[11px] text-text-muted truncate">{c.description}</span>
+            </button>
+          ))}
+        </div>
+      )}
       <div className="group glass-input rounded-2xl p-3 border border-white/10 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.6)] transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] focus-within:border-emerald-400/30 focus-within:shadow-[0_24px_64px_-16px_rgba(0,0,0,0.6),0_0_24px_-8px_rgba(52,211,153,0.5)]">
         <textarea
           ref={ref}
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={onChange}
           onKeyDown={handleKey}
-          placeholder={placeholder ?? "Message Matrix Dash…"}
+          placeholder={placeholder ?? "Message Matrix Dash…  (/ for commands)"}
           disabled={disabled}
           rows={1}
           className="w-full bg-transparent resize-none text-sm leading-relaxed text-text-primary placeholder:text-text-muted focus:outline-none px-2 py-2 min-h-[40px] max-h-[200px] disabled:opacity-50"
@@ -117,27 +184,10 @@ export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeh
                   ? "bg-amber-400/15 text-amber-300 border-amber-400/30 shadow-[0_0_18px_-6px_rgba(251,191,36,0.6)]"
                   : "text-text-muted border-white/5 hover:text-text-secondary"
               )}
-              title="Run the chat through the real Claude Code CLI engine"
+              title="Run the chat through the OpenClaude coding-agent engine on your active Matrix model"
             >
               Claude Code
             </button>
-            <div className="hidden sm:flex items-center glass-input rounded-full p-0.5 text-[10px] border border-white/5">
-              {(["chat", "agent"] as const).map((mode) => (
-                <button
-                  key={mode}
-                  onClick={() => setChatMode(mode)}
-                  className={cn(
-                    "h-6 px-2.5 rounded-full capitalize transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98]",
-                    chatMode === mode
-                      ? "bg-emerald-400/15 text-emerald-300 border border-emerald-400/30 shadow-[0_0_18px_-6px_rgba(52,211,153,0.6)]"
-                      : "text-text-muted hover:text-text-secondary"
-                  )}
-                  title={mode === "agent" ? "Agent tools configurable in Settings → Agent Tools" : "Plain conversation"}
-                >
-                  {mode}
-                </button>
-              ))}
-            </div>
             {providers.length > 0 ? (
               <>
                 <select
