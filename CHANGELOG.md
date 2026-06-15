@@ -1,5 +1,20 @@
 # Changelog
 
+## 15/06/2026 @ 07:19:42 IST — "claude-opus-4-8"
+
+**Goal:** Make the chat's empty state look identical to the real Claude Code UI when the Claude Code engine is active.
+
+**Added:**
+- **`components/chat/claude-code-hero.tsx`** — `ClaudeCodeEmpty`: reproduces Claude Code's start screen — clay "✳ Claude Code" serif wordmark at the top, the **real Clawd pixel mascot** centered, the `Shift`+`Tab` "automatically approve code edits" hint, and the chat input at the bottom, on Claude Code's near-black (`#0d0d0d`) background.
+- **`public/clawd.svg` + `public/claude-logo.svg`** — the genuine assets, copied from the installed Claude Code extension (`~/.matrix-dash/code-server/extensions/anthropic.claude-code-2.1.177/resources`) so it's pixel-identical rather than an approximation. (These are Anthropic's brand assets — fine for personal/local use; keep the repo private or swap them if publishing.)
+
+**Changed:**
+- **`components/chat/chat-interface.tsx`**: when the chat is empty and the Claude Code engine is on, render `ClaudeCodeEmpty` (with the install-status banner + input) instead of the Matrix Dash hero. Plain Matrix chat is unchanged.
+
+**Verification:** `pnpm typecheck` → **0 errors**.
+
+**Files touched:** `components/chat/claude-code-hero.tsx`, `components/chat/chat-interface.tsx`, `public/clawd.svg`, `public/claude-logo.svg`; `CHANGELOG.md`.
+
 ## 15/06/2026 @ 00:27:18 IST — "claude-opus-4-8"
 
 **Goal:** Fix the empty-response bug found during live end-to-end testing of the Claude Code wrapper.

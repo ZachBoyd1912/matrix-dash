@@ -9,6 +9,7 @@ const uid = (): string =>
 import { Paperclip, X } from "lucide-react";
 import { MessageBubble } from "./message-bubble";
 import { ChatInput } from "./chat-input";
+import { ClaudeCodeEmpty } from "./claude-code-hero";
 import { LogoMark } from "@/components/layout/logo";
 import { useAppStore } from "@/lib/stores/use-app-store";
 import { speak } from "@/lib/hooks/use-voice";
@@ -266,30 +267,37 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
   return (
     <div className="flex flex-col h-full min-h-0">
       {empty && !embedded ? (
-        <div className="flex-1 flex flex-col items-center justify-center px-4">
-          <div className="flex flex-col items-center gap-3 mb-8">
-            <div className="grid place-items-center w-16 h-16 rounded-2xl glass bezel sheen transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]">
-              <LogoMark size={40} />
-            </div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-text-primary">Matrix Dash</h1>
-            <p className="eyebrow text-text-muted">Your AI command center</p>
-          </div>
-          {noProvider && (
-            <div className="mb-6 glass rounded-xl px-4 py-3 text-xs text-text-secondary max-w-md text-center transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]">
-              No AI provider yet. Add one in{" "}
-              <Link
-                href="/dashboard/settings"
-                className="text-emerald-300 hover:text-emerald-200 underline decoration-emerald-400/40 underline-offset-2 transition-colors duration-200"
-              >
-                Settings → Add Models
-              </Link>{" "}
-              to start chatting.
-            </div>
-          )}
-          <div className="w-full">
+        useClaudeCode ? (
+          <ClaudeCodeEmpty>
+            {ccBanner}
             <ChatInput onSubmit={send} onAttach={() => fileInputRef.current?.click()} busy={streaming} disabled={noProvider} />
+          </ClaudeCodeEmpty>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center px-4">
+            <div className="flex flex-col items-center gap-3 mb-8">
+              <div className="grid place-items-center w-16 h-16 rounded-2xl glass bezel sheen transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]">
+                <LogoMark size={40} />
+              </div>
+              <h1 className="text-3xl font-extrabold tracking-tight text-text-primary">Matrix Dash</h1>
+              <p className="eyebrow text-text-muted">Your AI command center</p>
+            </div>
+            {noProvider && (
+              <div className="mb-6 glass rounded-xl px-4 py-3 text-xs text-text-secondary max-w-md text-center transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]">
+                No AI provider yet. Add one in{" "}
+                <Link
+                  href="/dashboard/settings"
+                  className="text-emerald-300 hover:text-emerald-200 underline decoration-emerald-400/40 underline-offset-2 transition-colors duration-200"
+                >
+                  Settings → Add Models
+                </Link>{" "}
+                to start chatting.
+              </div>
+            )}
+            <div className="w-full">
+              <ChatInput onSubmit={send} onAttach={() => fileInputRef.current?.click()} busy={streaming} disabled={noProvider} />
+            </div>
           </div>
-        </div>
+        )
       ) : (
         <>
           <div
