@@ -11,19 +11,28 @@ import {
   type DragEndEvent,
   type DragOverEvent,
 } from "@dnd-kit/core";
-import { arrayMove } from "@dnd-kit/sortable";
 import { KanbanColumn, type ColumnDef } from "./kanban-column";
 import { KanbanCard } from "./kanban-card";
 import type { KanbanTask, Project } from "@/types/jarvis";
 
 export const COLUMNS: ColumnDef[] = [
-  { id: "backlog", label: "Backlog", accent: "bg-slate-400" },
-  { id: "todo", label: "Todo", accent: "bg-blue-400" },
-  { id: "in-progress", label: "In Progress", accent: "bg-amber-400" },
-  { id: "review", label: "Review", accent: "bg-purple-400" },
-  { id: "done", label: "Done", accent: "bg-emerald-400" },
-  { id: "ab-test", label: "AB Test", accent: "bg-rose-400" },
+  { id: "backlog",     label: "Backlog",     accent: "bg-slate-400"  },
+  { id: "todo",        label: "Todo",        accent: "bg-blue-400"   },
+  { id: "in-progress", label: "In Progress", accent: "bg-amber-400"  },
+  { id: "review",      label: "Review",      accent: "bg-purple-400" },
+  { id: "done",        label: "Done",        accent: "bg-emerald-400" },
+  { id: "ab-test",     label: "AB Test",     accent: "bg-rose-400"   },
 ];
+
+const COLUMN_IDS = COLUMNS.map((c) => c.id);
+
+function getAdjacentCols(status: string): { prev: string | null; next: string | null } {
+  const idx = COLUMN_IDS.indexOf(status);
+  return {
+    prev: idx > 0 ? COLUMN_IDS[idx - 1] : null,
+    next: idx < COLUMN_IDS.length - 1 ? COLUMN_IDS[idx + 1] : null,
+  };
+}
 
 interface Props {
   tasks: KanbanTask[];
@@ -31,35 +40,35 @@ interface Props {
   onAddTask: (status: string) => void;
   onEditTask: (task: KanbanTask) => void;
   onTasksReorder: (tasks: KanbanTask[]) => void;
+  onInlineEdit: (id: string, title: string) => Promise<void>;
+  onQuickToggle: (id: string, direction: "prev" | "next") => void;
   onNotifyTabs?: () => void;
 }
 
-export function KanbanBoard({ tasks, projects, onAddTask, onEditTask, onTasksReorder, onNotifyTabs }: Props) {
+export function KanbanBoard({
+  tasks,
+  projects,
+  onAddTask,
+  onEditTask,
+  onTasksReorder,
+  onInlineEdit,
+  onQuickToggle,
+  onNotifyTabs,
+}: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
-  // Ref to track pending column changes during dragOver (avoid multiple persists)
   const pendingChanges = useRef<Map<string, string>>(new Map());
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 5 },
-    })
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
 
   // Group tasks by column
   const columnTasks = useMemo(() => {
     const map: Record<string, KanbanTask[]> = {};
     for (const col of COLUMNS) {
-      // Apply any pending visual-only status changes from dragOver
-      const colTasks = tasks
-        .filter((t) => {
-          const pending = pendingChanges.current.get(t.id);
-          return (pending ?? t.kanbanStatus) === col.id;
-        })
-        .map((t) => ({
-          ...t,
-          kanbanStatus: pendingChanges.current.get(t.id) ?? t.kanbanStatus,
-        }));
-      map[col.id] = colTasks;
+      map[col.id] = tasks
+        .filter((t) => (pendingChanges.current.get(t.id) ?? t.kanbanStatus) === col.id)
+        .map((t) => ({ ...t, kanbanStatus: pendingChanges.current.get(t.id) ?? t.kanbanStatus }));
     }
     return map;
   }, [tasks]);
@@ -76,64 +85,56 @@ export function KanbanBoard({ tasks, projects, onAddTask, onEditTask, onTasksReo
     setActiveId(event.active.id as string);
   }, []);
 
-  const handleDragOver = useCallback((event: DragOverEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
+  const handleDragOver = useCallback(
+    (event: DragOverEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+      const activeTaskId = active.id as string;
+      const activeStatus = tasks.find((t) => t.id === activeTaskId)?.kanbanStatus;
+      if (!activeStatus) return;
 
-    const activeTaskId = active.id as string;
-    const activeStatus = tasks.find((t) => t.id === activeTaskId)?.kanbanStatus;
-    if (!activeStatus) return;
+      const overId = over.id as string;
+      const overIsColumn = COLUMN_IDS.includes(overId);
+      let targetCol: string | null = null;
+      if (overIsColumn) {
+        targetCol = overId;
+      } else {
+        const overTask = tasks.find((t) => t.id === overId);
+        if (overTask) targetCol = overTask.kanbanStatus;
+      }
 
-    // Determine target container from the droppable over
-    const overId = over.id as string;
-    const overIsColumn = COLUMNS.some((c) => c.id === overId);
-
-    let targetColumn: string | null = null;
-    if (overIsColumn) {
-      targetColumn = overId;
-    } else {
-      const overTask = tasks.find((t) => t.id === overId);
-      if (overTask) targetColumn = overTask.kanbanStatus;
-    }
-
-    if (targetColumn && targetColumn !== (pendingChanges.current.get(activeTaskId) ?? activeStatus)) {
-      pendingChanges.current.set(activeTaskId, targetColumn);
-      // Force re-render by creating a new tasks array (visual only)
-      onTasksReorder([...tasks]);
-    }
-  }, [tasks, onTasksReorder]);
+      if (targetCol && targetCol !== (pendingChanges.current.get(activeTaskId) ?? activeStatus)) {
+        pendingChanges.current.set(activeTaskId, targetCol);
+        onTasksReorder([...tasks]);
+      }
+    },
+    [tasks, onTasksReorder]
+  );
 
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
       setActiveId(null);
       const { active, over } = event;
       pendingChanges.current.clear();
-
       if (!over || active.id === over.id) return;
 
       const activeTask = tasks.find((t) => t.id === active.id);
       if (!activeTask) return;
 
       const overId = over.id as string;
-      const overIsColumn = COLUMNS.some((c) => c.id === overId);
+      const overIsColumn = COLUMN_IDS.includes(overId);
       const overTask = overIsColumn ? null : tasks.find((t) => t.id === overId);
 
       let targetStatus: string;
-      if (overTask) {
-        targetStatus = overTask.kanbanStatus;
-      } else if (overIsColumn) {
-        targetStatus = overId;
-      } else {
-        return; // nowhere to drop
-      }
+      if (overTask) targetStatus = overTask.kanbanStatus;
+      else if (overIsColumn) targetStatus = overId;
+      else return;
 
-      // Get current tasks in the target column for ordering
       const targetTasks = tasks
         .filter((t) => t.kanbanStatus === targetStatus && t.id !== active.id)
         .sort((a, b) => a.kanbanOrder - b.kanbanOrder);
 
-      // Place the active task at the drop position
-      let insertIndex = targetTasks.length; // default to end
+      let insertIndex = targetTasks.length;
       if (overTask) {
         insertIndex = targetTasks.findIndex((t) => t.id === overTask.id);
         if (insertIndex < 0) insertIndex = targetTasks.length;
@@ -141,24 +142,15 @@ export function KanbanBoard({ tasks, projects, onAddTask, onEditTask, onTasksReo
 
       targetTasks.splice(insertIndex, 0, { ...activeTask, kanbanStatus: targetStatus });
 
-      // Rebuild full task list with updated order
       const updatedAll = tasks.map((t) => {
-        if (t.id === activeTask.id) {
-          return { ...t, kanbanStatus: targetStatus, kanbanOrder: insertIndex };
-        }
-        // Reorder tasks in the affected column
+        if (t.id === activeTask.id) return { ...t, kanbanStatus: targetStatus, kanbanOrder: insertIndex };
         const inCol = targetTasks.find((nt) => nt.id === t.id);
-        if (inCol) {
-          const idx = targetTasks.indexOf(inCol);
-          return { ...t, kanbanOrder: idx };
-        }
+        if (inCol) return { ...t, kanbanOrder: targetTasks.indexOf(inCol) };
         return t;
       });
 
-      // If status actually changed, persist
       if (activeTask.kanbanStatus !== targetStatus) {
         onTasksReorder(updatedAll);
-        // Batch persist: status + order
         try {
           await Promise.all([
             fetch(`/api/projects/tasks/${activeTask.id}`, {
@@ -166,7 +158,6 @@ export function KanbanBoard({ tasks, projects, onAddTask, onEditTask, onTasksReo
               headers: { "content-type": "application/json" },
               body: JSON.stringify({ kanbanStatus: targetStatus }),
             }),
-            // Re-order all tasks in the target column
             ...targetTasks.map((t) =>
               fetch(`/api/projects/tasks/${t.id}`, {
                 method: "PATCH",
@@ -175,12 +166,9 @@ export function KanbanBoard({ tasks, projects, onAddTask, onEditTask, onTasksReo
               })
             ),
           ]);
-        } catch {
-          // Silently fail — refetch will fix
-        }
+        } catch { /* refetch fixes */ }
         onNotifyTabs?.();
       } else {
-        // Same column reorder only
         onTasksReorder(updatedAll);
         try {
           await Promise.all(
@@ -194,13 +182,19 @@ export function KanbanBoard({ tasks, projects, onAddTask, onEditTask, onTasksReo
                 })
               )
           );
-        } catch {
-          // Silent
-        }
+        } catch { /* silent */ }
         onNotifyTabs?.();
       }
     },
     [tasks, onTasksReorder, onNotifyTabs]
+  );
+
+  // Quick toggle handler (prep for card)
+  const handleQuickToggle = useCallback(
+    (id: string, direction: "prev" | "next") => {
+      onQuickToggle(id, direction);
+    },
+    [onQuickToggle]
   );
 
   return (
@@ -219,13 +213,23 @@ export function KanbanBoard({ tasks, projects, onAddTask, onEditTask, onTasksReo
             projects={projects}
             onAddTask={onAddTask}
             onEditTask={onEditTask}
+            onInlineEdit={onInlineEdit}
+            onQuickToggle={handleQuickToggle}
           />
         ))}
       </div>
       <DragOverlay>
         {activeTask && (
           <div className="rotate-[3deg] scale-105 shadow-[0_20px_60px_-12px_rgba(0,0,0,0.6)]">
-            <KanbanCard task={activeTask} project={activeProject} onClick={() => {}} />
+            <KanbanCard
+              task={activeTask}
+              project={activeProject}
+              prevColumn={null}
+              nextColumn={null}
+              onClick={() => {}}
+              onInlineEdit={async () => {}}
+              onQuickToggle={() => {}}
+            />
           </div>
         )}
       </DragOverlay>

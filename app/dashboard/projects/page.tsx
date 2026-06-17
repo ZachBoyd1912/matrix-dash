@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { FolderKanban, RotateCcw, RefreshCw, X } from "lucide-react";
+import { FolderKanban, RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty";
 import { useGsapEntrance } from "@/lib/hooks/use-gsap-entrance";
@@ -10,6 +10,8 @@ import { ProjectCard } from "@/components/projects/project-card";
 import { KanbanBoard } from "@/components/projects/kanban-board";
 import { EditTaskDialog } from "@/components/projects/edit-task-dialog";
 import type { Project, KanbanTask } from "@/types/jarvis";
+
+const COLUMN_IDS = ["backlog", "todo", "in-progress", "review", "done", "ab-test"];
 
 export default function ProjectsPage() {
   const ref = useGsapEntrance();
@@ -40,12 +42,12 @@ export default function ProjectsPage() {
     setLoading(false);
   }, [fetchProjects, fetchTasks]);
 
-  // Cross-tab sync — any mutation notifies other tabs to re-fetch instantly
+  // Cross-tab sync
   const notifyTabs = useCrossTabSync(refreshAll);
 
-  useEffect(() => {
-    refreshAll();
-  }, [refreshAll]);
+  useEffect(() => { refreshAll(); }, [refreshAll]);
+
+  // ── Handlers ──────────────────────────────────────────────────────
 
   const handleViewTasks = useCallback((projectId: string) => {
     setFilterProjectId(projectId);
@@ -69,22 +71,16 @@ export default function ProjectsPage() {
 
   const handleSaveTask = useCallback(
     async (data: {
-      title: string;
-      notes: string;
-      priority: string;
-      dueAt: string | null;
-      projectId: string | null;
-      kanbanStatus: string;
+      title: string; notes: string; priority: string;
+      dueAt: string | null; projectId: string | null; kanbanStatus: string;
     }) => {
       if (editingTask) {
-        // Update existing
         await fetch(`/api/projects/tasks/${editingTask.id}`, {
           method: "PATCH",
           headers: { "content-type": "application/json" },
           body: JSON.stringify(data),
         });
       } else {
-        // Create new
         await fetch("/api/projects/tasks", {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -99,11 +95,52 @@ export default function ProjectsPage() {
     [editingTask, fetchTasks, notifyTabs]
   );
 
+  // Inline title edit — save via PATCH, re-fetch, notify tabs
+  const handleInlineEdit = useCallback(
+    async (id: string, title: string) => {
+      await fetch(`/api/projects/tasks/${id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title }),
+      });
+      await fetchTasks();
+      notifyTabs();
+    },
+    [fetchTasks, notifyTabs]
+  );
+
+  // Quick toggle ◀ ▶ — shift task to adjacent column
+  const handleQuickToggle = useCallback(
+    async (id: string, direction: "prev" | "next") => {
+      const task = tasks.find((t) => t.id === id);
+      if (!task) return;
+      const curIdx = COLUMN_IDS.indexOf(task.kanbanStatus);
+      const newIdx = direction === "next" ? curIdx + 1 : curIdx - 1;
+      if (newIdx < 0 || newIdx >= COLUMN_IDS.length) return;
+      const newStatus = COLUMN_IDS[newIdx];
+
+      // Optimistic update
+      setTasks((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, kanbanStatus: newStatus } : t))
+      );
+
+      await fetch(`/api/projects/tasks/${id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ kanbanStatus: newStatus }),
+      });
+      await fetchTasks();
+      notifyTabs();
+    },
+    [tasks, fetchTasks, notifyTabs]
+  );
+
   const handleTasksReorder = useCallback((updated: KanbanTask[]) => {
     setTasks(updated);
   }, []);
 
-  // Filter tasks by project if filter is active
+  // ── Derived ───────────────────────────────────────────────────────
+
   const filteredTasks = filterProjectId
     ? tasks.filter((t) => t.projectId === filterProjectId)
     : tasks;
@@ -111,6 +148,8 @@ export default function ProjectsPage() {
   const activeFilterProject = filterProjectId
     ? projects?.find((p) => p.id === filterProjectId)
     : null;
+
+  // ── Loading ───────────────────────────────────────────────────────
 
   if (loading && !projects) {
     return (
@@ -121,6 +160,8 @@ export default function ProjectsPage() {
       </div>
     );
   }
+
+  // ── Render ────────────────────────────────────────────────────────
 
   return (
     <div ref={ref} className="px-4 md:px-8 py-10 max-w-6xl mx-auto space-y-6">
@@ -151,7 +192,11 @@ export default function ProjectsPage() {
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-text-primary uppercase tracking-wider">
             Portfolio
-            {projects && <span className="text-text-muted font-normal lowercase ml-1">({projects.length} projects)</span>}
+            {projects && (
+              <span className="text-text-muted font-normal lowercase ml-1">
+                ({projects.length} projects)
+              </span>
+            )}
           </h2>
         </div>
 
@@ -189,7 +234,7 @@ export default function ProjectsPage() {
               </span>
             )}
           </div>
-          <span className="text-[11px] text-text-muted">
+          <span className="text-[11px] text-text-muted tabular-nums">
             {filteredTasks.length} task{filteredTasks.length !== 1 ? "s" : ""}
           </span>
         </div>
@@ -218,6 +263,8 @@ export default function ProjectsPage() {
             onAddTask={handleAddTask}
             onEditTask={handleEditTask}
             onTasksReorder={handleTasksReorder}
+            onInlineEdit={handleInlineEdit}
+            onQuickToggle={handleQuickToggle}
             onNotifyTabs={notifyTabs}
           />
         )}

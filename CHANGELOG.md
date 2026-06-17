@@ -1,5 +1,22 @@
 # Changelog
 
+## 17/06/2026 @ 23:57:20 IST — "deepseek-v4-flash"
+
+**Goal:** Rebuild the kanban board as a proper kanban system — colour-coded per project, inline-editable titles, quick-toggle arrows between stages, premium antigravity visual design.
+
+**Changed (cause → fix → verification):**
+
+- **KanbanCard rewritten** — now shows a 4px coloured left border per project (12 distinct project colours mapped via `PROJECT_COLORS`), a coloured project badge/chip at top, an **inline-editable title** (click to edit → input with Enter/Escape/Blur save → PATCH API), **quick-toggle arrows** (◀ ▶ at top-right with tooltip showing target column name), and **due-date urgency** (overdue = red pulse + "overdue" label, today = orange + "today" label). Drag grip handle remains on hover. Card uses `React.memo` for performance.
+- **KanbanColumn redesigned** — computes adjacent column labels per task (`prevColumn` / `nextColumn`) and passes them to each card. Droppable area has glassmorphism + emerald glow ring on hover. Column header has accent dot with glow shadow + tabular-nums task count.
+- **KanbanBoard updated** — new `onInlineEdit` and `onQuickToggle` props passed through to all cards. DragOverlay preview fixed to match new card shape.
+- **Page wired** — `handleInlineEdit` PATCHes title and re-fetches, `handleQuickToggle` computes target column from `COLUMN_IDS` index + does optimistic state update + PATCH + re-fetch + cross-tab notify.
+- **Visual polish** — glass hover lift on cards (`hover:translate-y-[-1px]` + soft shadow), column accent dot glowing (`shadow-[0_0_8px_currentColor]`), editing ring (`ring-1 ring-emerald-400/40`), arrow buttons only visible on row hover.
+
+**Verification:** `pnpm typecheck` passes with zero errors. All 12 project colours display correctly.
+
+**Files touched:**
+`components/projects/kanban-card.tsx` · `components/projects/kanban-board.tsx` · `components/projects/kanban-column.tsx` · `app/dashboard/projects/page.tsx` · `CHANGELOG.md`
+
 ## 17/06/2026 @ 23:36:16 IST — "deepseek-v4-flash"
 
 **Goal:** Enable true multi-tab support — all browser windows see data changes instantly without manual refresh.
