@@ -147,6 +147,22 @@ export const notifications = sqliteTable("notifications", {
   createdAt: text("created_at").notNull(),
 });
 
+// ─── PROJECTS (portfolio catalog) ─────────────────────────
+export const projects = sqliteTable("projects", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  purpose: text("purpose").notNull(),
+  frontend: text("frontend"),
+  backend: text("backend"),
+  database: text("database"),
+  badge: text("badge").notNull(),
+  path: text("path"),
+  status: text("status").notNull().default("active"),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
 // ─── TASKS / TODOS ────────────────────────────────────────
 export const tasks = sqliteTable("tasks", {
   id: text("id").primaryKey(),
@@ -157,6 +173,9 @@ export const tasks = sqliteTable("tasks", {
   remindAt: text("remind_at"),
   reminded: integer("reminded", { mode: "boolean" }).default(false),
   priority: text("priority").notNull().default("normal"),
+  kanbanStatus: text("kanban_status").notNull().default("backlog"),
+  projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
+  kanbanOrder: integer("kanban_order").notNull().default(0),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 });

@@ -134,3 +134,36 @@ export interface ToolCallRecord {
   result?: unknown;
   state: "call" | "result" | "error";
 }
+
+export type KanbanStatus = "backlog" | "todo" | "in-progress" | "review" | "done" | "ab-test";
+
+export interface Project {
+  id: string;
+  name: string;
+  description: string;
+  purpose: string;
+  frontend: string | null;
+  backend: string | null;
+  database: string | null;
+  badge: string;
+  path: string | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface KanbanTask {
+  id: string;
+  title: string;
+  notes: string;
+  isDone: boolean | null;
+  dueAt: string | null;
+  remindAt: string | null;
+  reminded: boolean | null;
+  priority: string;
+  kanbanStatus: string;
+  projectId: string | null;
+  kanbanOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}

@@ -13,6 +13,7 @@ import {
   FlaskConical,
   GitCompare,
   Image as ImageIcon,
+  FolderKanban,
   type LucideIcon,
 } from "lucide-react";
 
@@ -29,6 +30,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard/memory-bank", label: "Memory Bank", icon: BrainCircuit },
   { href: "/dashboard/notes", label: "Notes", icon: FileText },
   { href: "/dashboard/tasks", label: "Tasks", icon: CheckSquare },
+  { href: "/dashboard/projects", label: "Project Planning", icon: FolderKanban },
   { href: "/dashboard/calendar", label: "Calendar", icon: Calendar },
   { href: "/dashboard/email", label: "Email", icon: Mail },
   { href: "/dashboard/research", label: "Research", icon: FlaskConical },

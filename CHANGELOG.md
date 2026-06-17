@@ -1,5 +1,32 @@
 # Changelog
 
+## 17/06/2026 @ 23:32:08 IST — "deepseek-v4-flash"
+
+**Goal:** Add a "Project Planning" sidebar page with a portfolio catalog of all 12 projects (seeded from the `projects.html` portfolio file) and a 6-column Kanban board with drag-and-drop task management.
+
+**Added:**
+- **Database:** `projects` table (id, name, description, purpose, frontend/backend/database, badge, path, status) + `kanban_status`, `project_id`, `kanban_order` columns on existing `tasks` table. 12 projects auto-seeded from the portfolio HTML file on first DB init. Column migrations for existing task rows.
+- **Types:** `Project` and `KanbanTask` interfaces in `types/jarvis.ts`, with `KanbanStatus` union type for the 6 columns.
+- **API routes:** `/api/projects` (GET/POST), `/api/projects/[id]` (GET/PATCH/DELETE), `/api/projects/tasks` (GET with projectId/kanbanStatus filters + POST with auto-order), `/api/projects/tasks/[id]` (PATCH/DELETE).
+- **UI components:**
+  - `project-card.tsx` — expandable portfolio card with badge, description/purpose/tech-stack sections, "View Tasks" button, file:// link.
+  - `kanban-board.tsx` — `@dnd-kit` DndContext with 6 droppable columns, DragOverlay, cross-column sorting, server persistence on dragEnd.
+  - `kanban-column.tsx` — column header with accent dot, task count, "+" button, droppable + sortable task list (scrollable, max-h 420px).
+  - `kanban-card.tsx` — sortable task card with grip handle, project badge, priority color, due date.
+  - `edit-task-dialog.tsx` — modal for create/edit with title, notes, priority, due date, project selector, column selector.
+- **Page:** `app/dashboard/projects/page.tsx` — full page with orb backgrounds, gradient title, portfolio catalog, kanban board, filter pill, empty states, loading spinner.
+- **Sidebar:** "Project Planning" nav item (FolderKanban icon) between Tasks and Calendar.
+- **Package:** `@dnd-kit/core@6.3.1`, `@dnd-kit/sortable@10.0.0`, `@dnd-kit/utilities@3.2.2`.
+
+**Verification:** `pnpm typecheck` passes with zero errors.
+
+**Files touched:**
+`lib/db/schema.ts` · `lib/db/client.ts` · `types/jarvis.ts` · `components/layout/nav-items.ts` ·
+`app/api/projects/route.ts` · `app/api/projects/[id]/route.ts` · `app/api/projects/tasks/route.ts` · `app/api/projects/tasks/[id]/route.ts` ·
+`components/projects/project-card.tsx` · `components/projects/kanban-card.tsx` · `components/projects/kanban-column.tsx` · `components/projects/kanban-board.tsx` · `components/projects/edit-task-dialog.tsx` ·
+`app/dashboard/projects/page.tsx` ·
+`package.json` · `pnpm-lock.yaml`
+
 ## 15/06/2026 @ 18:03:06 IST — "claude-opus-4-8"
 
 **Goal:** Wire **every** slash command to a real Matrix action (not just `/clear`), and fix the `SQLITE_CORRUPT_VTAB` crash that broke skill toggling.
