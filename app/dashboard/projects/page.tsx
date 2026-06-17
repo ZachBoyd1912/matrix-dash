@@ -5,6 +5,7 @@ import { FolderKanban, RotateCcw, RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty";
 import { useGsapEntrance } from "@/lib/hooks/use-gsap-entrance";
+import { useCrossTabSync } from "@/lib/hooks/use-cross-tab-sync";
 import { ProjectCard } from "@/components/projects/project-card";
 import { KanbanBoard } from "@/components/projects/kanban-board";
 import { EditTaskDialog } from "@/components/projects/edit-task-dialog";
@@ -38,6 +39,9 @@ export default function ProjectsPage() {
     await Promise.all([fetchProjects(), fetchTasks()]);
     setLoading(false);
   }, [fetchProjects, fetchTasks]);
+
+  // Cross-tab sync — any mutation notifies other tabs to re-fetch instantly
+  const notifyTabs = useCrossTabSync(refreshAll);
 
   useEffect(() => {
     refreshAll();
@@ -89,9 +93,10 @@ export default function ProjectsPage() {
       }
       setDialogOpen(false);
       setEditingTask(null);
-      fetchTasks();
+      await fetchTasks();
+      notifyTabs();
     },
-    [editingTask, fetchTasks]
+    [editingTask, fetchTasks, notifyTabs]
   );
 
   const handleTasksReorder = useCallback((updated: KanbanTask[]) => {
@@ -213,6 +218,7 @@ export default function ProjectsPage() {
             onAddTask={handleAddTask}
             onEditTask={handleEditTask}
             onTasksReorder={handleTasksReorder}
+            onNotifyTabs={notifyTabs}
           />
         )}
       </section>

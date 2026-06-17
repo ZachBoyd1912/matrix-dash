@@ -31,9 +31,10 @@ interface Props {
   onAddTask: (status: string) => void;
   onEditTask: (task: KanbanTask) => void;
   onTasksReorder: (tasks: KanbanTask[]) => void;
+  onNotifyTabs?: () => void;
 }
 
-export function KanbanBoard({ tasks, projects, onAddTask, onEditTask, onTasksReorder }: Props) {
+export function KanbanBoard({ tasks, projects, onAddTask, onEditTask, onTasksReorder, onNotifyTabs }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
   // Ref to track pending column changes during dragOver (avoid multiple persists)
   const pendingChanges = useRef<Map<string, string>>(new Map());
@@ -177,6 +178,7 @@ export function KanbanBoard({ tasks, projects, onAddTask, onEditTask, onTasksReo
         } catch {
           // Silently fail — refetch will fix
         }
+        onNotifyTabs?.();
       } else {
         // Same column reorder only
         onTasksReorder(updatedAll);
@@ -195,9 +197,10 @@ export function KanbanBoard({ tasks, projects, onAddTask, onEditTask, onTasksReo
         } catch {
           // Silent
         }
+        onNotifyTabs?.();
       }
     },
-    [tasks, onTasksReorder]
+    [tasks, onTasksReorder, onNotifyTabs]
   );
 
   return (

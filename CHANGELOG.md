@@ -1,5 +1,23 @@
 # Changelog
 
+## 17/06/2026 @ 23:36:16 IST — "deepseek-v4-flash"
+
+**Goal:** Enable true multi-tab support — all browser windows see data changes instantly without manual refresh.
+
+**Added:**
+- `lib/hooks/use-cross-tab-sync.ts` — reusable `BroadcastChannel` hook that signals all same-origin tabs to re-fetch after any mutation.
+- Integrated into projects page: `handleSaveTask` (dialog create/edit) and `KanbanBoard.handleDragEnd` (drag persistence) both call `notifyTabs()` after the server write completes.
+- KanbanBoard accepts optional `onNotifyTabs` callback, wired from the page.
+
+**How it works:** The `BroadcastChannel` API is native to all modern browsers (Chrome, Safari 16.4+, Firefox). Tab A POST/PATCHes data → server persists to SQLite (WAL mode, single process) → Tab A calls `notifyTabs()` → Tab B's message handler fires → `refreshAll()` re-fetches both projects + tasks. Zero polling, zero server overhead, zero latency.
+
+**Verification:** `pnpm typecheck` passes with zero errors.
+
+**Files touched:**
+`lib/hooks/use-cross-tab-sync.ts` (created) ·
+`app/dashboard/projects/page.tsx` · `components/projects/kanban-board.tsx` ·
+`CHANGELOG.md`
+
 ## 17/06/2026 @ 23:32:08 IST — "deepseek-v4-flash"
 
 **Goal:** Add a "Project Planning" sidebar page with a portfolio catalog of all 12 projects (seeded from the `projects.html` portfolio file) and a 6-column Kanban board with drag-and-drop task management.
