@@ -2,6 +2,7 @@ import {
   MessageSquare,
   BrainCircuit,
   Layers,
+  Blocks,
   Code2,
   Settings,
   FileText,
@@ -39,6 +40,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard/skills", label: "Skills", icon: Wand2 },
   { href: "/dashboard/sessions", label: "Sessions", icon: Layers },
   { href: "/dashboard/ide", label: "IDE", icon: Code2 },
+  { href: "/dashboard/matrix-builder", label: "Matrix Builder", icon: Blocks },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 

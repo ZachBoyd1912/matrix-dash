@@ -1,5 +1,29 @@
 # Changelog
 
+## 26/06/2026 @ 01:36:40 IST — "Opus 4.8"
+
+**Goal:** Add a "Matrix Builder" sidebar page to matrix-dash that embeds the separate Matrix Builder app (a local bolt.new fork — a full-screen, in-browser AI IDE on :5001) as-is in a full-height iframe, with cross-origin isolation scoped to just that route so its WebContainer can boot. matrix-dash owns only the nav item, route, iframe, and headers; the embedded app is not ported or modified.
+
+**Added:**
+- **`/dashboard/matrix-builder` route** (`app/dashboard/matrix-builder/page.tsx`) — client component filling the dashboard content area with a full-height iframe (`page-h` utility, mirrors the IDE embed) to `NEXT_PUBLIC_MATRIX_BUILDER_URL` (default `http://localhost:5001`), plus an always-visible "Open in new tab" fallback. Sets the `credentialless` iframe attribute imperatively (React won't render the boolean attr) and delegates isolation via `allow="cross-origin-isolated"`.
+- **Self-healing cross-origin isolation** — COOP/COEP headers only apply on a *full* document load, so a Next soft-nav from another sidebar route would land with `crossOriginIsolated === false`. On mount the page detects this and forces one hard reload (sessionStorage-guarded against loops, flag cleared once isolated), so clicking the sidebar item yields an isolated host without a manual refresh.
+- **Sidebar nav item** "Matrix Builder" (`Blocks` icon) → `/dashboard/matrix-builder`, placed right after IDE (`components/layout/nav-items.ts`).
+- **`.env.local`** (gitignored) documenting `NEXT_PUBLIC_MATRIX_BUILDER_URL=http://localhost:5001` so the embed URL isn't hardcoded.
+
+**Changed:**
+- **`next.config.ts`** — added `async headers()` scoped to `source: "/dashboard/matrix-builder"` ONLY: `Cross-Origin-Opener-Policy: same-origin` + `Cross-Origin-Embedder-Policy: require-corp`. **Cause:** the embedded WebContainer needs SharedArrayBuffer, granted only in a cross-origin-isolated context. **Why require-corp (not credentialless):** the embed sends `CORP: cross-origin` so it loads fine, and require-corp avoids the storage partitioning that breaks the preview's service worker. **Deliberately NOT global** — a global COEP would block cross-origin images/scripts across the whole dashboard.
+- **`components/layout/topbar.tsx`** — added `/dashboard/matrix-builder → "Matrix Builder"` to TITLES. **Cause:** without it the page rendered the wrong title ("Overview") via the `startsWith` fallback. **Fix:** explicit mapping.
+
+**Verification:**
+- `pnpm typecheck` → zero errors.
+- `curl -I http://localhost:3000/dashboard/matrix-builder` → `200` with `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`.
+- Scoping confirmed: `/dashboard` and `/dashboard/ide` return `200` with **no** COOP/COEP headers.
+- Browser-gated steps (iframe renders, in-frame `crossOriginIsolated === true`, the 3-level-nested live preview, fallback tab) require the user's browser **and** Matrix Builder running on :5001 — handed off as a manual checklist.
+
+**Known limitation:** the auto-reload makes the shared dashboard document cross-origin isolated, so soft-navigating *away* from this route to another dashboard page inherits COEP until the next full refresh. Severity is low (chrome, root layout, and Geist fonts are all same-origin) and it self-heals on any hard refresh.
+
+**Files Touched:** `app/dashboard/matrix-builder/page.tsx` (new), `components/layout/nav-items.ts`, `components/layout/topbar.tsx`, `next.config.ts`, `.env.local` (new, gitignored), `plan.md` (spec).
+
 ## 26/06/2026 @ 01:16:04 IST — "Opus 4.8"
 
 **Goal:** Make Project Planning match the agreed design (reference `~/Desktop/test/projects.html` + the OpenChamber planning session): a readable portfolio catalog **and** a proper 6×1 kanban whose cards are colour-coded project work-items (task/bug/error/feature) with descriptions, fully editable and draggable/togglable across stages.
