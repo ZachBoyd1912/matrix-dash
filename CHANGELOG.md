@@ -1,5 +1,28 @@
 # Changelog
 
+## 26/06/2026 @ 01:16:04 IST — "Opus 4.8"
+
+**Goal:** Make Project Planning match the agreed design (reference `~/Desktop/test/projects.html` + the OpenChamber planning session): a readable portfolio catalog **and** a proper 6×1 kanban whose cards are colour-coded project work-items (task/bug/error/feature) with descriptions, fully editable and draggable/togglable across stages.
+
+**Fixed (runtime / environment — no tracked file):**
+- **All DB-backed routes 500'd with empty bodies** → client threw `SyntaxError: Unexpected end of JSON input` in `fetchProjects`. **Cause:** `better-sqlite3` native addon was compiled for Node 22 (ABI 137) but the dev server runs on Node 26 (ABI 147) → `ERR_DLOPEN_FAILED`. **Fix:** `pnpm rebuild better-sqlite3` (recovers without restart). Logged to agent memory for next Node bump.
+
+**Added:**
+- **`kind` field on tasks** (`task` | `bug` | `error` | `feature`) — `schema.ts`, idempotent `ensureColumn` migration + `INIT_SQL` in `client.ts`, `KanbanTask` type + `TaskKind`, and zod create/update schemas in both task API routes.
+- **Type select** in the task dialog; **Delete** button (fully editable) wired to `DELETE /api/projects/tasks/[id]` with optimistic removal + cross-tab notify.
+- **Colour legend** + **"New task"** header button on the page.
+
+**Changed (cause → fix → verification):**
+- **ProjectCard rewritten** to match the reference catalog — always-visible rich card: colour-coded type badge, left accent stripe, **Description / Purpose / Tech Stack** (FE/BE/DB rows) and **coloured tech tags** derived from the stack strings, open-in-Finder link. (Was: collapsed one-line rows — the degraded version that was rejected.)
+- **KanbanCard** now renders a **kind chip** (icon + colour), the **colour-coded project pill**, and the **description** under the title; keeps inline-edit, drag handle, and prev/next toggle.
+- **Empty-board bug fixed** — the board used to be replaced wholesale by a "No tasks yet" state, hiding the column **Add** buttons so the first task could never be created. The board now always renders; a header **New task** button is the primary entry point.
+- **Catalog centered** (~920px) so it reads like `projects.html`; board kept full-width below (stacked, since a 6-column board needs the width).
+
+**Verification:** `pnpm typecheck` passes with zero errors. Page rendered and visually confirmed against `projects.html`; seeded sample cards across all 6 stages / 4 kinds / 4 projects to confirm the board (samples are user-deletable via the new Delete button).
+
+**Files touched:**
+`lib/db/schema.ts` · `lib/db/client.ts` · `types/jarvis.ts` · `app/api/projects/tasks/route.ts` · `app/api/projects/tasks/[id]/route.ts` · `components/projects/project-card.tsx` · `components/projects/kanban-card.tsx` · `components/projects/edit-task-dialog.tsx` · `app/dashboard/projects/page.tsx` · `components/projects/kanban-board.tsx` · `components/projects/kanban-column.tsx` · `CHANGELOG.md`
+
 ## 17/06/2026 @ 23:57:20 IST — "deepseek-v4-flash"
 
 **Goal:** Rebuild the kanban board as a proper kanban system — colour-coded per project, inline-editable titles, quick-toggle arrows between stages, premium antigravity visual design.

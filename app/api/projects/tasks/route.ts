@@ -21,8 +21,9 @@ const createSchema = z.object({
   notes: z.string().optional(),
   dueAt: z.string().nullable().optional(),
   priority: z.enum(["low", "normal", "high", "urgent"]).optional(),
+  kind: z.enum(["task", "bug", "error", "feature"]).optional(),
   projectId: z.string().nullable().optional(),
-  kanbanStatus: z.enum(["backlog", "todo", "in-progress", "review", "done", "ab-test"]).optional(),
+  kanbanStatus: z.enum(["backlog", "planned", "in-progress", "developed", "tested", "completed"]).optional(),
 });
 
 export async function GET(req: Request) {
@@ -73,6 +74,7 @@ export async function POST(req: Request) {
       notes: parsed.data.notes ?? "",
       dueAt: parsed.data.dueAt ?? null,
       priority: parsed.data.priority ?? "normal",
+      kind: parsed.data.kind ?? "task",
       projectId: parsed.data.projectId ?? null,
       kanbanStatus: targetStatus,
       kanbanOrder: nextOrder,

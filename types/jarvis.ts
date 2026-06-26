@@ -135,7 +135,7 @@ export interface ToolCallRecord {
   state: "call" | "result" | "error";
 }
 
-export type KanbanStatus = "backlog" | "todo" | "in-progress" | "review" | "done" | "ab-test";
+export type KanbanStatus = "backlog" | "planned" | "in-progress" | "developed" | "tested" | "completed";
 
 export interface Project {
   id: string;
@@ -161,9 +161,12 @@ export interface KanbanTask {
   remindAt: string | null;
   reminded: boolean | null;
   priority: string;
+  kind: string;
   kanbanStatus: string;
   projectId: string | null;
   kanbanOrder: number;
   createdAt: string;
   updatedAt: string;
 }
+
+export type TaskKind = "task" | "bug" | "error" | "feature";

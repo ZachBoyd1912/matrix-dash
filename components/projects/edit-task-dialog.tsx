@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X } from "lucide-react";
+import { X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -15,20 +15,23 @@ interface Props {
   task: KanbanTask | null; // null = creating new
   defaultStatus?: string;
   projects: Project[];
+  onDelete?: (id: string) => void;
   onSave: (data: {
     title: string;
     notes: string;
     priority: string;
+    kind: string;
     dueAt: string | null;
     projectId: string | null;
     kanbanStatus: string;
   }) => void;
 }
 
-export function EditTaskDialog({ open, onClose, task, defaultStatus, projects, onSave }: Props) {
+export function EditTaskDialog({ open, onClose, task, defaultStatus, projects, onDelete, onSave }: Props) {
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
   const [priority, setPriority] = useState("normal");
+  const [kind, setKind] = useState("task");
   const [dueAt, setDueAt] = useState("");
   const [projectId, setProjectId] = useState("");
   const [kanbanStatus, setKanbanStatus] = useState(defaultStatus ?? "backlog");
@@ -40,6 +43,7 @@ export function EditTaskDialog({ open, onClose, task, defaultStatus, projects, o
       setTitle(task.title);
       setNotes(task.notes ?? "");
       setPriority(task.priority);
+      setKind(task.kind ?? "task");
       setDueAt(task.dueAt ? task.dueAt.slice(0, 16) : "");
       setProjectId(task.projectId ?? "");
       setKanbanStatus(task.kanbanStatus);
@@ -47,6 +51,7 @@ export function EditTaskDialog({ open, onClose, task, defaultStatus, projects, o
       setTitle("");
       setNotes("");
       setPriority("normal");
+      setKind("task");
       setDueAt("");
       setProjectId("");
       setKanbanStatus(defaultStatus ?? "backlog");
@@ -71,6 +76,7 @@ export function EditTaskDialog({ open, onClose, task, defaultStatus, projects, o
       title: title.trim(),
       notes,
       priority,
+      kind,
       dueAt: dueAt ? new Date(dueAt).toISOString() : null,
       projectId: projectId || null,
       kanbanStatus,
@@ -116,6 +122,15 @@ export function EditTaskDialog({ open, onClose, task, defaultStatus, projects, o
 
           <div className="grid grid-cols-2 gap-3">
             <div>
+              <label className="block text-[10px] uppercase text-text-muted mb-1">Type</label>
+              <Select value={kind} onChange={(e) => setKind(e.target.value)}>
+                <option value="task">Task</option>
+                <option value="bug">Bug</option>
+                <option value="error">Error</option>
+                <option value="feature">Feature</option>
+              </Select>
+            </div>
+            <div>
               <label className="block text-[10px] uppercase text-text-muted mb-1">Priority</label>
               <Select value={priority} onChange={(e) => setPriority(e.target.value)}>
                 <option value="low">Low</option>
@@ -124,15 +139,16 @@ export function EditTaskDialog({ open, onClose, task, defaultStatus, projects, o
                 <option value="urgent">Urgent</option>
               </Select>
             </div>
-            <div>
-              <label className="block text-[10px] uppercase text-text-muted mb-1">Due Date</label>
-              <input
-                type="datetime-local"
-                value={dueAt}
-                onChange={(e) => setDueAt(e.target.value)}
-                className="glass-input w-full h-9 px-2 rounded-md text-sm text-text-primary"
-              />
-            </div>
+          </div>
+
+          <div>
+            <label className="block text-[10px] uppercase text-text-muted mb-1">Due Date</label>
+            <input
+              type="datetime-local"
+              value={dueAt}
+              onChange={(e) => setDueAt(e.target.value)}
+              className="glass-input w-full h-9 px-2 rounded-md text-sm text-text-primary"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -159,13 +175,26 @@ export function EditTaskDialog({ open, onClose, task, defaultStatus, projects, o
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" type="button" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button variant="primary" type="submit" disabled={!title.trim()}>
-              {task ? "Save Changes" : "Add Task"}
-            </Button>
+          <div className="flex items-center justify-between gap-2 pt-2">
+            {task && onDelete ? (
+              <button
+                type="button"
+                onClick={() => onDelete(task.id)}
+                className="inline-flex items-center gap-1 text-[12px] font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-400/10 px-2 py-1.5 rounded-md transition-colors"
+              >
+                <Trash2 size={13} /> Delete
+              </button>
+            ) : (
+              <span />
+            )}
+            <div className="flex gap-2">
+              <Button variant="ghost" type="button" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button variant="primary" type="submit" disabled={!title.trim()}>
+                {task ? "Save Changes" : "Add Task"}
+              </Button>
+            </div>
           </div>
         </form>
       </div>

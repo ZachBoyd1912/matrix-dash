@@ -15,13 +15,14 @@ import { KanbanColumn, type ColumnDef } from "./kanban-column";
 import { KanbanCard } from "./kanban-card";
 import type { KanbanTask, Project } from "@/types/jarvis";
 
+// ── 6-Column Layout ────────────────────────────────────────────────
 export const COLUMNS: ColumnDef[] = [
-  { id: "backlog",     label: "Backlog",     accent: "bg-slate-400"  },
-  { id: "todo",        label: "Todo",        accent: "bg-blue-400"   },
-  { id: "in-progress", label: "In Progress", accent: "bg-amber-400"  },
-  { id: "review",      label: "Review",      accent: "bg-purple-400" },
-  { id: "done",        label: "Done",        accent: "bg-emerald-400" },
-  { id: "ab-test",     label: "AB Test",     accent: "bg-rose-400"   },
+  { id: "backlog",     label: "Backlog",      accent: "bg-slate-400"   },
+  { id: "planned",     label: "Planned",      accent: "bg-blue-400"    },
+  { id: "in-progress", label: "In Progress",  accent: "bg-amber-400"   },
+  { id: "developed",   label: "Developed",    accent: "bg-purple-400"  },
+  { id: "tested",      label: "Tested",       accent: "bg-cyan-400"    },
+  { id: "completed",   label: "Completed",    accent: "bg-emerald-400" },
 ];
 
 const COLUMN_IDS = COLUMNS.map((c) => c.id);
@@ -68,6 +69,7 @@ export function KanbanBoard({
     for (const col of COLUMNS) {
       map[col.id] = tasks
         .filter((t) => (pendingChanges.current.get(t.id) ?? t.kanbanStatus) === col.id)
+        .sort((a, b) => a.kanbanOrder - b.kanbanOrder)
         .map((t) => ({ ...t, kanbanStatus: pendingChanges.current.get(t.id) ?? t.kanbanStatus }));
     }
     return map;
@@ -189,7 +191,6 @@ export function KanbanBoard({
     [tasks, onTasksReorder, onNotifyTabs]
   );
 
-  // Quick toggle handler (prep for card)
   const handleQuickToggle = useCallback(
     (id: string, direction: "prev" | "next") => {
       onQuickToggle(id, direction);
@@ -204,23 +205,58 @@ export function KanbanBoard({
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex gap-3 overflow-x-auto pb-4 -mx-1 px-1 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-        {COLUMNS.map((col) => (
-          <KanbanColumn
-            key={col.id}
-            column={col}
-            tasks={columnTasks[col.id] ?? []}
-            projects={projects}
-            onAddTask={onAddTask}
-            onEditTask={onEditTask}
-            onInlineEdit={onInlineEdit}
-            onQuickToggle={handleQuickToggle}
-          />
-        ))}
+      {/* ── Table Container ── */}
+      <div className="rounded-xl border border-white/[0.06] overflow-hidden bg-white/[0.015]">
+        {/* ── Title Bar ── */}
+        <div className="px-4 py-3 border-b border-white/[0.06] bg-white/[0.02]">
+          <h3 className="text-sm font-semibold text-text-primary tracking-wide text-center">
+            Requirement / Task / Incident Progress
+          </h3>
+        </div>
+
+        {/* ── Column Headers ── */}
+        <div className="grid grid-cols-6 border-b border-white/[0.06]">
+          {COLUMNS.map((col, i) => (
+            <div
+              key={col.id}
+              className={`px-3 py-2.5 text-center ${
+                i < COLUMNS.length - 1 ? "border-r border-white/[0.06]" : ""
+              }`}
+            >
+              <div className="flex items-center justify-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${col.accent}`} />
+                <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-widest">
+                  {col.label}
+                </span>
+                <span className="text-[10px] text-text-muted bg-white/5 px-1.5 py-0.5 rounded-full font-medium tabular-nums">
+                  {(columnTasks[col.id] ?? []).length}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Grid Body ── */}
+        <div className="grid grid-cols-6 min-h-[400px]">
+          {COLUMNS.map((col, i) => (
+            <KanbanColumn
+              key={col.id}
+              column={col}
+              tasks={columnTasks[col.id] ?? []}
+              projects={projects}
+              onAddTask={onAddTask}
+              onEditTask={onEditTask}
+              onInlineEdit={onInlineEdit}
+              onQuickToggle={handleQuickToggle}
+              isLast={i === COLUMNS.length - 1}
+            />
+          ))}
+        </div>
       </div>
+
       <DragOverlay>
         {activeTask && (
-          <div className="rotate-[3deg] scale-105 shadow-[0_20px_60px_-12px_rgba(0,0,0,0.6)]">
+          <div className="rotate-[2deg] scale-105 shadow-[0_20px_60px_-12px_rgba(0,0,0,0.6)]">
             <KanbanCard
               task={activeTask}
               project={activeProject}

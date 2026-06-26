@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { FolderKanban, RefreshCw, X } from "lucide-react";
+import { FolderKanban, RefreshCw, X, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty";
 import { useGsapEntrance } from "@/lib/hooks/use-gsap-entrance";
@@ -11,7 +11,17 @@ import { KanbanBoard } from "@/components/projects/kanban-board";
 import { EditTaskDialog } from "@/components/projects/edit-task-dialog";
 import type { Project, KanbanTask } from "@/types/jarvis";
 
-const COLUMN_IDS = ["backlog", "todo", "in-progress", "review", "done", "ab-test"];
+const COLUMN_IDS = ["backlog", "planned", "in-progress", "developed", "tested", "completed"];
+
+// Catalog colour legend — mirrors the project-badge colours in ProjectCard.
+const BADGE_LEGEND = [
+  { label: "Frontend",   dot: "bg-blue-400" },
+  { label: "Fullstack",  dot: "bg-purple-400" },
+  { label: "Backend",    dot: "bg-orange-400" },
+  { label: "Automation", dot: "bg-teal-400" },
+  { label: "Platform",   dot: "bg-amber-400" },
+  { label: "Empty/TBD",  dot: "bg-rose-400" },
+];
 
 export default function ProjectsPage() {
   const ref = useGsapEntrance();
@@ -71,7 +81,7 @@ export default function ProjectsPage() {
 
   const handleSaveTask = useCallback(
     async (data: {
-      title: string; notes: string; priority: string;
+      title: string; notes: string; priority: string; kind: string;
       dueAt: string | null; projectId: string | null; kanbanStatus: string;
     }) => {
       if (editingTask) {
@@ -95,7 +105,7 @@ export default function ProjectsPage() {
     [editingTask, fetchTasks, notifyTabs]
   );
 
-  // Inline title edit — save via PATCH, re-fetch, notify tabs
+  // Inline title edit
   const handleInlineEdit = useCallback(
     async (id: string, title: string) => {
       await fetch(`/api/projects/tasks/${id}`, {
@@ -109,7 +119,7 @@ export default function ProjectsPage() {
     [fetchTasks, notifyTabs]
   );
 
-  // Quick toggle ◀ ▶ — shift task to adjacent column
+  // Quick toggle — shift task to adjacent column
   const handleQuickToggle = useCallback(
     async (id: string, direction: "prev" | "next") => {
       const task = tasks.find((t) => t.id === id);
@@ -139,6 +149,18 @@ export default function ProjectsPage() {
     setTasks(updated);
   }, []);
 
+  const handleDeleteTask = useCallback(
+    async (id: string) => {
+      setTasks((prev) => prev.filter((t) => t.id !== id)); // optimistic
+      setDialogOpen(false);
+      setEditingTask(null);
+      await fetch(`/api/projects/tasks/${id}`, { method: "DELETE" });
+      await fetchTasks();
+      notifyTabs();
+    },
+    [fetchTasks, notifyTabs]
+  );
+
   // ── Derived ───────────────────────────────────────────────────────
 
   const filteredTasks = filterProjectId
@@ -153,7 +175,7 @@ export default function ProjectsPage() {
 
   if (loading && !projects) {
     return (
-      <div ref={ref} className="px-4 md:px-8 py-10 max-w-6xl mx-auto">
+      <div ref={ref} className="px-4 md:px-8 py-10 max-w-[1600px] mx-auto">
         <div className="flex items-center justify-center h-64">
           <RefreshCw size={20} className="text-text-muted animate-spin" />
         </div>
@@ -164,7 +186,7 @@ export default function ProjectsPage() {
   // ── Render ────────────────────────────────────────────────────────
 
   return (
-    <div ref={ref} className="px-4 md:px-8 py-10 max-w-6xl mx-auto space-y-6">
+    <div ref={ref} className="px-4 md:px-6 py-8 max-w-[1600px] mx-auto space-y-6">
       {/* Orbs */}
       <div className="relative">
         <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
@@ -188,7 +210,7 @@ export default function ProjectsPage() {
       </div>
 
       {/* ── Zone 1: Project Portfolio Catalog ── */}
-      <section className="space-y-3">
+      <section className="space-y-4 max-w-[920px] mx-auto w-full">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-text-primary uppercase tracking-wider">
             Portfolio
@@ -200,8 +222,18 @@ export default function ProjectsPage() {
           </h2>
         </div>
 
+        {/* Colour legend (matches catalog badges) */}
+        <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[11px] text-text-muted">
+          {BADGE_LEGEND.map((l) => (
+            <span key={l.label} className="flex items-center gap-1.5">
+              <span className={`w-2 h-2 rounded-full ${l.dot}`} />
+              {l.label}
+            </span>
+          ))}
+        </div>
+
         {projects && projects.length > 0 ? (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {projects.map((p) => (
               <ProjectCard key={p.id} project={p} onViewTasks={handleViewTasks} />
             ))}
@@ -222,7 +254,7 @@ export default function ProjectsPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h2 className="text-sm font-semibold text-text-primary uppercase tracking-wider">
-              Tasks
+              Task Board
             </h2>
             {activeFilterProject && (
               <span className="inline-flex items-center gap-1.5 h-6 px-2 rounded-full text-[10px] font-medium bg-emerald-400/10 border border-emerald-400/20 text-emerald-400">
@@ -234,40 +266,26 @@ export default function ProjectsPage() {
               </span>
             )}
           </div>
-          <span className="text-[11px] text-text-muted tabular-nums">
-            {filteredTasks.length} task{filteredTasks.length !== 1 ? "s" : ""}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] text-text-muted tabular-nums">
+              {filteredTasks.length} task{filteredTasks.length !== 1 ? "s" : ""}
+            </span>
+            <Button variant="primary" size="sm" onClick={() => handleAddTask("backlog")}>
+              <Plus size={13} className="mr-1" /> New task
+            </Button>
+          </div>
         </div>
 
-        {tasks.length === 0 && !loading ? (
-          <EmptyState
-            icon={<FolderKanban size={16} />}
-            title="No tasks yet"
-            description='Click the "+" on any column to create your first task.'
-          />
-        ) : filteredTasks.length === 0 && filterProjectId ? (
-          <EmptyState
-            icon={<FolderKanban size={16} />}
-            title={`No tasks for ${activeFilterProject?.name ?? "this project"}`}
-            description='Click the "+" on any column to add a task.'
-            action={
-              <Button variant="primary" size="sm" onClick={() => handleAddTask("backlog")}>
-                Add first task
-              </Button>
-            }
-          />
-        ) : (
-          <KanbanBoard
-            tasks={filteredTasks}
-            projects={projects ?? []}
-            onAddTask={handleAddTask}
-            onEditTask={handleEditTask}
-            onTasksReorder={handleTasksReorder}
-            onInlineEdit={handleInlineEdit}
-            onQuickToggle={handleQuickToggle}
-            onNotifyTabs={notifyTabs}
-          />
-        )}
+        <KanbanBoard
+          tasks={filteredTasks}
+          projects={projects ?? []}
+          onAddTask={handleAddTask}
+          onEditTask={handleEditTask}
+          onTasksReorder={handleTasksReorder}
+          onInlineEdit={handleInlineEdit}
+          onQuickToggle={handleQuickToggle}
+          onNotifyTabs={notifyTabs}
+        />
       </section>
 
       {/* Task edit/create dialog */}
@@ -280,6 +298,7 @@ export default function ProjectsPage() {
         task={editingTask}
         defaultStatus={defaultStatus}
         projects={projects ?? []}
+        onDelete={handleDeleteTask}
         onSave={handleSaveTask}
       />
     </div>

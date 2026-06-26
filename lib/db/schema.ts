@@ -173,6 +173,8 @@ export const tasks = sqliteTable("tasks", {
   remindAt: text("remind_at"),
   reminded: integer("reminded", { mode: "boolean" }).default(false),
   priority: text("priority").notNull().default("normal"),
+  // task | bug | error | feature — the kind of work item on the kanban board
+  kind: text("kind").notNull().default("task"),
   kanbanStatus: text("kanban_status").notNull().default("backlog"),
   projectId: text("project_id").references(() => projects.id, { onDelete: "set null" }),
   kanbanOrder: integer("kanban_order").notNull().default(0),

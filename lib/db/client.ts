@@ -132,6 +132,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   remind_at TEXT,
   reminded INTEGER DEFAULT 0,
   priority TEXT NOT NULL DEFAULT 'normal',
+  kind TEXT NOT NULL DEFAULT 'task',
   kanban_status TEXT NOT NULL DEFAULT 'backlog',
   project_id TEXT REFERENCES projects(id) ON DELETE SET NULL,
   kanban_order INTEGER NOT NULL DEFAULT 0,
@@ -365,6 +366,18 @@ function runColumnMigrations(sqlite: Database.Database) {
   ensureColumn("tasks", "kanban_status", "kanban_status TEXT NOT NULL DEFAULT 'backlog'");
   ensureColumn("tasks", "project_id", "project_id TEXT REFERENCES projects(id) ON DELETE SET NULL");
   ensureColumn("tasks", "kanban_order", "kanban_order INTEGER NOT NULL DEFAULT 0");
+  ensureColumn("tasks", "kind", "kind TEXT NOT NULL DEFAULT 'task'");
+
+  // Remap old kanban column names to new ones
+  const remap: [string, string][] = [
+    ["todo", "planned"],
+    ["review", "developed"],
+    ["done", "completed"],
+    ["ab-test", "completed"],
+  ];
+  for (const [oldVal, newVal] of remap) {
+    sqlite.exec(`UPDATE tasks SET kanban_status = '${newVal}' WHERE kanban_status = '${oldVal}'`);
+  }
 }
 
 function seedWelcomeEmail(sqlite: Database.Database) {
