@@ -9,6 +9,7 @@ import { PwaRegister } from "./pwa-register";
 import { ThemeStyle } from "./theme-style";
 import { Toaster } from "@/components/ui/toaster";
 import { ConfirmHost } from "@/components/ui/confirm-host";
+import { ConsoleCapture } from "@/components/console/console-capture";
 import { useAppStore } from "@/lib/stores/use-app-store";
 import type { AiProviderPublic } from "@/types/ai-provider";
 
@@ -37,6 +38,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       <CommandPalette />
       <Toaster />
       <ConfirmHost />
+      <ConsoleCapture />
       <PwaRegister />
       <ThemeStyle />
     </div>

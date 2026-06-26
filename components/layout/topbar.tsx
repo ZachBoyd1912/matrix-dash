@@ -15,6 +15,7 @@ const TITLES: Record<string, string> = {
   "/dashboard/sessions": "Sessions",
   "/dashboard/ide": "IDE",
   "/dashboard/matrix-builder": "Matrix Builder",
+  "/dashboard/console": "Console",
   "/dashboard/settings": "Settings",
 };
 

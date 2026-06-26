@@ -1,5 +1,24 @@
 # Changelog
 
+## 26/06/2026 @ 06:07:57 IST — "Opus 4.8"
+
+**Goal:** Now that Matrix Builder runs in the background (its dev-server output goes to a log file instead of a terminal), give back visibility — a single, prettified, live **Console** page that surfaces logs from **both projects**, clearly divided into **Matrix Dashboard** and **Matrix Builder** sections.
+
+**Added — new `/dashboard/console` page** (nav item `Console`, `SquareTerminal` icon) with up to 4 live sources, prettified (time · color-coded level · message), with search, per-level filter chips, pause/resume (freezes display), per-pane copy/download/clear + clear-all, and stick-to-bottom auto-scroll with a "Jump to bottom" button.
+- **Dashboard – Backend** (`lib/services/log-bus.ts` + `instrumentation.ts`): a capped (2000) ring buffer + pub/sub on `globalThis`; `instrumentation.ts` tees `process.stdout/stderr.write` into it (line-buffered, ANSI-stripped, level-inferred, **re-entrancy + HMR-double-install guarded**, original write still passes through so the terminal is unaffected). Streamed by `GET /api/console/server` (NDJSON: snapshot + live subscribe; `DELETE` clears).
+- **Dashboard – Browser** (`components/console/console-capture.tsx` mounted in `dashboard-shell.tsx` + `lib/stores/use-log-store.ts`): patches `window.console.*` + `error`/`unhandledrejection` into a zustand store (capped 1500). Install-guarded; original console still fires.
+- **Builder – Dev server** (`lib/services/matrix-builder.ts` + `GET /api/matrix-builder/logs`): tails `~/.matrix-dash/matrix-builder/dev.log` — 64KB snapshot then polled appends, with a `{__control:"reset"}` marker on truncation/rotation; `DELETE` clears. New service helpers `builderLogPath/readBuilderLogTail/readBuilderLogSince/clearBuilderLog`.
+- **Builder – App console** (optional, Tier-2): the host listens for `postMessage` of shape `{__mbConsole:true,...}` from the builder origin (`console-capture.tsx`). It's cross-origin so it can't be read directly; until a small bridge snippet is added inside the bolt app, the pane shows a hint. Host side is built and harmless until enabled.
+- **Shared**: `lib/console/types.ts` (LogLine model + `stripAnsi`/`fmtTime`/`levelColor`/`inferLevel`), `lib/hooks/use-log-stream.ts` (NDJSON `getReader` consumer, reuses the chat-route streaming pattern, aborts on unmount), reusable `components/console/{log-line,log-stream-view,console-page}.tsx`.
+
+**Verification (typecheck + real headless Chrome via CDP, live):**
+- `pnpm typecheck` clean.
+- `GET /api/console/server` streamed real backend lines (`[daemon] started`, `✓ Ready`, `Compiling /dashboard/console`, request logs); `DeprecationWarning` correctly classified `warn`. `GET /api/matrix-builder/logs` tailed the existing `dev.log`. Both `DELETE`s return `{ok:true}`.
+- Page renders both divided sections; backend pane showed 350 live rows; **browser capture proven** — a `console.error(marker)` emitted in the page appeared in the Browser pane; **zero uncaught exceptions**.
+- Confirmed the stdout/stderr tee does **not** break terminal logging (writes still pass through).
+
+**Files Touched:** new `lib/console/types.ts`, `lib/services/log-bus.ts`, `lib/stores/use-log-store.ts`, `lib/hooks/use-log-stream.ts`, `app/api/console/server/route.ts`, `app/api/matrix-builder/logs/route.ts`, `app/dashboard/console/page.tsx`, `components/console/{console-page,log-stream-view,log-line,console-capture}.tsx`; modified `instrumentation.ts`, `lib/services/matrix-builder.ts`, `components/layout/{dashboard-shell,nav-items,topbar}.tsx`.
+
 ## 26/06/2026 @ 02:06:35 IST — "Opus 4.8"
 
 **Goal:** Make the Matrix Builder tab auto-start its dev server. Opening `/dashboard/matrix-builder` should bring `:5001` up on demand (no separate terminal), mirroring the IDE's on-demand code-server lifecycle.

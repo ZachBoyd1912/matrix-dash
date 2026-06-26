@@ -45,6 +45,69 @@ function probeUrl(): string {
   return `http://127.0.0.1:${builderPort()}`;
 }
 
+/** Absolute path to the builder dev server's captured stdout/stderr log. */
+export function builderLogPath(): string {
+  return path.join(os.homedir(), ".matrix-dash", "matrix-builder", "dev.log");
+}
+
+/** Read the last `maxBytes` of the dev log; returns text + the file's end offset. */
+export function readBuilderLogTail(maxBytes = 64 * 1024): { text: string; offset: number } {
+  const p = builderLogPath();
+  let stat: fs.Stats;
+  try {
+    stat = fs.statSync(p);
+  } catch {
+    return { text: "", offset: 0 }; // not created until the builder first starts
+  }
+  const start = Math.max(0, stat.size - maxBytes);
+  const length = stat.size - start;
+  if (length <= 0) return { text: "", offset: stat.size };
+  const fd = fs.openSync(p, "r");
+  try {
+    const buf = Buffer.alloc(length);
+    fs.readSync(fd, buf, 0, length, start);
+    return { text: buf.toString("utf8"), offset: stat.size };
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+/** Read bytes appended since `offset`; returns new text + the new end offset.
+ *  If the file shrank (truncated/rotated), resets to read from the top. */
+export function readBuilderLogSince(offset: number): { text: string; offset: number; reset: boolean } {
+  const p = builderLogPath();
+  let stat: fs.Stats;
+  try {
+    stat = fs.statSync(p);
+  } catch {
+    return { text: "", offset: 0, reset: offset !== 0 };
+  }
+  if (stat.size < offset) {
+    // Truncated (e.g. Clear) — start over from the beginning.
+    const fresh = readBuilderLogTail(stat.size);
+    return { text: fresh.text, offset: stat.size, reset: true };
+  }
+  const length = stat.size - offset;
+  if (length <= 0) return { text: "", offset: stat.size, reset: false };
+  const fd = fs.openSync(p, "r");
+  try {
+    const buf = Buffer.alloc(length);
+    fs.readSync(fd, buf, 0, length, offset);
+    return { text: buf.toString("utf8"), offset: stat.size, reset: false };
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+/** Truncate the dev log (the "Clear" action). Best-effort. */
+export function clearBuilderLog(): void {
+  try {
+    fs.writeFileSync(builderLogPath(), "");
+  } catch {
+    /* file may not exist yet — nothing to clear */
+  }
+}
+
 /* ------------------------------------------------------------------ *
  * Detection / status
  * ------------------------------------------------------------------ */
@@ -144,9 +207,9 @@ export async function startBuilder(): Promise<{ ok: boolean; error?: string }> {
   if (!pnpm) return { ok: false, error: "pnpm not found on PATH" };
 
   try {
-    const logDir = path.join(os.homedir(), ".matrix-dash", "matrix-builder");
-    fs.mkdirSync(logDir, { recursive: true });
-    const out = fs.openSync(path.join(logDir, "dev.log"), "a");
+    const logFile = builderLogPath();
+    fs.mkdirSync(path.dirname(logFile), { recursive: true });
+    const out = fs.openSync(logFile, "a");
 
     // Strip PORT/HOST so the inherited `next dev` PORT=3000 can't override the
     // builder's own Vite config (strictPort :5001). The builder loads its own
