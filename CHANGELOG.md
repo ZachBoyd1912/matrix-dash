@@ -1,5 +1,29 @@
 # Changelog
 
+## 26/06/2026 @ 02:06:35 IST — "Opus 4.8"
+
+**Goal:** Make the Matrix Builder tab auto-start its dev server. Opening `/dashboard/matrix-builder` should bring `:5001` up on demand (no separate terminal), mirroring the IDE's on-demand code-server lifecycle.
+
+**Added:**
+- **`lib/services/matrix-builder.ts`** — start/stop/restart/status for the builder's `pnpm dev` (the bolt.new fork, `remix vite:dev` on :5001). Spawns detached + unref'd from its own dir so it survives the request; idempotent start (reuses an already-listening server); status via an HTTP reachability probe + `lsof`; stop kills the whole process group found on the port. Resolves `pnpm` via `command -v` with Homebrew/corepack fallbacks; strips `PORT`/`HOST` from the child env so the inherited `next dev` `PORT=3000` can't override the builder's Vite `strictPort: 5001`. Dir/port overridable via `MATRIX_BUILDER_DIR` / `MATRIX_BUILDER_PORT`.
+- **`app/api/matrix-builder/server/route.ts`** — `GET` status, `POST {action: start|stop|restart}` (mirrors `/api/ide/server`).
+- **`components/matrix-builder/matrix-builder-gate.tsx`** — lifecycle gate: ensures cross-origin isolation (the self-heal hard-reload), then **auto-starts the builder on mount**, polls until reachable (~2 min budget for first Vite boot), and embeds it. Loading/starting spinner, and an error state with **Start** + prominent **Open in new tab** fallback.
+- **`components/matrix-builder/matrix-builder-embed.tsx`** — the isolated iframe + a slim toolbar (Restart / Stop / Open in new tab), mirroring `CodeServerEmbed`.
+
+**Changed:**
+- **`app/dashboard/matrix-builder/page.tsx`** — now renders `<MatrixBuilderGate />` (the passive iframe + COI-reload logic moved into the gate).
+
+**Fixed:**
+- **Gate stuck on "Connecting…" forever.** **Cause:** the boot effect guarded its state update with a *shared* `mounted` ref toggled by a separate effect; React 19 Strict Mode (dev) double-invokes effects, and the ref read `false` mid-flight, permanently swallowing the `setPhase("running")`. **Fix:** an effect-local `cancelled` flag so only the superseded run bails and the live run always completes. Verified the embed renders after the fix.
+
+**Verification (real headless Chrome via CDP, with :5001 actually running):**
+- Auto-start: `POST …/server {start}` spawned `remix vite:dev`; `:5001` came up; status flipped to `running:true` (pid observed). Stop: `:5001` torn down, `running:false`.
+- **Host** `/dashboard/matrix-builder`: `crossOriginIsolated === true`, `SharedArrayBuffer` available, iframe present with `allow="cross-origin-isolated"` + `credentialless`, no COEP-blocked errors.
+- **Embedded bolt frame (:5001, level 2): `crossOriginIsolated === true`, `SharedArrayBuffer` available** — the real WebContainer precondition, proven in-browser.
+- The **WebContainer runtime frame** (`stackblitz.com/headless?coep=credentialless`) booted inside the embed (3-level nesting reached). The LLM *generation* of an app (plan step 4's headline test) still needs the builder's Gemini key + a real prompt — not headlessly verifiable.
+
+**Files Touched:** `lib/services/matrix-builder.ts` (new), `app/api/matrix-builder/server/route.ts` (new), `components/matrix-builder/matrix-builder-gate.tsx` (new), `components/matrix-builder/matrix-builder-embed.tsx` (new), `app/dashboard/matrix-builder/page.tsx`.
+
 ## 26/06/2026 @ 01:36:40 IST — "Opus 4.8"
 
 **Goal:** Add a "Matrix Builder" sidebar page to matrix-dash that embeds the separate Matrix Builder app (a local bolt.new fork — a full-screen, in-browser AI IDE on :5001) as-is in a full-height iframe, with cross-origin isolation scoped to just that route so its WebContainer can boot. matrix-dash owns only the nav item, route, iframe, and headers; the embedded app is not ported or modified.
