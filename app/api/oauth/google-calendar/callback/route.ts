@@ -7,23 +7,20 @@ import { googleCalendarConnections } from "@/lib/db/schema";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
+  const base = "http://localhost:3000";
   try {
-    const url = new URL(req.url, "http://localhost:3000");
+    const url = new URL(req.url, base);
     const code = url.searchParams.get("code");
     const state = url.searchParams.get("state");
     const error = url.searchParams.get("error");
 
     if (error || !code || !state) {
-      return Response.redirect(
-        "/dashboard/settings/calendar?error=oauth_denied"
-      );
+      return Response.redirect(new URL("/dashboard/settings/calendar?error=oauth_denied", base));
     }
 
     const redirectTo = verifyOAuthState(state, "google-calendar");
     if (!redirectTo) {
-      return Response.redirect(
-        "/dashboard/settings/calendar?error=invalid_state"
-      );
+      return Response.redirect(new URL("/dashboard/settings/calendar?error=invalid_state", base));
     }
 
     const body = new URLSearchParams({
@@ -45,7 +42,7 @@ export async function GET(req: Request) {
     let email = "unknown@google.com";
     try {
       const userRes = await fetch(
-        "https://www.googleapis.com/oauth2/v1/userinfo?alt=json",
+        "https://www.googleapis.com/oauth2/v2/userinfo",
         { headers: { Authorization: `Bearer ${data.access_token}` } }
       );
       if (userRes.ok) {
@@ -57,9 +54,7 @@ export async function GET(req: Request) {
     }
 
     const expiresIn = data.expires_in || 3600;
-    const tokenExpires = new Date(
-      Date.now() + expiresIn * 1000
-    ).toISOString();
+    const tokenExpires = new Date(Date.now() + expiresIn * 1000).toISOString();
 
     getDb()
       .insert(googleCalendarConnections)
@@ -74,12 +69,10 @@ export async function GET(req: Request) {
       .run();
 
     return Response.redirect(
-      `${redirectTo}?connected=google-calendar&email=${encodeURIComponent(email)}`
+      new URL(`${redirectTo}?connected=google-calendar&email=${encodeURIComponent(email)}`, base)
     );
   } catch (e) {
     console.error("[google-calendar/callback]", e);
-    return Response.redirect(
-      "/dashboard/settings/calendar?error=token_exchange_failed"
-    );
+    return Response.redirect(new URL("/dashboard/settings/calendar?error=token_exchange_failed", base));
   }
 }

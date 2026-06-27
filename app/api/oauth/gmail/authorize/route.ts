@@ -25,7 +25,7 @@ export async function GET(req: Request) {
   authorizeUrl.searchParams.set("response_type", "code");
   authorizeUrl.searchParams.set(
     "scope",
-    "https://mail.google.com/"
+    "https://www.googleapis.com/auth/userinfo.email https://mail.google.com/"
   );
   authorizeUrl.searchParams.set("access_type", "offline");
   authorizeUrl.searchParams.set("prompt", "consent");

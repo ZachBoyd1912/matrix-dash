@@ -7,23 +7,20 @@ import { driveConnections } from "@/lib/db/schema";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
+  const base = "http://localhost:3000";
   try {
-    const url = new URL(req.url, "http://localhost:3000");
+    const url = new URL(req.url, base);
     const code = url.searchParams.get("code");
     const state = url.searchParams.get("state");
     const error = url.searchParams.get("error");
 
     if (error || !code || !state) {
-      return Response.redirect(
-        "/dashboard/settings/integrations/drive?error=oauth_denied"
-      );
+      return Response.redirect(new URL("/dashboard/settings/integrations/drive?error=oauth_denied", base));
     }
 
     const redirectTo = verifyOAuthState(state, "google");
     if (!redirectTo) {
-      return Response.redirect(
-        "/dashboard/settings/integrations/drive?error=invalid_state"
-      );
+      return Response.redirect(new URL("/dashboard/settings/integrations/drive?error=invalid_state", base));
     }
 
     const body = new URLSearchParams({
@@ -42,26 +39,22 @@ export async function GET(req: Request) {
     const data = await tokenRes.json();
     if (data.error) throw new Error(data.error_description || data.error);
 
-    // Fetch user email to identify the connection
     let email = "unknown@google.com";
     try {
-      const userRes = await fetch(
-        "https://www.googleapis.com/oauth2/v1/userinfo?alt=json",
-        { headers: { Authorization: `Bearer ${data.access_token}` } }
-      );
+      const userRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+        headers: { Authorization: `Bearer ${data.access_token}` },
+      });
       if (userRes.ok) {
         const user = await userRes.json();
         email = user.email || email;
       }
     } catch {
-      // Non-critical — continue without email
+      // Non-critical
     }
 
     const now = new Date().toISOString();
     const expiresIn = data.expires_in || 3600;
-    const tokenExpires = new Date(
-      Date.now() + expiresIn * 1000
-    ).toISOString();
+    const tokenExpires = new Date(Date.now() + expiresIn * 1000).toISOString();
 
     getDb()
       .insert(driveConnections)
@@ -78,12 +71,10 @@ export async function GET(req: Request) {
       .run();
 
     return Response.redirect(
-      `${redirectTo}?connected=drive&email=${encodeURIComponent(email)}`
+      new URL(`${redirectTo}?connected=drive&email=${encodeURIComponent(email)}`, base)
     );
   } catch (e) {
     console.error("[drive/callback]", e);
-    return Response.redirect(
-      "/dashboard/settings/integrations/drive?error=token_exchange_failed"
-    );
+    return Response.redirect(new URL("/dashboard/settings/integrations/drive?error=token_exchange_failed", base));
   }
 }

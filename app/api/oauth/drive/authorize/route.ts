@@ -22,7 +22,7 @@ export async function GET(req: Request) {
   authorizeUrl.searchParams.set("response_type", "code");
   authorizeUrl.searchParams.set(
     "scope",
-    "https://www.googleapis.com/auth/drive.readonly"
+    "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/drive.readonly"
   );
   authorizeUrl.searchParams.set("access_type", "offline");
   authorizeUrl.searchParams.set("prompt", "consent");
