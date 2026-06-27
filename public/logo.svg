@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0a0a"/>
+      <stop offset="100%" style="stop-color:#0f1724"/>
+    </linearGradient>
+    <linearGradient id="icon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6ee7b7"/>
+      <stop offset="50%" style="stop-color:#38bdf8"/>
+      <stop offset="100%" style="stop-color:#a78bfa"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#6ee7b7"/>
+      <stop offset="100%" style="stop-color:#38bdf8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background rounded square -->
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+
+  <!-- Subtle grid lines -->
+  <g opacity="0.06" stroke="#6ee7b7" stroke-width="1">
+    <line x1="0" y1="128" x2="512" y2="128"/>
+    <line x1="0" y1="256" x2="512" y2="256"/>
+    <line x1="0" y1="384" x2="512" y2="384"/>
+    <line x1="128" y1="0" x2="128" y2="512"/>
+    <line x1="256" y1="0" x2="256" y2="512"/>
+    <line x1="384" y1="0" x2="384" y2="512"/>
+  </g>
+
+  <!-- Stylized "M" with chevron dash accent -->
+  <g transform="translate(256,260)">
+    <!-- Main M shape -->
+    <path d="M-120,120 L-120,-80 L-30,40 L60,-80 L60,120"
+          fill="none" stroke="url(#icon)" stroke-width="36"
+          stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Dash accent line through middle -->
+    <line x1="-160" y1="30" x2="160" y2="30"
+          stroke="url(#accent)" stroke-width="8"
+          stroke-linecap="round"/>
+    <!-- Small dots at corners of the dash -->
+    <circle cx="-140" cy="30" r="6" fill="#6ee7b7" opacity="0.8"/>
+    <circle cx="140" cy="30" r="6" fill="#38bdf8" opacity="0.8"/>
+  </g>
+
+  <!-- Small decorative elements -->
+  <circle cx="96" cy="96" r="4" fill="#6ee7b7" opacity="0.3"/>
+  <circle cx="416" cy="96" r="4" fill="#38bdf8" opacity="0.3"/>
+  <circle cx="96" cy="416" r="4" fill="#a78bfa" opacity="0.3"/>
+  <circle cx="416" cy="416" r="4" fill="#a78bfa" opacity="0.3"/>
+</svg>
