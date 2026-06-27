@@ -16,14 +16,25 @@ export default function GitHubIntegrationPage() {
   const [connections, setConnections] = useState<GitHubConnectionPublic[]>([]);
   const [repos, setRepos] = useState<GitHubRepoPublic[]>([]);
   const [syncing, setSyncing] = useState(false);
+  // Toggle state loaded from settings
+  const [ghEnabled, setGhEnabled] = useState(true);
+  const [approveIssue, setApproveIssue] = useState(true);
+  const [approvePR, setApprovePR] = useState(true);
+  const [approveListRepos, setApproveListRepos] = useState(true);
 
   const refresh = useCallback(async () => {
-    const [c, r] = await Promise.all([
+    const [c, r, s] = await Promise.all([
       fetch("/api/github/connections").then((r) => r.json()),
       fetch("/api/github/repos").then((r) => r.json()),
+      fetch("/api/settings").then((r) => r.json()),
     ]);
     setConnections(Array.isArray(c) ? c : []);
     setRepos(Array.isArray(r) ? r : []);
+    // Load toggle states from settings
+    setGhEnabled(s.tool_github !== "0");
+    setApproveIssue(s.approve_createIssue === "1");
+    setApprovePR(s.approve_createPR === "1");
+    setApproveListRepos(s.approve_listRepos !== "0");
   }, []);
 
   useEffect(() => {
@@ -61,6 +72,14 @@ export default function GitHubIntegrationPage() {
   };
 
   const active = connections.find((c) => c.isActive);
+
+  const saveToggle = async (key: string, value: boolean) => {
+    await fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ [key]: value ? "1" : "0" }),
+    });
+  };
 
   return (
     <div ref={ref} className="space-y-8">
@@ -133,10 +152,30 @@ export default function GitHubIntegrationPage() {
 
           <p className="text-[10px] uppercase tracking-wider text-text-muted mt-6">Agent Tools</p>
           <Card className="rounded-2xl space-y-1">
-            <ToolToggle label="GitHub tools enabled" desc="Allow the agent to create issues, PRs, and read repos" />
-            <ToolToggle label="createIssue" desc="Create issues in connected repositories" />
-            <ToolToggle label="createPR" desc="Open pull requests from branches" />
-            <ToolToggle label="listRepos" desc="List and search the user's repositories" />
+            <ToolToggle
+              label="GitHub tools enabled"
+              desc="Allow the agent to create issues, PRs, and read repos"
+              checked={ghEnabled}
+              setChecked={(v) => { setGhEnabled(v); saveToggle("tool_github", v); }}
+            />
+            <ToolToggle
+              label="createIssue"
+              desc="Create issues in connected repositories"
+              checked={approveIssue}
+              setChecked={(v) => { setApproveIssue(v); saveToggle("approve_createIssue", v); }}
+            />
+            <ToolToggle
+              label="createPR"
+              desc="Open pull requests from branches"
+              checked={approvePR}
+              setChecked={(v) => { setApprovePR(v); saveToggle("approve_createPR", v); }}
+            />
+            <ToolToggle
+              label="listRepos"
+              desc="List and search the user's repositories"
+              checked={approveListRepos}
+              setChecked={(v) => { setApproveListRepos(v); saveToggle("approve_listRepos", v); }}
+            />
           </Card>
         </>
       )}
@@ -159,8 +198,17 @@ export default function GitHubIntegrationPage() {
   );
 }
 
-function ToolToggle({ label, desc }: { label: string; desc: string }) {
-  const [checked, setChecked] = useState(true);
+function ToolToggle({
+  label,
+  desc,
+  checked,
+  setChecked,
+}: {
+  label: string;
+  desc: string;
+  checked: boolean;
+  setChecked: (v: boolean) => void;
+}) {
   return (
     <div className="flex items-center justify-between py-2">
       <div>

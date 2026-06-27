@@ -15,10 +15,18 @@ export default function SlackIntegrationPage() {
   const [workspaces, setWorkspaces] = useState<SlackWorkspacePublic[]>([]);
   const [channels, setChannels] = useState<SlackChannelPublic[]>([]);
   const [syncing, setSyncing] = useState(false);
+  // Toggle state from settings
+  const [slEnabled, setSlEnabled] = useState(true);
+  const [approveSlackMsg, setApproveSlackMsg] = useState(true);
+  const [approveSlackList, setApproveSlackList] = useState(true);
+  const [approveSlackSearch, setApproveSlackSearch] = useState(true);
+  const [dailySummary, setDailySummary] = useState(false);
+  const [weeklyDigest, setWeeklyDigest] = useState(false);
 
   const refresh = useCallback(async () => {
-    const [w] = await Promise.all([
+    const [w, s] = await Promise.all([
       fetch("/api/slack/workspaces").then((r) => r.json()),
+      fetch("/api/settings").then((r) => r.json()),
     ]);
     const ws = Array.isArray(w) ? w : [];
     setWorkspaces(ws);
@@ -26,6 +34,13 @@ export default function SlackIntegrationPage() {
       const c = await fetch(`/api/slack/workspaces/${ws[0].id}/channels`).then((r) => r.json());
       setChannels(Array.isArray(c) ? c : []);
     }
+    // Load toggle states from settings
+    setSlEnabled(s.tool_slack !== "0");
+    setApproveSlackMsg(s.approve_sendSlackMessage === "1");
+    setApproveSlackList(s.approve_listSlackChannels !== "0");
+    setApproveSlackSearch(s.approve_searchSlack !== "0");
+    setDailySummary(s.slack_summary_daily === "1");
+    setWeeklyDigest(s.slack_summary_weekly === "1");
   }, []);
 
   useEffect(() => {
@@ -64,6 +79,14 @@ export default function SlackIntegrationPage() {
   };
 
   const active = workspaces.find((w) => w.isActive);
+
+  const saveToggle = async (key: string, value: boolean) => {
+    await fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ [key]: value ? "1" : "0" }),
+    });
+  };
 
   return (
     <div ref={ref} className="space-y-8">
@@ -131,16 +154,22 @@ export default function SlackIntegrationPage() {
 
           <p className="text-[10px] uppercase tracking-wider text-text-muted mt-6">Agent Tools</p>
           <Card className="rounded-2xl space-y-1">
-            <ToolToggle label="Slack tools enabled" desc="Allow the agent to send messages and search channels" />
-            <ToolToggle label="sendSlackMessage" desc="Send messages to any public channel" />
-            <ToolToggle label="listSlackChannels" desc="List available channels in the workspace" />
-            <ToolToggle label="searchSlack" desc="Search messages across channels" />
+            <ToolToggle label="Slack tools enabled" desc="Allow the agent to send messages and search channels"
+              checked={slEnabled} setChecked={(v) => { setSlEnabled(v); saveToggle("tool_slack", v); }} />
+            <ToolToggle label="sendSlackMessage" desc="Send messages to any public channel"
+              checked={approveSlackMsg} setChecked={(v) => { setApproveSlackMsg(v); saveToggle("approve_sendSlackMessage", v); }} />
+            <ToolToggle label="listSlackChannels" desc="List available channels in the workspace"
+              checked={approveSlackList} setChecked={(v) => { setApproveSlackList(v); saveToggle("approve_listSlackChannels", v); }} />
+            <ToolToggle label="searchSlack" desc="Search messages across channels"
+              checked={approveSlackSearch} setChecked={(v) => { setApproveSlackSearch(v); saveToggle("approve_searchSlack", v); }} />
           </Card>
 
           <p className="text-[10px] uppercase tracking-wider text-text-muted">Auto-Summary</p>
           <Card className="rounded-2xl space-y-1">
-            <ToolToggle label="Daily agent summary" desc="Post an overnight agent summary to a channel every morning at 08:00" />
-            <ToolToggle label="Weekly memory digest" desc="Post a digest of new memories on Monday 09:00" />
+            <ToolToggle label="Daily agent summary" desc="Post an overnight agent summary to a channel every morning at 08:00"
+              checked={dailySummary} setChecked={(v) => { setDailySummary(v); saveToggle("slack_summary_daily", v); }} />
+            <ToolToggle label="Weekly memory digest" desc="Post a digest of new memories on Monday 09:00"
+              checked={weeklyDigest} setChecked={(v) => { setWeeklyDigest(v); saveToggle("slack_summary_weekly", v); }} />
           </Card>
         </>
       )}
@@ -163,8 +192,17 @@ export default function SlackIntegrationPage() {
   );
 }
 
-function ToolToggle({ label, desc }: { label: string; desc: string }) {
-  const [checked, setChecked] = useState(true);
+function ToolToggle({
+  label,
+  desc,
+  checked,
+  setChecked,
+}: {
+  label: string;
+  desc: string;
+  checked: boolean;
+  setChecked: (v: boolean) => void;
+}) {
   return (
     <div className="flex items-center justify-between py-2">
       <div>

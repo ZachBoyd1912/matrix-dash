@@ -115,9 +115,10 @@ export default function IntegrationsPage() {
   const [snap, setSnap] = useState<Snap | null>(null);
 
   const refresh = useCallback(async () => {
-    const [gh, sl, settingsRes] = await Promise.all([
+    const [gh, sl, dr, settingsRes] = await Promise.all([
       fetch("/api/github/connections").then((r) => r.json()).catch(() => []),
       fetch("/api/slack/workspaces").then((r) => r.json()).catch(() => []),
+      fetch("/api/drive/connections").then((r) => r.json()).catch(() => []),
       fetch("/api/settings").then((r) => r.json()).catch(() => ({})),
     ]);
 
@@ -153,8 +154,16 @@ export default function IntegrationsPage() {
       meta: tavilyKey ? "Tavily API key set" : "No search provider configured",
     };
 
-    // Google Drive — no API yet, always show as available
-    snap.drive = { connected: false, meta: "Connect your Google account" };
+    // Google Drive — now fetching from real API
+    const driveConns = Array.isArray(dr) ? dr : [];
+    const activeDr = driveConns.find((c: any) => c.isActive);
+    if (activeDr) {
+      snap.drive = { connected: true, meta: `${activeDr.googleEmail} · connected` };
+    } else if (driveConns.length > 0) {
+      snap.drive = { connected: true, meta: `${driveConns[0].googleEmail} · inactive` };
+    } else {
+      snap.drive = { connected: false, meta: "Connect your Google account" };
+    }
 
     // Calendar
     snap.calendar = { connected: true, meta: "CalDAV · Settings → Calendar" };

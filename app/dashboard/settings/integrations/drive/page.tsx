@@ -10,20 +10,52 @@ import { Input } from "@/components/ui/input";
 import { toast, confirm } from "@/lib/stores/use-feedback";
 import { useGsapEntrance } from "@/lib/hooks/use-gsap-entrance";
 import { timeAgo } from "@/lib/utils/time";
-import type { DriveConnectionPublic, DriveDocPublic } from "@/types/jarvis";
+import type { DriveConnectionPublic } from "@/types/jarvis";
 
 export default function DriveIntegrationPage() {
   const ref = useGsapEntrance();
   const [connections, setConnections] = useState<DriveConnectionPublic[]>([]);
+  const [watchFolder, setWatchFolder] = useState(false);
+  const [autoExtract, setAutoExtract] = useState(false);
 
   const refresh = useCallback(async () => {
-    // Drive API routes are stubs — show empty state for now
-    setConnections([]);
+    const [c, s] = await Promise.all([
+      fetch("/api/drive/connections").then((r) => r.json()).catch(() => []),
+      fetch("/api/settings").then((r) => r.json()).catch(() => ({})),
+    ]);
+    setConnections(Array.isArray(c) ? c : []);
+    setWatchFolder(s.driveWatchFolder === "1");
+    setAutoExtract(s.driveAutoExtract !== "0");
   }, []);
 
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  const saveToggle = async (key: string, value: boolean) => {
+    await fetch("/api/settings", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ [key]: value ? "1" : "0" }),
+    });
+  };
+
+  const handleOAuth = () => {
+    window.location.href = "/api/oauth/drive/authorize?redirect_to=" +
+      encodeURIComponent(window.location.pathname);
+  };
+
+  const disconnect = async (conn: DriveConnectionPublic) => {
+    const ok = await confirm({
+      title: `Disconnect ${conn.googleEmail} from Drive?`,
+      confirmLabel: "Disconnect",
+      danger: true,
+    });
+    if (!ok) return;
+    await fetch(`/api/drive/connections?id=${conn.id}`, { method: "DELETE" });
+    toast.success("Drive disconnected");
+    refresh();
+  };
 
   const active = connections.find((c) => c.isActive);
 
@@ -57,11 +89,11 @@ export default function DriveIntegrationPage() {
                     <Badge className="bg-amber-400/10 border-amber-400/20 text-amber-400">● Connected</Badge>
                   </div>
                   <p className="text-[11px] text-text-muted mt-0.5">
-                    Scope: {active.scopes}
+                    Scope: {active.scopes} · Connected {timeAgo(active.createdAt)}
                   </p>
                 </div>
               </div>
-              <Button size="icon" variant="ghost" aria-label="Disconnect">
+              <Button size="icon" variant="ghost" onClick={() => disconnect(active)} aria-label="Disconnect">
                 <Trash2 size={14} className="text-rose-400" />
               </Button>
             </div>
@@ -74,7 +106,11 @@ export default function DriveIntegrationPage() {
                 <p className="text-xs font-medium text-text-primary">Watch folder for new documents</p>
                 <p className="text-[10px] text-text-muted">Automatically sync new files dropped into this folder</p>
               </div>
-              <Switch checked={true} onCheckedChange={() => {}} label="Watch folder" />
+              <Switch
+                checked={watchFolder}
+                onCheckedChange={(v) => { setWatchFolder(v); saveToggle("driveWatchFolder", v); }}
+                label="Watch folder"
+              />
             </div>
             <div className="flex items-center gap-2">
               <FolderOpen size={14} className="text-text-muted shrink-0" />
@@ -86,7 +122,11 @@ export default function DriveIntegrationPage() {
                 <p className="text-xs font-medium text-text-primary">Auto-extract to Notes</p>
                 <p className="text-[10px] text-text-muted">Convert synced Docs and PDFs into searchable Notes</p>
               </div>
-              <Switch checked={true} onCheckedChange={() => {}} label="Auto-extract" />
+              <Switch
+                checked={autoExtract}
+                onCheckedChange={(v) => { setAutoExtract(v); saveToggle("driveAutoExtract", v); }}
+                label="Auto-extract"
+              />
             </div>
           </Card>
         </>
@@ -98,7 +138,7 @@ export default function DriveIntegrationPage() {
           <p className="text-sm text-text-secondary mb-4">
             Connect your Google account to pull documents into Matrix Dash.
           </p>
-          <Button variant="primary" disabled>
+          <Button variant="primary" onClick={handleOAuth}>
             <HardDrive size={14} /> Connect Google Drive
           </Button>
           <p className="text-[10px] text-text-muted mt-3">

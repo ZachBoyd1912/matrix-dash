@@ -1,5 +1,36 @@
 # Changelog
 
+## 27/06/2026 @ 04:34:19 IST — "deepseek v4 pro"
+
+**Goal:** Wire up the Google Drive OAuth callback flow and add persistent toggle state to all integration settings pages so tool enable/approval switches survive page refresh.
+
+**Added — Google Drive OAuth Callback**
+- **Created** `app/api/oauth/drive/authorize/route.ts` — redirects to Google OAuth with `drive.readonly` scope, `access_type=offline`, `prompt=consent` (required to get a `refresh_token`)
+- **Created** `app/api/oauth/drive/callback/route.ts` — exchanges `code` for tokens via `oauth2.googleapis.com/token` (URL-encoded body), encrypts both `access_token` and `refresh_token` via AES-256-GCM, fetches user email from `googleapis.com/oauth2/v1/userinfo`, stores in `drive_connections`
+- **Created** `app/api/drive/connections/route.ts` — GET (list with toPublic stripping tokens), DELETE (by id via query param)
+
+**Changed — Drive settings page enabled with live API**
+- `app/dashboard/settings/integrations/drive/page.tsx` — now fetches from `/api/drive/connections` (was hardcoded empty array), **Connect Google Drive button is now enabled** (was `disabled`), disconnect button wired to DELETE endpoint, toggle states loaded from settings (`driveWatchFolder`, `driveAutoExtract`) and persisted on change
+
+**Changed — Toggle persistence for GitHub & Slack settings pages**
+- **GitHub page** (`app/dashboard/settings/integrations/github/page.tsx`): `ToolToggle` component rewritten to accept `checked` + `setChecked` props from parent state. Four toggles now load from `/api/settings` on mount (`tool_github`, `approve_createIssue`, `approve_createPR`, `approve_listRepos`) and persist via `PATCH /api/settings` on change
+- **Slack page** (`app/dashboard/settings/integrations/slack/page.tsx`): same pattern — `ToolToggle` with `checked`/`setChecked` props. Six toggles load from settings (`tool_slack`, `approve_sendSlackMessage`, `approve_listSlackChannels`, `approve_searchSlack`, `slack_summary_daily`, `slack_summary_weekly`) and persist on change
+
+**Changed — Integrations landing page updated for Drive**
+- **Cause:** Drive had no API before; now `/api/drive/connections` exists
+- **Fix:** Added Drive fetch to the `Promise.all` on mount alongside GitHub, Slack, and settings. Drive now shows real connection status — "connected" badge with email when OAuth'd, "Configure" prompt when not. Updated the `snap` calculation to use the real API response instead of hardcoded `connected: false`
+
+**Verification:** `pnpm typecheck` passes with zero errors across all 7 modified/new files
+
+**Files Touched:**
+- `app/api/oauth/drive/authorize/route.ts` — NEW 27 lines
+- `app/api/oauth/drive/callback/route.ts` — NEW 84 lines
+- `app/api/drive/connections/route.ts` — NEW 35 lines
+- `app/dashboard/settings/integrations/drive/page.tsx` — rewritten (145 lines, live API + toggle persistence)
+- `app/dashboard/settings/integrations/github/page.tsx` — +40 lines (toggle state + saveToggle + prop-driven ToolToggle)
+- `app/dashboard/settings/integrations/slack/page.tsx` — +45 lines (toggle state + saveToggle + prop-driven ToolToggle)
+- `app/dashboard/settings/integrations/page.tsx` — +8 lines (Drive API fetch + dynamic snap)
+
 ## 27/06/2026 @ 04:28:47 IST — "deepseek v4 pro"
 
 **Goal:** Fix the Integrations landing page to show real connection status from the database instead of hardcoded mock data with fake usernames, repo counts, and channel counts.
