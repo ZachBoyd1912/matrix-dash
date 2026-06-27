@@ -1,5 +1,46 @@
 # Changelog
 
+## 27/06/2026 @ 18:47:38 IST — "deepseek-v4-pro"
+
+**Goal:** Implement Phase 2 — full GitHub issue management. Add 10 service functions and 10 agent tools for listing, reading, updating, labeling, assigning, and commenting on issues, plus cross-repo issue search.
+
+**Skills used:** `@ai-engineer` (structured tool definitions with `approved()` gating for write operations), `@backend-dev-guidelines` (clean service layer, Zod validation on all tool inputs), `@senior-architect` (layered architecture — service → tools pattern)
+
+**Added — 10 issue management service functions (`lib/services/github.ts`):**
+
+- `listIssues(connectionId, repo, { state, labels, assignee, sort, direction, perPage, page })` — Paginated issue list with full filtering. Returns number, title, state, labels, assignees, comments count, timestamps. Excludes PRs via `!i.pull_request` filter
+- `getIssue(connectionId, repo, number)` — Full issue details: body, state_reason, labels, assignees, milestone title/due date, locked status, user
+- `updateIssue(connectionId, repo, number, updates)` — PATCH endpoint, supports: title, body, state (open/closed), state_reason (completed/not_planned), labels, assignees, milestone. Intellisense-friendly partial update object
+- `addLabels(connectionId, repo, number, labels)` — POST labels, returns array of applied label names
+- `removeLabel(connectionId, repo, number, label)` — DELETE a single label by name (URL-encoded), returns `{ ok }`
+- `assignIssue(connectionId, repo, number, assignees)` — POST assignees, returns array of assigned usernames
+- `commentOnIssue(connectionId, repo, number, body)` — POST comment (supports markdown), returns comment id, user, body, html_url
+- `listComments(connectionId, repo, number, { perPage, page })` — Paginated comment list, returns id, body, user, html_url, timestamps
+- `searchIssues(connectionId, query, { state, labels, repo, perPage })` — Cross-repo GitHub issue search with `+is:issue` filter to exclude PRs, returns number, title, state, repo, labels, html_url
+
+**Added — 10 issue management agent tools (`lib/ai/tools.ts`):**
+
+| Tool | Gated | Description |
+|---|---|---|
+| `listIssues` | No | List with state/labels/assignee/sort filters |
+| `getIssue` | No | Full issue details with body and milestone |
+| `updateIssue` | `approved("updateIssue")` | Edit title, body, state, labels, assignees |
+| `addLabels` | `approved("addLabels")` | Apply labels to an issue |
+| `removeLabel` | `approved("removeLabel")` | Remove a specific label |
+| `assignIssue` | `approved("assignIssue")` | Assign users to an issue |
+| `commentOnIssue` | `approved("commentOnIssue")` | Add comment with markdown |
+| `listComments` | No | Read all comments |
+| `searchIssues` | No | Cross-repo search by keyword |
+| `createIssue` | `approved("createIssue")` | (Existing, unchanged) |
+
+All write tools follow the `approved()` + `blocked()` pattern for agent safety.
+
+**Verification:** `pnpm typecheck` zero errors. 350 insertions, 0 deletions across 2 files.
+
+**Files touched:**
+- `lib/services/github.ts` (+223 lines, 10 new functions: listIssues, getIssue, updateIssue, addLabels, removeLabel, assignIssue, commentOnIssue, listComments, searchIssues, plus pattern helpers)
+- `lib/ai/tools.ts` (+127 lines, 10 new tools + updated imports)
+
 ## 27/06/2026 @ 17:16:58 IST — "deepseek-v4-pro"
 
 **Goal:** Implement Phase 1 of GitHub repository intelligence — add 9 new service functions and expand agent tool definitions from 4 tools to 14 tools, giving the Matrix Dash agent deep read access to GitHub repositories (code search, file browsing, commit history, diffs, blame, releases, repo metadata). Fix the GitHub sync 500 error caused by `onConflictDoUpdate` targeting non-unique columns. Fix GitHub settings page showing "Connect" button when a connection already exists.

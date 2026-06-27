@@ -38,6 +38,15 @@ import {
   blame,
   getLatestRelease,
   searchRepos,
+  listIssues,
+  getIssue,
+  updateIssue,
+  addLabels,
+  removeLabel,
+  assignIssue,
+  commentOnIssue,
+  listComments,
+  searchIssues,
 } from "@/lib/services/github";
 import { sendMessage, searchMessages } from "@/lib/services/slack";
 
@@ -485,6 +494,124 @@ export function buildAgentTools() {
         if (!approved("createPR")) return blocked("createPR");
         return createPR(ghConn().id, repo, title, body, head, base);
       },
+    });
+
+    // ── Issues (Phase 2) ────────────────────────────
+    toolset.listIssues = tool({
+      description: "List issues in a repository with filters (state, labels, assignee, sort).",
+      inputSchema: z.object({
+        repo: z.string(),
+        state: z.enum(["open", "closed", "all"]).default("open"),
+        labels: z.array(z.string()).optional(),
+        assignee: z.string().optional(),
+        sort: z.enum(["created", "updated", "comments"]).default("updated"),
+        perPage: z.number().default(20),
+        page: z.number().default(1),
+      }),
+      execute: async (opts) => listIssues(ghConn().id, opts.repo, opts),
+    });
+
+    toolset.getIssue = tool({
+      description: "Get full details of a single GitHub issue including body, labels, assignees, and milestone.",
+      inputSchema: z.object({
+        repo: z.string(),
+        number: z.number().describe("Issue number (e.g. 42)"),
+      }),
+      execute: async ({ repo, number }) => getIssue(ghConn().id, repo, number),
+    });
+
+    toolset.updateIssue = tool({
+      description: "Update an issue's title, body, state, labels, assignees, or milestone. Requires approval.",
+      inputSchema: z.object({
+        repo: z.string(),
+        number: z.number(),
+        title: z.string().optional(),
+        body: z.string().optional(),
+        state: z.enum(["open", "closed"]).optional(),
+        stateReason: z.enum(["completed", "not_planned"]).optional(),
+        labels: z.array(z.string()).optional(),
+        assignees: z.array(z.string()).optional(),
+        milestone: z.number().nullable().optional(),
+      }),
+      execute: async ({ repo, number, ...updates }) => {
+        if (!approved("updateIssue")) return blocked("updateIssue");
+        return updateIssue(ghConn().id, repo, number, updates);
+      },
+    });
+
+    toolset.addLabels = tool({
+      description: "Add labels to a GitHub issue. Requires approval.",
+      inputSchema: z.object({
+        repo: z.string(),
+        number: z.number(),
+        labels: z.array(z.string()).describe("Label names to add"),
+      }),
+      execute: async ({ repo, number, labels }) => {
+        if (!approved("addLabels")) return blocked("addLabels");
+        return addLabels(ghConn().id, repo, number, labels);
+      },
+    });
+
+    toolset.removeLabel = tool({
+      description: "Remove a label from a GitHub issue. Requires approval.",
+      inputSchema: z.object({
+        repo: z.string(),
+        number: z.number(),
+        label: z.string(),
+      }),
+      execute: async ({ repo, number, label }) => {
+        if (!approved("removeLabel")) return blocked("removeLabel");
+        return removeLabel(ghConn().id, repo, number, label);
+      },
+    });
+
+    toolset.assignIssue = tool({
+      description: "Assign users to a GitHub issue. Requires approval.",
+      inputSchema: z.object({
+        repo: z.string(),
+        number: z.number(),
+        assignees: z.array(z.string()).describe("GitHub usernames to assign"),
+      }),
+      execute: async ({ repo, number, assignees }) => {
+        if (!approved("assignIssue")) return blocked("assignIssue");
+        return assignIssue(ghConn().id, repo, number, assignees);
+      },
+    });
+
+    toolset.commentOnIssue = tool({
+      description: "Add a comment to a GitHub issue (supports markdown). Requires approval.",
+      inputSchema: z.object({
+        repo: z.string(),
+        number: z.number(),
+        body: z.string().describe("Comment body (markdown supported)"),
+      }),
+      execute: async ({ repo, number, body }) => {
+        if (!approved("commentOnIssue")) return blocked("commentOnIssue");
+        return commentOnIssue(ghConn().id, repo, number, body);
+      },
+    });
+
+    toolset.listComments = tool({
+      description: "List all comments on a GitHub issue.",
+      inputSchema: z.object({
+        repo: z.string(),
+        number: z.number(),
+        perPage: z.number().default(30),
+        page: z.number().default(1),
+      }),
+      execute: async (opts) =>
+        listComments(ghConn().id, opts.repo, opts.number, { perPage: opts.perPage, page: opts.page }),
+    });
+
+    toolset.searchIssues = tool({
+      description: "Search issues across all GitHub repositories by keyword.",
+      inputSchema: z.object({
+        query: z.string().describe("Search query (e.g. 'login bug', 'performance')"),
+        state: z.enum(["open", "closed"]).optional(),
+        labels: z.array(z.string()).optional(),
+        repo: z.string().optional(),
+      }),
+      execute: async (opts) => searchIssues(ghConn().id, opts.query, opts),
     });
   }
 

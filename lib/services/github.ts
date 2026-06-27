@@ -432,3 +432,226 @@ export async function getLatestRelease(connectionId: string, repo: string) {
     })),
   };
 }
+
+// ─── PHASE 2: ISSUE MANAGEMENT ────────────────────────────
+
+/** List issues for a repository with filters. */
+export async function listIssues(
+  connectionId: string,
+  repo: string,
+  options?: {
+    state?: "open" | "closed" | "all";
+    labels?: string[];
+    assignee?: string;
+    sort?: "created" | "updated" | "comments";
+    direction?: "asc" | "desc";
+    perPage?: number;
+    page?: number;
+  }
+) {
+  const { request } = api(connectionId);
+  const params = new URLSearchParams();
+  params.set("state", options?.state ?? "open");
+  if (options?.labels?.length) params.set("labels", options.labels.join(","));
+  if (options?.assignee) params.set("assignee", options.assignee);
+  params.set("sort", options?.sort ?? "updated");
+  params.set("direction", options?.direction ?? "desc");
+  params.set("per_page", String(options?.perPage ?? 30));
+  params.set("page", String(options?.page ?? 1));
+
+  const res = await request(`/repos/${repo}/issues?${params}`);
+  if (!res.ok) return [];
+  const issues: any[] = await res.json();
+  return issues.filter((i) => !i.pull_request).map((i: any) => ({
+    number: i.number,
+    title: i.title,
+    state: i.state,
+    body: i.body?.slice(0, 500),
+    labels: (i.labels ?? []).map((l: any) => l.name),
+    assignees: (i.assignees ?? []).map((a: any) => a.login),
+    comments: i.comments,
+    htmlUrl: i.html_url,
+    createdAt: i.created_at,
+    updatedAt: i.updated_at,
+    closedAt: i.closed_at,
+  }));
+}
+
+/** Get a single issue with full details. */
+export async function getIssue(connectionId: string, repo: string, number: number) {
+  const { request } = api(connectionId);
+  const res = await request(`/repos/${repo}/issues/${number}`);
+  if (!res.ok) return null;
+  const i = await res.json();
+  return {
+    number: i.number,
+    title: i.title,
+    state: i.state,
+    stateReason: i.state_reason ?? null,
+    body: i.body,
+    labels: (i.labels ?? []).map((l: any) => l.name),
+    assignees: (i.assignees ?? []).map((a: any) => a.login),
+    milestone: i.milestone ? { title: i.milestone.title, dueOn: i.milestone.due_on } : null,
+    comments: i.comments,
+    locked: i.locked,
+    htmlUrl: i.html_url,
+    createdAt: i.created_at,
+    updatedAt: i.updated_at,
+    closedAt: i.closed_at,
+    user: i.user?.login,
+  };
+}
+
+/** Update an issue's title, body, state, labels, assignees, or milestone. */
+export async function updateIssue(
+  connectionId: string,
+  repo: string,
+  number: number,
+  updates: {
+    title?: string;
+    body?: string;
+    state?: "open" | "closed";
+    stateReason?: "completed" | "not_planned";
+    labels?: string[];
+    assignees?: string[];
+    milestone?: number | null;
+  }
+) {
+  const { request } = api(connectionId);
+  const res = await request(`/repos/${repo}/issues/${number}`, {
+    method: "PATCH",
+    body: JSON.stringify(updates),
+  });
+  if (!res.ok) return { error: `Failed to update issue: ${res.status}` };
+  const i = await res.json();
+  return {
+    number: i.number,
+    title: i.title,
+    state: i.state,
+    htmlUrl: i.html_url,
+  };
+}
+
+/** Add labels to an issue. */
+export async function addLabels(
+  connectionId: string,
+  repo: string,
+  number: number,
+  labels: string[]
+) {
+  const { request } = api(connectionId);
+  const res = await request(`/repos/${repo}/issues/${number}/labels`, {
+    method: "POST",
+    body: JSON.stringify({ labels }),
+  });
+  if (!res.ok) return { error: `Failed to add labels: ${res.status}` };
+  return (await res.json()).map((l: any) => l.name);
+}
+
+/** Remove a label from an issue. */
+export async function removeLabel(
+  connectionId: string,
+  repo: string,
+  number: number,
+  label: string
+) {
+  const { request } = api(connectionId);
+  const res = await request(
+    `/repos/${repo}/issues/${number}/labels/${encodeURIComponent(label)}`,
+    { method: "DELETE" }
+  );
+  return { ok: res.ok || res.status === 404 };
+}
+
+/** Assign users to an issue. */
+export async function assignIssue(
+  connectionId: string,
+  repo: string,
+  number: number,
+  assignees: string[]
+) {
+  const { request } = api(connectionId);
+  const res = await request(`/repos/${repo}/issues/${number}/assignees`, {
+    method: "POST",
+    body: JSON.stringify({ assignees }),
+  });
+  if (!res.ok) return { error: `Failed to assign: ${res.status}` };
+  return (await res.json()).assignees.map((a: any) => a.login);
+}
+
+/** Add a comment to an issue. */
+export async function commentOnIssue(
+  connectionId: string,
+  repo: string,
+  number: number,
+  body: string
+) {
+  const { request } = api(connectionId);
+  const res = await request(`/repos/${repo}/issues/${number}/comments`, {
+    method: "POST",
+    body: JSON.stringify({ body }),
+  });
+  if (!res.ok) return { error: `Failed to comment: ${res.status}` };
+  const c = await res.json();
+  return {
+    id: c.id,
+    body: c.body,
+    user: c.user?.login,
+    htmlUrl: c.html_url,
+    createdAt: c.created_at,
+  };
+}
+
+/** List all comments on an issue. */
+export async function listComments(
+  connectionId: string,
+  repo: string,
+  number: number,
+  options?: { perPage?: number; page?: number }
+) {
+  const { request } = api(connectionId);
+  const params = new URLSearchParams();
+  params.set("per_page", String(options?.perPage ?? 30));
+  params.set("page", String(options?.page ?? 1));
+
+  const res = await request(`/repos/${repo}/issues/${number}/comments?${params}`);
+  if (!res.ok) return [];
+  const comments: any[] = await res.json();
+  return comments.map((c: any) => ({
+    id: c.id,
+    body: c.body,
+    user: c.user?.login,
+    htmlUrl: c.html_url,
+    createdAt: c.created_at,
+    updatedAt: c.updated_at,
+  }));
+}
+
+/** Search issues and PRs across all repos. */
+export async function searchIssues(
+  connectionId: string,
+  query: string,
+  options?: { state?: "open" | "closed"; labels?: string[]; repo?: string; perPage?: number }
+) {
+  const { request } = api(connectionId);
+  let q = encodeURIComponent(query);
+  if (options?.state) q += `+state:${options.state}`;
+  if (options?.labels?.length) q += `+label:${options.labels.join(",")}`;
+  if (options?.repo) q += `+repo:${options.repo}`;
+  q += "+is:issue"; // exclude PRs
+
+  const res = await request(
+    `/search/issues?q=${q}&per_page=${options?.perPage ?? 20}`
+  );
+  if (!res.ok) return [];
+  const data = (await res.json()) as { items: any[] };
+  return data.items.map((i: any) => ({
+    number: i.number,
+    title: i.title,
+    state: i.state,
+    repo: i.repository_url?.split("/repos/")[1] ?? "",
+    labels: (i.labels ?? []).map((l: any) => l.name),
+    htmlUrl: i.html_url,
+    createdAt: i.created_at,
+  }));
+}
