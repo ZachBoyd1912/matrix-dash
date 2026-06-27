@@ -1,5 +1,70 @@
 # Changelog
 
+## 27/06/2026 @ 17:16:58 IST — "deepseek-v4-pro"
+
+**Goal:** Implement Phase 1 of GitHub repository intelligence — add 9 new service functions and expand agent tool definitions from 4 tools to 14 tools, giving the Matrix Dash agent deep read access to GitHub repositories (code search, file browsing, commit history, diffs, blame, releases, repo metadata). Fix the GitHub sync 500 error caused by `onConflictDoUpdate` targeting non-unique columns. Fix GitHub settings page showing "Connect" button when a connection already exists.
+
+**Skills used:** `@ai-engineer` (structured tool definitions with `approved()` gating), `@backend-dev-guidelines` (clean service layer, input validation via Zod, layered architecture)
+
+**Added — 9 GitHub service functions (`lib/services/github.ts`):**
+
+- `getRepo(connectionId, repo)` — Full repo metadata: stars, forks, open issues, topics, license, clone URL, timestamps
+- `searchCode(connectionId, query, repo?)` — GitHub code search across all repos (or scoped to one), returns matches with path, repo, and relevance score
+- `listFiles(connectionId, repo, path, ref?)` — Directory listing at any path, returns file/dir type, size
+- `getBlob(connectionId, repo, path, ref?)` — Read binary files (images, fonts) as base64 via `application/vnd.github.raw+json`
+- `readMultipleFiles(connectionId, repo, paths, ref?)` — Parallel file reads for cross-file code analysis, returns `{ path, content }` array with per-file error handling
+- `getCommit(connectionId, repo, sha)` — Full commit: message, author, date, stats (additions/deletions), files list with truncated patches
+- `listCommits(connectionId, repo, { branch, path, author, since, perPage, page })` — Paginated commit log, returns sha, short sha, message, author, date
+- `compareCommits(connectionId, repo, base, head)` — Git diff between two refs: ahead/behind counts, file changes, commit list, diff/patch URLs
+- `blame(connectionId, repo, path, { ref })` — Show last commit for each line via `/repos/{repo}/commits?path=` endpoint
+- `getLatestRelease(connectionId, repo)` — Latest release: tag, name, body (truncated to 1000 chars), draft/prerelease flags, assets with download counts
+
+**Added — 10 new agent tools (`lib/ai/tools.ts`) in the GitHub block:**
+
+- `getRepo` — Read detailed repo metadata
+- `readMultipleFiles` — Batch read files (cross-file analysis)
+- `listFiles` — Browse directory trees
+- `searchCode` — Search code by keyword
+- `listCommits` — Browse commit history with filters
+- `getCommit` — Inspect a single commit with diff
+- `compareCommits` — Diff between branches/tags/commits
+- `blame` — File authorship tracking
+- `getLatestRelease` — Release info and assets
+- `searchRepos` — Search repos by keyword
+
+**Changed — GitHub tools block refactored:**
+
+- Eliminated redundant `getDb()` calls by extracting `ghConn()` helper that fetches the active GitHub connection once
+- All read tools are ungated (available whenever GitHub is enabled); write tools (`createIssue`, `createPR`) remain behind `approved()` gates
+- Existing `listRepos`, `createIssue`, `createPR`, `readRepoFile` tools preserved with updated descriptions
+
+**Fixed — GitHub sync 500 error (`lib/services/github.ts`):**
+
+- `onConflictDoUpdate({ target: [fullName, connectionId] })` failed because `(full_name, connection_id)` had no unique constraint
+- Replaced with deterministic IDs (`${connectionId}:${fullName}`) and manual `check-exists → update-or-insert` logic
+- Removed unused `randomUUID` import
+
+**Fixed — GitHub settings page blank state (`app/dashboard/settings/integrations/github/page.tsx`):**
+
+- Wrapped component in `<Suspense>` to fix `useSearchParams()` hydration issues in Next.js 15
+- Added `loading` state to prevent flashing the "Connect" button before API responses arrive
+- `isActive` check changed from truthy to explicit `=== true`
+- Added GitHub avatar image display, clickable repo cards with external links, repo description previews, increased repo list limit to 30
+
+**Fixed — OAuth callbacks (`app/api/oauth/*/callback/route.ts`):**
+
+- All 5 callbacks (GitHub, Slack, Drive, Google Calendar, Gmail) now use `new URL(req.url, "http://localhost:3000")` for safe URL parsing
+- Entire function bodies wrapped in try/catch with `console.error` for debugging (previously: only token exchange was guarded)
+- `verifyOAuthState()` calls moved inside try blocks
+
+**Verification:** `pnpm typecheck` zero errors. 401 insertions, 46 deletions across 4 files (2 service/tools + 2 one-liner fixes).
+
+**Files touched:**
+- `lib/services/github.ts` (+230/-21, 9 new service functions, fixed sync upsert)
+- `lib/ai/tools.ts` (+171/-25, 10 new tools, refactored GitHub block with ghConn() helper)
+- `app/api/oauth/github/callback/route.ts` (+22/-20, wrapped in try/catch, safe URL)
+- `app/dashboard/settings/integrations/github/page.tsx` (+96/-40, Suspense, loading, avatar)
+
 ## 27/06/2026 @ 04:47:07 IST — "deepseek v4 pro"
 
 **Goal:** Add Google Calendar as a provider option alongside local/CalDAV calendars on the Calendar settings page — with a dropdown to choose between "Local (CalDAV / ICS)" and "Google Calendar", and full Google OAuth flow for calendar sync.

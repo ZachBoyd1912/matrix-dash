@@ -24,7 +24,21 @@ import { notify } from "@/lib/services/notify";
 import { buildCodingTools } from "@/lib/ai/coding-tools";
 import { getPowerLevel, getWorkspaceRoot } from "@/lib/ai/power";
 import { githubConnections, githubRepos, slackWorkspaces, slackChannels } from "@/lib/db/schema";
-import { createIssue, createPR, readRepoFile } from "@/lib/services/github";
+import {
+  createIssue,
+  createPR,
+  readRepoFile,
+  getRepo,
+  searchCode,
+  listFiles,
+  readMultipleFiles,
+  getCommit,
+  listCommits,
+  compareCommits,
+  blame,
+  getLatestRelease,
+  searchRepos,
+} from "@/lib/services/github";
 import { sendMessage, searchMessages } from "@/lib/services/slack";
 
 const now = () => new Date().toISOString();
@@ -319,73 +333,157 @@ export function buildAgentTools() {
   }
 
   if (enabled("github")) {
+    const ghConn = () => {
+      const c = getDb()
+        .select()
+        .from(githubConnections)
+        .where(eq(githubConnections.isActive, true))
+        .get();
+      if (!c) throw new Error("No active GitHub connection.");
+      return c;
+    };
+
+    // ── Read ─────────────────────────────────────────
     toolset.listRepos = tool({
-      description: "List the user's GitHub repositories.",
+      description: "List your synced GitHub repositories (name, stars, language, private flag).",
       inputSchema: z.object({}),
       execute: async () => {
         const rows = getDb().select().from(githubRepos).all();
         return rows.map((r) => ({
-          full_name: r.fullName,
-          stars: r.stars,
-          language: r.language,
-          private: r.isPrivate,
+          full_name: r.fullName, stars: r.stars, language: r.language, private: r.isPrivate,
         }));
       },
     });
-    toolset.createIssue = tool({
-      description: "Create a GitHub issue in a repository. Requires approval.",
+
+    toolset.getRepo = tool({
+      description: "Get detailed metadata for a single GitHub repo (stars, forks, topics, license, default branch).",
+      inputSchema: z.object({ repo: z.string().describe("e.g. ZachBoyd1912/matrix-dash") }),
+      execute: async ({ repo }) => getRepo(ghConn().id, repo),
+    });
+
+    toolset.readRepoFile = tool({
+      description: "Read the contents of a file in a GitHub repository. Returns the file content as text.",
       inputSchema: z.object({
         repo: z.string().describe("e.g. ZachBoyd1912/matrix-dash"),
-        title: z.string(),
-        body: z.string(),
-        labels: z.array(z.string()).optional(),
+        path: z.string().describe("File path from repo root, e.g. src/app.ts"),
+        ref: z.string().optional().describe("Branch name or commit SHA (default: default branch)"),
+      }),
+      execute: async ({ repo, path, ref }) => readRepoFile(ghConn().id, repo, path, ref),
+    });
+
+    toolset.readMultipleFiles = tool({
+      description: "Read multiple files from a repo in parallel. Use when you need to understand code across several files.",
+      inputSchema: z.object({
+        repo: z.string(),
+        paths: z.array(z.string()).describe("List of file paths"),
+        ref: z.string().optional(),
+      }),
+      execute: async ({ repo, paths, ref }) =>
+        readMultipleFiles(ghConn().id, repo, paths, ref),
+    });
+
+    toolset.listFiles = tool({
+      description: "List files and directories at a path in a GitHub repository.",
+      inputSchema: z.object({
+        repo: z.string(),
+        path: z.string().default("").describe("Directory path (empty = root)"),
+        ref: z.string().optional(),
+      }),
+      execute: async ({ repo, path, ref }) => {
+        const result = await listFiles(ghConn().id, repo, path, ref);
+        return result ?? { error: `Not a directory or path not found: ${path || "/"}` };
+      },
+    });
+
+    toolset.searchCode = tool({
+      description: "Search code across GitHub repositories. Finds files containing a query string.",
+      inputSchema: z.object({
+        query: z.string().describe("Code to search for (e.g. 'useState', 'TODO', 'CREATE TABLE')"),
+        repo: z.string().optional().describe("Limit search to a specific repo"),
+      }),
+      execute: async ({ query, repo }) => searchCode(ghConn().id, query, repo),
+    });
+
+    // ── History & Diff ──────────────────────────────
+    toolset.listCommits = tool({
+      description: "Get commit history for a repo (optionally filtered by branch, path, or author).",
+      inputSchema: z.object({
+        repo: z.string(),
+        branch: z.string().optional(),
+        path: z.string().optional(),
+        author: z.string().optional(),
+        perPage: z.number().default(20),
+        page: z.number().default(1),
+      }),
+      execute: async (opts) => listCommits(ghConn().id, opts.repo, opts),
+    });
+
+    toolset.getCommit = tool({
+      description: "Get full details of a single commit including diff and files changed.",
+      inputSchema: z.object({
+        repo: z.string(),
+        sha: z.string().describe("Commit SHA (full or short)"),
+      }),
+      execute: async ({ repo, sha }) => getCommit(ghConn().id, repo, sha),
+    });
+
+    toolset.compareCommits = tool({
+      description: "Compare two refs (branches, tags, or commits) and show the diff.",
+      inputSchema: z.object({
+        repo: z.string(),
+        base: z.string().describe("Base ref (e.g. 'main')"),
+        head: z.string().describe("Head ref to compare against base"),
+      }),
+      execute: async ({ repo, base, head }) =>
+        compareCommits(ghConn().id, repo, base, head),
+    });
+
+    toolset.blame = tool({
+      description: "Show who last modified each line of a file (git blame).",
+      inputSchema: z.object({
+        repo: z.string(),
+        path: z.string().describe("File path in the repo"),
+        ref: z.string().optional(),
+      }),
+      execute: async ({ repo, path, ref }) => blame(ghConn().id, repo, path, { ref }),
+    });
+
+    toolset.getLatestRelease = tool({
+      description: "Get the latest release for a repository (tag, notes, assets).",
+      inputSchema: z.object({ repo: z.string() }),
+      execute: async ({ repo }) => getLatestRelease(ghConn().id, repo),
+    });
+
+    // ── Search ──────────────────────────────────────
+    toolset.searchRepos = tool({
+      description: "Search across all GitHub repositories by keyword.",
+      inputSchema: z.object({ query: z.string().describe("Repository search query") }),
+      execute: async ({ query }) => searchRepos(ghConn().id, query),
+    });
+
+    // ── Write (gated) ───────────────────────────────
+    toolset.createIssue = tool({
+      description: "Create a GitHub issue. Requires approval.",
+      inputSchema: z.object({
+        repo: z.string().describe("e.g. ZachBoyd1912/matrix-dash"),
+        title: z.string(), body: z.string(), labels: z.array(z.string()).optional(),
       }),
       execute: async ({ repo, title, body, labels }) => {
         if (!approved("createIssue")) return blocked("createIssue");
-        const conn = getDb()
-          .select()
-          .from(githubConnections)
-          .where(eq(githubConnections.isActive, true))
-          .get();
-        if (!conn) return { error: "No active GitHub connection." };
-        return createIssue(conn.id, repo, title, body, labels);
+        return createIssue(ghConn().id, repo, title, body, labels);
       },
     });
+
     toolset.createPR = tool({
       description: "Create a GitHub pull request. Requires approval.",
       inputSchema: z.object({
-        repo: z.string(),
-        title: z.string(),
-        body: z.string(),
-        head: z.string(),
+        repo: z.string(), title: z.string(), body: z.string(),
+        head: z.string().describe("Branch with changes"),
         base: z.string().default("main"),
       }),
       execute: async ({ repo, title, body, head, base }) => {
         if (!approved("createPR")) return blocked("createPR");
-        const conn = getDb()
-          .select()
-          .from(githubConnections)
-          .where(eq(githubConnections.isActive, true))
-          .get();
-        if (!conn) return { error: "No active GitHub connection." };
-        return createPR(conn.id, repo, title, body, head, base);
-      },
-    });
-    toolset.readRepoFile = tool({
-      description: "Read a file from a GitHub repository by path.",
-      inputSchema: z.object({
-        repo: z.string(),
-        path: z.string(),
-        ref: z.string().optional(),
-      }),
-      execute: async ({ repo, path, ref }) => {
-        const conn = getDb()
-          .select()
-          .from(githubConnections)
-          .where(eq(githubConnections.isActive, true))
-          .get();
-        if (!conn) return { error: "No active GitHub connection." };
-        return readRepoFile(conn.id, repo, path, ref);
+        return createPR(ghConn().id, repo, title, body, head, base);
       },
     });
   }

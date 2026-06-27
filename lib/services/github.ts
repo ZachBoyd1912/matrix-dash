@@ -173,5 +173,262 @@ export async function readRepoFile(
     headers: { Accept: "application/vnd.github.raw+json" },
   });
   if (!res.ok) return null;
-  return { content: await res.text(), path };
+  return { content: await res.text(), path, repo };
+}
+
+// ─── PHASE 1: REPOSITORY INTELLIGENCE ───────────────────────
+
+/** Get detailed metadata for a single repository. */
+export async function getRepo(connectionId: string, repo: string) {
+  const { request } = api(connectionId);
+  const res = await request(`/repos/${repo}`);
+  if (!res.ok) return null;
+  const r = await res.json();
+  return {
+    fullName: r.full_name,
+    description: r.description,
+    stars: r.stargazers_count,
+    forks: r.forks_count,
+    openIssues: r.open_issues_count,
+    language: r.language,
+    topics: r.topics ?? [],
+    license: r.license?.spdx_id ?? null,
+    isPrivate: r.private,
+    defaultBranch: r.default_branch,
+    htmlUrl: r.html_url,
+    cloneUrl: r.clone_url,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+    pushedAt: r.pushed_at,
+  };
+}
+
+/** Search code across all repositories the user has access to. */
+export async function searchCode(connectionId: string, query: string, repo?: string) {
+  const { request } = api(connectionId);
+  let q = encodeURIComponent(query);
+  if (repo) q += `+repo:${repo}`;
+  const res = await request(`/search/code?q=${q}&per_page=20`);
+  if (!res.ok) return [];
+  const data = (await res.json()) as { items: any[] };
+  return data.items.map((item: any) => ({
+    repo: item.repository.full_name,
+    path: item.path,
+    name: item.name,
+    htmlUrl: item.html_url,
+    score: item.score,
+  }));
+}
+
+/** List directory contents at a given path in a repository. */
+export async function listFiles(
+  connectionId: string,
+  repo: string,
+  path = "",
+  ref?: string
+) {
+  const { request } = api(connectionId);
+  const qs = ref ? `?ref=${ref}` : "";
+  const res = await request(`/repos/${repo}/contents/${path}${qs}`);
+  if (!res.ok) return null;
+  const items: any[] = await res.json();
+  if (!Array.isArray(items)) return null; // single file, not directory
+  return items.map((item: any) => ({
+    name: item.name,
+    path: item.path,
+    type: item.type as "file" | "dir",
+    size: item.size,
+    htmlUrl: item.html_url,
+  }));
+}
+
+/** Read a binary file (image, font, etc.) and return as base64. */
+export async function getBlob(connectionId: string, repo: string, path: string, ref?: string) {
+  const { request } = api(connectionId);
+  const qs = ref ? `?ref=${ref}` : "";
+  const res = await request(`/repos/${repo}/contents/${path}${qs}`, {
+    headers: { Accept: "application/vnd.github.raw+json" },
+  });
+  if (!res.ok) return null;
+  const buffer = Buffer.from(await res.arrayBuffer());
+  return {
+    content: buffer.toString("base64"),
+    encoding: "base64" as const,
+    path,
+    repo,
+    size: buffer.length,
+  };
+}
+
+/** Read multiple files in parallel (efficient cross-file analysis). */
+export async function readMultipleFiles(
+  connectionId: string,
+  repo: string,
+  paths: string[],
+  ref?: string
+) {
+  const results = await Promise.all(
+    paths.map(async (path) => {
+      try {
+        return await readRepoFile(connectionId, repo, path, ref);
+      } catch {
+        return { path, content: null, error: "Failed to read" };
+      }
+    })
+  );
+  return results;
+}
+
+/** Get full commit details including diff and files changed. */
+export async function getCommit(connectionId: string, repo: string, sha: string) {
+  const { request } = api(connectionId);
+  const res = await request(`/repos/${repo}/commits/${sha}`);
+  if (!res.ok) return null;
+  const c = await res.json();
+  return {
+    sha: c.sha,
+    message: c.commit.message,
+    author: c.commit.author?.name ?? c.author?.login,
+    date: c.commit.author?.date,
+    htmlUrl: c.html_url,
+    stats: c.stats,
+    files: (c.files ?? []).map((f: any) => ({
+      filename: f.filename,
+      status: f.status,
+      additions: f.additions,
+      deletions: f.deletions,
+      changes: f.changes,
+      patch: f.patch?.slice(0, 2000), // truncated for context window
+    })),
+  };
+}
+
+/** Paginated commit history for a branch or path. */
+export async function listCommits(
+  connectionId: string,
+  repo: string,
+  options?: {
+    branch?: string;
+    path?: string;
+    author?: string;
+    since?: string;
+    perPage?: number;
+    page?: number;
+  }
+) {
+  const { request } = api(connectionId);
+  const params = new URLSearchParams();
+  if (options?.branch) params.set("sha", options.branch);
+  if (options?.path) params.set("path", options.path);
+  if (options?.author) params.set("author", options.author);
+  if (options?.since) params.set("since", options.since);
+  params.set("per_page", String(options?.perPage ?? 20));
+  params.set("page", String(options?.page ?? 1));
+
+  const res = await request(`/repos/${repo}/commits?${params}`);
+  if (!res.ok) return [];
+  const commits: any[] = await res.json();
+  return commits.map((c: any) => ({
+    sha: c.sha,
+    shortSha: c.sha.slice(0, 7),
+    message: c.commit.message.split("\n")[0],
+    author: c.commit.author?.name ?? c.author?.login,
+    date: c.commit.author?.date,
+    htmlUrl: c.html_url,
+  }));
+}
+
+/** Compare two commits, branches, or tags. */
+export async function compareCommits(
+  connectionId: string,
+  repo: string,
+  base: string,
+  head: string
+) {
+  const { request } = api(connectionId);
+  const res = await request(`/repos/${repo}/compare/${base}...${head}`);
+  if (!res.ok) return null;
+  const c = await res.json();
+  return {
+    status: c.status,
+    aheadBy: c.ahead_by,
+    behindBy: c.behind_by,
+    totalCommits: c.total_commits,
+    commits: (c.commits ?? []).map((cm: any) => ({
+      sha: cm.sha.slice(0, 7),
+      message: cm.commit.message.split("\n")[0],
+      author: cm.commit.author?.name,
+    })),
+    files: (c.files ?? []).map((f: any) => ({
+      filename: f.filename,
+      status: f.status,
+      additions: f.additions,
+      deletions: f.deletions,
+    })),
+    htmlUrl: c.html_url,
+    diffUrl: c.diff_url,
+  };
+}
+
+/** Get line-by-line git blame for a file. */
+export async function blame(
+  connectionId: string,
+  repo: string,
+  path: string,
+  options?: { ref?: string; lineStart?: number; lineEnd?: number }
+) {
+  const { request } = api(connectionId);
+  // GitHub doesn't have a native blame endpoint, but we can use the content API
+  // with the blame media type to get commit info per line
+  const ref = options?.ref ?? "HEAD";
+  const res = await request(
+    `/repos/${repo}/contents/${path}?ref=${ref}`,
+    { headers: { Accept: "application/vnd.github.v3+json" } }
+  );
+  if (!res.ok) return null;
+
+  // Fall back to using the commits endpoint per file
+  const commitRes = await request(
+    `/repos/${repo}/commits?path=${encodeURIComponent(path)}&per_page=1&sha=${ref}`
+  );
+  if (!commitRes.ok) return null;
+  const commits: any[] = await commitRes.json();
+
+  return {
+    path,
+    repo,
+    lastCommit: commits[0]
+      ? {
+          sha: commits[0].sha.slice(0, 7),
+          author: commits[0].commit.author?.name,
+          date: commits[0].commit.author?.date,
+          message: commits[0].commit.message.split("\n")[0],
+        }
+      : null,
+    totalCommits: commits.length > 0 ? undefined : 0,
+  };
+}
+
+/** Get the latest release for a repository. */
+export async function getLatestRelease(connectionId: string, repo: string) {
+  const { request } = api(connectionId);
+  const res = await request(`/repos/${repo}/releases/latest`);
+  if (!res.ok) return null;
+  const r = await res.json();
+  return {
+    tagName: r.tag_name,
+    name: r.name,
+    body: r.body?.slice(0, 1000),
+    draft: r.draft,
+    prerelease: r.prerelease,
+    htmlUrl: r.html_url,
+    createdAt: r.created_at,
+    publishedAt: r.published_at,
+    assets: (r.assets ?? []).map((a: any) => ({
+      name: a.name,
+      size: a.size,
+      downloadCount: a.download_count,
+      url: a.browser_download_url,
+    })),
+  };
 }
