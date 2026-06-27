@@ -1,0 +1,173 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { Github, RefreshCw, Trash2, Plus, ExternalLink } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { toast, confirm } from "@/lib/stores/use-feedback";
+import { useGsapEntrance } from "@/lib/hooks/use-gsap-entrance";
+import { timeAgo } from "@/lib/utils/time";
+import type { GitHubConnectionPublic, GitHubRepoPublic } from "@/types/jarvis";
+
+export default function GitHubIntegrationPage() {
+  const ref = useGsapEntrance();
+  const [connections, setConnections] = useState<GitHubConnectionPublic[]>([]);
+  const [repos, setRepos] = useState<GitHubRepoPublic[]>([]);
+  const [syncing, setSyncing] = useState(false);
+
+  const refresh = useCallback(async () => {
+    const [c, r] = await Promise.all([
+      fetch("/api/github/connections").then((r) => r.json()),
+      fetch("/api/github/repos").then((r) => r.json()),
+    ]);
+    setConnections(Array.isArray(c) ? c : []);
+    setRepos(Array.isArray(r) ? r : []);
+  }, []);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const handleOAuth = () => {
+    window.location.href = "/api/oauth/github/authorize?redirect_to=" +
+      encodeURIComponent(window.location.pathname);
+  };
+
+  const syncRepos = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch("/api/github/sync", { method: "POST" });
+      const data = await res.json();
+      if (data.ok) toast.success("Repos synced", `${data.reposSynced} repositories updated`);
+      else toast.error("Sync failed", data.error);
+      refresh();
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const disconnect = async (conn: GitHubConnectionPublic) => {
+    const ok = await confirm({
+      title: `Disconnect GitHub as ${conn.githubUser}?`,
+      confirmLabel: "Disconnect",
+      danger: true,
+    });
+    if (!ok) return;
+    await fetch(`/api/github/connections?id=${conn.id}`, { method: "DELETE" });
+    toast.success("GitHub disconnected");
+    refresh();
+  };
+
+  const active = connections.find((c) => c.isActive);
+
+  return (
+    <div ref={ref} className="space-y-8">
+      <div className="relative isolate py-10">
+        <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
+        <div className="orb top-0 left-40 h-40 w-40 bg-sky-500/15" style={{ animationDelay: "-6s" }} />
+        <div className="relative">
+          <span className="eyebrow">
+            <Github size={11} /> GitHub
+          </span>
+          <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">GitHub</h1>
+          <p className="text-text-secondary text-sm mt-3 max-w-2xl">
+            Connect your GitHub account to let the agent manage repositories, issues, pull requests, and read code.
+          </p>
+        </div>
+      </div>
+
+      {active && (
+        <>
+          <Card interactive className="rounded-2xl">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 grid place-items-center shrink-0">
+                  <Github size={18} className="text-emerald-400" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-text-primary">{active.githubUser}</p>
+                    <Badge className="bg-emerald-400/10 border-emerald-400/20 text-emerald-400">● Connected</Badge>
+                  </div>
+                  <p className="text-[11px] text-text-muted mt-0.5">
+                    Scopes: {active.scopes} · {active.lastSyncedAt ? `Last synced ${timeAgo(active.lastSyncedAt)}` : "Not synced yet"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button size="icon" variant="ghost" onClick={syncRepos} disabled={syncing} aria-label="Sync repos">
+                  <RefreshCw size={14} className={syncing ? "animate-spin" : ""} />
+                </Button>
+                <Button size="icon" variant="ghost" onClick={() => disconnect(active)} aria-label="Disconnect">
+                  <Trash2 size={14} className="text-rose-400" />
+                </Button>
+              </div>
+            </div>
+          </Card>
+
+          {repos.length > 0 && (
+            <>
+              <p className="text-[10px] uppercase tracking-wider text-text-muted">Repositories ({repos.length})</p>
+              <div className="space-y-1">
+                {repos.slice(0, 20).map((repo) => (
+                  <Card key={repo.id} interactive className="flex items-center gap-3 rounded-xl py-2.5 px-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono text-text-primary">{repo.fullName}</span>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-text-muted uppercase font-semibold">
+                          {repo.isPrivate ? "Private" : "Public"}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-text-muted mt-0.5">
+                        {repo.language && <>{repo.language} · </>}
+                        ★ {repo.stars ?? 0}
+                      </p>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </>
+          )}
+
+          <p className="text-[10px] uppercase tracking-wider text-text-muted mt-6">Agent Tools</p>
+          <Card className="rounded-2xl space-y-1">
+            <ToolToggle label="GitHub tools enabled" desc="Allow the agent to create issues, PRs, and read repos" />
+            <ToolToggle label="createIssue" desc="Create issues in connected repositories" />
+            <ToolToggle label="createPR" desc="Open pull requests from branches" />
+            <ToolToggle label="listRepos" desc="List and search the user's repositories" />
+          </Card>
+        </>
+      )}
+
+      {!active && (
+        <Card className="rounded-2xl text-center py-10">
+          <Github size={32} className="mx-auto text-text-muted mb-3" />
+          <p className="text-sm text-text-secondary mb-4">
+            No GitHub account connected. OAuth is required to let the agent interact with your repos.
+          </p>
+          <Button variant="primary" onClick={handleOAuth}>
+            <Github size={14} /> Connect GitHub Account
+          </Button>
+          <p className="text-[10px] text-text-muted mt-3">
+            Opens github.com in your browser to authorize Matrix Dash
+          </p>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function ToolToggle({ label, desc }: { label: string; desc: string }) {
+  const [checked, setChecked] = useState(true);
+  return (
+    <div className="flex items-center justify-between py-2">
+      <div>
+        <p className="text-xs font-medium text-text-primary">{label}</p>
+        <p className="text-[10px] text-text-muted">{desc}</p>
+      </div>
+      <Switch checked={checked} onCheckedChange={setChecked} label={label} />
+    </div>
+  );
+}

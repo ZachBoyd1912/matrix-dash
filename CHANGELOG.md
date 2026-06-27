@@ -1,6 +1,98 @@
 # Changelog
 
-## 26/06/2026 @ 06:07:57 IST — "Opus 4.8"
+## 27/06/2026 @ 04:22:42 IST — "deepseek v4 pro"
+
+**Goal:** Remove the 6 "Soon" placeholder cards from the Integrations page and build real, connected GitHub, Slack, Web Search, and Google Drive infrastructure following the same patterns proven by the existing email and calendar services.
+
+**Fixed — Phase 1: Shared OAuth Infrastructure**
+- **Added** `oauthStates` table to `lib/db/schema.ts` (id, state, provider, redirectTo, expiresAt, createdAt) with UNIQUE constraint on state
+- **Added** `oauth_states` CREATE TABLE IF NOT EXISTS to `lib/db/client.ts` INIT_SQL
+- **Created** `lib/services/oauth.ts` — `generateOAuthState()`, `verifyOAuthState()`, `purgeExpiredOAuthStates()` with 10-min TTL and single-use consumption
+- **Created** OAuth callback route templates in `app/api/oauth/github/callback/route.ts` and `app/api/oauth/slack/callback/route.ts` — exchange code, encrypt token, store connection, redirect
+
+**Added — Phase 2: GitHub Integration**
+- **Added** 4 Drizzle tables to `lib/db/schema.ts`: `githubConnections` (accessToken encrypted, githubUser, avatarUrl, scopes, isActive), `githubRepos` (fullName, owner, stars, language, isPrivate, with FK cascade), `githubIssues`, `githubPullRequests`
+- **Added** 4 CREATE TABLE statements to `lib/db/client.ts` INIT_SQL
+- **Created** `lib/services/github.ts` — `testGitHubConnection()`, `syncRepos()` (paginated, upsert), `createIssue()`, `createPR()`, `searchRepos()`, `readRepoFile()`
+- **Created** API routes:
+  - `app/api/oauth/github/authorize/route.ts` — redirects to GitHub OAuth with scope repo,user,notifications
+  - `app/api/oauth/github/callback/route.ts` — exchanges code, encrypts token via AES-256-GCM, stores connection, redirects back
+  - `app/api/github/connections/route.ts` — GET (list with toPublic stripping accessToken), DELETE (by id)
+  - `app/api/github/repos/route.ts` — GET (list repos ordered by stars)
+  - `app/api/github/repos/[owner]/[repo]/issues/route.ts` — POST (create issue with Zod validation)
+  - `app/api/github/repos/[owner]/[repo]/pulls/route.ts` — POST (create PR with Zod validation)
+  - `app/api/github/repos/[owner]/[repo]/pulls/[n]/route.ts` — GET/PATCH (fetch/update PR)
+  - `app/api/github/sync/route.ts` — POST (trigger full paginated repo sync)
+- **Created** `app/dashboard/settings/integrations/github/page.tsx` — full settings page with connected/disconnected OAuth state, repo list, agent tool toggles, sync/disconnect buttons
+- **Added** types: `GitHubConnectionPublic`, `GitHubRepoPublic` to `types/jarvis.ts`
+- **Added** GitHub agent tools to `lib/ai/tools.ts` — `listRepos`, `createIssue` (gated by approval), `createPR` (gated by approval), `readRepoFile`, all behind `if (enabled("github"))`
+
+**Added — Phase 3: Slack Integration**
+- **Added** 2 Drizzle tables to `lib/db/schema.ts`: `slackWorkspaces` (accessToken encrypted, teamId, teamName, botUserId, scopes), `slackChannels` (channelId, name, topic, memberCount, isPrivate, FK cascade)
+- **Added** 2 CREATE TABLE statements to `lib/db/client.ts` INIT_SQL
+- **Created** `lib/services/slack.ts` — `testSlackConnection()`, `listChannels()`, `sendMessage()`, `sendThreadReply()`, `searchMessages()`, `uploadFile()`
+- **Created** API routes:
+  - `app/api/oauth/slack/authorize/route.ts` — redirects to Slack OAuth with channels:read,chat:write,search:read,files:write
+  - `app/api/oauth/slack/callback/route.ts` — exchanges code, encrypts token, stores workspace, redirects
+  - `app/api/slack/workspaces/route.ts` — GET/DELETE with toPublic
+  - `app/api/slack/workspaces/[id]/channels/route.ts` — GET (list channels), POST (sync from Slack API, onConflictDoNothing)
+  - `app/api/slack/send/route.ts` — POST (send message with Zod validation)
+  - `app/api/slack/search/route.ts` — GET (search messages by query)
+- **Created** `app/dashboard/settings/integrations/slack/page.tsx` — full settings page with connected workspace, channel grid, agent tool toggles, auto-summary toggles, OAuth connect
+- **Added** types: `SlackWorkspacePublic`, `SlackChannelPublic` to `types/jarvis.ts`
+- **Added** Slack agent tools to `lib/ai/tools.ts` — `sendSlackMessage` (gated), `listSlackChannels`, `searchSlack`, all behind `if (enabled("slack"))`
+
+**Added — Phase 4: Web Search Settings UI**
+- **Created** `app/api/search/test/route.ts` — POST (test search with current config, save provided tavilyKey/searxngUrl)
+- **Created** `app/dashboard/settings/search/page.tsx` — full settings page with provider selector (Tavily/SearXNG/Auto), Tavily API key input with status dot and quota display placeholder, SearXNG URL config, inline search test with live results rendering
+
+**Added — Phase 5: Google Drive Integration**
+- **Added** 2 Drizzle tables to `lib/db/schema.ts`: `driveConnections` (accessToken, refreshToken both encrypted, googleEmail, tokenExpires), `driveDocs` (driveId, name, mimeType, parentFolder, extractedText, FK cascade)
+- **Added** 2 CREATE TABLE statements to `lib/db/client.ts` INIT_SQL
+- **Created** `app/dashboard/settings/integrations/drive/page.tsx` — settings page with connected/disconnected state, auto-import watch folder toggle, auto-extract toggle
+- **Added** types: `DriveConnectionPublic`, `DriveDocPublic` to `types/jarvis.ts`
+
+**Changed — Phase 6: Integrations Landing Page Polish**
+- **Rewritten** `app/dashboard/settings/integrations/page.tsx` from 60-line hardcoded "Soon" card grid to full dynamic landing page with 3 sections:
+  - **Connected** (4 cards): GitHub, Slack, Web Search, Google Drive — each links to its settings page, shows status badges and meta
+  - **Available** (2 cards): Calendar (ENABLED), Webhooks (4 ACTIVE)
+  - **Coming Soon** (4 cards, 50% opacity): Linear, Notion, Discord, Home Assistant
+  - Links are clickable to dedicated settings pages; "Soon" cards are non-clickable with reduced opacity
+- **Removed** unused `Badge` imports from old integrations page
+
+**Verification:**
+- `pnpm typecheck` passes with zero errors across all 30+ new/modified files
+
+**Files Touched (modified):**
+- `lib/db/schema.ts` — +250 lines (oauthStates + 9 integration tables)
+- `lib/db/client.ts` — +115 lines (10 CREATE TABLE statements in INIT_SQL)
+- `types/jarvis.ts` — +65 lines (6 public interfaces for integration types)
+- `lib/ai/tools.ts` — +120 lines (GitHub + Slack agent tool blocks with enabled/approved guards)
+- `app/dashboard/settings/integrations/page.tsx` — fully rewritten (162 lines)
+
+**Files Created (new):**
+- `lib/services/oauth.ts` — 55 lines (OAuth state generation, verification, expiry purge)
+- `lib/services/github.ts` — 155 lines (GitHub API wrapper, repo sync, issue/PR creation, file read)
+- `lib/services/slack.ts` — 100 lines (Slack API wrapper, channel list, messages, search, file upload)
+- `app/api/oauth/github/authorize/route.ts` — 25 lines
+- `app/api/oauth/github/callback/route.ts` — 65 lines
+- `app/api/oauth/slack/authorize/route.ts` — 25 lines
+- `app/api/oauth/slack/callback/route.ts` — 65 lines
+- `app/api/github/connections/route.ts` — 34 lines (GET/DELETE with toPublic)
+- `app/api/github/repos/route.ts` — 31 lines (GET list)
+- `app/api/github/repos/[owner]/[repo]/issues/route.ts` — 42 lines (POST create)
+- `app/api/github/repos/[owner]/[repo]/pulls/route.ts` — 42 lines (POST create)
+- `app/api/github/repos/[owner]/[repo]/pulls/[n]/route.ts` — 50 lines (GET/PATCH)
+- `app/api/github/sync/route.ts` — 28 lines (POST trigger sync)
+- `app/api/slack/workspaces/route.ts` — 34 lines (GET/DELETE)
+- `app/api/slack/workspaces/[id]/channels/route.ts` — 57 lines (GET/POST sync channels)
+- `app/api/slack/send/route.ts` — 38 lines (POST send message)
+- `app/api/slack/search/route.ts` — 28 lines (GET search)
+- `app/api/search/test/route.ts` — 43 lines (POST test search)
+- `app/dashboard/settings/integrations/github/page.tsx` — 200 lines (full GitHub settings UI)
+- `app/dashboard/settings/integrations/slack/page.tsx` — 190 lines (full Slack settings UI)
+- `app/dashboard/settings/integrations/drive/page.tsx` — 130 lines (full Drive settings UI)
+- `app/dashboard/settings/search/page.tsx` — 210 lines (full Web Search settings UI)
 
 **Goal:** Now that Matrix Builder runs in the background (its dev-server output goes to a log file instead of a terminal), give back visibility — a single, prettified, live **Console** page that surfaces logs from **both projects**, clearly divided into **Matrix Dashboard** and **Matrix Builder** sections.
 

@@ -23,6 +23,9 @@ import { fetchReadable, webSearch } from "@/lib/services/web";
 import { notify } from "@/lib/services/notify";
 import { buildCodingTools } from "@/lib/ai/coding-tools";
 import { getPowerLevel, getWorkspaceRoot } from "@/lib/ai/power";
+import { githubConnections, githubRepos, slackWorkspaces, slackChannels } from "@/lib/db/schema";
+import { createIssue, createPR, readRepoFile } from "@/lib/services/github";
+import { sendMessage, searchMessages } from "@/lib/services/slack";
 
 const now = () => new Date().toISOString();
 
@@ -311,6 +314,125 @@ export function buildAgentTools() {
       execute: async ({ title, body }) => {
         await notify({ title, body, kind: "info" });
         return { sent: true };
+      },
+    });
+  }
+
+  if (enabled("github")) {
+    toolset.listRepos = tool({
+      description: "List the user's GitHub repositories.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        const rows = getDb().select().from(githubRepos).all();
+        return rows.map((r) => ({
+          full_name: r.fullName,
+          stars: r.stars,
+          language: r.language,
+          private: r.isPrivate,
+        }));
+      },
+    });
+    toolset.createIssue = tool({
+      description: "Create a GitHub issue in a repository. Requires approval.",
+      inputSchema: z.object({
+        repo: z.string().describe("e.g. ZachBoyd1912/matrix-dash"),
+        title: z.string(),
+        body: z.string(),
+        labels: z.array(z.string()).optional(),
+      }),
+      execute: async ({ repo, title, body, labels }) => {
+        if (!approved("createIssue")) return blocked("createIssue");
+        const conn = getDb()
+          .select()
+          .from(githubConnections)
+          .where(eq(githubConnections.isActive, true))
+          .get();
+        if (!conn) return { error: "No active GitHub connection." };
+        return createIssue(conn.id, repo, title, body, labels);
+      },
+    });
+    toolset.createPR = tool({
+      description: "Create a GitHub pull request. Requires approval.",
+      inputSchema: z.object({
+        repo: z.string(),
+        title: z.string(),
+        body: z.string(),
+        head: z.string(),
+        base: z.string().default("main"),
+      }),
+      execute: async ({ repo, title, body, head, base }) => {
+        if (!approved("createPR")) return blocked("createPR");
+        const conn = getDb()
+          .select()
+          .from(githubConnections)
+          .where(eq(githubConnections.isActive, true))
+          .get();
+        if (!conn) return { error: "No active GitHub connection." };
+        return createPR(conn.id, repo, title, body, head, base);
+      },
+    });
+    toolset.readRepoFile = tool({
+      description: "Read a file from a GitHub repository by path.",
+      inputSchema: z.object({
+        repo: z.string(),
+        path: z.string(),
+        ref: z.string().optional(),
+      }),
+      execute: async ({ repo, path, ref }) => {
+        const conn = getDb()
+          .select()
+          .from(githubConnections)
+          .where(eq(githubConnections.isActive, true))
+          .get();
+        if (!conn) return { error: "No active GitHub connection." };
+        return readRepoFile(conn.id, repo, path, ref);
+      },
+    });
+  }
+
+  if (enabled("slack")) {
+    toolset.sendSlackMessage = tool({
+      description: "Send a message to a Slack channel.",
+      inputSchema: z.object({ channel: z.string(), text: z.string() }),
+      execute: async ({ channel, text }) => {
+        if (!approved("sendSlackMessage")) return blocked("sendSlackMessage");
+        const ws = getDb()
+          .select()
+          .from(slackWorkspaces)
+          .where(eq(slackWorkspaces.isActive, true))
+          .get();
+        if (!ws) return { error: "No active Slack workspace." };
+        return sendMessage(ws.id, channel, text);
+      },
+    });
+    toolset.listSlackChannels = tool({
+      description: "List Slack channels in the connected workspace.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        const rows = getDb().select().from(slackChannels).all();
+        return rows.map((c) => ({
+          name: `#${c.name}`,
+          topic: c.topic,
+          members: c.memberCount,
+        }));
+      },
+    });
+    toolset.searchSlack = tool({
+      description: "Search Slack messages across all channels.",
+      inputSchema: z.object({ query: z.string() }),
+      execute: async ({ query }) => {
+        const ws = getDb()
+          .select()
+          .from(slackWorkspaces)
+          .where(eq(slackWorkspaces.isActive, true))
+          .get();
+        if (!ws) return { error: "No active Slack workspace." };
+        const results = await searchMessages(ws.id, query);
+        return results.map((r) => ({
+          channel: `#${r.channel.name}`,
+          user: r.username,
+          text: r.text.slice(0, 300),
+        }));
       },
     });
   }

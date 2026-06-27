@@ -170,3 +170,69 @@ export interface KanbanTask {
 }
 
 export type TaskKind = "task" | "bug" | "error" | "feature";
+
+// ─── INTEGRATIONS ──────────────────────────────────────────
+
+export interface GitHubConnectionPublic {
+  id: string;
+  label: string;
+  githubUser: string;
+  avatarUrl: string | null;
+  scopes: string;
+  isActive: boolean | null;
+  lastSyncedAt: string | null;
+  createdAt: string;
+}
+
+export interface GitHubRepoPublic {
+  id: string;
+  fullName: string;
+  owner: string;
+  name: string;
+  description: string | null;
+  stars: number | null;
+  language: string | null;
+  isPrivate: boolean | null;
+  defaultBranch: string;
+  htmlUrl: string;
+  syncedAt: string;
+}
+
+export interface SlackWorkspacePublic {
+  id: string;
+  label: string;
+  teamId: string;
+  teamName: string;
+  botUserId: string | null;
+  scopes: string;
+  isActive: boolean | null;
+  createdAt: string;
+}
+
+export interface SlackChannelPublic {
+  id: string;
+  channelId: string;
+  name: string;
+  topic: string | null;
+  memberCount: number | null;
+  isPrivate: boolean | null;
+  syncedAt: string;
+}
+
+export interface DriveConnectionPublic {
+  id: string;
+  label: string;
+  googleEmail: string;
+  scopes: string;
+  isActive: boolean | null;
+  createdAt: string;
+}
+
+export interface DriveDocPublic {
+  id: string;
+  driveId: string;
+  name: string;
+  mimeType: string;
+  parentFolder: string | null;
+  syncedAt: string;
+}

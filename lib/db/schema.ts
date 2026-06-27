@@ -310,3 +310,130 @@ export const workspaces = sqliteTable("workspaces", {
   name: text("name").notNull(),
   lastOpened: text("last_opened").notNull(),
 });
+
+// ─── OAUTH STATES (ephemeral, 10-min TTL) ─────────────────
+export const oauthStates = sqliteTable("oauth_states", {
+  id: text("id").primaryKey(),
+  state: text("state").notNull().unique(),
+  provider: text("provider").notNull(),
+  redirectTo: text("redirect_to").notNull(),
+  expiresAt: text("expires_at").notNull(),
+  createdAt: text("created_at").notNull(),
+});
+
+// ─── GITHUB CONNECTIONS ────────────────────────────────────
+export const githubConnections = sqliteTable("github_connections", {
+  id: text("id").primaryKey(),
+  label: text("label").notNull().default("GitHub"),
+  accessToken: text("access_token").notNull(),
+  githubUser: text("github_user").notNull(),
+  avatarUrl: text("avatar_url"),
+  scopes: text("scopes").notNull().default("repo,user,notifications"),
+  isActive: integer("is_active", { mode: "boolean" }).default(true),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+  lastSyncedAt: text("last_synced_at"),
+});
+
+export const githubRepos = sqliteTable("github_repos", {
+  id: text("id").primaryKey(),
+  connectionId: text("connection_id")
+    .notNull()
+    .references(() => githubConnections.id, { onDelete: "cascade" }),
+  fullName: text("full_name").notNull(),
+  owner: text("owner").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  stars: integer("stars").default(0),
+  language: text("language"),
+  isPrivate: integer("is_private", { mode: "boolean" }).default(false),
+  defaultBranch: text("default_branch").default("main"),
+  htmlUrl: text("html_url").notNull(),
+  syncedAt: text("synced_at").notNull(),
+});
+
+export const githubIssues = sqliteTable("github_issues", {
+  id: text("id").primaryKey(),
+  connectionId: text("connection_id").notNull(),
+  repoFullName: text("repo_full_name").notNull(),
+  issueNumber: integer("issue_number").notNull(),
+  title: text("title").notNull(),
+  body: text("body"),
+  state: text("state").notNull(),
+  labels: text("labels"),
+  assignee: text("assignee"),
+  htmlUrl: text("html_url"),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at"),
+});
+
+export const githubPullRequests = sqliteTable("github_pull_requests", {
+  id: text("id").primaryKey(),
+  connectionId: text("connection_id").notNull(),
+  repoFullName: text("repo_full_name").notNull(),
+  prNumber: integer("pr_number").notNull(),
+  title: text("title").notNull(),
+  body: text("body"),
+  state: text("state").notNull(),
+  author: text("author"),
+  baseRef: text("base_ref"),
+  headRef: text("head_ref"),
+  htmlUrl: text("html_url"),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at"),
+  mergedAt: text("merged_at"),
+});
+
+// ─── SLACK WORKSPACES + CHANNELS ───────────────────────────
+export const slackWorkspaces = sqliteTable("slack_workspaces", {
+  id: text("id").primaryKey(),
+  label: text("label").notNull().default("Slack"),
+  accessToken: text("access_token").notNull(),
+  teamId: text("team_id").notNull(),
+  teamName: text("team_name").notNull(),
+  botUserId: text("bot_user_id"),
+  scopes: text("scopes").notNull(),
+  isActive: integer("is_active", { mode: "boolean" }).default(true),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
+export const slackChannels = sqliteTable("slack_channels", {
+  id: text("id").primaryKey(),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => slackWorkspaces.id, { onDelete: "cascade" }),
+  channelId: text("channel_id").notNull(),
+  name: text("name").notNull(),
+  topic: text("topic"),
+  memberCount: integer("member_count"),
+  isPrivate: integer("is_private", { mode: "boolean" }).default(false),
+  syncedAt: text("synced_at").notNull(),
+});
+
+// ─── GOOGLE DRIVE CONNECTIONS + DOCS ───────────────────────
+export const driveConnections = sqliteTable("drive_connections", {
+  id: text("id").primaryKey(),
+  label: text("label").notNull().default("Google Drive"),
+  accessToken: text("access_token").notNull(),
+  refreshToken: text("refresh_token").notNull(),
+  googleEmail: text("google_email").notNull(),
+  scopes: text("scopes").notNull().default("drive.readonly"),
+  isActive: integer("is_active", { mode: "boolean" }).default(true),
+  tokenExpires: text("token_expires").notNull(),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
+export const driveDocs = sqliteTable("drive_docs", {
+  id: text("id").primaryKey(),
+  connectionId: text("connection_id")
+    .notNull()
+    .references(() => driveConnections.id, { onDelete: "cascade" }),
+  driveId: text("drive_id").notNull(),
+  name: text("name").notNull(),
+  mimeType: text("mime_type").notNull(),
+  parentFolder: text("parent_folder"),
+  extractedText: text("extracted_text"),
+  syncedAt: text("synced_at").notNull(),
+});
