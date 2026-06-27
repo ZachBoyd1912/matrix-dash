@@ -20,6 +20,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${GeistSans.variable} ${GeistMono.variable}`}
       suppressHydrationWarning
     >
+      <head>
+        <meta name="google-site-verification" content="GUiEmulK8l2VasAwqI03Vy639GgRrH6uRRbgavVyRFc" />
+      </head>
       <body>
         <ThemeProvider
           attribute="data-theme"
