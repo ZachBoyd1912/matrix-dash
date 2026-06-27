@@ -47,6 +47,39 @@ import {
   commentOnIssue,
   listComments,
   searchIssues,
+  listPRs,
+  getPR,
+  updatePR,
+  mergePR,
+  requestReview,
+  listReviews,
+  reviewPR,
+  listPRComments,
+  commentOnPR,
+  getPRChecks,
+  createRepo,
+  deleteRepo,
+  updateRepo,
+  forkRepo,
+  createBranch,
+  deleteBranch,
+  commitFile,
+  listWorkflows,
+  getWorkflowRuns,
+  triggerWorkflow,
+  cancelWorkflowRun,
+  getWorkflowLogs,
+  getUserProfile,
+  listOrganizations,
+  starRepo,
+  unstarRepo,
+  getRateLimit,
+  listMilestones,
+  createMilestone,
+  listGists,
+  createGist,
+  listNotifications,
+  markNotificationRead,
 } from "@/lib/services/github";
 import { sendMessage, searchMessages } from "@/lib/services/slack";
 
@@ -612,6 +645,327 @@ export function buildAgentTools() {
         repo: z.string().optional(),
       }),
       execute: async (opts) => searchIssues(ghConn().id, opts.query, opts),
+    });
+
+    // ── Pull Requests (Phase 3) ──────────────────────
+    toolset.listPRs = tool({
+      description: "List pull requests in a repo with filters.",
+      inputSchema: z.object({
+        repo: z.string(),
+        state: z.enum(["open", "closed", "all"]).default("open"),
+        sort: z.enum(["created", "updated", "popularity", "long-running"]).default("updated"),
+        perPage: z.number().default(20), page: z.number().default(1),
+      }),
+      execute: async (opts) => listPRs(ghConn().id, opts.repo, opts),
+    });
+
+    toolset.getPR = tool({
+      description: "Get full details of a single pull request (body, diff stats, review status, mergeability).",
+      inputSchema: z.object({ repo: z.string(), number: z.number() }),
+      execute: async ({ repo, number }) => getPR(ghConn().id, repo, number),
+    });
+
+    toolset.updatePR = tool({
+      description: "Update a PR's title, body, state, or base branch. Requires approval.",
+      inputSchema: z.object({
+        repo: z.string(), number: z.number(),
+        title: z.string().optional(), body: z.string().optional(),
+        state: z.enum(["open", "closed"]).optional(), base: z.string().optional(),
+      }),
+      execute: async ({ repo, number, ...updates }) => {
+        if (!approved("updatePR")) return blocked("updatePR");
+        return updatePR(ghConn().id, repo, number, updates);
+      },
+    });
+
+    toolset.mergePR = tool({
+      description: "Merge a pull request. Requires approval.",
+      inputSchema: z.object({
+        repo: z.string(), number: z.number(),
+        commitTitle: z.string().optional(), commitMessage: z.string().optional(),
+        mergeMethod: z.enum(["merge", "squash", "rebase"]).default("merge"),
+      }),
+      execute: async ({ repo, number, ...opts }) => {
+        if (!approved("mergePR")) return blocked("mergePR");
+        return mergePR(ghConn().id, repo, number, opts);
+      },
+    });
+
+    toolset.requestReview = tool({
+      description: "Request specific users to review a PR. Requires approval.",
+      inputSchema: z.object({
+        repo: z.string(), number: z.number(),
+        reviewers: z.array(z.string()).describe("GitHub usernames"),
+      }),
+      execute: async ({ repo, number, reviewers }) => {
+        if (!approved("requestReview")) return blocked("requestReview");
+        return requestReview(ghConn().id, repo, number, reviewers);
+      },
+    });
+
+    toolset.listReviews = tool({
+      description: "List all reviews on a pull request.",
+      inputSchema: z.object({ repo: z.string(), number: z.number(), perPage: z.number().default(30) }),
+      execute: async (opts) => listReviews(ghConn().id, opts.repo, opts.number, { perPage: opts.perPage }),
+    });
+
+    toolset.reviewPR = tool({
+      description: "Submit a PR review (approve, request changes, or comment). Requires approval.",
+      inputSchema: z.object({
+        repo: z.string(), number: z.number(),
+        event: z.enum(["APPROVE", "REQUEST_CHANGES", "COMMENT"]),
+        body: z.string().optional(),
+      }),
+      execute: async ({ repo, number, event, body }) => {
+        if (!approved("reviewPR")) return blocked("reviewPR");
+        return reviewPR(ghConn().id, repo, number, event, body);
+      },
+    });
+
+    toolset.listPRComments = tool({
+      description: "List inline review comments on a pull request.",
+      inputSchema: z.object({ repo: z.string(), number: z.number(), perPage: z.number().default(30) }),
+      execute: async (opts) => listPRComments(ghConn().id, opts.repo, opts.number, { perPage: opts.perPage }),
+    });
+
+    toolset.commentOnPR = tool({
+      description: "Add a comment to a PR (general or inline on a specific file/line). Requires approval.",
+      inputSchema: z.object({
+        repo: z.string(), number: z.number(), body: z.string(),
+        path: z.string().optional(), line: z.number().optional(),
+        side: z.enum(["LEFT", "RIGHT"]).optional(),
+      }),
+      execute: async ({ repo, number, body, path, line, side }) => {
+        if (!approved("commentOnPR")) return blocked("commentOnPR");
+        return commentOnPR(ghConn().id, repo, number, body, { path, line, side });
+      },
+    });
+
+    toolset.getPRChecks = tool({
+      description: "Get CI/CD check run statuses for a commit (e.g., the head of a PR).",
+      inputSchema: z.object({ repo: z.string(), sha: z.string().describe("Commit SHA to check") }),
+      execute: async ({ repo, sha }) => getPRChecks(ghConn().id, repo, sha),
+    });
+
+    // ── Repo Admin (Phase 4) ─────────────────────────
+    toolset.createRepo = tool({
+      description: "Create a new GitHub repository. Requires approval.",
+      inputSchema: z.object({
+        name: z.string(), description: z.string().optional(),
+        private: z.boolean().default(false), autoInit: z.boolean().default(false),
+      }),
+      execute: async (opts) => {
+        if (!approved("createRepo")) return blocked("createRepo");
+        return createRepo(ghConn().id, opts.name, opts);
+      },
+    });
+
+    toolset.deleteRepo = tool({
+      description: "Delete a GitHub repository. DANGER — requires approval.",
+      inputSchema: z.object({ repo: z.string().describe("owner/repo to delete") }),
+      execute: async ({ repo }) => {
+        if (!approved("deleteRepo")) return blocked("deleteRepo");
+        return deleteRepo(ghConn().id, repo);
+      },
+    });
+
+    toolset.updateRepo = tool({
+      description: "Update repository settings (name, description, visibility, topics). Requires approval.",
+      inputSchema: z.object({
+        repo: z.string(), name: z.string().optional(), description: z.string().optional(),
+        private: z.boolean().optional(), hasIssues: z.boolean().optional(),
+        hasWiki: z.boolean().optional(), topics: z.array(z.string()).optional(),
+      }),
+      execute: async ({ repo, ...updates }) => {
+        if (!approved("updateRepo")) return blocked("updateRepo");
+        return updateRepo(ghConn().id, repo, updates);
+      },
+    });
+
+    toolset.forkRepo = tool({
+      description: "Fork a repository to your account. Requires approval.",
+      inputSchema: z.object({
+        repo: z.string(), organization: z.string().optional(),
+      }),
+      execute: async ({ repo, organization }) => {
+        if (!approved("forkRepo")) return blocked("forkRepo");
+        return forkRepo(ghConn().id, repo, organization);
+      },
+    });
+
+    toolset.createBranch = tool({
+      description: "Create a new branch from an existing ref. Requires approval.",
+      inputSchema: z.object({
+        repo: z.string(), branch: z.string(),
+        fromRef: z.string().default("main"),
+      }),
+      execute: async ({ repo, branch, fromRef }) => {
+        if (!approved("createBranch")) return blocked("createBranch");
+        return createBranch(ghConn().id, repo, branch, fromRef);
+      },
+    });
+
+    toolset.deleteBranch = tool({
+      description: "Delete a branch. Requires approval.",
+      inputSchema: z.object({ repo: z.string(), branch: z.string() }),
+      execute: async ({ repo, branch }) => {
+        if (!approved("deleteBranch")) return blocked("deleteBranch");
+        return deleteBranch(ghConn().id, repo, branch);
+      },
+    });
+
+    toolset.commitFile = tool({
+      description: "Create or update a file in a repo with a commit. Requires approval.",
+      inputSchema: z.object({
+        repo: z.string(), path: z.string(), content: z.string(),
+        message: z.string().describe("Commit message"),
+        branch: z.string().optional(), sha: z.string().optional().describe("File blob SHA (required for updates)"),
+      }),
+      execute: async ({ repo, path, content, message, branch, sha }) => {
+        if (!approved("commitFile")) return blocked("commitFile");
+        return commitFile(ghConn().id, repo, path, content, message, { branch, sha });
+      },
+    });
+
+    // ── Workflows (Phase 5) ─────────────────────────
+    toolset.listWorkflows = tool({
+      description: "List GitHub Actions workflows in a repository.",
+      inputSchema: z.object({ repo: z.string() }),
+      execute: async ({ repo }) => listWorkflows(ghConn().id, repo),
+    });
+
+    toolset.getWorkflowRuns = tool({
+      description: "Get recent workflow runs with optional filters.",
+      inputSchema: z.object({
+        repo: z.string(), workflowId: z.number().optional(),
+        branch: z.string().optional(), status: z.string().optional(),
+        perPage: z.number().default(10),
+      }),
+      execute: async (opts) => {
+        const { repo, workflowId, ...rest } = opts;
+        return getWorkflowRuns(ghConn().id, repo, workflowId, rest);
+      },
+    });
+
+    toolset.triggerWorkflow = tool({
+      description: "Trigger a workflow_dispatch event. Requires approval.",
+      inputSchema: z.object({
+        repo: z.string(), workflowId: z.number(),
+        ref: z.string().describe("Branch or tag to run on"),
+        inputs: z.record(z.string(), z.string()).optional(),
+      }),
+      execute: async ({ repo, workflowId, ref, inputs }) => {
+        if (!approved("triggerWorkflow")) return blocked("triggerWorkflow");
+        return triggerWorkflow(ghConn().id, repo, workflowId, ref, inputs);
+      },
+    });
+
+    toolset.cancelWorkflowRun = tool({
+      description: "Cancel a running workflow. Requires approval.",
+      inputSchema: z.object({ repo: z.string(), runId: z.number() }),
+      execute: async ({ repo, runId }) => {
+        if (!approved("cancelWorkflowRun")) return blocked("cancelWorkflowRun");
+        return cancelWorkflowRun(ghConn().id, repo, runId);
+      },
+    });
+
+    toolset.getWorkflowLogs = tool({
+      description: "Get a download URL for workflow run logs.",
+      inputSchema: z.object({ repo: z.string(), runId: z.number() }),
+      execute: async ({ repo, runId }) => getWorkflowLogs(ghConn().id, repo, runId),
+    });
+
+    // ── Extended (Phase 6) ──────────────────────────
+    toolset.getUserProfile = tool({
+      description: "Get a GitHub user's public profile.",
+      inputSchema: z.object({ username: z.string() }),
+      execute: async ({ username }) => getUserProfile(ghConn().id, username),
+    });
+
+    toolset.listOrganizations = tool({
+      description: "List organizations the authenticated user belongs to.",
+      inputSchema: z.object({}),
+      execute: async () => listOrganizations(ghConn().id),
+    });
+
+    toolset.starRepo = tool({
+      description: "Star a repository. Requires approval.",
+      inputSchema: z.object({ repo: z.string() }),
+      execute: async ({ repo }) => {
+        if (!approved("starRepo")) return blocked("starRepo");
+        return starRepo(ghConn().id, repo);
+      },
+    });
+
+    toolset.unstarRepo = tool({
+      description: "Unstar a repository. Requires approval.",
+      inputSchema: z.object({ repo: z.string() }),
+      execute: async ({ repo }) => {
+        if (!approved("unstarRepo")) return blocked("unstarRepo");
+        return unstarRepo(ghConn().id, repo);
+      },
+    });
+
+    toolset.getRateLimit = tool({
+      description: "Check remaining GitHub API rate limit.",
+      inputSchema: z.object({}),
+      execute: async () => getRateLimit(ghConn().id),
+    });
+
+    toolset.listMilestones = tool({
+      description: "List milestones for a repository.",
+      inputSchema: z.object({
+        repo: z.string(), state: z.enum(["open", "closed", "all"]).default("open"),
+        perPage: z.number().default(30),
+      }),
+      execute: async (opts) => listMilestones(ghConn().id, opts.repo, opts),
+    });
+
+    toolset.createMilestone = tool({
+      description: "Create a milestone with optional due date. Requires approval.",
+      inputSchema: z.object({
+        repo: z.string(), title: z.string(),
+        description: z.string().optional(), dueOn: z.string().optional(),
+      }),
+      execute: async ({ repo, title, ...opts }) => {
+        if (!approved("createMilestone")) return blocked("createMilestone");
+        return createMilestone(ghConn().id, repo, title, opts);
+      },
+    });
+
+    toolset.listGists = tool({
+      description: "List your GitHub gists.",
+      inputSchema: z.object({ perPage: z.number().default(20) }),
+      execute: async ({ perPage }) => listGists(ghConn().id, perPage),
+    });
+
+    toolset.createGist = tool({
+      description: "Create a gist. Requires approval.",
+      inputSchema: z.object({
+        files: z.record(z.string(), z.object({ content: z.string() })),
+        description: z.string().optional(), public: z.boolean().default(false),
+      }),
+      execute: async ({ files, description, public: isPublic }) => {
+        if (!approved("createGist")) return blocked("createGist");
+        return createGist(ghConn().id, files, { description, public: isPublic });
+      },
+    });
+
+    toolset.listNotifications = tool({
+      description: "List your unread GitHub notifications.",
+      inputSchema: z.object({
+        all: z.boolean().default(false), perPage: z.number().default(20),
+      }),
+      execute: async (opts) => listNotifications(ghConn().id, opts),
+    });
+
+    toolset.markNotificationRead = tool({
+      description: "Mark a notification as read. Requires approval.",
+      inputSchema: z.object({ threadId: z.number().optional() }),
+      execute: async ({ threadId }) => {
+        if (!approved("markNotificationRead")) return blocked("markNotificationRead");
+        return markNotificationRead(ghConn().id, threadId);
+      },
     });
   }
 

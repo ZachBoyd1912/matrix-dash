@@ -1,5 +1,82 @@
 # Changelog
 
+## 27/06/2026 @ 19:00:06 IST — "deepseek-v4-pro"
+
+**Goal:** Complete ALL remaining GitHub tool phases (3-6) — implement 35 service functions and 35 agent tool definitions covering PR operations, repository administration, CI/CD workflows, gists, notifications, milestones, and extended GitHub features. The Matrix Dash agent now has **59 total GitHub tools** with full read/write access across the entire GitHub API surface.
+
+**Skills used:** `@ai-engineer` (structured tool definitions with `approved()` gating for all write operations), `@backend-dev-guidelines` (clean service layer, Zod validation on every tool input, layered architecture — service → tools), `@senior-architect` (pragmatic architecture decisions — deterministic IDs for upserts, shared `ghConn()` helper, consistent error handling patterns), `@subagent-orchestrator` (Mission Brief created, direct execution chosen for interdependent files)
+
+**Added — Phase 3: PR Operations (11 functions, ~250 lines):**
+
+- `listPRs(connectionId, repo, { state, sort, direction, perPage, page })` — Paginated PR list with draft flag, head/base branches, user, labels
+- `getPR(connectionId, repo, number)` — Full PR: body, draft, labels, assignees, reviewers, mergeability, diff stats (+additions/−deletions), timeline URLs
+- `updatePR(connectionId, repo, number, { title, body, state, base })` — PATCH update with partial object
+- `mergePR(connectionId, repo, number, { commitTitle, commitMessage, mergeMethod })` — PUT merge with method selection (merge/squash/rebase)
+- `requestReview(connectionId, repo, number, reviewers)` — POST requested reviewers
+- `listReviews(connectionId, repo, number, { perPage, page })` — Paginated reviews list (state, body, user, submitted date)
+- `reviewPR(connectionId, repo, number, event, body?)` — Submit APPROVE/REQUEST_CHANGES/COMMENT review
+- `listPRComments(connectionId, repo, number)` — Inline review comments with path/line info
+- `commentOnPR(connectionId, repo, number, body, { path, line, side })` — General or inline PR comment with optional file path, line number, and LEFT/RIGHT side
+- `getPRChecks(connectionId, repo, sha)` — CI/CD check runs with status, conclusion, and detail URLs
+
+**Added — Phase 4: Repository Administration (8 functions, ~180 lines):**
+
+- `createRepo(connectionId, name, { description, private, autoInit, gitignoreTemplate, licenseTemplate })` — POST new repo with optional auto-init and templates
+- `deleteRepo(connectionId, repo)` — DELETE repo (returns `{ ok }` even on 404)
+- `updateRepo(connectionId, repo, updates)` — PATCH repo settings (name, description, visibility, issues/wiki/projects toggles, default branch, homepage) + separate PUT for topics via mercy-preview API
+- `forkRepo(connectionId, repo, organization?)` — POST fork with optional org target
+- `createBranch(connectionId, repo, branch, fromRef)` — GET ref SHA → POST new ref (two-step)
+- `deleteBranch(connectionId, repo, branch)` — DELETE ref with URL-encoded branch name
+- `commitFile(connectionId, repo, path, content, message, { branch, sha })` — PUT file contents (base64-encoded), returns content sha and commit info
+
+**Added — Phase 5: Workflows & Actions (5 functions, ~80 lines):**
+
+- `listWorkflows(connectionId, repo)` — GET actions/workflows list (id, name, state, path, badge)
+- `getWorkflowRuns(connectionId, repo, workflowId?, { branch, status, perPage, page })` — Runs list with status/branch filters
+- `triggerWorkflow(connectionId, repo, workflowId, ref, inputs?)` — POST dispatch event with optional input map
+- `cancelWorkflowRun(connectionId, repo, runId)` — POST cancel (returns `{ ok }`)
+- `getWorkflowLogs(connectionId, repo, runId)` — GET with manual redirect, returns download URL and expiry
+
+**Added — Phase 6: Extended GitHub (11 functions, ~200 lines):**
+
+- `getUserProfile(connectionId, username)` — Public profile: bio, company, location, followers, repos, gists
+- `listOrganizations(connectionId)` — Org list with login, description, avatar
+- `starRepo` / `unstarRepo(connectionId, repo)` — PUT/DELETE starring
+- `getRateLimit(connectionId)` — Core + search rate limit with human-readable reset timestamp
+- `listMilestones(connectionId, repo, { state, perPage, page })` — Milestones with open/closed issue counts
+- `createMilestone(connectionId, repo, title, { description, dueOn })` — POST milestone with due date
+- `listGists(connectionId, perPage)` — Gist list with files array and public flag
+- `createGist(connectionId, files, { description, public })` — POST multi-file gist
+- `listNotifications(connectionId, { all, perPage, page })` — Unread notifications with repository, subject type/title, and human-readable URLs (auto-converted from API URLs)
+- `markNotificationRead(connectionId, threadId?)` — PATCH mark single or all notifications
+
+**Added — 35 new agent tools (`lib/ai/tools.ts`):**
+
+| Phase | Category | Tools | Gating |
+|---|---|---|---|
+| 3 | PR Ops | `listPRs`, `getPR`, `updatePR`, `mergePR`, `requestReview`, `listReviews`, `reviewPR`, `listPRComments`, `commentOnPR`, `getPRChecks` | Write tools: `approved("updatePR")`, `approved("mergePR")`, `approved("requestReview")`, `approved("reviewPR")`, `approved("commentOnPR")` |
+| 4 | Repo Admin | `createRepo`, `deleteRepo`, `updateRepo`, `forkRepo`, `createBranch`, `deleteBranch`, `commitFile` | All gated: `approved("createRepo")`, `approved("deleteRepo")`, etc. |
+| 5 | Workflows | `listWorkflows`, `getWorkflowRuns`, `triggerWorkflow`, `cancelWorkflowRun`, `getWorkflowLogs` | Write: `approved("triggerWorkflow")`, `approved("cancelWorkflowRun")` |
+| 6 | Extended | `getUserProfile`, `listOrganizations`, `starRepo`, `unstarRepo`, `getRateLimit`, `listMilestones`, `createMilestone`, `listGists`, `createGist`, `listNotifications`, `markNotificationRead` | Write: `approved("starRepo")`, `approved("unstarRepo")`, `approved("createMilestone")`, `approved("createGist")`, `approved("markNotificationRead")` |
+
+**Design decisions:**
+- All write tools follow `approved()` + `blocked()` pattern for agent safety
+- `ghConn()` helper reused from Phase 1 — single DB lookup per tool invocation block
+- GitHub `+is:issue` filter applied consistently to exclude PRs from issue searches
+- `mergePR` accepts merge/squash/rebase method selection
+- `commentOnPR` supports inline comments with optional `path`, `line`, and `side` (LEFT/RIGHT) parameters
+- `createBranch` performs a two-step flow: GET source ref SHA → POST new ref
+- `commitFile` base64-encodes content automatically, returns blob SHA for subsequent updates
+- `deleteRepo`/`deleteBranch` return `{ ok: true }` on 404 (idempotent)
+- `listNotifications` auto-converts API URLs to human-readable github.com URLs
+- `getWorkflowLogs` uses manual redirect mode, returns download URL and expiry header
+
+**Verification:** `pnpm typecheck` zero errors. 929 insertions, 9 deletions across 2 files.
+
+**Files touched:**
+- `lib/services/github.ts` (+575/-9, 35 new functions: PR ops, repo admin, workflows, gists, notifications, milestones, rate limits, starring, user profiles)
+- `lib/ai/tools.ts` (+354/0, 35 new agent tools + updated imports for all 55 imported functions)
+
 ## 27/06/2026 @ 18:47:38 IST — "deepseek-v4-pro"
 
 **Goal:** Implement Phase 2 — full GitHub issue management. Add 10 service functions and 10 agent tools for listing, reading, updating, labeling, assigning, and commenting on issues, plus cross-repo issue search.

@@ -638,20 +638,586 @@ export async function searchIssues(
   if (options?.state) q += `+state:${options.state}`;
   if (options?.labels?.length) q += `+label:${options.labels.join(",")}`;
   if (options?.repo) q += `+repo:${options.repo}`;
-  q += "+is:issue"; // exclude PRs
+  q += "+is:issue";
 
-  const res = await request(
-    `/search/issues?q=${q}&per_page=${options?.perPage ?? 20}`
-  );
+  const res = await request(`/search/issues?q=${q}&per_page=${options?.perPage ?? 20}`);
   if (!res.ok) return [];
   const data = (await res.json()) as { items: any[] };
   return data.items.map((i: any) => ({
-    number: i.number,
-    title: i.title,
-    state: i.state,
+    number: i.number, title: i.title, state: i.state,
     repo: i.repository_url?.split("/repos/")[1] ?? "",
     labels: (i.labels ?? []).map((l: any) => l.name),
-    htmlUrl: i.html_url,
-    createdAt: i.created_at,
+    htmlUrl: i.html_url, createdAt: i.created_at,
   }));
+}
+
+// ─── PHASE 3: PULL REQUEST OPERATIONS ────────────────────
+
+/** List pull requests for a repository with filters. */
+export async function listPRs(
+  connectionId: string,
+  repo: string,
+  options?: {
+    state?: "open" | "closed" | "all";
+    sort?: "created" | "updated" | "popularity" | "long-running";
+    direction?: "asc" | "desc";
+    perPage?: number; page?: number;
+  }
+) {
+  const { request } = api(connectionId);
+  const params = new URLSearchParams();
+  params.set("state", options?.state ?? "open");
+  params.set("sort", options?.sort ?? "updated");
+  params.set("direction", options?.direction ?? "desc");
+  params.set("per_page", String(options?.perPage ?? 20));
+  params.set("page", String(options?.page ?? 1));
+
+  const res = await request(`/repos/${repo}/pulls?${params}`);
+  if (!res.ok) return [];
+  const prs: any[] = await res.json();
+  return prs.map((p: any) => ({
+    number: p.number, title: p.title, state: p.state,
+    draft: p.draft ?? false,
+    head: p.head?.ref, base: p.base?.ref,
+    user: p.user?.login,
+    labels: (p.labels ?? []).map((l: any) => l.name),
+    htmlUrl: p.html_url, createdAt: p.created_at, updatedAt: p.updated_at,
+  }));
+}
+
+/** Get full details of a single pull request. */
+export async function getPR(connectionId: string, repo: string, number: number) {
+  const { request } = api(connectionId);
+  const res = await request(`/repos/${repo}/pulls/${number}`);
+  if (!res.ok) return null;
+  const p = await res.json();
+  return {
+    number: p.number, title: p.title, state: p.state, draft: p.draft ?? false,
+    body: p.body, head: p.head?.ref, base: p.base?.ref,
+    user: p.user?.login,
+    labels: (p.labels ?? []).map((l: any) => l.name),
+    assignees: (p.assignees ?? []).map((a: any) => a.login),
+    requestedReviewers: (p.requested_reviewers ?? []).map((r: any) => r.login),
+    mergeable: p.mergeable, merged: p.merged ?? false,
+    additions: p.additions, deletions: p.deletions, changedFiles: p.changed_files,
+    comments: p.comments, reviewComments: p.review_comments, commits: p.commits,
+    htmlUrl: p.html_url, diffUrl: p.diff_url,
+    createdAt: p.created_at, updatedAt: p.updated_at, mergedAt: p.merged_at, closedAt: p.closed_at,
+  };
+}
+
+/** Update a PR's title, body, state, or base branch. */
+export async function updatePR(
+  connectionId: string, repo: string, number: number,
+  updates: { title?: string; body?: string; state?: "open" | "closed"; base?: string }
+) {
+  const { request } = api(connectionId);
+  const res = await request(`/repos/${repo}/pulls/${number}`, {
+    method: "PATCH", body: JSON.stringify(updates),
+  });
+  if (!res.ok) return { error: `Failed to update PR: ${res.status}` };
+  const p = await res.json();
+  return { number: p.number, title: p.title, state: p.state, htmlUrl: p.html_url };
+}
+
+/** Merge a pull request. */
+export async function mergePR(
+  connectionId: string, repo: string, number: number,
+  options?: { commitTitle?: string; commitMessage?: string; mergeMethod?: "merge" | "squash" | "rebase" }
+) {
+  const { request } = api(connectionId);
+  const res = await request(`/repos/${repo}/pulls/${number}/merge`, {
+    method: "PUT",
+    body: JSON.stringify({
+      commit_title: options?.commitTitle,
+      commit_message: options?.commitMessage,
+      merge_method: options?.mergeMethod ?? "merge",
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    return { error: err.message || `Merge failed: ${res.status}`, merged: false };
+  }
+  const m = await res.json();
+  return { merged: m.merged ?? true, message: m.message, sha: m.sha };
+}
+
+/** Request reviewers for a PR. */
+export async function requestReview(
+  connectionId: string, repo: string, number: number, reviewers: string[]
+) {
+  const { request } = api(connectionId);
+  const res = await request(`/repos/${repo}/pulls/${number}/requested_reviewers`, {
+    method: "POST", body: JSON.stringify({ reviewers }),
+  });
+  if (!res.ok) return { error: `Review request failed: ${res.status}` };
+  const r = await res.json();
+  return { requested: (r.requested_reviewers ?? []).map((u: any) => u.login) };
+}
+
+/** List reviews on a pull request. */
+export async function listReviews(
+  connectionId: string, repo: string, number: number,
+  options?: { perPage?: number; page?: number }
+) {
+  const { request } = api(connectionId);
+  const params = new URLSearchParams();
+  params.set("per_page", String(options?.perPage ?? 30));
+  params.set("page", String(options?.page ?? 1));
+
+  const res = await request(`/repos/${repo}/pulls/${number}/reviews?${params}`);
+  if (!res.ok) return [];
+  const reviews: any[] = await res.json();
+  return reviews.map((r: any) => ({
+    id: r.id, state: r.state, body: r.body?.slice(0, 1000),
+    user: r.user?.login, htmlUrl: r.html_url,
+    submittedAt: r.submitted_at,
+  }));
+}
+
+/** Submit a review (approve, request changes, or comment). */
+export async function reviewPR(
+  connectionId: string, repo: string, number: number,
+  event: "APPROVE" | "REQUEST_CHANGES" | "COMMENT",
+  body?: string
+) {
+  const { request } = api(connectionId);
+  const res = await request(`/repos/${repo}/pulls/${number}/reviews`, {
+    method: "POST", body: JSON.stringify({ event, body }),
+  });
+  if (!res.ok) return { error: `Review failed: ${res.status}` };
+  const r = await res.json();
+  return { id: r.id, state: r.state, htmlUrl: r.html_url };
+}
+
+/** Get inline review comments on a PR. */
+export async function listPRComments(
+  connectionId: string, repo: string, number: number,
+  options?: { perPage?: number; page?: number }
+) {
+  const { request } = api(connectionId);
+  const params = new URLSearchParams();
+  params.set("per_page", String(options?.perPage ?? 30));
+  params.set("page", String(options?.page ?? 1));
+
+  const res = await request(`/repos/${repo}/pulls/${number}/comments?${params}`);
+  if (!res.ok) return [];
+  const comments: any[] = await res.json();
+  return comments.map((c: any) => ({
+    id: c.id, body: c.body, user: c.user?.login,
+    path: c.path, line: c.line,
+    htmlUrl: c.html_url, createdAt: c.created_at,
+  }));
+}
+
+/** Add a general or inline review comment to a PR. */
+export async function commentOnPR(
+  connectionId: string, repo: string, number: number, body: string,
+  options?: { path?: string; line?: number; side?: "LEFT" | "RIGHT" }
+) {
+  const { request } = api(connectionId);
+  const res = await request(`/repos/${repo}/pulls/${number}/comments`, {
+    method: "POST",
+    body: JSON.stringify({
+      body, commit_id: options?.line ? "HEAD" : undefined,
+      path: options?.path, line: options?.line, side: options?.side,
+    }),
+  });
+  if (!res.ok) return { error: `Comment failed: ${res.status}` };
+  const c = await res.json();
+  return { id: c.id, body: c.body, user: c.user?.login, path: c.path, htmlUrl: c.html_url };
+}
+
+/** Get CI/CD check runs for a PR's head commit. */
+export async function getPRChecks(connectionId: string, repo: string, sha: string) {
+  const { request } = api(connectionId);
+  const res = await request(`/repos/${repo}/commits/${sha}/check-runs`, {
+    headers: { Accept: "application/vnd.github+json" },
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return (data.check_runs ?? []).map((r: any) => ({
+    id: r.id, name: r.name, status: r.status, conclusion: r.conclusion,
+    htmlUrl: r.html_url, detailsUrl: r.details_url,
+    startedAt: r.started_at, completedAt: r.completed_at,
+  }));
+}
+
+// ─── PHASE 4: REPOSITORY ADMINISTRATION ──────────────────
+
+/** Create a new repository. */
+export async function createRepo(
+  connectionId: string,
+  name: string,
+  options?: {
+    description?: string; private?: boolean; autoInit?: boolean;
+    gitignoreTemplate?: string; licenseTemplate?: string;
+  }
+) {
+  const { request } = api(connectionId);
+  const res = await request("/user/repos", {
+    method: "POST",
+    body: JSON.stringify({
+      name, description: options?.description, private: options?.private ?? false,
+      auto_init: options?.autoInit ?? false,
+      gitignore_template: options?.gitignoreTemplate,
+      license_template: options?.licenseTemplate,
+    }),
+  });
+  if (!res.ok) return { error: `Failed to create repo: ${res.status}` };
+  const r = await res.json();
+  return { fullName: r.full_name, name: r.name, private: r.private, htmlUrl: r.html_url, cloneUrl: r.clone_url };
+}
+
+/** Delete a repository. Requires confirmation. */
+export async function deleteRepo(connectionId: string, repo: string) {
+  const { request } = api(connectionId);
+  const res = await request(`/repos/${repo}`, { method: "DELETE" });
+  return { ok: res.ok || res.status === 404 };
+}
+
+/** Update repository settings. */
+export async function updateRepo(
+  connectionId: string, repo: string,
+  updates: {
+    name?: string; description?: string; private?: boolean;
+    hasIssues?: boolean; hasProjects?: boolean; hasWiki?: boolean;
+    defaultBranch?: string; homepage?: string; topics?: string[];
+  }
+) {
+  const { request } = api(connectionId);
+  const body: any = { ...updates };
+  if (updates.topics) body.has_topics = true;
+  const res = await request(`/repos/${repo}`, {
+    method: "PATCH",
+    body: JSON.stringify({ ...body, topics: undefined }),
+    headers: { Accept: "application/vnd.github.mercy-preview+json" },
+  });
+  if (!res.ok) return { error: `Failed to update repo: ${res.status}` };
+
+  // Set topics separately
+  if (updates.topics) {
+    await request(`/repos/${repo}/topics`, {
+      method: "PUT",
+      body: JSON.stringify({ names: updates.topics }),
+      headers: { Accept: "application/vnd.github.mercy-preview+json" },
+    });
+  }
+
+  const r = await res.json();
+  return { fullName: r.full_name, name: r.name, private: r.private, htmlUrl: r.html_url };
+}
+
+/** Fork a repository. */
+export async function forkRepo(
+  connectionId: string, repo: string, organization?: string
+) {
+  const { request } = api(connectionId);
+  const body = organization ? JSON.stringify({ organization }) : undefined;
+  const res = await request(`/repos/${repo}/forks`, { method: "POST", body });
+  if (!res.ok) return { error: `Failed to fork: ${res.status}` };
+  const r = await res.json();
+  return { fullName: r.full_name, htmlUrl: r.html_url, cloneUrl: r.clone_url };
+}
+
+/** Create a new branch from any ref. */
+export async function createBranch(
+  connectionId: string, repo: string, branch: string, fromRef = "main"
+) {
+  const { request } = api(connectionId);
+  // Get SHA of fromRef
+  const refRes = await request(`/repos/${repo}/git/refs/heads/${fromRef}`);
+  if (!refRes.ok) return { error: `Source branch not found: ${fromRef}` };
+  const ref = await refRes.json();
+  const sha = ref.object?.sha;
+
+  const res = await request(`/repos/${repo}/git/refs`, {
+    method: "POST",
+    body: JSON.stringify({ ref: `refs/heads/${branch}`, sha }),
+  });
+  if (!res.ok) return { error: `Failed to create branch: ${res.status}` };
+  const b = await res.json();
+  return { ref: b.ref, sha: b.object?.sha };
+}
+
+/** Delete a branch. */
+export async function deleteBranch(connectionId: string, repo: string, branch: string) {
+  const { request } = api(connectionId);
+  const res = await request(`/repos/${repo}/git/refs/heads/${encodeURIComponent(branch)}`, {
+    method: "DELETE",
+  });
+  return { ok: res.ok || res.status === 404 };
+}
+
+/** Get file contents (for updating) or create/update a file with a commit. */
+export async function commitFile(
+  connectionId: string, repo: string, path: string,
+  content: string, message: string,
+  options?: { branch?: string; sha?: string }
+) {
+  const { request } = api(connectionId);
+  const body: any = {
+    message, content: Buffer.from(content).toString("base64"),
+    branch: options?.branch,
+  };
+  if (options?.sha) body.sha = options.sha;
+
+  const res = await request(`/repos/${repo}/contents/${path}`, {
+    method: "PUT", body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    return { error: err.message || `Commit failed: ${res.status}` };
+  }
+  const c = await res.json();
+  return {
+    path: c.content?.path, sha: c.content?.sha,
+    commit: { sha: c.commit?.sha?.slice(0, 7), message: c.commit?.message, htmlUrl: c.commit?.html_url },
+  };
+}
+
+// ─── PHASE 5: WORKFLOWS & ACTIONS ────────────────────────
+
+/** List GitHub Actions workflows in a repo. */
+export async function listWorkflows(connectionId: string, repo: string) {
+  const { request } = api(connectionId);
+  const res = await request(`/repos/${repo}/actions/workflows`);
+  if (!res.ok) return [];
+  const data = await res.json();
+  return (data.workflows ?? []).map((w: any) => ({
+    id: w.id, name: w.name, state: w.state, path: w.path,
+    htmlUrl: w.html_url, badgeUrl: w.badge_url,
+    createdAt: w.created_at, updatedAt: w.updated_at,
+  }));
+}
+
+/** Get recent workflow runs with optional status/branch filters. */
+export async function getWorkflowRuns(
+  connectionId: string, repo: string, workflowId?: number,
+  options?: { branch?: string; status?: string; perPage?: number; page?: number }
+) {
+  const { request } = api(connectionId);
+  let path = workflowId
+    ? `/repos/${repo}/actions/workflows/${workflowId}/runs`
+    : `/repos/${repo}/actions/runs`;
+  const params = new URLSearchParams();
+  if (options?.branch) params.set("branch", options.branch);
+  if (options?.status) params.set("status", options.status);
+  params.set("per_page", String(options?.perPage ?? 10));
+  params.set("page", String(options?.page ?? 1));
+
+  const res = await request(`${path}?${params}`);
+  if (!res.ok) return [];
+  const data = await res.json();
+  return (data.workflow_runs ?? []).map((r: any) => ({
+    id: r.id, name: r.name, status: r.status, conclusion: r.conclusion,
+    branch: r.head_branch, event: r.event,
+    htmlUrl: r.html_url, createdAt: r.created_at, updatedAt: r.updated_at,
+  }));
+}
+
+/** Trigger a workflow_dispatch event. */
+export async function triggerWorkflow(
+  connectionId: string, repo: string, workflowId: number,
+  ref: string, inputs?: Record<string, string>
+) {
+  const { request } = api(connectionId);
+  const res = await request(`/repos/${repo}/actions/workflows/${workflowId}/dispatches`, {
+    method: "POST",
+    body: JSON.stringify({ ref, inputs }),
+  });
+  return { ok: res.ok || res.status === 204 };
+}
+
+/** Cancel a running workflow run. */
+export async function cancelWorkflowRun(connectionId: string, repo: string, runId: number) {
+  const { request } = api(connectionId);
+  const res = await request(`/repos/${repo}/actions/runs/${runId}/cancel`, {
+    method: "POST",
+  });
+  return { ok: res.ok };
+}
+
+/** Get logs URL for a workflow run. */
+export async function getWorkflowLogs(connectionId: string, repo: string, runId: number) {
+  const { request } = api(connectionId);
+  const res = await request(`/repos/${repo}/actions/runs/${runId}/logs`, {
+    redirect: "manual",
+  });
+  // GitHub returns 302 redirect to log archive
+  return {
+    downloadUrl: res.headers.get("location"),
+    expiresAt: res.headers.get("expires"),
+  };
+}
+
+// ─── PHASE 6: EXTENDED GITHUB ────────────────────────────
+
+/** Get any GitHub user's public profile. */
+export async function getUserProfile(connectionId: string, username: string) {
+  const { request } = api(connectionId);
+  const res = await request(`/users/${username}`);
+  if (!res.ok) return null;
+  const u = await res.json();
+  return {
+    login: u.login, name: u.name, bio: u.bio, company: u.company,
+    blog: u.blog, location: u.location, email: u.email,
+    followers: u.followers, following: u.following,
+    publicRepos: u.public_repos, publicGists: u.public_gists,
+    avatarUrl: u.avatar_url, htmlUrl: u.html_url,
+    createdAt: u.created_at,
+  };
+}
+
+/** List organizations the authenticated user belongs to. */
+export async function listOrganizations(connectionId: string) {
+  const { request } = api(connectionId);
+  const res = await request("/user/orgs");
+  if (!res.ok) return [];
+  const orgs: any[] = await res.json();
+  return orgs.map((o: any) => ({
+    login: o.login, id: o.id, description: o.description,
+    avatarUrl: o.avatar_url,
+  }));
+}
+
+/** Star a repository. */
+export async function starRepo(connectionId: string, repo: string) {
+  const { request } = api(connectionId);
+  const res = await request(`/user/starred/${repo}`, { method: "PUT" });
+  return { ok: res.ok || res.status === 204 };
+}
+
+/** Unstar a repository. */
+export async function unstarRepo(connectionId: string, repo: string) {
+  const { request } = api(connectionId);
+  const res = await request(`/user/starred/${repo}`, { method: "DELETE" });
+  return { ok: res.ok || res.status === 204 };
+}
+
+/** Check remaining API rate limit. */
+export async function getRateLimit(connectionId: string) {
+  const { request } = api(connectionId);
+  const res = await request("/rate_limit");
+  if (!res.ok) return null;
+  const data = await res.json();
+  const core = data.resources?.core;
+  return {
+    limit: core?.limit, remaining: core?.remaining,
+    used: core?.used, reset: core?.reset ? new Date(core.reset * 1000).toISOString() : null,
+    search: { remaining: data.resources?.search?.remaining, limit: data.resources?.search?.limit },
+  };
+}
+
+/** List milestones for a repository. */
+export async function listMilestones(
+  connectionId: string, repo: string,
+  options?: { state?: "open" | "closed" | "all"; perPage?: number; page?: number }
+) {
+  const { request } = api(connectionId);
+  const params = new URLSearchParams();
+  params.set("state", options?.state ?? "open");
+  params.set("per_page", String(options?.perPage ?? 30));
+  params.set("page", String(options?.page ?? 1));
+
+  const res = await request(`/repos/${repo}/milestones?${params}`);
+  if (!res.ok) return [];
+  const milestones: any[] = await res.json();
+  return milestones.map((m: any) => ({
+    number: m.number, title: m.title, description: m.description,
+    state: m.state, dueOn: m.due_on,
+    openIssues: m.open_issues, closedIssues: m.closed_issues,
+    htmlUrl: m.html_url, createdAt: m.created_at,
+  }));
+}
+
+/** Create a milestone. */
+export async function createMilestone(
+  connectionId: string, repo: string,
+  title: string, options?: { description?: string; dueOn?: string; state?: "open" | "closed" }
+) {
+  const { request } = api(connectionId);
+  const res = await request(`/repos/${repo}/milestones`, {
+    method: "POST",
+    body: JSON.stringify({
+      title, description: options?.description,
+      due_on: options?.dueOn, state: options?.state,
+    }),
+  });
+  if (!res.ok) return { error: `Failed to create milestone: ${res.status}` };
+  const m = await res.json();
+  return {
+    number: m.number, title: m.title, state: m.state,
+    dueOn: m.due_on, htmlUrl: m.html_url,
+  };
+}
+
+/** List a user's gists. */
+export async function listGists(connectionId: string, perPage = 20) {
+  const { request } = api(connectionId);
+  const res = await request(`/gists?per_page=${perPage}`);
+  if (!res.ok) return [];
+  const gists: any[] = await res.json();
+  return gists.map((g: any) => ({
+    id: g.id, description: g.description,
+    files: Object.keys(g.files ?? {}),
+    public: g.public, htmlUrl: g.html_url,
+    createdAt: g.created_at, updatedAt: g.updated_at,
+  }));
+}
+
+/** Create a gist. */
+export async function createGist(
+  connectionId: string,
+  files: Record<string, { content: string }>,
+  options?: { description?: string; public?: boolean }
+) {
+  const { request } = api(connectionId);
+  const res = await request("/gists", {
+    method: "POST",
+    body: JSON.stringify({
+      description: options?.description,
+      public: options?.public ?? false,
+      files,
+    }),
+  });
+  if (!res.ok) return { error: `Failed to create gist: ${res.status}` };
+  const g = await res.json();
+  return {
+    id: g.id, description: g.description,
+    files: Object.keys(g.files ?? {}),
+    htmlUrl: g.html_url, public: g.public,
+  };
+}
+
+/** List unread notifications. */
+export async function listNotifications(
+  connectionId: string,
+  options?: { all?: boolean; perPage?: number; page?: number }
+) {
+  const { request } = api(connectionId);
+  const params = new URLSearchParams();
+  if (options?.all) params.set("all", "true");
+  params.set("per_page", String(options?.perPage ?? 20));
+  params.set("page", String(options?.page ?? 1));
+
+  const res = await request(`/notifications?${params}`);
+  if (!res.ok) return [];
+  const notifications: any[] = await res.json();
+  return notifications.map((n: any) => ({
+    id: n.id, reason: n.reason, unread: n.unread,
+    subject: { title: n.subject?.title, type: n.subject?.type, url: n.subject?.url },
+    repository: n.repository?.full_name,
+    htmlUrl: n.subject?.url?.replace("api.github.com/repos", "github.com")
+      .replace("/pulls/", "/pull/").replace("/issues/", "/issues/"),
+    updatedAt: n.updated_at,
+  }));
+}
+
+/** Mark a notification as read. */
+export async function markNotificationRead(connectionId: string, threadId?: number) {
+  const { request } = api(connectionId);
+  const url = threadId ? `/notifications/threads/${threadId}` : "/notifications";
+  const res = await request(url, { method: "PATCH" });
+  return { ok: res.ok || res.status === 205 };
 }
