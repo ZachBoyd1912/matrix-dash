@@ -1,5 +1,20 @@
 # Changelog
 
+## 27/06/2026 @ 04:44:05 IST — "deepseek v4 pro"
+
+**Goal:** Fix `SqliteError: no such table` errors for all 10 new integration tables when the DB connection was already cached from before the code changes (hot-reload scenario). The `GET /api/github/connections`, `/api/slack/workspaces`, `/api/drive/connections`, `/api/github/repos`, and `/api/oauth/github/authorize` routes all returned 500s on a running dev server.
+
+**Fixed — Database table migration for hot-reloaded connections**
+- **Cause:** `getSqlite()` in `lib/db/client.ts` cached the SQLite connection on `globalThis.__matrixSqlite`. When the dev server hot-reloaded after adding new tables to `INIT_SQL`, the cached connection was returned on line 455 without re-running the DDL. `CREATE TABLE IF NOT EXISTS` in `INIT_SQL` only runs on first boot — it never runs again on subsequent hot-reloads because `getSqlite()` returns the cached instance immediately.
+- **Fix:** Added `ensureIntegrationTables(sqlite: Database)` function that checks `sqlite_master` for each new table's existence and runs the `CREATE TABLE` only if missing. This is called from both paths in `getSqlite()`:
+  - **Cached path** (line 455): `ensureIntegrationTables(g.__matrixSqlite)` runs on every `getSqlite()` call, even when the connection is already open — so hot-reloaded code immediately creates missing tables
+  - **Fresh boot path** (after `runColumnMigrations`): `ensureIntegrationTables(sqlite)` also runs for completeness, though `INIT_SQL` already created them
+- **Pattern:** Uses `sqlite.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?")` to check existence before executing `CREATE TABLE` — idempotent and safe to call repeatedly
+- **Verification:** Restarting the dev server after this change (or simply refreshing) will create all missing tables without needing a full app restart
+
+**Files Touched:**
+- `lib/db/client.ts` — +87 lines (`ensureIntegrationTables` function + calls from both cached and fresh paths)
+
 ## 27/06/2026 @ 04:40:55 IST — "deepseek v4 pro"
 
 **Goal:** Fix three integration bugs: Calendar card linked to a non-existent page (404), Webhooks card falsely claimed "Connected" when there were zero webhooks, and the Webhooks page had no setup guide.

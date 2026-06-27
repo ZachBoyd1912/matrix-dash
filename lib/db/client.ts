@@ -452,18 +452,107 @@ const g = globalThis as unknown as {
 };
 
 export function getSqlite(): Database.Database {
-  if (g.__matrixSqlite) return g.__matrixSqlite;
+  if (g.__matrixSqlite) {
+    ensureIntegrationTables(g.__matrixSqlite);
+    return g.__matrixSqlite;
+  }
   const sqlite = new Database(getDbPath(), { timeout: 5000 });
   sqlite.pragma("journal_mode = WAL");
   sqlite.pragma("foreign_keys = ON");
   sqlite.pragma("busy_timeout = 5000");
   sqlite.exec(INIT_SQL);
   runColumnMigrations(sqlite);
+  ensureIntegrationTables(sqlite);
   seedWelcomeEmail(sqlite);
   seedProjects(sqlite);
   backfillSkillsFts(sqlite);
   g.__matrixSqlite = sqlite;
   return sqlite;
+}
+
+/** Idempotently create integration tables that may not exist yet (hot-reload safe). */
+function ensureIntegrationTables(sqlite: Database.Database) {
+  const hasTable = (name: string) => {
+    const row = sqlite.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(name) as { name: string } | undefined;
+    return !!row;
+  };
+  const exec = (ddl: string, name: string) => {
+    if (!hasTable(name)) sqlite.exec(ddl);
+  };
+
+  exec(
+    `CREATE TABLE oauth_states (
+      id TEXT PRIMARY KEY, state TEXT NOT NULL UNIQUE, provider TEXT NOT NULL,
+      redirect_to TEXT NOT NULL, expires_at TEXT NOT NULL, created_at TEXT NOT NULL
+    )`, "oauth_states"
+  );
+
+  exec(
+    `CREATE TABLE github_connections (
+      id TEXT PRIMARY KEY, label TEXT NOT NULL DEFAULT 'GitHub', access_token TEXT NOT NULL,
+      github_user TEXT NOT NULL, avatar_url TEXT, scopes TEXT NOT NULL DEFAULT 'repo,user,notifications',
+      is_active INTEGER DEFAULT 1, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, last_synced_at TEXT
+    )`, "github_connections"
+  );
+
+  exec(
+    `CREATE TABLE github_repos (
+      id TEXT PRIMARY KEY, connection_id TEXT NOT NULL REFERENCES github_connections(id) ON DELETE CASCADE,
+      full_name TEXT NOT NULL, owner TEXT NOT NULL, name TEXT NOT NULL, description TEXT,
+      stars INTEGER DEFAULT 0, language TEXT, is_private INTEGER DEFAULT 0,
+      default_branch TEXT DEFAULT 'main', html_url TEXT NOT NULL, synced_at TEXT NOT NULL
+    )`, "github_repos"
+  );
+
+  exec(
+    `CREATE TABLE github_issues (
+      id TEXT PRIMARY KEY, connection_id TEXT NOT NULL, repo_full_name TEXT NOT NULL,
+      issue_number INTEGER NOT NULL, title TEXT NOT NULL, body TEXT, state TEXT NOT NULL,
+      labels TEXT, assignee TEXT, html_url TEXT, created_at TEXT NOT NULL, updated_at TEXT
+    )`, "github_issues"
+  );
+
+  exec(
+    `CREATE TABLE github_pull_requests (
+      id TEXT PRIMARY KEY, connection_id TEXT NOT NULL, repo_full_name TEXT NOT NULL,
+      pr_number INTEGER NOT NULL, title TEXT NOT NULL, body TEXT, state TEXT NOT NULL,
+      author TEXT, base_ref TEXT, head_ref TEXT, html_url TEXT,
+      created_at TEXT NOT NULL, updated_at TEXT, merged_at TEXT
+    )`, "github_pull_requests"
+  );
+
+  exec(
+    `CREATE TABLE slack_workspaces (
+      id TEXT PRIMARY KEY, label TEXT NOT NULL DEFAULT 'Slack', access_token TEXT NOT NULL,
+      team_id TEXT NOT NULL, team_name TEXT NOT NULL, bot_user_id TEXT, scopes TEXT NOT NULL,
+      is_active INTEGER DEFAULT 1, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+    )`, "slack_workspaces"
+  );
+
+  exec(
+    `CREATE TABLE slack_channels (
+      id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL REFERENCES slack_workspaces(id) ON DELETE CASCADE,
+      channel_id TEXT NOT NULL, name TEXT NOT NULL, topic TEXT, member_count INTEGER,
+      is_private INTEGER DEFAULT 0, synced_at TEXT NOT NULL
+    )`, "slack_channels"
+  );
+
+  exec(
+    `CREATE TABLE drive_connections (
+      id TEXT PRIMARY KEY, label TEXT NOT NULL DEFAULT 'Google Drive', access_token TEXT NOT NULL,
+      refresh_token TEXT NOT NULL, google_email TEXT NOT NULL,
+      scopes TEXT NOT NULL DEFAULT 'drive.readonly', is_active INTEGER DEFAULT 1,
+      token_expires TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+    )`, "drive_connections"
+  );
+
+  exec(
+    `CREATE TABLE drive_docs (
+      id TEXT PRIMARY KEY, connection_id TEXT NOT NULL REFERENCES drive_connections(id) ON DELETE CASCADE,
+      drive_id TEXT NOT NULL, name TEXT NOT NULL, mime_type TEXT NOT NULL,
+      parent_folder TEXT, extracted_text TEXT, synced_at TEXT NOT NULL
+    )`, "drive_docs"
+  );
 }
 
 /** Idempotently add columns introduced after a DB may already exist. */
