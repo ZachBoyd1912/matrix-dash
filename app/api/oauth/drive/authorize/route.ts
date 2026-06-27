@@ -16,7 +16,7 @@ export async function GET(req: Request) {
 
   const state = generateOAuthState("google", redirectTo);
 
-  const authorizeUrl = new URL("https://accounts.google.com/o/oauth/v2/auth");
+  const authorizeUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   authorizeUrl.searchParams.set("client_id", clientId);
   authorizeUrl.searchParams.set("redirect_uri", `${url.origin}/api/oauth/drive/callback`);
   authorizeUrl.searchParams.set("response_type", "code");
