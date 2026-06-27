@@ -31,8 +31,14 @@ export default function CalendarSettingsPage() {
   useEffect(() => {
     const err = searchParams.get("error");
     const msg = searchParams.get("msg");
-    if (err === "missing_env" && msg) {
-      setOauthError(decodeURIComponent(msg));
+    if (err) {
+      const messages: Record<string, string> = {
+        missing_env: msg ? decodeURIComponent(msg) : "GOOGLE_CLIENT_ID not set in .env.local",
+        oauth_denied: "Authorization was denied. Check the OAuth consent screen permissions.",
+        invalid_state: "Session expired. The OAuth state was invalid or already used — try again.",
+        token_exchange_failed: "Failed to exchange the authorization code for a token. Check your GOOGLE_CLIENT_SECRET.",
+      };
+      setOauthError(messages[err] || `OAuth error: ${err}`);
     }
   }, [searchParams]);
 

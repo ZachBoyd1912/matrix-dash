@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Github, RefreshCw, Trash2, Plus, ExternalLink } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Github, RefreshCw, Trash2, Plus, ExternalLink, AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,9 +14,11 @@ import type { GitHubConnectionPublic, GitHubRepoPublic } from "@/types/jarvis";
 
 export default function GitHubIntegrationPage() {
   const ref = useGsapEntrance();
+  const searchParams = useSearchParams();
   const [connections, setConnections] = useState<GitHubConnectionPublic[]>([]);
   const [repos, setRepos] = useState<GitHubRepoPublic[]>([]);
   const [syncing, setSyncing] = useState(false);
+  const [oauthError, setOauthError] = useState("");
   // Toggle state loaded from settings
   const [ghEnabled, setGhEnabled] = useState(true);
   const [approveIssue, setApproveIssue] = useState(true);
@@ -39,7 +42,16 @@ export default function GitHubIntegrationPage() {
 
   useEffect(() => {
     refresh();
-  }, [refresh]);
+    const err = searchParams.get("error");
+    if (err) {
+      const messages: Record<string, string> = {
+        oauth_denied: "Authorization was denied. Check the OAuth consent screen on GitHub.",
+        invalid_state: "Session expired. The OAuth state was invalid — try again.",
+        token_exchange_failed: "Failed to exchange code for token. Check GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET.",
+      };
+      setOauthError(messages[err] || `OAuth error: ${err}`);
+    }
+  }, [refresh, searchParams]);
 
   const handleOAuth = () => {
     window.location.href = "/api/oauth/github/authorize?redirect_to=" +
@@ -181,18 +193,29 @@ export default function GitHubIntegrationPage() {
       )}
 
       {!active && (
-        <Card className="rounded-2xl text-center py-10">
-          <Github size={32} className="mx-auto text-text-muted mb-3" />
-          <p className="text-sm text-text-secondary mb-4">
-            No GitHub account connected. OAuth is required to let the agent interact with your repos.
-          </p>
-          <Button variant="primary" onClick={handleOAuth}>
-            <Github size={14} /> Connect GitHub Account
-          </Button>
-          <p className="text-[10px] text-text-muted mt-3">
-            Opens github.com in your browser to authorize Matrix Dash
-          </p>
-        </Card>
+        <>
+          {oauthError && (
+            <Card className="rounded-2xl p-4 border-amber-400/20 bg-amber-400/5 space-y-2 mb-4">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={14} className="text-amber-400" />
+                <p className="text-sm font-semibold text-amber-400">Connection failed</p>
+              </div>
+              <p className="text-xs text-text-secondary">{oauthError}</p>
+            </Card>
+          )}
+          <Card className="rounded-2xl text-center py-10">
+            <Github size={32} className="mx-auto text-text-muted mb-3" />
+            <p className="text-sm text-text-secondary mb-4">
+              No GitHub account connected. OAuth is required to let the agent interact with your repos.
+            </p>
+            <Button variant="primary" onClick={handleOAuth}>
+              <Github size={14} /> Connect GitHub Account
+            </Button>
+            <p className="text-[10px] text-text-muted mt-3">
+              Opens github.com in your browser to authorize Matrix Dash
+            </p>
+          </Card>
+        </>
       )}
     </div>
   );

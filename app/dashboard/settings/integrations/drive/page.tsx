@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { HardDrive, RefreshCw, Trash2, FolderOpen } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { HardDrive, Trash2, FolderOpen, Globe, AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,9 +15,11 @@ import type { DriveConnectionPublic } from "@/types/jarvis";
 
 export default function DriveIntegrationPage() {
   const ref = useGsapEntrance();
+  const searchParams = useSearchParams();
   const [connections, setConnections] = useState<DriveConnectionPublic[]>([]);
   const [watchFolder, setWatchFolder] = useState(false);
   const [autoExtract, setAutoExtract] = useState(false);
+  const [oauthError, setOauthError] = useState("");
 
   const refresh = useCallback(async () => {
     const [c, s] = await Promise.all([
@@ -30,7 +33,18 @@ export default function DriveIntegrationPage() {
 
   useEffect(() => {
     refresh();
-  }, [refresh]);
+    const err = searchParams.get("error");
+    const msg = searchParams.get("msg");
+    if (err) {
+      const messages: Record<string, string> = {
+        missing_env: msg ? decodeURIComponent(msg) : "GOOGLE_CLIENT_ID not set in .env.local",
+        oauth_denied: "Authorization was denied. Check the OAuth consent screen permissions.",
+        invalid_state: "Session expired. The OAuth state was invalid — try again.",
+        token_exchange_failed: "Failed to exchange code for token. Check GOOGLE_CLIENT_SECRET.",
+      };
+      setOauthError(messages[err] || `OAuth error: ${err}`);
+    }
+  }, [refresh, searchParams]);
 
   const saveToggle = async (key: string, value: boolean) => {
     await fetch("/api/settings", {
@@ -133,7 +147,23 @@ export default function DriveIntegrationPage() {
       )}
 
       {!active && (
-        <Card className="rounded-2xl text-center py-10">
+        <>
+          {oauthError && (
+            <Card className="rounded-2xl p-4 border-amber-400/20 bg-amber-400/5 space-y-2 mb-4">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={14} className="text-amber-400" />
+                <p className="text-sm font-semibold text-amber-400">Configuration needed</p>
+              </div>
+              <p className="text-xs text-text-secondary">{oauthError}</p>
+              <p className="text-[10px] text-text-muted">
+                Add <code className="bg-white/5 px-1 rounded">GOOGLE_CLIENT_ID</code> and{" "}
+                <code className="bg-white/5 px-1 rounded">GOOGLE_CLIENT_SECRET</code> to{" "}
+                <code className="bg-white/5 px-1 rounded">.env.local</code>. Redirect URI:{" "}
+                <code className="bg-white/5 px-1 rounded">http://localhost:3000/api/oauth/drive/callback</code>
+              </p>
+            </Card>
+          )}
+          <Card className="rounded-2xl text-center py-10">
           <HardDrive size={32} className="mx-auto text-text-muted mb-3" />
           <p className="text-sm text-text-secondary mb-4">
             Connect your Google account to pull documents into Matrix Dash.
@@ -145,6 +175,7 @@ export default function DriveIntegrationPage() {
             Matrix Dash requests drive.readonly scope — your files stay private to your machine
           </p>
         </Card>
+        </>
       )}
     </div>
   );
