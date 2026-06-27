@@ -1,5 +1,24 @@
 # Changelog
 
+## 27/06/2026 @ 04:28:47 IST — "deepseek v4 pro"
+
+**Goal:** Fix the Integrations landing page to show real connection status from the database instead of hardcoded mock data with fake usernames, repo counts, and channel counts.
+
+**Fixed — Integrations page mock data replaced with live API queries**
+- **Cause:** The integrations landing page (`app/dashboard/settings/integrations/page.tsx`) had a `CONNECTED` array with hardcoded fake data: `"ZachBoyd1912 · 12 repos synced"`, `"Matrix Labs · 23 channels"`, `"Tavily · 920/1000 queries this month"`, `"zboyd712@gmail.com · 23 docs synced"`. None of these connections actually existed.
+- **Fix:** Completely rewrote the page to fetch real connection status on mount:
+  - `GET /api/github/connections` → if active connection found, shows `{githubUser} · connected`; otherwise shows `"Connect your GitHub account"` with "Configure" badge
+  - `GET /api/slack/workspaces` → same pattern with `{teamName} · connected` or `"Connect your Slack workspace"`
+  - `GET /api/settings` → checks for `tavilyKey`; if absent, shows `"No search provider configured"`
+  - Google Drive always shows `"Connect your Google account"` (OAuth callback not yet wired)
+  - Calendar and Webhooks show generic meta pointing to their existing settings pages
+  - The 3-section layout (Connected/Available/Coming Soon) is now computed dynamically from the API responses, not hardcoded
+- **Fixed** TypeScript error at line 125: incomplete ternary `Array.isArray(sl) ? sl` missing `: []` fallback
+- **Verification:** `pnpm typecheck` passes with zero errors; all cards now display real or honest "not yet connected" state
+
+**Files Touched:**
+- `app/dashboard/settings/integrations/page.tsx` — rewritten from 225 lines (static mock data) to 237 lines (dynamic API-driven)
+
 ## 27/06/2026 @ 04:22:42 IST — "deepseek v4 pro"
 
 **Goal:** Remove the 6 "Soon" placeholder cards from the Integrations page and build real, connected GitHub, Slack, Web Search, and Google Drive infrastructure following the same patterns proven by the existing email and calendar services.
