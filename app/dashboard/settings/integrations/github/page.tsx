@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Github, RefreshCw, Trash2, Plus, ExternalLink, AlertTriangle } from "lucide-react";
+import { Github, RefreshCw, Trash2, ExternalLink, AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,32 +12,38 @@ import { useGsapEntrance } from "@/lib/hooks/use-gsap-entrance";
 import { timeAgo } from "@/lib/utils/time";
 import type { GitHubConnectionPublic, GitHubRepoPublic } from "@/types/jarvis";
 
-export default function GitHubIntegrationPage() {
+function GitHubIntegrationInner() {
   const ref = useGsapEntrance();
   const searchParams = useSearchParams();
+  const [loading, setLoading] = useState(true);
   const [connections, setConnections] = useState<GitHubConnectionPublic[]>([]);
   const [repos, setRepos] = useState<GitHubRepoPublic[]>([]);
   const [syncing, setSyncing] = useState(false);
   const [oauthError, setOauthError] = useState("");
-  // Toggle state loaded from settings
   const [ghEnabled, setGhEnabled] = useState(true);
   const [approveIssue, setApproveIssue] = useState(true);
   const [approvePR, setApprovePR] = useState(true);
   const [approveListRepos, setApproveListRepos] = useState(true);
 
   const refresh = useCallback(async () => {
-    const [c, r, s] = await Promise.all([
-      fetch("/api/github/connections").then((r) => r.json()),
-      fetch("/api/github/repos").then((r) => r.json()),
-      fetch("/api/settings").then((r) => r.json()),
-    ]);
-    setConnections(Array.isArray(c) ? c : []);
-    setRepos(Array.isArray(r) ? r : []);
-    // Load toggle states from settings
-    setGhEnabled(s.tool_github !== "0");
-    setApproveIssue(s.approve_createIssue === "1");
-    setApprovePR(s.approve_createPR === "1");
-    setApproveListRepos(s.approve_listRepos !== "0");
+    setLoading(true);
+    try {
+      const [c, r, s] = await Promise.all([
+        fetch("/api/github/connections").then((r) => r.json()),
+        fetch("/api/github/repos").then((r) => r.json()),
+        fetch("/api/settings").then((r) => r.json()),
+      ]);
+      setConnections(Array.isArray(c) ? c : []);
+      setRepos(Array.isArray(r) ? r : []);
+      setGhEnabled(s.tool_github !== "0");
+      setApproveIssue(s.approve_createIssue === "1");
+      setApprovePR(s.approve_createPR === "1");
+      setApproveListRepos(s.approve_listRepos !== "0");
+    } catch {
+      // keep previous state
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -64,7 +70,7 @@ export default function GitHubIntegrationPage() {
       const res = await fetch("/api/github/sync", { method: "POST" });
       const data = await res.json();
       if (data.ok) toast.success("Repos synced", `${data.reposSynced} repositories updated`);
-      else toast.error("Sync failed", data.error);
+      else toast.error("Sync failed", data.error || "Unknown error");
       refresh();
     } finally {
       setSyncing(false);
@@ -83,7 +89,7 @@ export default function GitHubIntegrationPage() {
     refresh();
   };
 
-  const active = connections.find((c) => c.isActive);
+  const active = connections.find((c) => c.isActive === true);
 
   const saveToggle = async (key: string, value: boolean) => {
     await fetch("/api/settings", {
@@ -109,21 +115,31 @@ export default function GitHubIntegrationPage() {
         </div>
       </div>
 
-      {active && (
+      {loading && <LoadingSkeleton />}
+
+      {!loading && active && (
         <>
           <Card interactive className="rounded-2xl">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 grid place-items-center shrink-0">
-                  <Github size={18} className="text-emerald-400" />
-                </div>
+                {active.avatarUrl ? (
+                  <img
+                    src={active.avatarUrl}
+                    alt={active.githubUser}
+                    className="h-10 w-10 rounded-xl shrink-0"
+                  />
+                ) : (
+                  <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 grid place-items-center shrink-0">
+                    <Github size={18} className="text-emerald-400" />
+                  </div>
+                )}
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium text-text-primary">{active.githubUser}</p>
-                    <Badge className="bg-emerald-400/10 border-emerald-400/20 text-emerald-400">● Connected</Badge>
+                    <Badge className="bg-emerald-400/10 border-emerald-400/20 text-emerald-400">Connected</Badge>
                   </div>
                   <p className="text-[11px] text-text-muted mt-0.5">
-                    Scopes: {active.scopes} · {active.lastSyncedAt ? `Last synced ${timeAgo(active.lastSyncedAt)}` : "Not synced yet"}
+                    Scopes: {active.scopes}{active.lastSyncedAt ? ` · Last synced ${timeAgo(active.lastSyncedAt)}` : " · Not synced yet"}
                   </p>
                 </div>
               </div>
@@ -140,26 +156,44 @@ export default function GitHubIntegrationPage() {
 
           {repos.length > 0 && (
             <>
-              <p className="text-[10px] uppercase tracking-wider text-text-muted">Repositories ({repos.length})</p>
+              <p className="text-[10px] uppercase tracking-wider text-text-muted mt-6">Repositories ({repos.length})</p>
               <div className="space-y-1">
-                {repos.slice(0, 20).map((repo) => (
-                  <Card key={repo.id} interactive className="flex items-center gap-3 rounded-xl py-2.5 px-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono text-text-primary">{repo.fullName}</span>
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-text-muted uppercase font-semibold">
-                          {repo.isPrivate ? "Private" : "Public"}
-                        </span>
+                {repos.slice(0, 30).map((repo) => (
+                  <a
+                    key={repo.id}
+                    href={repo.htmlUrl || `https://github.com/${repo.fullName}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block"
+                  >
+                    <Card interactive className="flex items-center gap-3 rounded-xl py-2.5 px-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono text-text-primary">{repo.fullName}</span>
+                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-text-muted uppercase font-semibold">
+                            {repo.isPrivate ? "Private" : "Public"}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-text-muted mt-0.5">
+                          {repo.description && <>{repo.description.split("\n")[0].slice(0, 80)} · </>}
+                          {repo.language && <>{repo.language} · </>}
+                          ★ {repo.stars ?? 0}
+                        </p>
                       </div>
-                      <p className="text-[11px] text-text-muted mt-0.5">
-                        {repo.language && <>{repo.language} · </>}
-                        ★ {repo.stars ?? 0}
-                      </p>
-                    </div>
-                  </Card>
+                      <ExternalLink size={12} className="text-text-muted shrink-0" />
+                    </Card>
+                  </a>
                 ))}
               </div>
             </>
+          )}
+
+          {repos.length === 0 && (
+            <Card className="rounded-2xl text-center py-6">
+              <p className="text-xs text-text-secondary">
+                No synced repos. Click <RefreshCw size={12} className="inline text-emerald-400" /> to sync your repositories.
+              </p>
+            </Card>
           )}
 
           <p className="text-[10px] uppercase tracking-wider text-text-muted mt-6">Agent Tools</p>
@@ -192,7 +226,7 @@ export default function GitHubIntegrationPage() {
         </>
       )}
 
-      {!active && (
+      {!loading && !active && (
         <>
           {oauthError && (
             <Card className="rounded-2xl p-4 border-amber-400/20 bg-amber-400/5 space-y-2 mb-4">
@@ -218,6 +252,28 @@ export default function GitHubIntegrationPage() {
         </>
       )}
     </div>
+  );
+}
+
+function LoadingSkeleton() {
+  return (
+    <Card className="rounded-2xl animate-pulse">
+      <div className="flex items-center gap-3">
+        <div className="h-10 w-10 rounded-xl bg-white/5" />
+        <div className="space-y-2 flex-1">
+          <div className="h-3 w-32 bg-white/5 rounded" />
+          <div className="h-2 w-48 bg-white/5 rounded" />
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+export default function GitHubIntegrationPage() {
+  return (
+    <Suspense fallback={<div className="space-y-8"><LoadingSkeleton /></div>}>
+      <GitHubIntegrationInner />
+    </Suspense>
   );
 }
 
