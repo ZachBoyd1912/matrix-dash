@@ -1,5 +1,34 @@
 # Changelog
 
+## 27/06/2026 @ 04:47:07 IST — "deepseek v4 pro"
+
+**Goal:** Add Google Calendar as a provider option alongside local/CalDAV calendars on the Calendar settings page — with a dropdown to choose between "Local (CalDAV / ICS)" and "Google Calendar", and full Google OAuth flow for calendar sync.
+
+**Added — Google Calendar OAuth infrastructure**
+- **Added** `googleCalendarConnections` table to `lib/db/schema.ts` (id, googleEmail, accessToken encrypted, refreshToken encrypted, tokenExpires, isActive, createdAt)
+- **Added** CREATE TABLE statement to `lib/db/client.ts` INIT_SQL + `ensureIntegrationTables()` hot-reload migration
+- **Created** `app/api/oauth/google-calendar/authorize/route.ts` — redirects to Google OAuth with `calendar.readonly` scope, `access_type=offline`, `prompt=consent`
+- **Created** `app/api/oauth/google-calendar/callback/route.ts` — exchanges code for tokens (URL-encoded Google endpoint), encrypts access + refresh tokens, fetches user email from Google userinfo, stores in `google_calendar_connections`
+- **Created** `app/api/google-calendar/connections/route.ts` — GET (list connections with stripped tokens), DELETE (disconnect by id)
+
+**Changed — Calendar settings page with provider dropdown**
+- **Provider selector**: Added `<select>` dropdown in the "Add calendar" dialog with two options:
+  - **Local (CalDAV / ICS)** — existing form: calendar name + optional CalDAV URL/user/password. Creates a calendar in the `calendars` table
+  - **Google Calendar** — shows "Connect with Google" button that triggers OAuth. When already connected, shows "✅ Already connected as user@gmail.com" instead
+- **Google connection card**: When a Google Calendar connection is active, shows a card above the local calendars list with the connected email + "● Connected" badge + disconnect button
+- **Google connect prompt**: When no Google connection exists, shows a card with a "Connect Google Calendar" button + scope explanation
+- **Live refresh**: Fetches both `/api/calendars` and `/api/google-calendar/connections` on mount to determine Google connection state
+
+**Verification:** `pnpm typecheck` passes with zero errors
+
+**Files Touched:**
+- `lib/db/schema.ts` — +11 lines (googleCalendarConnections table)
+- `lib/db/client.ts` — +16 lines (INIT_SQL + ensureIntegrationTables migration)
+- `app/api/oauth/google-calendar/authorize/route.ts` — NEW 30 lines
+- `app/api/oauth/google-calendar/callback/route.ts` — NEW 90 lines
+- `app/api/google-calendar/connections/route.ts` — NEW 34 lines
+- `app/dashboard/settings/calendar/page.tsx` — rewritten (210 lines, provider dropdown + Google connect)
+
 ## 27/06/2026 @ 04:44:05 IST — "deepseek v4 pro"
 
 **Goal:** Fix `SqliteError: no such table` errors for all 10 new integration tables when the DB connection was already cached from before the code changes (hot-reload scenario). The `GET /api/github/connections`, `/api/slack/workspaces`, `/api/drive/connections`, `/api/github/repos`, and `/api/oauth/github/authorize` routes all returned 500s on a running dev server.

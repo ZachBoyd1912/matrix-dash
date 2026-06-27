@@ -115,12 +115,13 @@ export default function IntegrationsPage() {
   const [snap, setSnap] = useState<Snap | null>(null);
 
   const refresh = useCallback(async () => {
-    const [gh, sl, dr, wh, cal, settingsRes] = await Promise.all([
+    const [gh, sl, dr, wh, cal, gc, settingsRes] = await Promise.all([
       fetch("/api/github/connections").then((r) => r.json()).catch(() => []),
       fetch("/api/slack/workspaces").then((r) => r.json()).catch(() => []),
       fetch("/api/drive/connections").then((r) => r.json()).catch(() => []),
       fetch("/api/webhooks").then((r) => r.json()).catch(() => []),
       fetch("/api/calendars").then((r) => r.json()).catch(() => []),
+      fetch("/api/google-calendar/connections").then((r) => r.json()).catch(() => []),
       fetch("/api/settings").then((r) => r.json()).catch(() => ({})),
     ]);
 
@@ -167,13 +168,16 @@ export default function IntegrationsPage() {
       snap.drive = { connected: false, meta: "Connect your Google account" };
     }
 
-    // Calendar — fetch real calendar list, show count
+    // Calendar — fetch real calendar list + Google Calendar status
     const calList = Array.isArray(cal) ? cal : [];
+    const gcList = Array.isArray(gc) ? gc : [];
+    const hasGoogleCal = gcList.some((c: any) => c.isActive);
+    const parts: string[] = [];
+    if (calList.length > 0) parts.push(`${calList.length} local`);
+    if (hasGoogleCal) parts.push("Google connected");
     snap.calendar = {
-      connected: calList.length > 0,
-      meta: calList.length > 0
-        ? `${calList.length} calendar${calList.length > 1 ? "s" : ""} configured`
-        : "No calendars configured",
+      connected: calList.length > 0 || hasGoogleCal,
+      meta: parts.length > 0 ? parts.join(" · ") : "No calendars configured",
     };
 
     // Webhooks — fetch real webhook list, show honest count

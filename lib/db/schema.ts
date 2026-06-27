@@ -437,3 +437,14 @@ export const driveDocs = sqliteTable("drive_docs", {
   extractedText: text("extracted_text"),
   syncedAt: text("synced_at").notNull(),
 });
+
+// ─── GOOGLE CALENDAR CONNECTIONS ──────────────────────────
+export const googleCalendarConnections = sqliteTable("google_calendar_connections", {
+  id: text("id").primaryKey(),
+  googleEmail: text("google_email").notNull(),
+  accessToken: text("access_token").notNull(),
+  refreshToken: text("refresh_token").notNull(),
+  tokenExpires: text("token_expires").notNull(),
+  isActive: integer("is_active", { mode: "boolean" }).default(true),
+  createdAt: text("created_at").notNull(),
+});
