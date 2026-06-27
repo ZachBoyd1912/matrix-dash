@@ -28,24 +28,24 @@
     <line x1="384" y1="0" x2="384" y2="512"/>
   </g>
 
-  <!-- Stylized "M" with chevron dash accent -->
-  <g transform="translate(256,260)">
-    <!-- Main M shape -->
-    <path d="M-120,120 L-120,-80 L-30,40 L60,-80 L60,120"
-          fill="none" stroke="url(#icon)" stroke-width="36"
+  <!-- Centered M with dash accent -->
+  <g transform="translate(256,256)">
+    <!-- Main M shape — symmetric, centered at origin -->
+    <path d="M-90,100 L-90,-100 L0,20 L90,-100 L90,100"
+          fill="none" stroke="url(#icon)" stroke-width="32"
           stroke-linecap="round" stroke-linejoin="round"/>
     <!-- Dash accent line through middle -->
-    <line x1="-160" y1="30" x2="160" y2="30"
-          stroke="url(#accent)" stroke-width="8"
+    <line x1="-130" y1="0" x2="130" y2="0"
+          stroke="url(#accent)" stroke-width="6"
           stroke-linecap="round"/>
-    <!-- Small dots at corners of the dash -->
-    <circle cx="-140" cy="30" r="6" fill="#6ee7b7" opacity="0.8"/>
-    <circle cx="140" cy="30" r="6" fill="#38bdf8" opacity="0.8"/>
+    <!-- Small dots at ends of dash -->
+    <circle cx="-116" cy="0" r="5" fill="#6ee7b7" opacity="0.7"/>
+    <circle cx="116" cy="0" r="5" fill="#38bdf8" opacity="0.7"/>
   </g>
 
-  <!-- Small decorative elements -->
-  <circle cx="96" cy="96" r="4" fill="#6ee7b7" opacity="0.3"/>
-  <circle cx="416" cy="96" r="4" fill="#38bdf8" opacity="0.3"/>
-  <circle cx="96" cy="416" r="4" fill="#a78bfa" opacity="0.3"/>
-  <circle cx="416" cy="416" r="4" fill="#a78bfa" opacity="0.3"/>
+  <!-- Decorative corner dots (inside rounded corners) -->
+  <circle cx="120" cy="120" r="4" fill="#6ee7b7" opacity="0.25"/>
+  <circle cx="392" cy="120" r="4" fill="#38bdf8" opacity="0.25"/>
+  <circle cx="120" cy="392" r="4" fill="#a78bfa" opacity="0.25"/>
+  <circle cx="392" cy="392" r="4" fill="#a78bfa" opacity="0.25"/>
 </svg>
