@@ -1,14 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Trash2, Calendar, Globe } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Plus, Trash2, Calendar, Globe, AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty";
-import { Switch } from "@/components/ui/switch";
 import { toast, confirm } from "@/lib/stores/use-feedback";
 import { useGsapEntrance } from "@/lib/hooks/use-gsap-entrance";
 import type { Calendar as CalT } from "@/types/jarvis";
@@ -17,6 +17,7 @@ type ProviderType = "local" | "google";
 
 export default function CalendarSettingsPage() {
   const ref = useGsapEntrance();
+  const searchParams = useSearchParams();
   const [list, setList] = useState<CalT[]>([]);
   const [googleConns, setGoogleConns] = useState<Array<{ id: string; googleEmail: string; isActive: boolean | null }>>([]);
   const [open, setOpen] = useState(false);
@@ -25,6 +26,15 @@ export default function CalendarSettingsPage() {
   const [caldavUrl, setCaldavUrl] = useState("");
   const [caldavUser, setCaldavUser] = useState("");
   const [caldavPass, setCaldavPass] = useState("");
+  const [oauthError, setOauthError] = useState("");
+
+  useEffect(() => {
+    const err = searchParams.get("error");
+    const msg = searchParams.get("msg");
+    if (err === "missing_env" && msg) {
+      setOauthError(decodeURIComponent(msg));
+    }
+  }, [searchParams]);
 
   const refresh = useCallback(async () => {
     const [cals, gc] = await Promise.all([
@@ -126,7 +136,23 @@ export default function CalendarSettingsPage() {
 
       {/* Google connect card */}
       {!activeGoogle && (
-        <Card className="rounded-2xl p-5 space-y-3">
+        <>
+          {oauthError && (
+            <Card className="rounded-2xl p-4 border-amber-400/20 bg-amber-400/5 space-y-2">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={14} className="text-amber-400" />
+                <p className="text-sm font-semibold text-amber-400">Configuration needed</p>
+              </div>
+              <p className="text-xs text-text-secondary">{oauthError}</p>
+              <p className="text-[10px] text-text-muted">
+                Add <code className="bg-white/5 px-1 rounded">GOOGLE_CLIENT_ID</code> and{" "}
+                <code className="bg-white/5 px-1 rounded">GOOGLE_CLIENT_SECRET</code> to{" "}
+                <code className="bg-white/5 px-1 rounded">.env.local</code> from your Google Cloud Console project
+                with the Calendar API enabled.
+              </p>
+            </Card>
+          )}
+          <Card className="rounded-2xl p-5 space-y-3">
           <div className="flex items-center gap-2">
             <Globe size={16} className="text-blue-400" />
             <p className="text-sm font-semibold">Google Calendar</p>
@@ -141,6 +167,7 @@ export default function CalendarSettingsPage() {
             Requests calendar.readonly scope. Your events stay private to your machine.
           </p>
         </Card>
+        </>
       )}
 
       {/* Local calendars list */}
