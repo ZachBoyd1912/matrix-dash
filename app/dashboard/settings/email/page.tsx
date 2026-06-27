@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, RefreshCw, Trash2, Mail } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Plus, RefreshCw, Trash2, Mail, Globe, AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,24 +15,34 @@ import type { EmailAccountPublic } from "@/types/jarvis";
 
 export default function EmailSettingsPage() {
   const ref = useGsapEntrance();
+  const searchParams = useSearchParams();
   const [from, setFrom] = useState("");
   const [signature, setSignature] = useState("");
   const [accounts, setAccounts] = useState<EmailAccountPublic[]>([]);
   const [syncing, setSyncing] = useState<string | null>(null);
+  const [gmailConns, setGmailConns] = useState<Array<{ id: string; googleEmail: string; isActive: boolean | null }>>([]);
+  const [oauthError, setOauthError] = useState("");
 
   const refresh = useCallback(async () => {
-    const [s, a] = await Promise.all([
+    const [s, a, g] = await Promise.all([
       fetch("/api/settings").then((r) => r.json()),
       fetch("/api/email-accounts").then((r) => r.json()),
+      fetch("/api/gmail/connections").then((r) => r.json()).catch(() => []),
     ]);
     setFrom(s.emailFrom ?? "");
     setSignature(s.emailSignature ?? "");
     setAccounts(Array.isArray(a) ? a : []);
+    setGmailConns(Array.isArray(g) ? g : []);
   }, []);
 
   useEffect(() => {
     refresh();
-  }, [refresh]);
+    const err = searchParams.get("error");
+    const msg = searchParams.get("msg");
+    if (err === "missing_env" && msg) {
+      setOauthError(decodeURIComponent(msg));
+    }
+  }, [refresh, searchParams]);
 
   const saveDefaults = async () => {
     await fetch("/api/settings", {
@@ -72,6 +83,25 @@ export default function EmailSettingsPage() {
     refresh();
   };
 
+  const handleGmailOAuth = () => {
+    window.location.href = "/api/oauth/gmail/authorize?redirect_to=" +
+      encodeURIComponent(window.location.pathname);
+  };
+
+  const disconnectGmail = async (conn: typeof gmailConns[number]) => {
+    const ok = await confirm({
+      title: `Disconnect ${conn.googleEmail} from Gmail?`,
+      confirmLabel: "Disconnect",
+      danger: true,
+    });
+    if (!ok) return;
+    await fetch(`/api/gmail/connections?id=${conn.id}`, { method: "DELETE" });
+    toast.success("Gmail disconnected");
+    refresh();
+  };
+
+  const activeGmail = gmailConns.find((c) => c.isActive);
+
   return (
     <div ref={ref} className="space-y-8">
       <div className="relative isolate py-10">
@@ -88,6 +118,64 @@ export default function EmailSettingsPage() {
           </p>
         </div>
       </div>
+
+      {/* Gmail OAuth connection card */}
+      {activeGmail ? (
+        <Card interactive className="rounded-2xl mb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 grid place-items-center shrink-0">
+                <Globe size={18} className="text-red-400" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-text-primary">{activeGmail.googleEmail}</p>
+                  <Badge className="bg-emerald-400/10 border-emerald-400/20 text-emerald-400">● Connected</Badge>
+                </div>
+                <p className="text-[11px] text-text-muted mt-0.5">Gmail OAuth — IMAP/SMTP with token auth</p>
+              </div>
+            </div>
+            <Button size="icon" variant="ghost" onClick={() => disconnectGmail(activeGmail)} aria-label="Disconnect">
+              <Trash2 size={13} className="text-rose-400" />
+            </Button>
+          </div>
+        </Card>
+      ) : (
+        <>
+          {oauthError && (
+            <Card className="rounded-2xl p-4 border-amber-400/20 bg-amber-400/5 space-y-2 mb-4">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={14} className="text-amber-400" />
+                <p className="text-sm font-semibold text-amber-400">Configuration needed</p>
+              </div>
+              <p className="text-xs text-text-secondary">{oauthError}</p>
+              <p className="text-[10px] text-text-muted">
+                Add <code className="bg-white/5 px-1 rounded">GOOGLE_CLIENT_ID</code> and{" "}
+                <code className="bg-white/5 px-1 rounded">GOOGLE_CLIENT_SECRET</code> to{" "}
+                <code className="bg-white/5 px-1 rounded">.env.local</code> and add the redirect URI
+                <code className="bg-white/5 px-1 rounded ml-1">http://localhost:3000/api/oauth/gmail/callback</code>{" "}
+                in Google Cloud Console.
+              </p>
+            </Card>
+          )}
+          <Card className="rounded-2xl p-5 space-y-3 mb-4">
+            <div className="flex items-center gap-2">
+              <Globe size={16} className="text-red-400" />
+              <p className="text-sm font-semibold">Gmail OAuth</p>
+            </div>
+            <p className="text-xs text-text-secondary">
+              Connect Gmail with one click — no app password needed. Uses OAuth to access your inbox
+              and send mail through Gmail's servers.
+            </p>
+            <Button variant="secondary" onClick={handleGmailOAuth}>
+              <Globe size={14} /> Connect Gmail
+            </Button>
+            <p className="text-[10px] text-text-muted">
+              Requests mail.google.com scope. Emails stay local — synced to ~/MatrixDash/matrix.db.
+            </p>
+          </Card>
+        </>
+      )}
 
       {accounts.length > 0 && (
         <div className="space-y-2">

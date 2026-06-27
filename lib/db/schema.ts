@@ -448,3 +448,15 @@ export const googleCalendarConnections = sqliteTable("google_calendar_connection
   isActive: integer("is_active", { mode: "boolean" }).default(true),
   createdAt: text("created_at").notNull(),
 });
+
+// ─── GMAIL CONNECTIONS ────────────────────────────────────
+export const gmailConnections = sqliteTable("gmail_connections", {
+  id: text("id").primaryKey(),
+  googleEmail: text("google_email").notNull(),
+  accessToken: text("access_token").notNull(),
+  refreshToken: text("refresh_token").notNull(),
+  tokenExpires: text("token_expires").notNull(),
+  imapEnabled: integer("imap_enabled", { mode: "boolean" }).default(true),
+  isActive: integer("is_active", { mode: "boolean" }).default(true),
+  createdAt: text("created_at").notNull(),
+});

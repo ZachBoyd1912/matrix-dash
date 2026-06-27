@@ -401,6 +401,17 @@ CREATE TABLE IF NOT EXISTS google_calendar_connections (
   created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS gmail_connections (
+  id TEXT PRIMARY KEY,
+  google_email TEXT NOT NULL,
+  access_token TEXT NOT NULL,
+  refresh_token TEXT NOT NULL,
+  token_expires TEXT NOT NULL,
+  imap_enabled INTEGER DEFAULT 1,
+  is_active INTEGER DEFAULT 1,
+  created_at TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_memory_links_source ON memory_links(source_memory_id);
 CREATE INDEX IF NOT EXISTS idx_memory_links_target ON memory_links(target_memory_id);
 CREATE INDEX IF NOT EXISTS idx_session_messages_session ON session_messages(session_id);
@@ -570,6 +581,14 @@ function ensureIntegrationTables(sqlite: Database.Database) {
       refresh_token TEXT NOT NULL, token_expires TEXT NOT NULL,
       is_active INTEGER DEFAULT 1, created_at TEXT NOT NULL
     )`, "google_calendar_connections"
+  );
+
+  exec(
+    `CREATE TABLE gmail_connections (
+      id TEXT PRIMARY KEY, google_email TEXT NOT NULL, access_token TEXT NOT NULL,
+      refresh_token TEXT NOT NULL, token_expires TEXT NOT NULL,
+      imap_enabled INTEGER DEFAULT 1, is_active INTEGER DEFAULT 1, created_at TEXT NOT NULL
+    )`, "gmail_connections"
   );
 }
 
