@@ -8,6 +8,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Matrix Dashboard",
   description: "Your local-first AI command center.",
+  verification: {
+    google: "GUiEmulK8l2VasAwqI03Vy639GgRrH6uRRbgavVyRFc",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
