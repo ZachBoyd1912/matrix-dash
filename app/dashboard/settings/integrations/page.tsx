@@ -115,10 +115,12 @@ export default function IntegrationsPage() {
   const [snap, setSnap] = useState<Snap | null>(null);
 
   const refresh = useCallback(async () => {
-    const [gh, sl, dr, settingsRes] = await Promise.all([
+    const [gh, sl, dr, wh, cal, settingsRes] = await Promise.all([
       fetch("/api/github/connections").then((r) => r.json()).catch(() => []),
       fetch("/api/slack/workspaces").then((r) => r.json()).catch(() => []),
       fetch("/api/drive/connections").then((r) => r.json()).catch(() => []),
+      fetch("/api/webhooks").then((r) => r.json()).catch(() => []),
+      fetch("/api/calendars").then((r) => r.json()).catch(() => []),
       fetch("/api/settings").then((r) => r.json()).catch(() => ({})),
     ]);
 
@@ -165,11 +167,24 @@ export default function IntegrationsPage() {
       snap.drive = { connected: false, meta: "Connect your Google account" };
     }
 
-    // Calendar
-    snap.calendar = { connected: true, meta: "CalDAV · Settings → Calendar" };
+    // Calendar — fetch real calendar list, show count
+    const calList = Array.isArray(cal) ? cal : [];
+    snap.calendar = {
+      connected: calList.length > 0,
+      meta: calList.length > 0
+        ? `${calList.length} calendar${calList.length > 1 ? "s" : ""} configured`
+        : "No calendars configured",
+    };
 
-    // Webhooks
-    snap.webhooks = { connected: true, meta: "Settings → Webhooks" };
+    // Webhooks — fetch real webhook list, show honest count
+    const whList = Array.isArray(wh) ? wh : [];
+    const activeWh = whList.filter((w: any) => w.isEnabled).length;
+    snap.webhooks = {
+      connected: whList.length > 0,
+      meta: whList.length > 0
+        ? `${whList.length} webhook${whList.length > 1 ? "s" : ""}${activeWh > 0 ? ` · ${activeWh} active` : " · all inactive"}`
+        : "No webhooks configured · Create one to trigger HTTP callbacks on events",
+    };
 
     setSnap(snap);
   }, []);

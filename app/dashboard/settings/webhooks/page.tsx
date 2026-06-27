@@ -84,8 +84,42 @@ export default function WebhooksPage() {
         </div>
       </div>
 
+      {list.length === 0 && (
+        <Card className="rounded-2xl p-5 space-y-3">
+          <p className="text-sm font-semibold">Getting started</p>
+          <p className="text-xs text-text-secondary">
+            Webhooks let Matrix Dash POST JSON to any URL when certain events fire. Each webhook has a label, a target URL, and an optional event filter (<code className="bg-white/5 px-1 rounded">*</code> matches everything).
+          </p>
+          <div className="space-y-2">
+            <p className="text-[10px] uppercase tracking-wider text-text-muted">Examples</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="rounded-lg bg-white/[0.02] border border-white/5 p-3">
+                <p className="text-[10px] font-semibold text-text-primary">Discord</p>
+                <p className="text-[10px] text-text-muted mt-1">Create a webhook in Discord channel settings, paste the URL here</p>
+              </div>
+              <div className="rounded-lg bg-white/[0.02] border border-white/5 p-3">
+                <p className="text-[10px] font-semibold text-text-primary">Slack</p>
+                <p className="text-[10px] text-text-muted mt-1">Use a Slack Incoming Webhook <code className="bg-white/5 px-1 rounded">hooks.slack.com/services/…</code> URL</p>
+              </div>
+              <div className="rounded-lg bg-white/[0.02] border border-white/5 p-3">
+                <p className="text-[10px] font-semibold text-text-primary">n8n / IFTTT</p>
+                <p className="text-[10px] text-text-muted mt-1">Point to a webhook trigger URL in your automation platform</p>
+              </div>
+              <div className="rounded-lg bg-white/[0.02] border border-white/5 p-3">
+                <p className="text-[10px] font-semibold text-text-primary">Custom API</p>
+                <p className="text-[10px] text-text-muted mt-1">Your own server — Matrix Dash sends a JSON POST with event, title, body</p>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {list.length === 0 ? (
-        <EmptyState icon={<Webhook size={16} />} title="No webhooks" />
+        <EmptyState
+          icon={<Webhook size={16} />}
+          title="No webhooks"
+          description="Add a webhook to fire HTTP callbacks when events happen in Matrix Dash — use them to pipe data into Discord, Slack, n8n, IFTTT, or your own APIs."
+        />
       ) : (
         <div className="space-y-3">
           {list.map((w) => (

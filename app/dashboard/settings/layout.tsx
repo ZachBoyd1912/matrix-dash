@@ -21,6 +21,7 @@ import {
   Users,
   Activity,
   Drama,
+  Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
@@ -30,6 +31,7 @@ const SECTIONS = [
   { href: "/dashboard/settings/memory", label: "Memory", icon: Brain },
   { href: "/dashboard/settings/email", label: "Email", icon: Mail },
   { href: "/dashboard/settings/integrations", label: "Integrations", icon: Plug },
+  { href: "/dashboard/settings/calendar", label: "Calendar", icon: Calendar },
   { href: "/dashboard/settings/agent-tools", label: "Agent Tools", icon: Wrench },
   { href: "/dashboard/settings/shortcuts", label: "Shortcuts", icon: Keyboard },
   { href: "/dashboard/settings/account", label: "Account", icon: User },

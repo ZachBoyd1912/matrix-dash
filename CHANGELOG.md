@@ -1,5 +1,33 @@
 # Changelog
 
+## 27/06/2026 @ 04:40:55 IST — "deepseek v4 pro"
+
+**Goal:** Fix three integration bugs: Calendar card linked to a non-existent page (404), Webhooks card falsely claimed "Connected" when there were zero webhooks, and the Webhooks page had no setup guide.
+
+**Fixed — Calendar settings page created (was 404)**
+- **Cause:** The Integrations page's Calendar card linked to `/dashboard/settings/calendar` but no `app/dashboard/settings/calendar/page.tsx` existed — navigating there gave "404 — This page could not be found"
+- **Fix:** Created `app/dashboard/settings/calendar/page.tsx` — a full settings page following the webhooks page pattern: lists calendars with color dot + name + CalDAV badge, supports create via Dialog (name, optional CalDAV URL/user/pass), delete with confirmation, empty state with guidance
+- **Added** Calendar entry to `app/dashboard/settings/layout.tsx` sidebar SECTIONS array with `Calendar` icon from lucide-react
+
+**Fixed — Webhooks card showed "● Connected" when no webhooks existed**
+- **Cause:** `app/dashboard/settings/integrations/page.tsx` hardcoded `snap.webhooks = { connected: true, meta: "Settings → Webhooks" }` regardless of actual webhook state
+- **Fix:** Now fetches `/api/webhooks` alongside other APIs on mount. Shows `"No webhooks configured · Create one to trigger HTTP callbacks on events"` when empty, or `"3 webhooks · 2 active"` when configured with active/enabled counts
+
+**Fixed — Webhooks page had no setup guide for new users**
+- **Cause:** The empty state just said "No webhooks" with no guidance on what webhooks do or how to set them up
+- **Fix:** Added a "Getting started" card below the hero (only visible when list is empty) with example integrations: Discord, Slack, n8n/IFTTT, Custom API — each with a brief description of what URL to paste. Empty state also got a helpful `description` prop
+
+**Changed — Calendar card now also fetches real data**
+- Calendar card was previously hardcoded to show "CalDAV · Settings → Calendar" as connected. Now fetches `/api/calendars` and shows `"2 calendars configured"` or `"No calendars configured"` based on actual data
+
+**Verification:** `pnpm typecheck` passes with zero errors
+
+**Files Touched:**
+- `app/dashboard/settings/calendar/page.tsx` — NEW 120 lines (full calendar settings page)
+- `app/dashboard/settings/layout.tsx` — +2 lines (Calendar sidebar entry)
+- `app/dashboard/settings/integrations/page.tsx` — +18/-4 lines (webhook + calendar API fetches, honest status)
+- `app/dashboard/settings/webhooks/page.tsx` — +23/-1 lines (setup guide card + empty state description)
+
 ## 27/06/2026 @ 04:34:19 IST — "deepseek v4 pro"
 
 **Goal:** Wire up the Google Drive OAuth callback flow and add persistent toggle state to all integration settings pages so tool enable/approval switches survive page refresh.
