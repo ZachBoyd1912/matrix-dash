@@ -7,25 +7,25 @@ import { gmailConnections } from "@/lib/db/schema";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
-  const url = new URL(req.url);
-  const code = url.searchParams.get("code");
-  const state = url.searchParams.get("state");
-  const error = url.searchParams.get("error");
-
-  if (error || !code || !state) {
-    return Response.redirect(
-      "/dashboard/settings/email?error=oauth_denied"
-    );
-  }
-
-  const redirectTo = verifyOAuthState(state, "gmail");
-  if (!redirectTo) {
-    return Response.redirect(
-      "/dashboard/settings/email?error=invalid_state"
-    );
-  }
-
   try {
+    const url = new URL(req.url, "http://localhost:3000");
+    const code = url.searchParams.get("code");
+    const state = url.searchParams.get("state");
+    const error = url.searchParams.get("error");
+
+    if (error || !code || !state) {
+      return Response.redirect(
+        "/dashboard/settings/email?error=oauth_denied"
+      );
+    }
+
+    const redirectTo = verifyOAuthState(state, "gmail");
+    if (!redirectTo) {
+      return Response.redirect(
+        "/dashboard/settings/email?error=invalid_state"
+      );
+    }
+
     const body = new URLSearchParams({
       code,
       client_id: process.env.GOOGLE_CLIENT_ID || "",
@@ -77,6 +77,7 @@ export async function GET(req: Request) {
       `${redirectTo}?connected=gmail&email=${encodeURIComponent(email)}`
     );
   } catch (e) {
+    console.error("[gmail/callback]", e);
     return Response.redirect(
       "/dashboard/settings/email?error=token_exchange_failed"
     );

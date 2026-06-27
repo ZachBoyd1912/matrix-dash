@@ -7,25 +7,25 @@ import { driveConnections } from "@/lib/db/schema";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
-  const url = new URL(req.url);
-  const code = url.searchParams.get("code");
-  const state = url.searchParams.get("state");
-  const error = url.searchParams.get("error");
-
-  if (error || !code || !state) {
-    return Response.redirect(
-      "/dashboard/settings/integrations/drive?error=oauth_denied"
-    );
-  }
-
-  const redirectTo = verifyOAuthState(state, "google");
-  if (!redirectTo) {
-    return Response.redirect(
-      "/dashboard/settings/integrations/drive?error=invalid_state"
-    );
-  }
-
   try {
+    const url = new URL(req.url, "http://localhost:3000");
+    const code = url.searchParams.get("code");
+    const state = url.searchParams.get("state");
+    const error = url.searchParams.get("error");
+
+    if (error || !code || !state) {
+      return Response.redirect(
+        "/dashboard/settings/integrations/drive?error=oauth_denied"
+      );
+    }
+
+    const redirectTo = verifyOAuthState(state, "google");
+    if (!redirectTo) {
+      return Response.redirect(
+        "/dashboard/settings/integrations/drive?error=invalid_state"
+      );
+    }
+
     const body = new URLSearchParams({
       code,
       client_id: process.env.GOOGLE_CLIENT_ID || "",
@@ -81,6 +81,7 @@ export async function GET(req: Request) {
       `${redirectTo}?connected=drive&email=${encodeURIComponent(email)}`
     );
   } catch (e) {
+    console.error("[drive/callback]", e);
     return Response.redirect(
       "/dashboard/settings/integrations/drive?error=token_exchange_failed"
     );

@@ -7,25 +7,25 @@ import { slackWorkspaces } from "@/lib/db/schema";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
-  const url = new URL(req.url);
-  const code = url.searchParams.get("code");
-  const state = url.searchParams.get("state");
-  const error = url.searchParams.get("error");
-
-  if (error || !code || !state) {
-    return Response.redirect(
-      "/dashboard/settings/integrations/slack?error=oauth_denied"
-    );
-  }
-
-  const redirectTo = verifyOAuthState(state, "slack");
-  if (!redirectTo) {
-    return Response.redirect(
-      "/dashboard/settings/integrations/slack?error=invalid_state"
-    );
-  }
-
   try {
+    const url = new URL(req.url, "http://localhost:3000");
+    const code = url.searchParams.get("code");
+    const state = url.searchParams.get("state");
+    const error = url.searchParams.get("error");
+
+    if (error || !code || !state) {
+      return Response.redirect(
+        "/dashboard/settings/integrations/slack?error=oauth_denied"
+      );
+    }
+
+    const redirectTo = verifyOAuthState(state, "slack");
+    if (!redirectTo) {
+      return Response.redirect(
+        "/dashboard/settings/integrations/slack?error=invalid_state"
+      );
+    }
+
     const tokenRes = await fetch("https://slack.com/api/oauth.v2.access", {
       method: "POST",
       headers: {
@@ -60,6 +60,7 @@ export async function GET(req: Request) {
       `${redirectTo}?connected=slack&team=${data.team.name}`
     );
   } catch (e) {
+    console.error("[slack/callback]", e);
     return Response.redirect(
       "/dashboard/settings/integrations/slack?error=token_exchange_failed"
     );

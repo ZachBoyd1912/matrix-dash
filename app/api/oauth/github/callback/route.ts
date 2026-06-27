@@ -7,25 +7,26 @@ import { githubConnections } from "@/lib/db/schema";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
-  const url = new URL(req.url);
-  const code = url.searchParams.get("code");
-  const state = url.searchParams.get("state");
-  const error = url.searchParams.get("error");
-
-  if (error || !code || !state) {
-    return Response.redirect(
-      "/dashboard/settings/integrations/github?error=oauth_denied"
-    );
-  }
-
-  const redirectTo = verifyOAuthState(state, "github");
-  if (!redirectTo) {
-    return Response.redirect(
-      "/dashboard/settings/integrations/github?error=invalid_state"
-    );
-  }
-
   try {
+    const url = new URL(req.url, "http://localhost:3000");
+    const code = url.searchParams.get("code");
+    const state = url.searchParams.get("state");
+    const error = url.searchParams.get("error");
+
+    if (error || !code || !state) {
+      return Response.redirect(
+        "/dashboard/settings/integrations/github?error=oauth_denied"
+      );
+    }
+
+    const redirectTo = verifyOAuthState(state, "github");
+    if (!redirectTo) {
+      return Response.redirect(
+        "/dashboard/settings/integrations/github?error=invalid_state"
+      );
+    }
+
+    // Exchange code for access token
     const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
       method: "POST",
       headers: {
@@ -41,6 +42,7 @@ export async function GET(req: Request) {
     const data = await tokenRes.json();
     if (data.error) throw new Error(data.error_description || data.error);
 
+    // Fetch user info
     const userRes = await fetch("https://api.github.com/user", {
       headers: { Authorization: `Bearer ${data.access_token}` },
     });
@@ -63,6 +65,7 @@ export async function GET(req: Request) {
       `${redirectTo}?connected=github&user=${user.login}`
     );
   } catch (e) {
+    console.error("[github/callback]", e);
     return Response.redirect(
       `/dashboard/settings/integrations/github?error=token_exchange_failed`
     );
