@@ -1,4 +1,3 @@
-import { randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { githubConnections, githubRepos } from "@/lib/db/schema";
@@ -61,27 +60,47 @@ export async function syncRepos(connectionId: string) {
   }
   const db = getDb();
   const now = new Date().toISOString();
+
+  // Use deterministic IDs so upserts work naturally
   for (const r of repos) {
-    db.insert(githubRepos)
-      .values({
-        id: randomUUID(),
-        connectionId,
-        fullName: r.full_name,
-        owner: r.owner.login,
-        name: r.name,
-        description: r.description ?? "",
-        stars: r.stargazers_count,
-        language: r.language ?? "",
-        isPrivate: r.private,
-        defaultBranch: r.default_branch,
-        htmlUrl: r.html_url,
-        syncedAt: now,
-      })
-      .onConflictDoUpdate({
-        target: [githubRepos.fullName, githubRepos.connectionId],
-        set: { stars: r.stargazers_count, syncedAt: now },
-      })
-      .run();
+    const id = `${connectionId}:${r.full_name}`;
+    // Check if repo exists (by id)
+    const existing = db
+      .select({ id: githubRepos.id })
+      .from(githubRepos)
+      .where(eq(githubRepos.id, id))
+      .get();
+
+    if (existing) {
+      db.update(githubRepos)
+        .set({
+          description: r.description ?? "",
+          stars: r.stargazers_count,
+          language: r.language ?? "",
+          isPrivate: r.private,
+          defaultBranch: r.default_branch,
+          syncedAt: now,
+        })
+        .where(eq(githubRepos.id, id))
+        .run();
+    } else {
+      db.insert(githubRepos)
+        .values({
+          id,
+          connectionId,
+          fullName: r.full_name,
+          owner: r.owner.login,
+          name: r.name,
+          description: r.description ?? "",
+          stars: r.stargazers_count,
+          language: r.language ?? "",
+          isPrivate: r.private,
+          defaultBranch: r.default_branch,
+          htmlUrl: r.html_url,
+          syncedAt: now,
+        })
+        .run();
+    }
   }
   db.update(githubConnections)
     .set({ lastSyncedAt: now, updatedAt: now })
