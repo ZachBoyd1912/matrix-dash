@@ -8,8 +8,8 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Matrix Dashboard",
   description: "Your local-first AI command center.",
-  verification: {
-    google: "GUiEmulK8l2VasAwqI03Vy639GgRrH6uRRbgavVyRFc",
+  other: {
+    "google-site-verification": "GUiEmulK8l2VasAwqI03Vy639GgRrH6uRRbgavVyRFc",
   },
 };
 
@@ -20,9 +20,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${GeistSans.variable} ${GeistMono.variable}`}
       suppressHydrationWarning
     >
-      <head>
-        <meta name="google-site-verification" content="GUiEmulK8l2VasAwqI03Vy639GgRrH6uRRbgavVyRFc" />
-      </head>
       <body>
         <ThemeProvider
           attribute="data-theme"
