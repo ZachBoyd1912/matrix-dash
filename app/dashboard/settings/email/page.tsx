@@ -111,7 +111,7 @@ export default function EmailSettingsPage() {
       const res = await fetch("/api/gmail", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "sync", limit: 50 }),
+        body: JSON.stringify({ action: "sync", limit: 99999 }),
       });
       const data = await res.json();
       if (data.ok) toast.success("Gmail synced", `${data.imported} new emails imported`);
