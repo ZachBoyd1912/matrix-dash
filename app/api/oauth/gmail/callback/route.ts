@@ -39,6 +39,7 @@ export async function GET(req: Request) {
       body: body.toString(),
     });
     const data = await tokenRes.json();
+    console.log("[gmail/callback] token exchange:", { ok: tokenRes.ok, hasToken: !!data.access_token, hasRefresh: !!data.refresh_token, error: data.error });
     if (data.error) throw new Error(data.error_description || data.error);
 
     let email = "unknown@gmail.com";
@@ -57,6 +58,7 @@ export async function GET(req: Request) {
     const expiresIn = data.expires_in || 3600;
     const tokenExpires = new Date(Date.now() + expiresIn * 1000).toISOString();
 
+    console.log("[gmail/callback] inserting connection:", { email, tokenExpires });
     getDb()
       .insert(gmailConnections)
       .values({
@@ -68,6 +70,7 @@ export async function GET(req: Request) {
         createdAt: new Date().toISOString(),
       })
       .run();
+    console.log("[gmail/callback] connection inserted successfully");
 
     // Auto-create an email account entry so the existing email system recognizes Gmail
     const existingAccount = getDb()

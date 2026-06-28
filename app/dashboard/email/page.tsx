@@ -39,8 +39,10 @@ export default function EmailPage() {
 
   const refresh = useCallback(async () => {
     const query = folder === "starred" ? "starred=1" : `folder=${folder}`;
+    console.log("[email-page] fetching:", `/api/emails?${query}`);
     const res = await fetch(`/api/emails?${query}`);
     const data = (await res.json()) as Email[];
+    console.log("[email-page] result:", data.length, "emails");
     setList(data);
     setSelected((prev) => (prev ? data.find((e) => e.id === prev.id) ?? null : null));
   }, [folder]);

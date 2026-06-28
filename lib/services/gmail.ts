@@ -14,7 +14,11 @@ function getGmailToken() {
     .from(gmailConnections)
     .where(eq(gmailConnections.isActive, true))
     .get();
-  if (!conn) throw new Error("No active Gmail connection");
+  if (!conn) {
+    console.error("[gmail] No active Gmail connection in DB");
+    throw new Error("No active Gmail connection");
+  }
+  console.log("[gmail] using connection:", conn.googleEmail);
   return { conn, token: decrypt(conn.accessToken) };
 }
 
@@ -125,12 +129,15 @@ function extractBody(payload: GmailMessage["payload"]): string {
 
 /** Sync recent emails from Gmail into the local mailbox. */
 export async function syncGmailEmails(limit = 50): Promise<number> {
+  console.log("[gmail/sync] starting sync, limit:", limit);
   const res = await gmailApi(
     `/messages?maxResults=${limit}&q=-label:trash -label:spam&includeSpamTrash=false`
   );
+  console.log("[gmail/sync] API response:", res.status);
   if (!res.ok) throw new Error(`Gmail API error: ${res.status}`);
   const data = await res.json();
   const messageIds: { id: string; threadId: string }[] = data.messages ?? [];
+  console.log("[gmail/sync] found", messageIds.length, "messages");
   if (!messageIds.length) return 0;
 
   const db = getDb();
