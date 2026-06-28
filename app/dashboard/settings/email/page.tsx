@@ -106,6 +106,22 @@ export default function EmailSettingsPage() {
     refresh();
   };
 
+  const syncGmail = async () => {
+    try {
+      const res = await fetch("/api/gmail", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "sync", limit: 50 }),
+      });
+      const data = await res.json();
+      if (data.ok) toast.success("Gmail synced", `${data.imported} new emails imported`);
+      else toast.error("Sync failed", data.error);
+      refresh();
+    } catch {
+      toast.error("Sync failed", "Could not reach Gmail API");
+    }
+  };
+
   const activeGmail = gmailConns.find((c) => c.isActive);
 
   return (
@@ -141,9 +157,14 @@ export default function EmailSettingsPage() {
                 <p className="text-[11px] text-text-muted mt-0.5">Gmail OAuth — IMAP/SMTP with token auth</p>
               </div>
             </div>
-            <Button size="icon" variant="ghost" onClick={() => disconnectGmail(activeGmail)} aria-label="Disconnect">
-              <Trash2 size={13} className="text-rose-400" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button size="icon" variant="ghost" onClick={syncGmail} aria-label="Sync Gmail">
+                <RefreshCw size={13} />
+              </Button>
+              <Button size="icon" variant="ghost" onClick={() => disconnectGmail(activeGmail)} aria-label="Disconnect">
+                <Trash2 size={13} className="text-rose-400" />
+              </Button>
+            </div>
           </div>
         </Card>
       ) : (

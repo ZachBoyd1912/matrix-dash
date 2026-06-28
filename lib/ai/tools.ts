@@ -81,6 +81,13 @@ import {
   listNotifications,
   markNotificationRead,
 } from "@/lib/services/github";
+import {
+  syncGmailEmails,
+  sendGmailEmail,
+  searchGmailEmails,
+  listGmailLabels,
+  getGmailEmail,
+} from "@/lib/services/gmail";
 import { sendMessage, searchMessages } from "@/lib/services/slack";
 
 const now = () => new Date().toISOString();
@@ -348,6 +355,50 @@ export function buildAgentTools() {
         const match = rows.filter((c) => c.name.toLowerCase().includes(name.toLowerCase()));
         return match.map((c) => ({ name: c.name, email: c.email }));
       },
+    });
+
+    // ── Gmail Tools ──────────────────────────────────
+    toolset.syncGmail = tool({
+      description: "Sync recent emails from Gmail into the local mailbox.",
+      inputSchema: z.object({ limit: z.number().default(50).describe("Max emails to fetch") }),
+      execute: async ({ limit }) => {
+        if (!approved("syncGmail")) return blocked("syncGmail");
+        const count = await syncGmailEmails(limit);
+        return { synced: true, imported: count };
+      },
+    });
+
+    toolset.sendGmail = tool({
+      description: "Send an email via Gmail. Requires approval.",
+      inputSchema: z.object({
+        to: z.string(), subject: z.string(), body: z.string(),
+        cc: z.string().optional(), bcc: z.string().optional(),
+      }),
+      execute: async (opts) => {
+        if (!approved("sendGmail")) return blocked("sendGmail");
+        return sendGmailEmail(opts.to, opts.subject, opts.body, { cc: opts.cc, bcc: opts.bcc });
+      },
+    });
+
+    toolset.searchGmail = tool({
+      description: "Search Gmail using Gmail search syntax (e.g. 'from:john subject:report newer_than:7d').",
+      inputSchema: z.object({
+        query: z.string().describe("Gmail search query"),
+        limit: z.number().default(20),
+      }),
+      execute: async ({ query, limit }) => searchGmailEmails(query, limit),
+    });
+
+    toolset.getGmailEmail = tool({
+      description: "Get the full content of a single Gmail email by message ID.",
+      inputSchema: z.object({ messageId: z.string() }),
+      execute: async ({ messageId }) => getGmailEmail(messageId),
+    });
+
+    toolset.listGmailLabels = tool({
+      description: "List Gmail labels (folders) with message counts.",
+      inputSchema: z.object({}),
+      execute: async () => listGmailLabels(),
     });
   }
 

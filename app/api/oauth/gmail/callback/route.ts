@@ -1,8 +1,10 @@
 import { randomUUID } from "crypto";
+import { eq } from "drizzle-orm";
 import { verifyOAuthState } from "@/lib/services/oauth";
 import { encrypt } from "@/lib/utils/crypto";
 import { getDb } from "@/lib/db/client";
-import { gmailConnections } from "@/lib/db/schema";
+import { gmailConnections, emailAccounts } from "@/lib/db/schema";
+import { syncGmailEmails } from "@/lib/services/gmail";
 
 export const dynamic = "force-dynamic";
 
@@ -66,6 +68,40 @@ export async function GET(req: Request) {
         createdAt: new Date().toISOString(),
       })
       .run();
+
+    // Auto-create an email account entry so the existing email system recognizes Gmail
+    const existingAccount = getDb()
+      .select({ id: emailAccounts.id })
+      .from(emailAccounts)
+      .where(eq(emailAccounts.address, email))
+      .get();
+    if (!existingAccount) {
+      const accountId = randomUUID();
+      getDb()
+        .insert(emailAccounts)
+        .values({
+          id: accountId,
+          label: `${email} (Gmail)`,
+          address: email,
+          imapHost: "imap.gmail.com",
+          imapPort: 993,
+          smtpHost: "smtp.gmail.com",
+          smtpPort: 465,
+          username: email,
+          passwordEncrypted: encrypt("gmail-oauth"), // placeholder, OAuth handles auth
+          useTls: true,
+          triageEnabled: true,
+          isActive: true,
+          lastSyncAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+        })
+        .run();
+    }
+
+    // Trigger initial sync in the background
+    syncGmailEmails(20).catch((e: Error) =>
+      console.error("[gmail/callback] initial sync failed:", e.message)
+    );
 
     return Response.redirect(
       new URL(`${redirectTo}?connected=gmail&email=${encodeURIComponent(email)}`, base)

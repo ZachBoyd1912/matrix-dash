@@ -1,5 +1,68 @@
 # Changelog
 
+## 28/06/2026 @ 01:06:44 IST — "deepseek-v4-pro"
+
+**Goal:** Build full Gmail integration — connect Gmail OAuth to the email system with sync, send, search, labels, and agent tools. Bridge OAuth tokens to auto-create `email_account` entries so the existing email dashboard and compose system seamlessly work with Gmail.
+
+**Skills used:** `@ai-engineer` (structured tool definitions with `approved()` gating for send), `@backend-dev-guidelines` (service layer with Gmail REST API, token refresh, base64 email decoding)
+
+**Added — Gmail service (`lib/services/gmail.ts`, 372 lines):**
+
+- `getGmailToken()` / `ensureFreshToken()` — OAuth token management with auto-refresh. Checks expiry, calls `https://oauth2.googleapis.com/token` with `grant_type=refresh_token`, updates DB with new access token. Falls back to existing token if refresh fails
+- `gmailApi(path, init?)` — Authenticated Gmail REST API helper at `https://gmail.googleapis.com/gmail/v1/users/me`
+- `decodeBase64()` / `getHeader()` / `extractBody()` — MIME parsing utilities. Handles URL-safe base64, multipart messages, nested parts, text/plain preferred over text/html
+- `syncGmailEmails(limit=50)` — Fetches recent emails via `GET /messages?maxResults=N`, fetches full content for each new message, deduplicates by `message_id`, extracts From/Subject/To, labels (INBOX/SENT/UNREAD/STARRED), body (capped 20K chars), inserts into local `emails` table. Sends notification on completion
+- `sendGmailEmail(to, subject, body, { cc, bcc, replyTo })` — Sends via Gmail API `POST /messages/send` with RFC 2822 formatted raw message (base64url encoded). Saves copy to local sent folder
+- `getGmailEmail(messageId)` — Full message by ID with all headers, body, snippet, labels
+- `searchGmailEmails(query, limit)` — Gmail search syntax support (`from:`, `subject:`, `newer_than:`, etc.), returns metadata + snippet
+- `modifyGmailLabel(messageId, addLabels, removeLabels)` — Add/remove Gmail labels AND sync local DB (UNREAD→isRead, STARRED→isStarred, TRASH→folder)
+- `listGmailLabels()` — All system + user labels with message/thread counts
+- `getGmailProfile()` — Email address, total messages, threads, history ID
+
+**Added — Gmail sync API (`app/api/gmail/route.ts`):**
+- `POST { action: "sync", limit }` → `syncGmailEmails(limit)` — returns `{ ok, imported }`
+- `POST { action: "send", to, subject, body, cc?, bcc? }` → `sendGmailEmail()` — returns `{ ok, messageId }`
+
+**Added — Bridge in Gmail OAuth callback (`app/api/oauth/gmail/callback/route.ts`):**
+- After successful OAuth token storage, auto-creates an `email_account` row (Gmail IMAP/SMTP) so the existing email system recognizes the Gmail connection
+- Triggers initial sync (`syncGmailEmails(20)`) in the background — emails appear in the inbox immediately after connecting
+
+**Added — 5 Gmail agent tools (`lib/ai/tools.ts`):**
+| Tool | Gated | Description |
+|---|---|---|
+| `syncGmail` | `approved("syncGmail")` | Fetch recent emails from Gmail to local DB |
+| `sendGmail` | `approved("sendGmail")` | Send email via Gmail with cc/bcc |
+| `searchGmail` | No | Search Gmail with Gmail search syntax |
+| `getGmailEmail` | No | Read full email by message ID |
+| `listGmailLabels` | No | List labels with message counts |
+
+**Fixed — Google OAuth authorize URL (`app/api/oauth/google-calendar|drive|gmail/authorize/route.ts`):**
+- Changed from `/o/oauth/v2/auth` to `/o/oauth2/v2/auth` (missing `2` caused persistent 404)
+- Added `userinfo.email` scope to all authorize routes for real email retrieval
+- Token endpoint URLs already correct (`oauth2.googleapis.com`)
+
+**Fixed — All callback redirects (`app/api/oauth/google-calendar|drive|gmail/callback/route.ts`):**
+- `Response.redirect()` now uses absolute URLs via `new URL(path, base)` — Next.js 15 rejects relative URLs with `ERR_INVALID_URL`
+- Changed userinfo API from v1 to v2 endpoint for better compatibility
+
+**Added — Gmail sync button (email settings page):**
+- Refresh button next to the disconnect button in the connected Gmail card
+- Calls `POST /api/gmail { action: "sync" }` and shows toast with import count
+
+**Verification:** `pnpm typecheck` zero errors. 115 lines modified, 3 new files created (gmail.ts, gmail route, docs/.gitignore).
+
+**Files touched:**
+- `lib/services/gmail.ts` — NEW: 372 lines, full Gmail API integration
+- `app/api/gmail/route.ts` — NEW: sync + send endpoints
+- `app/api/oauth/gmail/callback/route.ts` — bridge: auto-create email account + trigger initial sync
+- `app/api/oauth/google-calendar/callback/route.ts` — fix: absolute URLs, userinfo v2
+- `app/api/oauth/drive/callback/route.ts` — fix: absolute URLs, userinfo v2
+- `app/api/oauth/google-calendar/authorize/route.ts` — fix: oauth2 URL, userinfo.email scope
+- `app/api/oauth/drive/authorize/route.ts` — fix: oauth2 URL, userinfo.email scope
+- `app/api/oauth/gmail/authorize/route.ts` — fix: oauth2 URL, userinfo.email scope
+- `lib/ai/tools.ts` — 5 Gmail agent tools
+- `app/dashboard/settings/email/page.tsx` — Gmail sync button
+
 ## 27/06/2026 @ 19:00:06 IST — "deepseek-v4-pro"
 
 **Goal:** Complete ALL remaining GitHub tool phases (3-6) — implement 35 service functions and 35 agent tool definitions covering PR operations, repository administration, CI/CD workflows, gists, notifications, milestones, and extended GitHub features. The Matrix Dash agent now has **59 total GitHub tools** with full read/write access across the entire GitHub API surface.
