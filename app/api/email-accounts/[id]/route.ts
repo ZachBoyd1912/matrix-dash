@@ -1,8 +1,9 @@
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
-import { emailAccounts } from "@/lib/db/schema";
+import { emailAccounts, gmailConnections } from "@/lib/db/schema";
 import { syncAccount } from "@/lib/services/email";
+import { syncGmailEmails } from "@/lib/services/gmail";
 
 export const dynamic = "force-dynamic";
 
@@ -30,11 +31,21 @@ export async function PATCH(req: Request, ctx: Ctx) {
 }
 
 export async function POST(_req: Request, ctx: Ctx) {
-  // Manual sync trigger.
+  // Manual sync trigger. Routes through Gmail API for OAuth-connected accounts.
   const { id } = await ctx.params;
   const account = getDb().select().from(emailAccounts).where(eq(emailAccounts.id, id)).get();
   if (!account) return Response.json({ error: "not found" }, { status: 404 });
   try {
+    // Check if this account has a Gmail OAuth connection — use Gmail API if so
+    const gmailConn = getDb()
+      .select()
+      .from(gmailConnections)
+      .where(eq(gmailConnections.googleEmail, account.address))
+      .get();
+    if (gmailConn?.isActive) {
+      const count = await syncGmailEmails(99999);
+      return Response.json({ ok: true, imported: count });
+    }
     const count = await syncAccount(account);
     return Response.json({ ok: true, imported: count });
   } catch (err) {
