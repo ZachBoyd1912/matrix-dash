@@ -124,72 +124,60 @@ function extractBody(payload: GmailMessage["payload"]): string {
 }
 
 /** Sync recent emails from Gmail into the local mailbox. */
-export async function syncGmailEmails(limit = 50): Promise<number> {
-  const res = await gmailApi(
-    `/messages?maxResults=${Math.min(limit, 500)}&q=-label:trash -label:spam&includeSpamTrash=false`
-  );
-  if (!res.ok) throw new Error(`Gmail API error: ${res.status}`);
-  const data = await res.json();
-  const messageIds: { id: string; threadId: string }[] = data.messages ?? [];
-  if (!messageIds.length) return 0;
-
+export async function syncGmailEmails(maxTotal = 100): Promise<number> {
   const db = getDb();
+  const { conn } = getGmailToken();
   const now = new Date().toISOString();
   let imported = 0;
+  let pageToken: string | undefined;
 
-  // Use the Gmail connection's email as the account address
-  const { conn } = getGmailToken();
+  while (imported < maxTotal) {
+    const perPage = Math.min(maxTotal - imported, 500);
+    const params = new URLSearchParams({
+      maxResults: String(perPage),
+      q: "-label:trash -label:spam",
+      includeSpamTrash: "false",
+    });
+    if (pageToken) params.set("pageToken", pageToken);
 
-  for (const { id } of messageIds) {
-    // Check if already synced
-    const existing = db
-      .select({ id: emails.id })
-      .from(emails)
-      .where(eq(emails.messageId, id))
-      .get();
-    if (existing) continue;
+    const res = await gmailApi(`/messages?${params}`);
+    if (!res.ok) break;
+    const data = await res.json();
+    const messageIds: { id: string; threadId: string }[] = data.messages ?? [];
+    if (!messageIds.length) break;
 
-    // Fetch full message
-    const msgRes = await gmailApi(`/messages/${id}?format=full`);
-    if (!msgRes.ok) continue;
-    const msg: GmailMessage = await msgRes.json();
+    for (const { id } of messageIds) {
+      const existing = db.select({ id: emails.id }).from(emails).where(eq(emails.messageId, id)).get();
+      if (existing) continue;
 
-    const headers = msg.payload?.headers;
-    const from = getHeader(headers, "From") || conn.googleEmail;
-    const subject = getHeader(headers, "Subject") || "(No subject)";
-    const to = getHeader(headers, "To") || conn.googleEmail;
-    const body = extractBody(msg.payload).slice(0, 20000);
-    const labels = msg.labelIds ?? [];
-    const isRead = !labels.includes("UNREAD");
-    const isStarred = labels.includes("STARRED");
-    const isTrash = labels.includes("TRASH") || labels.includes("SPAM");
-    const folder = isTrash ? "trash" : (labels.includes("SENT") ? "sent" : "inbox");
+      const msgRes = await gmailApi(`/messages/${id}?format=full`);
+      if (!msgRes.ok) continue;
+      const msg: GmailMessage = await msgRes.json();
 
-    db.insert(emails)
-      .values({
-        id: randomUUID(),
-        folder,
-        fromAddr: from,
-        toAddr: to,
-        subject,
-        body,
-        isRead,
-        isStarred,
-        messageId: id,
-        createdAt: msg.internalDate
-          ? new Date(parseInt(msg.internalDate)).toISOString()
-          : now,
-      })
-      .run();
-    imported++;
+      const headers = msg.payload?.headers;
+      const from = getHeader(headers, "From") || conn.googleEmail;
+      const subject = getHeader(headers, "Subject") || "(No subject)";
+      const to = getHeader(headers, "To") || conn.googleEmail;
+      const body = extractBody(msg.payload).slice(0, 20000);
+      const labels = msg.labelIds ?? [];
+      const isRead = !labels.includes("UNREAD");
+      const isStarred = labels.includes("STARRED");
+      const isTrash = labels.includes("TRASH") || labels.includes("SPAM");
+      const folder = isTrash ? "trash" : (labels.includes("SENT") ? "sent" : "inbox");
+
+      db.insert(emails).values({
+        id: randomUUID(), folder, fromAddr: from, toAddr: to,
+        subject, body, isRead, isStarred, messageId: id,
+        createdAt: msg.internalDate ? new Date(parseInt(msg.internalDate)).toISOString() : now,
+      }).run();
+      imported++;
+    }
+
+    pageToken = data.nextPageToken;
+    if (!pageToken) break;
   }
 
-  // Update last sync
-  db.update(gmailConnections)
-    .set({ createdAt: now })
-    .where(eq(gmailConnections.id, conn.id))
-    .run();
-
+  db.update(gmailConnections).set({ createdAt: now }).where(eq(gmailConnections.id, conn.id)).run();
   if (imported > 0) {
     notify({ title: "Gmail synced", body: `${imported} new email${imported > 1 ? "s" : ""} imported` });
   }
