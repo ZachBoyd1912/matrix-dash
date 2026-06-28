@@ -35,6 +35,7 @@ export default function EmailPage() {
   const [list, setList] = useState<Email[] | null>(null);
   const [selected, setSelected] = useState<Email | null>(null);
   const [composeOpen, setComposeOpen] = useState(false);
+  const [gmailAddr, setGmailAddr] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const query = folder === "starred" ? "starred=1" : `folder=${folder}`;
@@ -49,6 +50,16 @@ export default function EmailPage() {
     setSelected(null);
     refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    fetch("/api/gmail/connections")
+      .then((r) => r.json())
+      .then((conns) => {
+        const active = conns.find((c: any) => c.isActive);
+        if (active?.googleEmail) setGmailAddr(active.googleEmail);
+      })
+      .catch(() => {});
+  }, []);
 
   const open = async (email: Email) => {
     setSelected(email);
@@ -108,6 +119,11 @@ export default function EmailPage() {
     <div ref={ref} className="page-h grid grid-cols-1 md:grid-cols-[170px_minmax(240px,330px)_1fr]">
       {/* Folder rail */}
       <aside className="border-r border-white/5 p-3 bg-white/[0.01] hidden md:flex flex-col gap-1">
+        {gmailAddr && (
+          <p className="text-[10px] text-text-muted truncate px-2 py-1 rounded-md bg-white/[0.03] text-center">
+            {gmailAddr}
+          </p>
+        )}
         <Button variant="primary" size="sm" className="mb-3 rounded-full" onClick={() => setComposeOpen(true)}>
           <PenSquare size={13} /> Compose
         </Button>
