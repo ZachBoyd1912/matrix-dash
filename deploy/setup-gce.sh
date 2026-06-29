@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────
 # GCE VM setup for Matrix Dashboard on matrix.zbautomations.ie
-# Run once after creating the VM (e2-micro, europe-west1).
+# Project: matrix-dashboard-id (project #522999215738)
+# Run once — creates e2-micro VM, static IP, firewall rules.
 # ─────────────────────────────────────────────────────────────
 set -euo pipefail
 
-PROJECT="${GCP_PROJECT:-$(gcloud config get project)}"
+PROJECT="matrix-dashboard-id"
 ZONE="europe-west1-b"
 VM_NAME="matrix-dash"
 STATIC_IP_NAME="matrix-dash-ip"
