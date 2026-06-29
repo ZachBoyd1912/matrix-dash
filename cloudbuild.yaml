@@ -1,0 +1,21 @@
+# Cloud Build config for Matrix Dashboard
+# Builds the Docker image and pushes to Artifact Registry.
+# Trigger: gcloud builds submit --config=cloudbuild.yaml
+#
+# Cost: $0 (free tier: 120 build-minutes/day)
+
+steps:
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - build
+      - -t
+      - europe-west1-docker.pkg.dev/${PROJECT_ID}/matrix-dash/app:latest
+      - -t
+      - europe-west1-docker.pkg.dev/${PROJECT_ID}/matrix-dash/app:$SHORT_SHA
+      - .
+
+images:
+  - europe-west1-docker.pkg.dev/${PROJECT_ID}/matrix-dash/app:latest
+  - europe-west1-docker.pkg.dev/${PROJECT_ID}/matrix-dash/app:$SHORT_SHA
+
+timeout: 1800s
