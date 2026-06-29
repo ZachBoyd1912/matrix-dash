@@ -1,5 +1,46 @@
 # Changelog
 
+## 29/06/2026 @ 17:27:28 IST — "deepseek-v4-pro"
+
+**Goal:** Prepare Matrix Dashboard for production deployment on GCP (GCE e2-micro, ~$1/mo) at matrix.zbautomations.ie. Fix hardcoded localhost references that would break OAuth on remote domain. Add Docker, Caddy, and GCP setup scripts.
+
+**Skills used:** `@cloud-architect` (GCE provisioning), `@gcp-cloud-run` (adapted for GCE), `@backend-dev-guidelines` (OAuth callback hardening)
+
+**Fixed — Dynamic site URL for OAuth callbacks:**
+- **Cause:** 5 OAuth callback routes hardcoded `"http://localhost:3000"` as base URL for parsing `req.url`, constructing `redirect_uri` for token exchange, and building redirect responses. This would fail on production because OAuth providers validate `redirect_uri` matches the authorize request, and error/success redirects would send users to localhost.
+- **Fix:** Created `lib/utils/site-url.ts` with `getSiteUrl(req)` that extracts origin from request headers (`host` + `x-forwarded-proto`), falls back to `NEXT_PUBLIC_SITE_URL` env var, then to `http://localhost:3000` for dev. Updated all 5 callback routes (gmail, drive, google-calendar, slack, github) to use `getSiteUrl(req)`.
+- **Verification:** `pnpm typecheck` — zero errors. In dev, `getSiteUrl()` returns `http://localhost:3000` (no headers). In production behind Caddy, `X-Forwarded-Proto: https` + `Host: matrix.zbautomations.ie` → correct origin.
+
+**Fixed — Dynamic redirect URI display in settings UI:**
+- **Cause:** 2 settings pages (email, drive integrations) showed hardcoded `http://localhost:3000/api/oauth/.../callback` as the redirect URI users should paste into Google Cloud Console.
+- **Fix:** Added `getSiteOrigin()` helper using `NEXT_PUBLIC_SITE_URL` env var with localhost fallback. Both pages now display the correct production URL when deployed.
+
+**Added — Deployment infrastructure (`deploy/`):**
+- `Dockerfile` — Multi-stage build (Node 22 slim): builder stage compiles with build-essential for better-sqlite3, runner stage copies standalone output + installs prod deps for native addon.
+- `deploy/Caddyfile` — Reverse proxy: `matrix.zbautomations.ie` → `localhost:3000` (dashboard), `zbautomations.ie` → static landing page. Auto HTTPS via Let's Encrypt.
+- `deploy/setup-gce.sh` — GCloud script: reserves static IP, creates e2-micro VM (free tier, europe-west1), sets up HTTP/HTTPS firewall rules, prints DNS records to configure at letshost.ie.
+- `deploy/setup-server.sh` — In-VM bootstrap: installs Node 22, pnpm, Caddy, build-essential; clones repo; builds; creates systemd service; configures Caddy with landing page.
+- `deploy/.env.production` — Template with `NEXT_PUBLIC_SITE_URL` and OAuth credential placeholders + redirect URI docs.
+
+**Changed — Next.js config for production:**
+- Added `output: "standalone"` to `next.config.ts` — produces self-contained `.next/standalone/server.js` that doesn't depend on `node_modules`, simplifying deployment.
+
+**Files touched:**
+- `lib/utils/site-url.ts` (NEW — 12 lines)
+- `app/api/oauth/gmail/callback/route.ts` (dynamic base URL)
+- `app/api/oauth/drive/callback/route.ts` (dynamic base URL)
+- `app/api/oauth/google-calendar/callback/route.ts` (dynamic base URL)
+- `app/api/oauth/slack/callback/route.ts` (dynamic base URL)
+- `app/api/oauth/github/callback/route.ts` (dynamic base URL)
+- `app/dashboard/settings/email/page.tsx` (dynamic redirect URI display)
+- `app/dashboard/settings/integrations/drive/page.tsx` (dynamic redirect URI display)
+- `next.config.ts` (added `output: "standalone"`)
+- `Dockerfile` (NEW)
+- `deploy/Caddyfile` (NEW)
+- `deploy/setup-gce.sh` (NEW)
+- `deploy/setup-server.sh` (NEW)
+- `deploy/.env.production` (NEW)
+
 ## 28/06/2026 @ 01:06:44 IST — "deepseek-v4-pro"
 
 **Goal:** Build full Gmail integration — connect Gmail OAuth to the email system with sync, send, search, labels, and agent tools. Bridge OAuth tokens to auto-create `email_account` entries so the existing email dashboard and compose system seamlessly work with Gmail.

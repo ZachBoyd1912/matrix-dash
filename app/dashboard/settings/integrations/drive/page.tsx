@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { HardDrive, Trash2, FolderOpen, Globe, AlertTriangle } from "lucide-react";
+
+function getSiteOrigin(): string {
+  return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+}
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -159,7 +163,7 @@ export default function DriveIntegrationPage() {
                 Add <code className="bg-white/5 px-1 rounded">GOOGLE_CLIENT_ID</code> and{" "}
                 <code className="bg-white/5 px-1 rounded">GOOGLE_CLIENT_SECRET</code> to{" "}
                 <code className="bg-white/5 px-1 rounded">.env.local</code>. Redirect URI:{" "}
-                <code className="bg-white/5 px-1 rounded">http://localhost:3000/api/oauth/drive/callback</code>
+                <code className="bg-white/5 px-1 rounded">{getSiteOrigin()}/api/oauth/drive/callback</code>
               </p>
             </Card>
           )}

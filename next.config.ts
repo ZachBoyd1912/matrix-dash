@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   serverExternalPackages: ["better-sqlite3"],
   // Tree-shake heavy barrel packages so dev compiles (and prod bundles) stay small.
   // lucide-react in particular is imported on nearly every page.

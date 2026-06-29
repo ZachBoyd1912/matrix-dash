@@ -3,12 +3,13 @@ import { verifyOAuthState } from "@/lib/services/oauth";
 import { encrypt } from "@/lib/utils/crypto";
 import { getDb } from "@/lib/db/client";
 import { githubConnections } from "@/lib/db/schema";
+import { getSiteUrl } from "@/lib/utils/site-url";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   try {
-    const url = new URL(req.url, "http://localhost:3000");
+    const url = new URL(req.url, getSiteUrl(req));
     const code = url.searchParams.get("code");
     const state = url.searchParams.get("state");
     const error = url.searchParams.get("error");

@@ -3,11 +3,12 @@ import { verifyOAuthState } from "@/lib/services/oauth";
 import { encrypt } from "@/lib/utils/crypto";
 import { getDb } from "@/lib/db/client";
 import { googleCalendarConnections } from "@/lib/db/schema";
+import { getSiteUrl } from "@/lib/utils/site-url";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
-  const base = "http://localhost:3000";
+  const base = getSiteUrl(req);
   try {
     const url = new URL(req.url, base);
     const code = url.searchParams.get("code");

@@ -1,0 +1,16 @@
+# Caddy reverse proxy for Matrix Dashboard
+# Serves: matrix.zbautomations.ie → Next.js on :3000
+#          zbautomations.ie → static landing page
+
+# Dashboard subdomain
+matrix.zbautomations.ie {
+    reverse_proxy localhost:3000
+    encode gzip zstd
+}
+
+# Root domain — landing page
+zbautomations.ie {
+    root * /var/www/landing
+    file_server
+    encode gzip zstd
+}
