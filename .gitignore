@@ -31,3 +31,18 @@ pnpm-debug.log*
 
 # Local Netlify folder
 .netlify
+
+# AI session transcripts / chat exports — may contain secrets, NEVER commit
+opencode-session-*.md
+*.session.md
+*-chat-export.md
+/session-*.md
+
+# secret-bearing files (keys, certs, credential dumps)
+*.key
+*.p12
+*.pfx
+*credentials*.json
+*secret*.json
+.env.production.local
+.env*.production.local

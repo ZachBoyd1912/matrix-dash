@@ -1,5 +1,24 @@
 # Changelog
 
+## 30/06/2026 @ 08:22:14 IST — "Opus 4.8"
+
+**Goal:** Security pass after going public. Stop secret-bearing files from being committable, tighten production secret-file permissions, and audit for any leaked credentials.
+
+**Skills used:** `@security-audit`, `@secrets-management`
+
+**Changed — `.gitignore` (secret hygiene):**
+- Added ignore rules for AI session transcripts/exports (`opencode-session-*.md`, `*.session.md`, etc.) which can contain plaintext OAuth secrets, plus key/cert/credential patterns (`*.key`, `*.p12`, `*credentials*.json`, `.env*.production.local`). Prevents accidental commits of files like `opencode-session-1.md` (which held a live Google client secret).
+
+**Audit results (no code change needed):**
+- Git history scanned for `GOCSPX-*` (Google) and the GitHub client secret — **zero hits; nothing leaked to GitHub.**
+- Committed `deploy/.env.production` confirmed placeholders only; `.env.local` already gitignored; no hardcoded API keys in tracked source.
+- VM `/opt/matrix-dash/.env.production` permissions tightened `0664 → 0600` (was world-readable).
+
+**Known open item (tracked, not yet fixed):** the dashboard at `matrix.zbautomations.ie` has **no authentication gate** — all API routes respond 200 publicly. Lockdown approach pending decision (Caddy basic-auth / Cloudflare Access / app-level auth).
+
+**Files touched:**
+- `.gitignore` (session-export + secret-file ignore rules)
+
 ## 30/06/2026 @ 08:15:24 IST — "Opus 4.8"
 
 **Goal:** Replace the placeholder landing page at `zbautomations.ie` with a premium, animated, agency-grade marketing site that mirrors the Matrix Dashboard design system and the Matrix Builder design mandate. Finish hosting so the root domain presents the brand professionally.
