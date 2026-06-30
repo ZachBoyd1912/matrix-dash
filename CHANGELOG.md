@@ -1,5 +1,24 @@
 # Changelog
 
+## 30/06/2026 @ 08:50:50 IST — "Opus 4.8"
+
+**Goal:** Deploy the sidebar scroll fix to the live VM and fix a latent OAuth-env bug found during deploy.
+
+**Skills used:** `@gcp-cloud-run` (adapted for GCE), `@deployment-engineer`, `@secrets-management`
+
+**Fixed — standalone never received the real OAuth env (`deploy/setup-server.sh`):**
+- **Cause:** the Next.js standalone server runs with `cwd=.next/standalone` and loads `.env.production` from there, but the setup script only wrote `.env.production` to the app root. The live VM's standalone copy still held placeholder secrets (`your-google-client-id`, …), so Gmail/Drive/Calendar/GitHub OAuth would fail at the provider despite the dashboard issuing 302s.
+- **Fix:** setup-server.sh now copies `.env.production` into `$STANDALONE_DIR` (chmod 600) after the static/public copy. Applied to the live VM during this deploy — standalone env now carries the real client IDs/secrets.
+
+**Deploy notes (infra, live VM):**
+- Rebuilt on a temporary `e2-small` resize (e2-micro 1GB OOMs on `next build`), then resized back to `e2-micro` (free tier, $0).
+- Boot disk was full (8.7G, 82%) — resized `10GB → 30GB` (still within the 30GB-months free tier), grew the ext4 partition online.
+- Added a persistent 2GB swapfile (`/etc/fstab`) — gives the 1GB e2-micro runtime headroom and makes future on-VM builds reliable.
+- Sidebar scroll fix (prev entry) confirmed shipped in the live CSS bundle; OAuth callbacks reachable (302), dashboard gated (401 anon / 200 authed).
+
+**Files touched:**
+- `deploy/setup-server.sh` (copy `.env.production` into standalone dir)
+
 ## 30/06/2026 @ 08:30:44 IST — "Opus 4.8"
 
 **Goal:** Fix the dashboard sidebar so all 18 nav items are reachable — the nav must scroll independently of the main page on both desktop and mobile.

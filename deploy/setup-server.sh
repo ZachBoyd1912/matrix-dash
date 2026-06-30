@@ -55,6 +55,14 @@ pnpm build
 cp -r .next/static "$STANDALONE_DIR/.next/static"
 cp -r public "$STANDALONE_DIR/public"
 
+# The standalone server runs with cwd=.next/standalone, so Next loads its
+# .env.production from THERE — not the app root. Copy it across or OAuth
+# secrets (GOOGLE/GITHUB/SLACK) silently fall back to placeholders.
+if [ -f .env.production ]; then
+  cp .env.production "$STANDALONE_DIR/.env.production"
+  chmod 600 "$STANDALONE_DIR/.env.production"
+fi
+
 # Install production deps in standalone dir (for better-sqlite3)
 cp package.json pnpm-lock.yaml "$STANDALONE_DIR/"
 cd "$STANDALONE_DIR"
