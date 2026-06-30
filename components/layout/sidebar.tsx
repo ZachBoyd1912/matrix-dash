@@ -24,7 +24,7 @@ export function Sidebar() {
         "hidden md:flex"
       )}
     >
-      <div className="glass-strong relative w-full flex flex-col">
+      <div className="glass-strong relative w-full h-full flex flex-col">
         {/* Accent edge — a hairline aurora down the right border. */}
         <div className="pointer-events-none absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-emerald-400/25 to-transparent" />
 
@@ -49,7 +49,7 @@ export function Sidebar() {
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto py-3 px-2.5 space-y-0.5">
+        <nav className="flex-1 min-h-0 overflow-y-auto overscroll-contain py-3 px-2.5 space-y-0.5">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const active = isNavActive(item, pathname);

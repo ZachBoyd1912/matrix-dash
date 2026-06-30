@@ -1,5 +1,25 @@
 # Changelog
 
+## 30/06/2026 @ 08:30:44 IST — "Opus 4.8"
+
+**Goal:** Fix the dashboard sidebar so all 18 nav items are reachable — the nav must scroll independently of the main page on both desktop and mobile.
+
+**Skills used:** `@senior-frontend`, `@tailwind-patterns`
+
+**Fixed — Desktop sidebar not scrolling (`components/layout/sidebar.tsx`):**
+- **Cause:** the `<nav>` had `overflow-y-auto` but its scroll never engaged — the `glass-strong` wrapper inside the `h-screen` aside had no height bound (auto height grew with content), and the `flex-1` nav lacked `min-h-0` (flex items default to `min-height:auto`, which refuses to shrink below content). With 18 items + header + provider footer, the list overflowed the viewport and the bottom items (Settings, Console…) were unreachable.
+- **Fix:** added `h-full` to the wrapper so it's bounded to the sticky `h-screen` aside, and `min-h-0 overscroll-contain` to the nav so it becomes a real scroll container. The aside is already `sticky top-0`, so sidebar scroll is independent of page scroll.
+
+**Fixed — Mobile drawer not scrolling (`components/layout/mobile-nav.tsx`):**
+- **Cause:** the slide-in drawer rendered all 18 items in a `space-y-1` nav with no overflow handling; on short screens the lower items fell below the fold with no scroll.
+- **Fix:** made the drawer a `flex flex-col`, pinned the header (`shrink-0`), and gave the nav `flex-1 min-h-0 overflow-y-auto overscroll-contain` so the list scrolls within the drawer.
+
+**Verification:** `pnpm typecheck` — zero errors. (className-only changes; live VM redeploy still required for the hosted site to pick up new Tailwind classes.)
+
+**Files touched:**
+- `components/layout/sidebar.tsx`
+- `components/layout/mobile-nav.tsx`
+
 ## 30/06/2026 @ 08:22:14 IST — "Opus 4.8"
 
 **Goal:** Security pass after going public. Stop secret-bearing files from being committable, tighten production secret-file permissions, and audit for any leaked credentials.

@@ -68,8 +68,8 @@ export function MobileNav() {
           }}
         >
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-          <div className="absolute left-0 top-0 bottom-0 w-[260px] glass-strong border-r border-white/5 p-4 animate-[drawerIn_220ms_cubic-bezier(0.32,0.72,0,1)]">
-            <div className="flex items-center justify-between mb-6">
+          <div className="absolute left-0 top-0 bottom-0 w-[260px] glass-strong border-r border-white/5 flex flex-col animate-[drawerIn_220ms_cubic-bezier(0.32,0.72,0,1)]">
+            <div className="flex items-center justify-between p-4 pb-3 shrink-0">
               <Link
                 href="/dashboard"
                 onClick={() => setOpen(false)}
@@ -88,7 +88,7 @@ export function MobileNav() {
                 <X size={16} />
               </button>
             </div>
-            <nav className="space-y-1">
+            <nav className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pb-4 space-y-1">
               {NAV_ITEMS.map((item) => {
                 const Icon = item.icon;
                 const active = isNavActive(item, pathname);
