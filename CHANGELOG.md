@@ -1,5 +1,26 @@
 # Changelog
 
+## 30/06/2026 @ 08:15:24 IST — "Opus 4.8"
+
+**Goal:** Replace the placeholder landing page at `zbautomations.ie` with a premium, animated, agency-grade marketing site that mirrors the Matrix Dashboard design system and the Matrix Builder design mandate. Finish hosting so the root domain presents the brand professionally.
+
+**Skills used:** `@ui-ux-designer`, `@high-end-visual-design`, `@tailwind-patterns` (design language), `@gcp-cloud-run` (adapted — static deploy to GCE/Caddy)
+
+**Added — `deploy/landing/index.html` (NEW, self-contained, ~42 KB):**
+- Single-file static landing page (no build step — Caddy `file_server` serves it directly). Design tokens mirror `app/globals.css` Aurora Spatial layer: `#050505` surfaces, emerald `#34d399` as the single confident accent (sky/violet ambient only), glassmorphism, bezel/sheen cards, eyebrow pills.
+- **Type-as-hero** per the Matrix Builder mandate: Space Grotesk (display) + Inter (body) + JetBrains Mono, modular scale, tight display tracking.
+- **Advanced motion (all GPU-safe, `prefers-reduced-motion` honored):** three floating aurora orbs, fixed gradient mesh + masked dot-grid, pointer-following accent glow (desktop), IntersectionObserver scroll reveals with staggered delays, count-up stat numbers, animated agent-session terminal, infinite provider marquee, shimmer-skeleton Builder pane, sticky glass nav that frosts on scroll.
+- **Content** maps to the real platform: multi-provider chat, on-disk IDE, autonomous agents (59 GitHub tools), memory bank, deep research, personal suite, Matrix Builder showcase — all deep-linking into `matrix.zbautomations.ie`.
+
+**Changed — `deploy/setup-server.sh`:**
+- Landing-page step now copies `deploy/landing/index.html` (with a minimal inline fallback) instead of embedding a heredoc placeholder, so a fresh VM rebuild reproduces the real page.
+
+**Verification:** Deployed to GCE VM `/var/www/landing/index.html` via `gcloud compute scp`. `https://zbautomations.ie/` → HTTP 200; hero, capabilities, Matrix Builder, and CTA sections all present in served HTML. No TypeScript touched (static HTML + shell only).
+
+**Files touched:**
+- `deploy/landing/index.html` (NEW)
+- `deploy/setup-server.sh` (copy real landing page; inline fallback)
+
 ## 29/06/2026 @ 17:27:28 IST — "deepseek-v4-pro"
 
 **Goal:** Prepare Matrix Dashboard for production deployment on GCP (GCE e2-micro, ~$1/mo) at matrix.zbautomations.ie. Fix hardcoded localhost references that would break OAuth on remote domain. Add Docker, Caddy, and GCP setup scripts.

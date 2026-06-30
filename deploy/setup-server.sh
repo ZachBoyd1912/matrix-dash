@@ -87,27 +87,18 @@ sudo systemctl enable matrix-dash
 
 echo "=== 6. Set up landing page ==="
 sudo mkdir -p "$LANDING_DIR"
-sudo tee "$LANDING_DIR/index.html" > /dev/null <<'HTML'
+if [ -f "$APP_DIR/deploy/landing/index.html" ]; then
+  sudo cp "$APP_DIR/deploy/landing/index.html" "$LANDING_DIR/index.html"
+else
+  echo "  WARN: deploy/landing/index.html not found — writing minimal fallback"
+  sudo tee "$LANDING_DIR/index.html" > /dev/null <<'HTML'
 <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ZB Automations</title>
-<style>
-  body { font-family: system-ui, sans-serif; max-width: 640px; margin: 80px auto; padding: 0 24px; line-height: 1.6; color: #1a1a2e; }
-  h1 { font-size: 2rem; margin-bottom: 0.5rem; }
-  p { color: #555; }
-  a { color: #2563eb; }
-</style>
-</head>
-<body>
-<h1>ZB Automations</h1>
-<p>AI-powered automation for the modern workflow.</p>
-<p><a href="https://matrix.zbautomations.ie">→ Matrix Dashboard</a></p>
-</body>
-</html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ZB Automations</title></head>
+<body style="font-family:system-ui;max-width:640px;margin:80px auto;padding:0 24px;line-height:1.6">
+<h1>ZB Automations</h1><p>AI-powered automation.</p><p><a href="https://matrix.zbautomations.ie">→ Matrix Dashboard</a></p>
+</body></html>
 HTML
+fi
 
 echo "=== 7. Set up Caddy ==="
 cd "$APP_DIR"
