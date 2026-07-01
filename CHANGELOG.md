@@ -1,5 +1,43 @@
 # Changelog
 
+## 01/07/2026 @ 22:11:07 IST — "Sonnet 5"
+
+**Goal:** Fix Matrix Builder being unreachable from the dashboard on desktop Chrome after Cloudflare Access rollout — replace the broken iframe embed with a top-level "launch" model.
+
+**Skills used:** `gstack:browse` (real Chromium reproduction of the bug), Plan subagent (implementation design, validated against live code + live VM before finalizing)
+
+**Fixed — Matrix Builder iframe embed permanently broken under Cloudflare Access:**
+- **Cause (confirmed two independent ways, not inferred):**
+  1. `curl` on the Cloudflare Access login redirect (`https://zbautomations.cloudflareaccess.com/cdn-cgi/access/login/builder.zbautomations.ie`) showed `x-frame-options: DENY` and `content-security-policy: frame-ancestors 'none'` — a hardcoded, non-configurable Cloudflare security policy on its own login page.
+  2. Reproduced live in real Chromium via `gstack browse`: loading a test iframe pointed at `builder.zbautomations.ie` produced the browser's actual console error — `Framing 'https://zbautomations.cloudflareaccess.com/' violates the following Content Security Policy directive: "frame-ancestors 'none'". The request has been blocked.` — matching Chrome's "refused to connect" screen the user saw.
+  - This explains the iOS/Chrome discrepancy: iOS already had a cached Access session cookie for `builder.zbautomations.ie` (no login page needed inside the frame), the Mac's Chrome profile didn't. It's structural, not a fluke — it recurs on every ~24h Access session expiry regardless of device, since no CORS/SameSite/Access-app setting can disable Cloudflare's own frame-ancestors policy on its login page.
+- **Fix:** stopped framing Matrix Builder entirely. A genuine top-level navigation (new tab) is never subject to `frame-ancestors` — permanent fix, zero infra cost, matches how `matrix.zbautomations.ie` itself already authenticates.
+
+**Changed — `components/matrix-builder/matrix-builder-gate.tsx` (rewritten):**
+- Replaced the `"running"` + iframe-embed phase with a `"ready"` phase: a status card + a prominent `<a target="_blank">` "Open Matrix Builder" launch link sourced from `status.url` (the live API-reported URL), falling back to the `NEXT_PUBLIC_MATRIX_BUILDER_URL` env constant if status hasn't resolved.
+- Plain `<a target="_blank">`, deliberately not `window.open()` — a `window.open()` call fired from inside an async health-check callback has lost the synchronous user-gesture chain Chrome's popup blocker requires, and would be intermittently blocked. The anchor tag is gesture-driven and never blocked; this is also the exact pattern already proven to work as a manual workaround earlier in the Cloudflare Access rollout.
+- The launch link is now rendered in **every** phase (loading/starting/ready/error) — never gated behind a successful local health probe. That probe only checks TCP reachability of `127.0.0.1:5001` on the VM; it can't see whether the user's browser can reach `builder.zbautomations.ie` through Cloudflare. Gating the primary action on it would have reintroduced a "can't get there" failure mode on top of the fix.
+- Removed `handleStop`/`handleRestart` and the `busy` state from the UI. Kept the underlying API route/service untouched, but in production `stop`/`restart` send `SIGTERM`/restart to the **systemd-managed `matrix-builder.service`**, not a process this app spawned — leaving those buttons in the dashboard UI would let anyone with dashboard access kill or bounce the live production builder from the browser. Removing them from the UI only (not the API) closes that footgun for free.
+- Removed the `crossOriginIsolated` hard-reload dance (`sessionStorage`-guarded `window.location.reload()`) — it existed solely to force the dashboard's scoped COOP/COEP headers to apply after a Next.js soft-nav, which was needed only to satisfy the iframe's `allow="cross-origin-isolated"` delegation. With nothing being framed anymore, this is dead weight that was also causing an unpleasant full-page-reload flash on every nav into this tab.
+
+**Removed:**
+- `components/matrix-builder/matrix-builder-embed.tsx` — the iframe wrapper component. Verified via grep it was only imported by `matrix-builder-gate.tsx`; no other references.
+- `next.config.ts` — the scoped `headers()` function adding `Cross-Origin-Opener-Policy`/`Cross-Origin-Embedder-Policy` to `/dashboard/matrix-builder`. Verified via grep no other route or component depends on these headers or on `window.crossOriginIsolated`.
+
+**Changed — `deploy/.env.production` (template):**
+- Uncommented and set `NEXT_PUBLIC_MATRIX_BUILDER_URL=https://builder.zbautomations.ie`, `MATRIX_BUILDER_DIR=/opt/matrix-builder`, `MATRIX_BUILDER_PORT=5001` — for future fresh-VM rebuild reproducibility. Not a blocker for this deploy: verified the *live* VM's `/opt/matrix-dash/.env.production` and its `.next/standalone/.env.production` copy already carried these values from earlier Matrix Builder hosting work this session.
+
+**No changes:** `app/api/matrix-builder/server/route.ts`, `lib/services/matrix-builder.ts` (status/start still consumed, just via the new UI), `components/console/console-capture.tsx` (its builder `postMessage` bridge was already inert in production — never wired up from the bolt fork's side — becomes fully moot but harmless).
+
+**Verification:** `pnpm typecheck` — zero errors. Confirmed no dangling imports of the deleted embed component. Production verification (real Chromium via `gstack browse` against the live VM, plus a manual OTP-login pass by the user) documented in this session; full checklist captured in the plan file.
+
+**Files touched:**
+- `components/matrix-builder/matrix-builder-gate.tsx` (rewritten)
+- `components/matrix-builder/matrix-builder-embed.tsx` (deleted)
+- `app/dashboard/matrix-builder/page.tsx` (doc comment updated)
+- `next.config.ts` (removed scoped COOP/COEP `headers()`)
+- `deploy/.env.production` (Matrix Builder vars uncommented + set)
+
 ## 30/06/2026 @ 08:50:50 IST — "Opus 4.8"
 
 **Goal:** Deploy the sidebar scroll fix to the live VM and fix a latent OAuth-env bug found during deploy.

@@ -1,10 +1,11 @@
 import MatrixBuilderGate from "@/components/matrix-builder/matrix-builder-gate";
 
 // Matrix Builder = a separate app (a customized bolt.new fork: a full-screen,
-// in-browser AI IDE) that runs locally on its own dev server. This page embeds it
-// as-is in a cross-origin-isolated iframe (headers scoped to this route in
-// next.config.ts) and auto-starts its dev server on demand via
-// /api/matrix-builder/server, so opening the tab "just works".
+// in-browser AI IDE) protected by its own Cloudflare Access application. Its
+// Access login page can't be framed (hardcoded frame-ancestors policy), so this
+// page is a status/launch panel rather than an embed: it checks reachability,
+// auto-starts the dev server on demand via /api/matrix-builder/server for local
+// use, and hands off via a real top-level navigation (new tab).
 export default function MatrixBuilderPage() {
   return <MatrixBuilderGate />;
 }

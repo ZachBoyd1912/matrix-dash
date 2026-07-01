@@ -2,9 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertTriangle, Blocks, ExternalLink, Loader2, Play, Sparkles } from "lucide-react";
-import { MatrixBuilderEmbed } from "./matrix-builder-embed";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/lib/stores/use-feedback";
 
 interface BuilderStatus {
   running: boolean;
@@ -21,7 +19,7 @@ interface ActionResponse {
   error?: string;
 }
 
-type Phase = "loading" | "starting" | "running" | "error";
+type Phase = "loading" | "starting" | "ready" | "error";
 
 const POLL_INTERVAL_MS = 1500;
 // ~2 min: the builder's Vite/Remix dev server can be slow to boot on first start.
@@ -30,18 +28,35 @@ const POLL_MAX_TRIES = 80;
 const FALLBACK_URL =
   process.env.NEXT_PUBLIC_MATRIX_BUILDER_URL ?? "http://localhost:5001";
 
+function LaunchLink({ url, primary }: { url: string; primary?: boolean }) {
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={
+        primary
+          ? "inline-flex items-center gap-2 px-4 h-10 rounded-full bg-emerald-400 text-black text-sm font-semibold hover:bg-emerald-300 transition-colors"
+          : "inline-flex items-center gap-1.5 px-3 h-9 rounded-full glass-input text-xs text-text-secondary hover:text-emerald-400 hover:border-white/15 transition-colors"
+      }
+    >
+      <ExternalLink size={primary ? 15 : 14} /> Open Matrix Builder
+    </a>
+  );
+}
+
 /**
- * Orchestrates the Matrix Builder lifecycle for its dashboard tab: forces the
- * host document to be cross-origin isolated (the scoped COOP/COEP headers only
- * apply on a full load, which Next soft-nav skips), then auto-starts the builder
- * dev server on demand, polls until it's reachable, and embeds it. Opening the
- * tab "just works" — no separate terminal needed.
+ * Matrix Builder is a separate Cloudflare Access-gated app and can't be framed —
+ * Access's own login page sends a hardcoded frame-ancestors policy that blocks
+ * any iframe embed once a fresh login is needed (which recurs on every session
+ * expiry). So this tab is a status/launch panel, not an embed: it checks whether
+ * the builder is reachable (and starts it for local dev if not), then hands off
+ * via a real top-level navigation, which is never subject to frame-ancestors.
  */
 export default function MatrixBuilderGate() {
   const [phase, setPhase] = useState<Phase>("loading");
   const [status, setStatus] = useState<BuilderStatus | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
 
   const mounted = useRef(true);
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -71,7 +86,7 @@ export default function MatrixBuilderGate() {
     }
   }, []);
 
-  // Poll until the dev server answers, then embed; bail out with an error after
+  // Poll until the dev server answers; bail out with an error after
   // POLL_MAX_TRIES so a broken start doesn't spin forever.
   const pollUntilRunning = useCallback(
     (tries: number) => {
@@ -81,11 +96,11 @@ export default function MatrixBuilderGate() {
         if (!mounted.current) return;
         if (srv?.running) {
           setStatus(srv);
-          setPhase("running");
+          setPhase("ready");
           return;
         }
         if (tries + 1 >= POLL_MAX_TRIES) {
-          setErrorMsg("Matrix Builder did not come up in time. Check its dev log or open it in a new tab.");
+          setErrorMsg("Matrix Builder did not come up in time. You can still try opening it directly.");
           setPhase("error");
           return;
         }
@@ -113,7 +128,7 @@ export default function MatrixBuilderGate() {
       }
       if (data.status?.running) {
         setStatus(data.status);
-        setPhase("running");
+        setPhase("ready");
       } else {
         if (data.status) setStatus(data.status);
         pollUntilRunning(0);
@@ -126,24 +141,8 @@ export default function MatrixBuilderGate() {
     }
   }, [pollUntilRunning]);
 
-  // ─── Boot: ensure isolation, then auto-start ───────────
+  // ─── Boot: check status, auto-start if needed ───────────
   useEffect(() => {
-    // The embedded WebContainer needs SharedArrayBuffer, granted only when this
-    // host document is cross-origin isolated. The scoped COOP/COEP headers only
-    // take effect on a *full* document load — a Next soft-nav from another sidebar
-    // route lands here with crossOriginIsolated === false. Force one hard reload
-    // to re-fetch this document with its headers (session-guarded against loops).
-    const RELOAD_GUARD = "matrixBuilderCoiReload";
-    if (typeof window !== "undefined" && !window.crossOriginIsolated) {
-      if (!sessionStorage.getItem(RELOAD_GUARD)) {
-        sessionStorage.setItem(RELOAD_GUARD, "1");
-        window.location.reload();
-        return;
-      }
-    } else if (typeof window !== "undefined") {
-      sessionStorage.removeItem(RELOAD_GUARD);
-    }
-
     // Use an effect-local cancel flag, NOT the shared `mounted` ref: React Strict
     // Mode (dev) double-invokes this effect, and the shared ref's cleanup can read
     // false mid-flight and permanently swallow this first state update. A per-run
@@ -154,7 +153,7 @@ export default function MatrixBuilderGate() {
       if (cancelled) return;
       if (srv) setStatus(srv);
       if (srv?.running) {
-        setPhase("running");
+        setPhase("ready");
       } else {
         // Auto-start the moment the tab opens.
         start();
@@ -166,74 +165,26 @@ export default function MatrixBuilderGate() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleStop = useCallback(async () => {
-    setBusy(true);
-    try {
-      await fetch("/api/matrix-builder/server", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action: "stop" }),
-      });
-      const srv = await fetchStatus();
-      if (!mounted.current) return;
-      setStatus(srv);
-      if (srv?.running) {
-        setPhase("running");
-      } else {
-        setErrorMsg(null);
-        setPhase("error");
-        setErrorMsg("Matrix Builder is stopped.");
-      }
-    } catch (err) {
-      if (mounted.current) {
-        toast.error("Could not stop Matrix Builder", err instanceof Error ? err.message : String(err));
-      }
-    } finally {
-      if (mounted.current) setBusy(false);
-    }
-  }, [fetchStatus]);
-
-  const handleRestart = useCallback(async () => {
-    setBusy(true);
-    setPhase("starting");
-    try {
-      const res = await fetch("/api/matrix-builder/server", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action: "restart" }),
-      });
-      const data = (await res.json().catch(() => ({ ok: false }))) as ActionResponse;
-      if (!mounted.current) return;
-      if (!res.ok || !data.ok) {
-        toast.error("Could not restart Matrix Builder", data.error ?? "The dev server failed to restart.");
-      }
-      if (data.status?.running) {
-        setStatus(data.status);
-        setPhase("running");
-      } else {
-        if (data.status) setStatus(data.status);
-        pollUntilRunning(0);
-      }
-    } catch (err) {
-      if (mounted.current) {
-        toast.error("Could not restart Matrix Builder", err instanceof Error ? err.message : String(err));
-        setPhase("error");
-      }
-    } finally {
-      if (mounted.current) setBusy(false);
-    }
-  }, [pollUntilRunning]);
+  const launchUrl = status?.url || FALLBACK_URL;
 
   // ─── Render ────────────────────────────────────────────
-  if (phase === "running" && status?.running) {
+  if (phase === "ready" && status) {
     return (
-      <div className="page-h flex flex-col min-h-0">
-        <MatrixBuilderEmbed
-          url={status.url}
-          onStop={handleStop}
-          onRestart={handleRestart}
-          busy={busy}
-        />
+      <div className="page-h grid place-items-center p-6">
+        <div className="w-full max-w-md text-center space-y-5">
+          <div className="inline-grid place-items-center h-14 w-14 rounded-2xl bg-emerald-400/10 border border-emerald-400/30 shadow-[0_0_24px_-6px_rgba(52,211,153,0.6)]">
+            <Blocks size={24} className="text-emerald-300" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold tracking-tight">Matrix Builder is running</h2>
+            <p className="text-text-secondary text-sm mt-1">
+              It opens in a new tab — Cloudflare Access protects it separately from the dashboard.
+            </p>
+          </div>
+          <div className="flex items-center justify-center">
+            <LaunchLink url={launchUrl} primary />
+          </div>
+        </div>
       </div>
     );
   }
@@ -246,9 +197,9 @@ export default function MatrixBuilderGate() {
             <AlertTriangle size={24} className="text-amber-300" />
           </div>
           <div>
-            <h2 className="text-lg font-bold tracking-tight">Matrix Builder isn&apos;t running</h2>
+            <h2 className="text-lg font-bold tracking-tight">Couldn&apos;t confirm Matrix Builder locally</h2>
             <p className="text-text-secondary text-sm mt-1">
-              {errorMsg ?? "The Matrix Builder dev server could not be reached."}
+              {errorMsg ?? "The Matrix Builder server could not be reached."}
             </p>
             {status?.dir && (
               <p className="text-[10px] text-text-muted font-mono mt-2 break-all">{status.dir}</p>
@@ -256,23 +207,18 @@ export default function MatrixBuilderGate() {
           </div>
           <div className="flex items-center justify-center gap-2">
             <Button variant="primary" onClick={start} className="rounded-full">
-              <Play size={14} /> Start Matrix Builder
+              <Play size={14} /> Try starting it
             </Button>
-            <a
-              href={FALLBACK_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full glass-input text-xs text-text-secondary hover:text-emerald-400 hover:border-white/15 transition-colors"
-            >
-              <ExternalLink size={14} /> Open in new tab
-            </a>
+            <LaunchLink url={launchUrl} />
           </div>
         </div>
       </div>
     );
   }
 
-  // loading + starting share a centered spinner.
+  // loading + starting share a centered spinner. The launch link stays available
+  // even here — the local probe can't see through Cloudflare, so it should never
+  // be the only way to reach the builder.
   return (
     <div className="page-h grid place-items-center p-6">
       <div className="flex flex-col items-center text-center gap-4">
@@ -281,11 +227,12 @@ export default function MatrixBuilderGate() {
         </span>
         <div className="glass rounded-full px-4 py-2.5 flex items-center gap-2.5 text-sm border border-white/5">
           <Loader2 size={16} className="animate-spin text-emerald-400" />
-          {phase === "starting" ? "Starting Matrix Builder…" : "Connecting to Matrix Builder…"}
+          {phase === "starting" ? "Starting Matrix Builder…" : "Checking Matrix Builder…"}
         </div>
         <p className="eyebrow inline-flex items-center gap-1.5 text-text-muted">
           <Sparkles size={11} className="text-emerald-300" /> First boot can take a moment
         </p>
+        <LaunchLink url={launchUrl} />
       </div>
     </div>
   );
