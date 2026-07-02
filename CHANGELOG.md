@@ -1,5 +1,21 @@
 # Changelog
 
+## 02/07/2026 @ 20:31:31 IST — "deepseek-v4-pro"
+
+**Goal:** Create 3 comprehensive implementation plans for the Matrix Dashboard & Builder ecosystem — custom zip filenames, full brand kit generation, and dashboard UI redesign — to be handed off to Claude Code for execution.
+
+**Added:**
+- `TODO.md` (250 lines) with 3 detailed, phase-gated implementation plans:
+  - 🔧 **Plan 1** — Custom Zip Filename: Fix hardcoded `project.zip` in `bolt.new-custom/app/lib/download.ts` by extracting artifact titles from the workbench store and slugifying them (new `slug.ts` utility). 3 files to touch.
+  - 🎨 **Plan 2** — Full Brand Kit: Claude Design (`/design-sync`) handoff to generate ZB Automations brand kit (SVG/PNG logos, favicons, PWA icons, OG images, colors, typography); then Claude Code applies across `matrix-dash` (app layout, manifest, logo component, sidebar, README/CHANGELOG), `bolt.new-custom` (favicons, UnoCSS config, workbench header), and `deploy/landing/`. 4 phases, 30+ files.
+  - 🖌️ **Plan 3** — Dashboard UI Redesign: Claude Design handoff to redesign Matrix Dashboard to match Matrix Builder's landing page aesthetic (reference: `builder-main-page-02/07/26.png`); then Claude Code implements progressively across 6 tiers: Theme Foundation → Layout Shell → UI Primitives → Key Pages → Consistency Sweep → Verification. 40+ files.
+- Orchestrated 4 skills (`@senior-frontend`, `@frontend-design`, `@senior-architect`, `@brainstorming`) + parallel explore agents to map both `matrix-dash` and `bolt.new-custom` codebases simultaneously.
+- Recorded skill combination to `@agent-memory-mcp` for future reuse.
+
+**Files Touched:**
+- `TODO.md` (NEW) — 250 lines, strict Markdown with checkboxes, emojis, and 3-line spacing between entries
+- `builder-main-page-02/07/26.png` (NEW, tracked) — reference screenshot for Plan 3
+
 ## 02/07/2026 @ 18:19:20 IST — "Sonnet 5"
 
 **Goal:** Replace Firebase (Auth + Firestore + Storage) in Matrix Builder (`bolt.new-custom`, separate repo) with Cloudflare-native primitives — Cloudflare Access header/JWT identity, Cloudflare KV for chat sync, Cloudflare R2 for image uploads — since the app already sits behind Cloudflare Access and Google Sign-In was broken (missing `VITE_` prefix on Firebase env vars, never actually initialized in production).
