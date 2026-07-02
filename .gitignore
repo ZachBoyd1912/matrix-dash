@@ -46,3 +46,4 @@ opencode-session-*.md
 *secret*.json
 .env.production.local
 .env*.production.local
+.gstack/

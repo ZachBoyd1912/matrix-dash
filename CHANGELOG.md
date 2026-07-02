@@ -1,5 +1,47 @@
 # Changelog
 
+## 02/07/2026 @ 18:19:20 IST — "Sonnet 5"
+
+**Goal:** Replace Firebase (Auth + Firestore + Storage) in Matrix Builder (`bolt.new-custom`, separate repo) with Cloudflare-native primitives — Cloudflare Access header/JWT identity, Cloudflare KV for chat sync, Cloudflare R2 for image uploads — since the app already sits behind Cloudflare Access and Google Sign-In was broken (missing `VITE_` prefix on Firebase env vars, never actually initialized in production).
+
+**Skills used:** Workflow tool (4-round adversarial security-audit workflow, 17 agents, 49 findings, before any code was written), `advisor` (caught a real ordering bug post-implementation), direct Cloudflare REST API usage (KV/R2/Access provisioning — no dashboard clicking beyond one-time R2 enablement and API-token creation).
+
+**Fixed — Google Sign-In broken, root cause was upstream of the actual ask:**
+- `.env.local`'s `FIREBASE_*` vars lacked the required `VITE_` prefix, so `import.meta.env.VITE_FIREBASE_API_KEY` was always `undefined` and Firebase never initialized client-side. Rather than patch that, replaced Firebase's three roles entirely with Cloudflare-native equivalents, matching the trust model the app already lives behind.
+
+**Added — Cloudflare Access identity verification (`app/lib/.server/verify-access.server.ts`, new):**
+- Server-side JWT verification (`jose`, RS256) against Cloudflare's JWKS — never trusts the plaintext `Cf-Access-Authenticated-User-Email` header alone. `sub` claim is the canonical per-user key; `email` is display-only.
+- Origin-header CSRF check on state-changing methods (POST/PUT/PATCH/DELETE) — a header-vs-cookie discrimination check was considered and explicitly rejected as a mechanism (Cloudflare's edge re-derives and forwards the JWT header regardless of how the session was established, so it's a no-op against a forged cross-site POST; Origin is the actual control, since client JS can't spoof or suppress it).
+- **Real bug caught by `advisor`, not by `tsc` or a custom AST merge-gate script:** the CSRF Origin check originally ran *before* the local-dev bypass check, and `CF_ACCESS_APP_ORIGIN` is intentionally unset in dev — so every state-changing local-dev request (chat save, delete, file save, image upload) would have 403'd before the bypass ever ran, while GET-only page loads looked completely fine and would have hidden the bug. Fixed by checking the dev bypass first. Verified by actually running `pnpm dev` and curling `POST /api/chats` — 403 before the fix, 200 after.
+
+**Added — Cloudflare KV chat sync (`app/lib/.server/kv-client.server.ts`, `app/routes/api.chats.ts`, `app/routes/api.chats.$id.ts`, new):**
+- Per-user-scoped keys (`chat:{encodeURIComponent(sub)}:{chatId}`) — `sub` is URL-encoded because Cloudflare's real `sub` charset re: the `:` delimiter isn't documented precisely; encoding sidesteps needing to confirm it rather than risk a collision.
+- Client-side wrapper `app/lib/persistence/chat-sync.client.ts` replaces `firestore.ts`'s client SDK calls in `useChatHistory.ts` and `Menu.client.tsx`, same debounced push-on-save / pull-on-load pattern as before.
+
+**Added — Cloudflare R2 image uploads + project-file sync (`app/lib/.server/r2-client.server.ts`, `app/routes/api.save-files.ts`, new; `app/routes/api.upload-image.ts` rewritten):**
+- Magic-byte content-type sniffing (real bytes, never the client-declared `mimeType`) — png/jpeg/gif/webp only, rejects everything else with 415.
+- Private bucket, short-TTL (15min) presigned GET URLs. Filename regex (`/^[a-zA-Z0-9_.-]{1,128}$/`) reviewed specifically as a header-injection control, since the value feeds `ResponseContentDisposition` at signing time — not just KV/R2-key safety.
+- Object paths scoped under `{sub}` — server-reconstructed from the verified identity, never a client-supplied key, so cross-user access is structurally impossible, not just policy-disallowed.
+
+**Added — CI merge-gate (`scripts/check-route-auth-coverage.mjs`, `scripts/route-auth-classification.json`, new, `pnpm check-routes`):**
+- AST-based (TypeScript Compiler API), not regex — fails the build if any exported `loader`/`action` under `app/routes/` isn't explicitly classified as gated/ungated(+reason). This is a direct fix for the failure mode that let `dev.telemetry.tsx` ship with a spoofable `Host`-header auth check (now replaced with real `requireAccessIdentity`) — a regex-based gate would have had the same blind spot for syntax variants a future contributor might use.
+
+**Changed — auth swapped across all routes and the client auth layer:**
+- `requireAuth` → `requireAccessIdentity` across all 12 existing authenticated routes (not just the ones an initial grep for "firebase" surfaced — cross-referenced against every `requireAuth` call site directly).
+- Newly gated (previously had zero auth check): `api.debug-stream.ts`, `api.telemetry.ts`, `api.telemetry.stream.ts`, `dev.telemetry.tsx`.
+- `app/lib/stores/auth.ts`, `app/lib/hooks/useAuth.client.ts`, `app/components/auth/GoogleLoginButton.tsx` rewritten — Access already authenticates the visitor before any page renders, so there's no "sign in" flow left client-side, just an identity badge (`window.__ACCESS_IDENTITY__`, injected via `entry.server.tsx`) and a link to Cloudflare's `/cdn-cgi/access/logout`.
+- `Chat.client.tsx`: removed a client-side gate that 401'd every chat request without a Firebase ID token (now unnecessary — Access authenticates at the edge), a dead Firebase-Hosting/Cloud-Run URL-routing branch (production never ran there), and the save-to-cloud flow's Firebase sign-in fallback.
+
+**Removed:** `app/lib/firebase.ts`, `app/lib/persistence/firestore.ts`, `app/lib/.server/verify-auth.server.ts`, `app/routes/signin.tsx`, `app/lib/.server/persistence/firestore.server.ts` + `firestore-logger.server.ts` (dead `logServerEvent`/`saveClientData` had zero callers; `calculateCost` extracted first into new `cost-estimator.server.ts`), `firebase-server.mjs` (661-line orphaned alternate Express server for a Firebase Functions/Cloud Run deploy target that was never how this app is actually hosted — `main`/`start` already pointed at `server.mjs`). `firebase`/`firebase-admin`/`firebase-functions` removed from `package.json`; `@remix-run/cloudflare`/`wrangler`/etc. deliberately left alone (pre-existing dormant template scaffolding, unrelated to Firebase).
+
+**Infra provisioned (Cloudflare, via direct REST API — account `47c40086342920c85b61c6372f5181ba`):** KV namespaces (prod IP-pinned to the VM's egress IP, dev unrestricted), R2 buckets + credentials (Access-Key-ID/Secret derived from a Cloudflare API token per their documented formula: `id` + `SHA256(value)` — not returned directly by the token-creation API), builder Access app hardened (`session_duration` 24h→30m, `enable_binding_cookie` on). Bootstrap provisioning token revoked after use.
+
+**Deploy (live VM, `matrix-dash` GCE instance):** synced via `tar` over SSH stdin (not `git pull` — changes are intentionally left uncommitted in `bolt.new-custom` per that repo's ownership rules), `pnpm install` + `pnpm build` on a temporary `e2-medium` resize (e2-micro OOM'd on the build, same pattern as an earlier matrix-dash deploy), resized back to `e2-micro` after. Verified: production JWT auth boundary correctly rejects an unauthenticated direct request (401), `server.mjs`'s `127.0.0.1` bind + GCE firewall both confirmed still closing port 5001 to the public internet, both `matrix.zbautomations.ie` and `builder.zbautomations.ie` healthy post-restart.
+
+**Verification:** `pnpm typecheck` — zero errors. `pnpm check-routes` — passes (20/20 routes classified). Runtime-tested against real (not mocked) Cloudflare infrastructure via `pnpm dev`: full KV chat CRUD round-trip, R2 file save/load round-trip, R2 image upload with both magic-byte accept and reject paths, and an actual fetch of the returned presigned URL confirming the real uploaded bytes come back with the correct content-type. All test data cleaned up afterward.
+
+**Files touched:** all in `bolt.new-custom` (separate, user-owned repo — left **uncommitted** there per standing convention; this entry documents the work, the diff lives in that repo's working tree). New: `app/lib/.server/verify-access.server.ts`, `kv-client.server.ts`, `r2-client.server.ts`, `app/lib/.server/persistence/cost-estimator.server.ts`, `app/lib/persistence/chat-sync.client.ts`, `app/routes/api.chats.ts`, `api.chats.$id.ts`, `api.save-files.ts`, `scripts/check-route-auth-coverage.mjs`, `scripts/route-auth-classification.json`. Modified: 26 files across `app/routes/`, `app/lib/`, `app/components/`, `entry.server.tsx`, `entry.client.tsx`, `server.mjs`, `vite.config.ts`, `package.json`. Deleted: 7 Firebase-specific files (listed above).
+
 ## 01/07/2026 @ 22:11:07 IST — "Sonnet 5"
 
 **Goal:** Fix Matrix Builder being unreachable from the dashboard on desktop Chrome after Cloudflare Access rollout — replace the broken iframe embed with a top-level "launch" model.
