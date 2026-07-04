@@ -1,5 +1,25 @@
 # Changelog
 
+## 04/07/2026 @ 17:36:43 IST — "Claude Sonnet 5"
+
+**Goal:** Roll out the Matrix Builder (`bolt.new-custom`) side of the brand kit — the part carrying the actual legal/trademark risk the user flagged (StackBlitz's own logo assets still shipping in a live product). Edits only, nothing committed there — that repo is user-managed and reviewed/committed separately.
+
+**Fixed:**
+- Replaced all 8 checksum-confirmed stock StackBlitz files: `public/favicon.svg`, `public/logo.svg`, `icons/logo.svg` were StackBlitz's actual trademarked lightning-bolt mark (blue square, white bolt) — not generic placeholders, confirmed by inspecting the raw SVG paths. `icons/logo-text.svg` was the "bolt.new" wordmark as vector outline paths. Replaced all four with the new `BuilderMark` (">_" glyph) design. `icons/chat.svg`/`icons/stars.svg` (generic UI icons, lower risk but still stock) replaced with original equivalents. `public/social_preview_index.jpg` replaced with a rendered Matrix Builder card; `public/project-visibility.jpg` deleted (confirmed unreferenced anywhere in the repo). Re-verified via the same checksum diff used in the audit: zero files now match the pristine original.
+- `.github/ISSUE_TEMPLATE/config.yml` and `bug_report.yml` — removed contact links pointing at StackBlitz's own Help Center/Discord and a hotlinked StackBlitz-hosted image; these are misleading for a private fork with no relationship to StackBlitz's support infrastructure.
+
+**Changed — AI persona renamed from "Bolt" to "Matrix":**
+- User-facing chat copy in `AskUserDialog.tsx` (dialog text, placeholder, delegate option), 5 `chat-chips/*.ts` files (chip descriptions shown to users), `prompts.ts` (the system prompt's self-references and its description of injected UI sentinels), and matching doc-comments in `message-parser.ts`.
+- `formatters.ts`'s `LET_BOLT_DECIDE_MARKER` constant value updated in lockstep with the dialog string it matches against — this one's functional, not cosmetic, since the delegation-detection logic does a prefix match against the literal submitted text. Verified via the `chat-chips` test suite (34/34 passing) rather than assuming a find-replace was safe.
+- Left the `~/Desktop/Bolt-Projects` save-folder path and the internal `LET_BOLT_DECIDE`/`i-bolt-*`/`--bolt-elements-*` identifier names unchanged — sentinel/CSS-variable naming has zero user visibility and existing saved projects live under that folder name today.
+- `README.md` and `docs/CONTRIBUTING.md` rebranded to Matrix Builder while keeping an honest "forked from StackBlitz's bolt.new (MIT)" attribution line. `CONTRIBUTING.md` was materially wrong beyond branding — it described the *stock* bolt.new repo's setup (Cloudflare Pages, Anthropic key, `git clone stackblitz/bolt.new`), not this fork's actual Firebase/Gemini setup — rewritten to match reality.
+- `package.json` — added `repository`, `homepage`, `author`, `keywords`.
+
+**Verified:** `npx vitest run app/lib/chat-chips` (34/34 pass), `npx tsc --noEmit` (clean). Did not run the full suite — this repo currently has a large, unrelated, pre-existing uncommitted Firebase→Cloudflare migration in its working tree, and a full run would mix in noise from that in-progress state.
+
+**Files Touched (in `bolt.new-custom`, uncommitted):**
+`public/favicon.svg`, `public/logo.svg`, `public/social_preview_index.jpg`, `public/project-visibility.jpg` (deleted), `icons/logo.svg`, `icons/logo-text.svg`, `icons/chat.svg`, `icons/stars.svg`, `README.md`, `docs/CONTRIBUTING.md`, `package.json`, `.github/ISSUE_TEMPLATE/config.yml`, `.github/ISSUE_TEMPLATE/bug_report.yml`, `app/lib/.server/llm/prompts.ts`, `app/lib/runtime/message-parser.ts`, `app/components/chat/AskUserDialog.tsx`, `app/lib/chat-chips/{chip-tone,chip-quality,chip-brand,chip-references,chip-tweak,formatters}.ts`, `app/lib/chat-chips/__tests__/{sentinels,chip-builders,chip-formatters}.spec.ts`
+
 ## 04/07/2026 @ 17:26:14 IST — "Claude Sonnet 5"
 
 **Goal:** Roll out the Matrix Dashboard side of the brand kit — new sibling mark for Matrix Builder, favicon/OG/apple-touch-icon wiring, README/package.json metadata, and landing-page polish — per the confirmed decisions in BRAND-AUDIT.md.
