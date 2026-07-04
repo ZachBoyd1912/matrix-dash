@@ -1,5 +1,19 @@
 # Changelog
 
+## 04/07/2026 @ 17:11:46 IST — "Claude Sonnet 5"
+
+**Goal:** Execute Plan 2 (Full Brand Kit) from TODO.md, expanded per user request into an exhaustive, zero-skip audit of every branding touchpoint across the ZB Automations umbrella (`matrix-dash` + `bolt.new-custom`), ahead of generating and rolling out a coordinated brand identity.
+
+**Added:**
+- `BRAND-AUDIT.md` — full inventory of every branding touchpoint in both repos, produced by checksum-diffing `bolt.new-custom`'s assets against the pristine, unmodified StackBlitz `bolt.new` source. Confirmed 8 files (favicon, two social-preview JPGs, `logo.svg`, and 4 icon SVGs) are byte-identical to stock StackBlitz — the acceptance test for "done" is that diff returning zero matches.
+- Found and documented a bigger-than-expected gap: `bolt.new-custom`'s in-product AI assistant refers to itself as "Bolt" throughout live chat UI copy (system prompt, dialogs, chat chips) and hardcodes a `~/Desktop/Bolt-Projects` save path — a product-identity decision, not an asset swap, flagged for the user rather than decided unilaterally.
+- Documented 3 gating decisions that need a user call before any new asset is produced: Matrix Builder's mark-hierarchy position, whether to rename the `bolt.new-custom` GitHub repo, and whether to rename the "Bolt" AI persona.
+- Confirmed `/design-sync`/`/design` resolve to the `DesignSync` tool (no matching local skill exists); resolved the asset-generation approach as hand-authored SVG for marks/icons/favicons plus an HTML-template-to-screenshot technique for raster OG/social previews.
+
+**Files Touched:**
+- `BRAND-AUDIT.md` (NEW) — full audit inventory
+- `CHANGELOG.md` — this entry
+
 ## 02/07/2026 @ 20:31:31 IST — "deepseek-v4-pro"
 
 **Goal:** Create 3 comprehensive implementation plans for the Matrix Dashboard & Builder ecosystem — custom zip filenames, full brand kit generation, and dashboard UI redesign — to be handed off to Claude Code for execution.
