@@ -1,0 +1,169 @@
+# Skill: /create-todo.md
+
+A global slash command for OpenCode, Claude Code, Gemini, and any AI coding agent to create or update beautiful, glassmorphism-styled `TODO.md` files for any project.
+
+## Overview
+
+`/create-todo.md` generates interactive `TODO.md` files with embedded HTML/CSS that render as a glassmorphism dashboard in VS Code preview, Obsidian, Typora, and any WebKit-based markdown renderer. Falls back gracefully to pure readable markdown in plain-text viewers.
+
+## Trigger
+
+Invoke when the user says:
+- `/create-todo.md` — explicit command
+- "create a todo file" / "make a todo.md" / "build the todo"
+- "add this plan to the todo" / "update the todo with..."
+- "structure the implementation plan"
+
+## Plan Schema
+
+Every plan in TODO.md must fill ALL sections:
+
+```markdown
+## [emoji] Plan [N]: [Title] — [Short Subtitle] (ideated by [model name])
+
+### Goal
+[One sentence — what does this plan achieve?]
+
+### Problem
+[One paragraph — what's broken/missing? Why does this matter?]
+
+### Solution Overview
+[2-3 sentences — how will we solve it? Key approach. Any phases/tiers.]
+
+### Tasks
+- [ ] **[Task title]** — `path/to/file.ext`
+  - Sub-bullet details if needed
+  - Multiple sub-bullets ok
+- [ ] **[Task title]** — `another/file.ext`
+
+### Files Touched
+| File | Action |
+|------|--------|
+| `path/to/new.ts` | **NEW** — what it does |
+| `path/to/existing.ts` | Edit — what changes |
+
+### 🧠 Skills
+`@skill-one` `@skill-two` `@skill-three`
+```
+
+## File Structure
+
+```
+TODO.md
+│
+├── <style> ................. CSS block (copy from reference below)
+├── <div class="todo-hero"> . Project title + stats subtitle
+├── <div class="todo-stats">. 4 stat cards (Total, Complete, In Progress, Critical)
+├── <div class="todo-filters"> Filter pill bar (All, Critical, + category pills)
+├── <div class="todo-grid"> . All plan cards as <div class="todo-card"> elements
+├── <script> ................ Filter JS (copy from reference)
+│
+├── (blank line separator)
+│
+├── # 📋 Markdown header
+├── ## Plan 1: ... .......... Raw markdown for each plan (Goal→Problem→Solution→Tasks→Files→Skills)
+├── ## Plan 2: ...
+└── ...
+```
+
+## Plan Card HTML Template
+
+```html
+<div class="todo-card" data-category="CATEGORY_SLUG" data-priority="PRIORITY">
+  <div class="card-header">
+    <span class="card-emoji">EMOJI</span>
+    <div>
+      <div class="card-title">Plan N: TITLE</div>
+      <div class="card-subtitle">ideated by MODEL · FILE_COUNT files · COMPLEXITY complexity</div>
+    </div>
+  </div>
+  <div class="card-badges">
+    <span class="badge badge-CLASS">CATEGORY_LABEL</span>
+    <span class="badge badge-CLASS">PRIORITY_LABEL</span>
+  </div>
+  <div class="card-body">
+    <div class="card-goal">🎯 GOAL_ONE_LINER</div>
+    <div>PROBLEM_SUMMARY_ONE_SENTENCE</div>
+  </div>
+  <div class="card-skills">
+    <span class="skill-tag">@skill1</span>
+    <span class="skill-tag">@skill2</span>
+  </div>
+  <details class="card-files">
+    <summary>📁 COUNT files</summary>
+    <div class="file-list">
+      <div><span class="file-new">+ new</span> path/to/new/file.ts</div>
+      <div><span class="file-edit">~ edit</span> path/to/existing.tsx</div>
+    </div>
+  </details>
+  <details class="tasks-summary">
+    <summary>✅ COUNT tasks</summary>
+    <ul>
+      <li><input type="checkbox"> Task description</li>
+    </ul>
+  </details>
+</div>
+```
+
+## Category → Badge Mapping
+
+| Category | data-category | Badge CSS Class | Emoji |
+|----------|---------------|-----------------|-------|
+| Code Quality | `code-quality` | `badge-critical` | 🧪 |
+| AI / LLM | `ai` | `badge-critical` | 📊 |
+| Performance | `performance` | `badge-high` | ⚡ |
+| Security | `security` | `badge-critical` | 🔒 |
+| UX / a11y | `ux` | `badge-high` | ♿ |
+| Features | `feature` | `badge-medium` | 🌳 |
+| Onboarding | `onboarding` | `badge-medium` | 🪜 |
+| Branding / Design | `branding` | `badge-medium` | 🎨 |
+| DevOps / Tooling | `devops` | `badge-high` | 🔧 |
+
+## Priority → Badge CSS Class
+
+| Priority | Badge CSS Class |
+|----------|-----------------|
+| critical | `badge-critical` |
+| high | `badge-high` |
+| medium | `badge-medium` |
+
+## Agent Workflow
+
+When `/create-todo.md` is invoked:
+
+1. **Read** existing `TODO.md` if present — note current plan count, category distribution
+2. **Ask** the user: what plan(s) to add? Extract from their description:
+   - Title, Goal, Problem, Solution, Tasks, Files, Skills, Category, Priority
+3. **Generate** the HTML plan card using the template above
+4. **Insert** the card into `.todo-grid` AND append raw markdown plan below
+5. **Recalculate** stats: update TOTAL, COMPLETED, IN PROGRESS, CRITICAL counts
+6. **Update** the subtitle timestamp to current time
+7. **Verify** that filter pills match active categories, file counts are accurate, no duplicate plan numbers
+
+## CSS Reference
+
+Copy the full `<style>` block from any existing TODO.md generated by this command. The key design tokens are:
+
+```css
+--bg: #08080a;
+--surface: #0f0f14;
+--border: #1e1e2e;
+--emerald: #10b981;
+--sky: #0ea5e9;
+--text: #e2e8f0;
+--muted: #64748b;
+```
+
+Animations: staggered `fadeUp` on cards (50ms delay increments), `glowPulse` keyframe, hover transforms with `emerald-glow` box-shadow.
+
+## Verification Checklist
+
+After every `/create-todo.md` invocation:
+- [ ] Hero subtitle stats match actual card counts
+- [ ] Every filter pill has a matching `data-category` on at least one card
+- [ ] No duplicate plan numbers
+- [ ] Each card has `data-category` AND `data-priority` attributes
+- [ ] Badge classes match category + priority
+- [ ] File counts in `.card-subtitle` match actual `<details>` content
+- [ ] Timestamp is current (use `TZ=Europe/Dublin date`)
+- [ ] Raw markdown below the grid matches card content
