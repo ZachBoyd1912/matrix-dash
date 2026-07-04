@@ -19,6 +19,29 @@
 
 **Files Touched:** `bolt.new-custom/app/components/header/Header.tsx`, `bolt.new-custom/uno.config.ts`, `public/index.html`, `README.md`, `CHANGELOG.md`, `public/screenshots/{dashboard-overview,dashboard-chat,memory-bank}.png` (NEW), `bolt.new-custom/README.md`, `bolt.new-custom/CHANGELOG.md`, `bolt.new-custom/public/screenshots/builder-landing.png` (NEW)
 
+## 04/07/2026 @ 17:59:14 IST — "Sonnet 5"
+
+**Goal:** Implement TODO.md Plan 1 — replace Matrix Builder's hardcoded `project.zip` download filename with one derived from the actual project title, per user feedback that filenames must never fall back to something untracked and must carry a browser + globally-sequential number whenever the title itself can't be used cleanly.
+
+**Added — sanitized, numbered zip filenames (`bolt.new-custom`, separate repo):**
+- `app/utils/slug.ts` — `slugify()` (NFKD-normalize, strip diacritics, collapse anything outside `[a-z0-9]` to `-`, cap at 60 chars, fall back to `"project"` only when nothing survives) and `slugTag()` (word-capped variant, no fallback, used only for the tag fragment below).
+- `app/utils/browser.ts` — `detectBrowserName()`, ordered substring checks against `navigator.userAgent` (Edge/Opera checked before Chrome, Chrome before Safari, since their UA strings overlap).
+- `app/lib/.server/download-counter.server.ts` (new) + two newly-exported helpers on `kv-client.server.ts` (`kvGet`/`kvPut`, previously private) — a **global**, cross-session, cross-device download counter backed by Cloudflare KV. Cause: the user explicitly wants a user in one country making 5 downloads and a different user elsewhere making 1 the next day to see that as sequence 6, which rules out `localStorage`. Fix: since this app runs as a single long-lived Node process (not Cloudflare Workers — confirmed no Durable Objects, no wrangler bindings anywhere in the repo) rather than deploying new atomic-counter infrastructure, an in-process promise-chain mutex serializes every KV read-increment-write within that one process. Verified: 20 concurrent `curl` requests against the new route returned 20 unique sequential numbers with zero duplicates or gaps.
+- `app/routes/api.download-sequence.ts` (new) — authenticated POST route (`requireAccessIdentity`, same CSRF-via-Origin-check-for-free pattern as every other mutating route) returning the next counter value.
+- `app/lib/persistence/download-sequence.client.ts` (new) — client fetch wrapper, same `withRetry`/`httpError` shape as `chat-sync.client.ts`.
+
+**Changed — filename composition (`app/lib/download.ts`, `Workbench.client.tsx`):**
+- Clean, short titles (`< 200` chars, slugify succeeds) → plain `{slug}.zip`, e.g. `my-cool-app.zip` — no browser/sequence noise on the common path.
+- Titles ≥200 chars, or ones that collapse to nothing usable (emoji/symbols/non-Latin-only) → `{browser}-project-{sequence}-{tag}.zip`, e.g. `chrome-project-15-coffee-brand-website.zip`. The `{tag}` is just the first 3 real words of the title, slugified — not a keyword classifier (a "script that analyzes app context via keywords, run after `pnpm dev` finishes" was floated and rejected: filename generation happens on-demand at click time, unrelated to dev-server startup lifecycle).
+- If the sequence API is unreachable, falls back to a `Date.now()`-derived suffix rather than hard-failing the download.
+- `downloadProject()` gained an optional `projectTitle` param; the workbench download button now sources it from the `description` persistence atom (canonical, user-editable name) falling back to `workbenchStore.firstArtifact?.title` (available earlier during streaming).
+
+**Verification:** 153 vitest tests pass (5 new spec files: `slug.spec.ts`, `browser.spec.ts`, `download.spec.ts` — the last mocks the `.client.ts` module directly via `vi.mock` rather than stubbing `fetch`, since Remix's plugin strips `.client.ts` imports to stubs under Vitest's default SSR-style transform, which doesn't affect the real client bundle). `pnpm typecheck` — zero errors. Ran the actual `pnpm dev` server and curled `/api/download-sequence` directly: sequential calls incremented correctly (1, 2, 3…) and 20 fired concurrently produced 20 unique values.
+
+**Files touched:** all in `bolt.new-custom` (separate, user-owned repo — left **uncommitted** there per standing convention; this entry documents the work). New: `app/utils/slug.ts` (+ `.spec.ts`), `app/utils/browser.ts` (+ `.spec.ts`), `app/lib/.server/download-counter.server.ts`, `app/routes/api.download-sequence.ts`, `app/lib/persistence/download-sequence.client.ts`, `app/lib/download.spec.ts`. Modified: `app/lib/download.ts`, `app/lib/.server/kv-client.server.ts` (two exports added), `app/components/workbench/Workbench.client.tsx`.
+
+`TODO.md` (this repo): marked Plan 1 complete (checked its 4 tasks, struck through the card, bumped the Completed stat 0→1). Note: `TODO.md`'s working-tree diff in this commit also includes an unrelated prior uncommitted change (deepseek-v4-pro's expansion from 3→18 plans plus a glassmorphism redesign of the file) that predates this session and was never committed — confirmed with the user and committed together here rather than left dangling.
+
 ## 04/07/2026 @ 17:36:43 IST — "Claude Sonnet 5"
 
 **Goal:** Roll out the Matrix Builder (`bolt.new-custom`) side of the brand kit — the part carrying the actual legal/trademark risk the user flagged (StackBlitz's own logo assets still shipping in a live product). Edits only, nothing committed there — that repo is user-managed and reviewed/committed separately.

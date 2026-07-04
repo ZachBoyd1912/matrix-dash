@@ -1,3 +1,943 @@
+<style>
+/* ═══════════════════════════════════════════════════════
+   MATRIX TODO — Glassmorphism Implementation Dashboard
+   Renders in: VS Code preview · Obsidian · Typora · Marked
+   Fallback: pure markdown below is fully readable
+   ═══════════════════════════════════════════════════════ */
+:root{--bg:#08080a;--surface:#0f0f14;--border:#1e1e2e;--emerald:#10b981;--emerald-glow:rgba(16,185,129,.15);--sky:#0ea5e9;--sky-glow:rgba(14,165,233,.1);--text:#e2e8f0;--muted:#64748b;--rose:#f43f5e;--amber:#f59e0b;--violet:#8b5cf6;--radius:.85rem;--font-mono:'SF Mono','Fira Code','Cascadia Code','JetBrains Mono',monospace;--font-sans:'SF Pro Display',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-height:1.6;-webkit-font-smoothing:antialiased;max-width:100%;overflow-x:hidden}
+/* ── HERO ── */
+.todo-hero{position:relative;padding:3.5rem 2rem 2.5rem;text-align:center;overflow:hidden;border-bottom:1px solid var(--border)}
+.todo-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 50% at 50% 0%,var(--emerald-glow),transparent 70%),radial-gradient(ellipse 35% 35% at 85% 90%,var(--sky-glow),transparent 70%);pointer-events:none}
+.todo-hero::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--emerald),var(--sky),transparent);opacity:.6}
+.todo-hero h1{position:relative;font-size:2.6rem;font-weight:800;letter-spacing:-.025em;background:linear-gradient(135deg,var(--emerald) 0%,var(--sky) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.4rem;line-height:1.15}
+.todo-hero .subtitle{position:relative;color:var(--muted);font-size:.9rem;font-family:var(--font-mono);letter-spacing:.02em}
+.todo-hero .subtitle span{color:var(--emerald);font-weight:600}
+/* ── ORB DECORATION ── */
+.todo-orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:.12;pointer-events:none}
+.todo-orb-1{width:300px;height:300px;background:var(--emerald);top:-80px;left:-60px;animation:orbFloat 12s ease-in-out infinite}
+.todo-orb-2{width:200px;height:200px;background:var(--sky);bottom:-60px;right:-40px;animation:orbFloat 15s ease-in-out infinite reverse}
+@keyframes orbFloat{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(30px,-20px) scale(1.08)}66%{transform:translate(-20px,15px) scale(.94)}}
+/* ── STATS ── */
+.todo-stats{display:flex;gap:.85rem;padding:1.5rem 2rem;flex-wrap:wrap;justify-content:center;border-bottom:1px solid var(--border);background:linear-gradient(180deg,var(--surface),transparent)}
+.todo-stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.6rem;text-align:center;min-width:110px;transition:all .25s;position:relative;overflow:hidden}
+.todo-stat::before{content:'';position:absolute;inset:0;border-radius:var(--radius);opacity:0;transition:opacity .25s}
+.todo-stat:hover{transform:translateY(-3px);border-color:var(--emerald);box-shadow:0 8px 30px rgba(0,0,0,.3)}
+.todo-stat:hover::before{opacity:.06;background:var(--emerald)}
+.todo-stat .stat-num{font-size:2rem;font-weight:800;background:linear-gradient(135deg,var(--emerald),var(--sky));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1.1}
+.todo-stat .stat-label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-top:.3rem;font-family:var(--font-mono)}
+.todo-stat.critical-stat .stat-num{background:linear-gradient(135deg,var(--rose),var(--amber));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.todo-stat.critical-stat:hover{border-color:var(--rose)}
+.todo-stat.critical-stat:hover::before{background:var(--rose)}
+/* ── FILTER PILLS ── */
+.todo-filters{display:flex;gap:.5rem;padding:1.2rem 2rem;flex-wrap:wrap;justify-content:center}
+.todo-pill{background:var(--surface);border:1px solid var(--border);color:var(--muted);padding:.45rem 1.1rem;border-radius:2rem;font-size:.78rem;cursor:pointer;transition:all .2s;font-family:var(--font-mono);letter-spacing:.02em;user-select:none}
+.todo-pill:hover{color:var(--text);border-color:var(--muted)}
+.todo-pill.active{color:var(--emerald);border-color:var(--emerald);background:var(--emerald-glow);font-weight:600}
+.todo-pill .count{font-size:.65rem;opacity:.5;margin-left:.2rem}
+/* ── PLAN GRID ── */
+.todo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(370px,1fr));gap:1rem;padding:1rem 2rem 3rem}
+/* ── PLAN CARD ── */
+.todo-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:all .35s cubic-bezier(.4,0,.2,1);animation:cardEnter .55s ease both;position:relative}
+.todo-card::after{content:'';position:absolute;inset:0;border-radius:var(--radius);opacity:0;transition:opacity .35s;pointer-events:none;background:radial-gradient(ellipse at 50% 0%,var(--emerald-glow),transparent 60%)}
+.todo-card:hover{border-color:rgba(16,185,129,.35);box-shadow:0 0 40px var(--emerald-glow),0 12px 40px rgba(0,0,0,.45);transform:translateY(-3px)}
+.todo-card:hover::after{opacity:1}
+.todo-card .card-header{padding:1.3rem 1.3rem .5rem;display:flex;align-items:flex-start;gap:.7rem}
+.todo-card .card-emoji{font-size:2rem;line-height:1;flex-shrink:0;filter:drop-shadow(0 2px 8px var(--emerald-glow))}
+.todo-card .card-title{font-size:.98rem;font-weight:700;color:var(--text);line-height:1.35;letter-spacing:-.01em}
+.todo-card .card-subtitle{font-size:.7rem;color:var(--muted);margin-top:.2rem;font-family:var(--font-mono)}
+.todo-card .card-badges{display:flex;flex-wrap:wrap;gap:.4rem;padding:.3rem 1.3rem .6rem}
+.todo-card .badge{font-size:.65rem;padding:.25rem .7rem;border-radius:1rem;font-family:var(--font-mono);font-weight:600;letter-spacing:.03em;text-transform:uppercase}
+.badge-critical{background:rgba(244,63,94,.1);color:var(--rose);border:1px solid rgba(244,63,94,.2)}
+.badge-high{background:rgba(245,158,11,.1);color:var(--amber);border:1px solid rgba(245,158,11,.18)}
+.badge-medium{background:rgba(14,165,233,.08);color:var(--sky);border:1px solid rgba(14,165,233,.15)}
+.badge-category{background:rgba(139,92,246,.08);color:var(--violet);border:1px solid rgba(139,92,246,.15)}
+.todo-card .card-body{padding:.2rem 1.3rem .6rem;font-size:.8rem;color:var(--muted);line-height:1.55}
+.todo-card .card-goal{color:var(--text);margin-bottom:.35rem;font-weight:500;line-height:1.45}
+.todo-card .card-goal::before{content:'🎯 '}
+.todo-card .card-skills{display:flex;flex-wrap:wrap;gap:.35rem;padding:.2rem 1.3rem .6rem}
+.todo-card .skill-tag{font-size:.66rem;padding:.18rem .55rem;background:rgba(16,185,129,.06);color:var(--emerald);border-radius:.3rem;font-family:var(--font-mono);border:1px solid rgba(16,185,129,.12);transition:all .15s}
+.todo-card .skill-tag:hover{background:rgba(16,185,129,.14);border-color:rgba(16,185,129,.25)}
+.todo-card .card-files,.todo-card .tasks-summary{padding:.2rem 1.3rem .8rem;font-size:.7rem}
+.todo-card .card-files>summary,.todo-card .tasks-summary>summary{color:var(--muted);cursor:pointer;font-family:var(--font-mono);font-weight:500;transition:color .2s;list-style:none;display:flex;align-items:center;gap:.3rem}
+.todo-card .card-files>summary::-webkit-details-marker,.todo-card .tasks-summary>summary::-webkit-details-marker{display:none}
+.todo-card .card-files>summary::before{content:'📁 ';font-size:.75rem}
+.todo-card .tasks-summary>summary::before{content:'✅ ';font-size:.75rem}
+.todo-card .card-files>summary:hover,.todo-card .tasks-summary>summary:hover{color:var(--emerald)}
+.todo-card .file-list{margin-top:.45rem;font-family:var(--font-mono);font-size:.68rem;line-height:1.9;padding:.5rem .6rem;background:rgba(0,0,0,.2);border-radius:.4rem}
+.todo-card .file-new{color:var(--emerald)}
+.todo-card .file-edit{color:var(--sky)}
+.todo-card .tasks-summary ul{padding-left:1rem;margin-top:.35rem;font-size:.7rem;line-height:1.8;list-style:none}
+.todo-card .tasks-summary li{position:relative;padding-left:.2rem}
+.todo-card .tasks-summary input[type=checkbox]{accent-color:var(--emerald);margin-right:.4rem;width:.75rem;height:.75rem;pointer-events:none;vertical-align:middle}
+.todo-card.completed{text-decoration:line-through}
+/* ── ANIMATIONS ── */
+@keyframes cardEnter{from{opacity:0;transform:translateY(22px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+.todo-card:nth-child(1){animation-delay:.04s}.todo-card:nth-child(2){animation-delay:.08s}.todo-card:nth-child(3){animation-delay:.12s}.todo-card:nth-child(4){animation-delay:.16s}.todo-card:nth-child(5){animation-delay:.20s}.todo-card:nth-child(6){animation-delay:.24s}.todo-card:nth-child(7){animation-delay:.28s}.todo-card:nth-child(8){animation-delay:.32s}.todo-card:nth-child(9){animation-delay:.36s}.todo-card:nth-child(10){animation-delay:.40s}.todo-card:nth-child(11){animation-delay:.44s}.todo-card:nth-child(12){animation-delay:.48s}.todo-card:nth-child(13){animation-delay:.52s}.todo-card:nth-child(14){animation-delay:.56s}.todo-card:nth-child(15){animation-delay:.60s}.todo-card:nth-child(16){animation-delay:.64s}.todo-card:nth-child(17){animation-delay:.68s}.todo-card:nth-child(18){animation-delay:.72s}
+/* ── RESPONSIVE ── */
+@media(max-width:768px){.todo-grid{grid-template-columns:1fr;padding:1rem}.todo-hero{padding:2.5rem 1rem 1.8rem}.todo-hero h1{font-size:1.6rem}.todo-stats{padding:1rem;gap:.5rem}.todo-stat{padding:.7rem 1rem;min-width:75px}.todo-stat .stat-num{font-size:1.4rem}.todo-filters{padding:.8rem 1rem}.todo-pill{font-size:.7rem;padding:.35rem .8rem}}
+@media(prefers-reduced-motion:reduce){.todo-card{animation:none!important}.todo-orb{display:none}}
+/* ── RENDERED MARKDOWN ── */
+.markdown-body{max-width:900px;margin:2rem auto;padding:0 2rem 3rem;font-size:.88rem;line-height:1.75;color:var(--text)}
+.markdown-body h1{font-size:1.8rem;font-weight:800;margin:2rem 0 1rem;background:linear-gradient(135deg,var(--emerald),var(--sky));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.markdown-body h2{font-size:1.3rem;font-weight:700;margin:1.8rem 0 .6rem;color:var(--emerald)}
+.markdown-body h3{font-size:1.05rem;font-weight:600;margin:1.2rem 0 .4rem;color:var(--sky)}
+.markdown-body p{margin:.5rem 0}
+.markdown-body strong{color:var(--sky)}
+.markdown-body table{border-collapse:collapse;width:100%;margin:1rem 0}
+.markdown-body td,.markdown-body th{border:1px solid var(--border);padding:.5rem .8rem;text-align:left;font-size:.8rem}
+.markdown-body th{background:var(--surface);color:var(--emerald);font-family:var(--font-mono);font-weight:600}
+.markdown-body code{background:var(--surface);padding:.15rem .4rem;border-radius:.25rem;font-family:var(--font-mono);font-size:.8em;color:var(--sky)}
+.markdown-body ul,.markdown-body ol{padding-left:1.5rem;margin:.5rem 0}
+.markdown-body li{margin:.2rem 0}
+.markdown-body input[type=checkbox]{accent-color:var(--emerald);pointer-events:none;margin-right:.4rem}
+.markdown-body hr{border:none;border-top:1px solid var(--border);margin:2rem 0}
+.markdown-body blockquote{border-left:3px solid var(--emerald);margin:1rem 0;padding:.4rem 1rem;background:var(--emerald-glow);border-radius:0 .5rem .5rem 0}
+</style>
+
+<div class="todo-hero">
+  <div class="todo-orb todo-orb-1"></div>
+  <div class="todo-orb todo-orb-2"></div>
+  <h1>Matrix Dashboard &amp; Builder — Implementation Plans</h1>
+  <p class="subtitle"><span>18</span> plans · <span>1</span> completed · <span>0</span> in progress · Last updated 04/07/2026 @ 17:59:14 IST</p>
+</div>
+
+<div class="todo-stats">
+  <div class="todo-stat"><div class="stat-num">18</div><div class="stat-label">Total Plans</div></div>
+  <div class="todo-stat"><div class="stat-num">1</div><div class="stat-label">Completed</div></div>
+  <div class="todo-stat"><div class="stat-num">0</div><div class="stat-label">In Progress</div></div>
+  <div class="todo-stat critical-stat"><div class="stat-num">5</div><div class="stat-label">Critical</div></div>
+</div>
+
+<div class="todo-filters">
+  <span class="todo-pill active" onclick="try{document.querySelectorAll('.todo-pill').forEach(p=>p.classList.remove('active'));this.classList.add('active');document.querySelectorAll('.todo-card').forEach(c=>c.style.display='')}catch(e){}">All <span class="count">18</span></span>
+  <span class="todo-pill" onclick="try{document.querySelectorAll('.todo-pill').forEach(p=>p.classList.remove('active'));this.classList.add('active');document.querySelectorAll('.todo-card').forEach(c=>c.style.display=c.querySelector('.badge-critical')?'':'none')}catch(e){}">Critical <span class="count">5</span></span>
+  <span class="todo-pill" onclick="try{document.querySelectorAll('.todo-pill').forEach(p=>p.classList.remove('active'));this.classList.add('active');document.querySelectorAll('.todo-card').forEach(c=>c.style.display=c.dataset.category==='ai'?'':'none')}catch(e){}">AI/LLM</span>
+  <span class="todo-pill" onclick="try{document.querySelectorAll('.todo-pill').forEach(p=>p.classList.remove('active'));this.classList.add('active');document.querySelectorAll('.todo-card').forEach(c=>c.style.display=c.dataset.category==='code-quality'?'':'none')}catch(e){}">Quality</span>
+  <span class="todo-pill" onclick="try{document.querySelectorAll('.todo-pill').forEach(p=>p.classList.remove('active'));this.classList.add('active');document.querySelectorAll('.todo-card').forEach(c=>c.style.display=c.dataset.category==='performance'?'':'none')}catch(e){}">Perf</span>
+  <span class="todo-pill" onclick="try{document.querySelectorAll('.todo-pill').forEach(p=>p.classList.remove('active'));this.classList.add('active');document.querySelectorAll('.todo-card').forEach(c=>c.style.display=c.dataset.category==='security'?'':'none')}catch(e){}">Security</span>
+  <span class="todo-pill" onclick="try{document.querySelectorAll('.todo-pill').forEach(p=>p.classList.remove('active'));this.classList.add('active');document.querySelectorAll('.todo-card').forEach(c=>c.style.display=c.dataset.category==='ux'?'':'none')}catch(e){}">UX</span>
+  <span class="todo-pill" onclick="try{document.querySelectorAll('.todo-pill').forEach(p=>p.classList.remove('active'));this.classList.add('active');document.querySelectorAll('.todo-card').forEach(c=>c.style.display=c.dataset.category==='feature'?'':'none')}catch(e){}">Features</span>
+  <span class="todo-pill" onclick="try{document.querySelectorAll('.todo-pill').forEach(p=>p.classList.remove('active'));this.classList.add('active');document.querySelectorAll('.todo-card').forEach(c=>c.style.display=c.dataset.category==='branding'?'':'none')}catch(e){}">Branding</span>
+</div>
+
+<div class="todo-grid">
+
+<!-- PLAN 1 -->
+<div class="todo-card completed" data-category="branding" data-priority="medium">
+  <div class="card-header">
+    <span class="card-emoji">🔧</span>
+    <div>
+      <div class="card-title">Plan 1: Custom Zip Filename for Matrix Builder Downloads</div>
+      <div class="card-subtitle">ideated by claude-sonnet-4 · 3 files · low complexity</div>
+    </div>
+  </div>
+  <div class="card-badges">
+    <span class="badge badge-category">Branding</span>
+    <span class="badge badge-medium">Medium</span>
+  </div>
+  <div class="card-body">
+    <div class="card-goal">Replace hardcoded project.zip with sanitized slug from artifact title.</div>
+    <div>bolt.new-custom always outputs project.zip — users lose track of multiple named projects.</div>
+  </div>
+  <div class="card-skills">
+    <span class="skill-tag">@senior-frontend</span>
+    <span class="skill-tag">@frontend-dev-guidelines</span>
+    <span class="skill-tag">@brainstorming</span>
+  </div>
+  <details class="card-files">
+    <summary>3 files</summary>
+    <div class="file-list">
+      <div><span class="file-new">+ new</span> bolt.new-custom/app/utils/slug.ts</div>
+      <div><span class="file-edit">~ edit</span> bolt.new-custom/app/lib/download.ts</div>
+      <div><span class="file-edit">~ edit</span> bolt.new-custom/app/components/workbench/Workbench.client.tsx</div>
+    </div>
+  </details>
+  <details class="tasks-summary">
+    <summary>4/4 tasks ✅</summary>
+    <ul>
+      <li><input type="checkbox" checked> Create slugify utility with edge-case handling</li>
+      <li><input type="checkbox" checked> Update downloadProject() to accept title parameter</li>
+      <li><input type="checkbox" checked> Plumb artifact title from workbench store</li>
+      <li><input type="checkbox" checked> Verify: test with emoji, special chars, long titles</li>
+    </ul>
+  </details>
+</div>
+
+<!-- PLAN 2 -->
+<div class="todo-card" data-category="branding" data-priority="medium">
+  <div class="card-header">
+    <span class="card-emoji">🎨</span>
+    <div>
+      <div class="card-title">Plan 2: Full Brand Kit — ZB Automations Umbrella</div>
+      <div class="card-subtitle">ideated by claude-sonnet-4 · 30+ files across 2 repos · high complexity</div>
+    </div>
+  </div>
+  <div class="card-badges">
+    <span class="badge badge-category">Branding</span>
+    <span class="badge badge-medium">Medium</span>
+  </div>
+  <div class="card-body">
+    <div class="card-goal">Create complete brand identity: logos, icons, favicons, PWA assets, social cards, colors, typography.</div>
+    <div>Brand is fragmented — inline SVG logo only, missing PWA icons, no favicons, different landing page logo.</div>
+  </div>
+  <div class="card-skills">
+    <span class="skill-tag">@frontend-design</span>
+    <span class="skill-tag">@senior-frontend</span>
+    <span class="skill-tag">@senior-architect</span>
+  </div>
+  <details class="card-files">
+    <summary>30+ files</summary>
+    <div class="file-list">
+      <div><span class="file-new">+ new</span> public/icon.svg, icon-192.png, icon-512.png, favicon.ico, apple-touch-icon.png, og-image.png</div>
+      <div><span class="file-edit">~ edit</span> app/layout.tsx, app/manifest.ts, components/layout/logo.tsx, sidebar.tsx, topbar.tsx</div>
+      <div><span class="file-edit">~ edit</span> bolt.new-custom: favicons, entry.server.tsx, root.tsx, uno.config.ts</div>
+      <div><span class="file-edit">~ edit</span> deploy/landing/index.html, README.md, CHANGELOG.md</div>
+    </div>
+  </details>
+  <details class="tasks-summary">
+    <summary>18 tasks across 4 phases</summary>
+    <ul>
+      <li><input type="checkbox"> Phase 1: Claude Design generates full brand kit</li>
+      <li><input type="checkbox"> Phase 2: Apply to Matrix Dashboard (public assets, HTML head, PWA, logo)</li>
+      <li><input type="checkbox"> Phase 3: Apply to Matrix Builder (favicons, HTML, UnoCSS, workbench)</li>
+      <li><input type="checkbox"> Phase 4: Apply to zbautomations.ie landing page</li>
+    </ul>
+  </details>
+</div>
+
+<!-- PLAN 3 -->
+<div class="todo-card" data-category="ux" data-priority="medium">
+  <div class="card-header">
+    <span class="card-emoji">🖌️</span>
+    <div>
+      <div class="card-title">Plan 3: Full UI Redesign — Dashboard → Builder Aesthetic</div>
+      <div class="card-subtitle">ideated by claude-sonnet-4 · 40+ files · epic complexity</div>
+    </div>
+  </div>
+  <div class="card-badges">
+    <span class="badge badge-category">UX / Design</span>
+    <span class="badge badge-medium">Medium</span>
+  </div>
+  <div class="card-body">
+    <div class="card-goal">Redesign all dashboard UI to match Matrix Builder landing page aesthetic for cohesive product family.</div>
+    <div>Dashboard and Builder look like completely different products — terminal/dark vs modern prompt-centric.</div>
+  </div>
+  <div class="card-skills">
+    <span class="skill-tag">@frontend-design</span>
+    <span class="skill-tag">@senior-frontend</span>
+    <span class="skill-tag">@antigravity-design-expert</span>
+    <span class="skill-tag">@senior-architect</span>
+  </div>
+  <details class="card-files">
+    <summary>40+ files across 6 tiers</summary>
+    <div class="file-list">
+      <div><span class="file-edit">~ edit</span> app/globals.css, lib/themes.ts (Tier 1: Theme Foundation)</div>
+      <div><span class="file-edit">~ edit</span> components/layout/* (Tier 2: Layout Shell)</div>
+      <div><span class="file-edit">~ edit</span> components/ui/* (Tier 3: 11 UI Primitives)</div>
+      <div><span class="file-edit">~ edit</span> app/dashboard/page.tsx, chat/* (Tier 4: Key Pages)</div>
+      <div><span class="file-edit">~ edit</span> 14 remaining dashboard pages (Tier 5: Consistency)</div>
+    </div>
+  </details>
+  <details class="tasks-summary">
+    <summary>6 tiers · 30+ tasks</summary>
+    <ul>
+      <li><input type="checkbox"> Tier 1: Theme Foundation (CSS variables, Tailwind v4, dark/light)</li>
+      <li><input type="checkbox"> Tier 2: Layout Shell (sidebar, topbar, mobile-nav, shell)</li>
+      <li><input type="checkbox"> Tier 3: UI Primitives (button, card, input, tabs, dialog, toast, etc.)</li>
+      <li><input type="checkbox"> Tier 4: Key Pages (overview, chat, settings)</li>
+      <li><input type="checkbox"> Tier 5: Remaining Pages (14 pages consistency sweep)</li>
+      <li><input type="checkbox"> Tier 6: Verification (typecheck, visual QA, dark mode, mobile, a11y)</li>
+    </ul>
+  </details>
+</div>
+
+<!-- PLAN 4 -->
+<div class="todo-card" data-category="code-quality" data-priority="critical">
+  <div class="card-header">
+    <span class="card-emoji">🧪</span>
+    <div>
+      <div class="card-title">Plan 4: Test Infrastructure — Unit, Integration &amp; E2E</div>
+      <div class="card-subtitle">ideated by deepseek v4 pro · 5+ test suites · medium complexity</div>
+    </div>
+  </div>
+  <div class="card-badges">
+    <span class="badge badge-critical">Code Quality</span>
+    <span class="badge badge-critical">Critical</span>
+  </div>
+  <div class="card-body">
+    <div class="card-goal">Establish complete testing: vitest + React Testing Library + DB test helpers + CI.</div>
+    <div>Zero test infrastructure. 90+ API routes, 30+ components, 19 services — all untested.</div>
+  </div>
+  <div class="card-skills">
+    <span class="skill-tag">@testing-patterns</span>
+    <span class="skill-tag">@javascript-testing-patterns</span>
+    <span class="skill-tag">@nodejs-best-practices</span>
+  </div>
+  <details class="card-files">
+    <summary>6 file groups</summary>
+    <div class="file-list">
+      <div><span class="file-new">+ new</span> vitest.config.ts, vitest.setup.ts</div>
+      <div><span class="file-new">+ new</span> lib/test-utils.tsx, lib/test-db.ts</div>
+      <div><span class="file-new">+ new</span> __tests__/api/, __tests__/components/, __tests__/lib/</div>
+      <div><span class="file-edit">~ edit</span> package.json (test scripts)</div>
+    </div>
+  </details>
+  <details class="tasks-summary">
+    <summary>7 tasks</summary>
+    <ul>
+      <li><input type="checkbox"> Install vitest, @testing-library/react, jsdom</li>
+      <li><input type="checkbox"> Configure vitest with jsdom + path aliases</li>
+      <li><input type="checkbox"> Create test setup with jest-dom matchers + DB mocks</li>
+      <li><input type="checkbox"> Build test utilities (render wrapper, DB seed factories)</li>
+      <li><input type="checkbox"> Write API tests (chat, memories, auth, provider registry)</li>
+      <li><input type="checkbox"> Write component tests (chat-input, sidebar, tool-call-block)</li>
+      <li><input type="checkbox"> Write lib tests (crypto, slug, wiki-link parser, daemon)</li>
+    </ul>
+  </details>
+</div>
+
+<!-- PLAN 5 -->
+<div class="todo-card" data-category="devops" data-priority="high">
+  <div class="card-header">
+    <span class="card-emoji">🔧</span>
+    <div>
+      <div class="card-title">Plan 5: Dev Tooling — ESLint, Prettier, Editor Config &amp; Hooks</div>
+      <div class="card-subtitle">ideated by deepseek v4 pro · 6 config files · low complexity</div>
+    </div>
+  </div>
+  <div class="card-badges">
+    <span class="badge badge-category">DevOps / Tooling</span>
+    <span class="badge badge-high">High</span>
+  </div>
+  <div class="card-body">
+    <div class="card-goal">Add linting, formatting, editor consistency, and pre-commit guards beyond TypeScript.</div>
+    <div>Zero linting, zero formatting. Team/AI agents produce inconsistent code. No commit guardrails.</div>
+  </div>
+  <div class="card-skills">
+    <span class="skill-tag">@cc-skill-coding-standards</span>
+    <span class="skill-tag">@nodejs-best-practices</span>
+    <span class="skill-tag">@typescript-expert</span>
+  </div>
+  <details class="card-files">
+    <summary>6 files</summary>
+    <div class="file-list">
+      <div><span class="file-new">+ new</span> eslint.config.mjs (flat config with Next.js + TS + a11y)</div>
+      <div><span class="file-new">+ new</span> .prettierrc, .prettierignore, .editorconfig</div>
+      <div><span class="file-new">+ new</span> .husky/pre-commit (lint-staged hook)</div>
+      <div><span class="file-edit">~ edit</span> package.json (lint/format scripts + lint-staged config)</div>
+    </div>
+  </details>
+  <details class="tasks-summary">
+    <summary>7 tasks</summary>
+    <ul>
+      <li><input type="checkbox"> Install ESLint + Next.js + React + a11y plugins</li>
+      <li><input type="checkbox"> Create eslint.config.mjs with flat config presets</li>
+      <li><input type="checkbox"> Install & configure Prettier (2-space, single quotes, 100 width)</li>
+      <li><input type="checkbox"> Create .editorconfig (UTF-8, LF, 2-space)</li>
+      <li><input type="checkbox"> Install husky + lint-staged for pre-commit hooks</li>
+      <li><input type="checkbox"> Bulk format + lint fix entire codebase</li>
+      <li><input type="checkbox"> Verify: pnpm lint passes zero errors</li>
+    </ul>
+  </details>
+</div>
+
+<!-- PLAN 6 -->
+<div class="todo-card" data-category="code-quality" data-priority="high">
+  <div class="card-header">
+    <span class="card-emoji">🛡️</span>
+    <div>
+      <div class="card-title">Plan 6: Error Boundaries — React Resilience</div>
+      <div class="card-subtitle">ideated by deepseek v4 pro · 7 files · low complexity</div>
+    </div>
+  </div>
+  <div class="card-badges">
+    <span class="badge badge-category">Code Quality</span>
+    <span class="badge badge-high">High</span>
+  </div>
+  <div class="card-body">
+    <div class="card-goal">Add ErrorBoundary components to prevent crashes from whitescreening the entire app.</div>
+    <div>Zero ErrorBoundary exists. Any component render error crashes the full React tree to blank page.</div>
+  </div>
+  <div class="card-skills">
+    <span class="skill-tag">@systematic-debugging</span>
+    <span class="skill-tag">@error-diagnostics-smart-debug</span>
+    <span class="skill-tag">@react-best-practices</span>
+  </div>
+  <details class="card-files">
+    <summary>7 files</summary>
+    <div class="file-list">
+      <div><span class="file-new">+ new</span> components/ui/error-fallback.tsx</div>
+      <div><span class="file-new">+ new</span> components/layout/error-boundary.tsx</div>
+      <div><span class="file-new">+ new</span> app/dashboard/error.tsx, chat/error.tsx, settings/error.tsx</div>
+      <div><span class="file-new">+ new</span> lib/utils/api-error.ts</div>
+      <div><span class="file-edit">~ edit</span> app/layout.tsx (wrap in GlobalErrorBoundary)</div>
+    </div>
+  </details>
+  <details class="tasks-summary">
+    <summary>6 tasks</summary>
+    <ul>
+      <li><input type="checkbox"> Create ErrorFallback with retry + home navigation</li>
+      <li><input type="checkbox"> Create GlobalErrorBoundary class component</li>
+      <li><input type="checkbox"> Wrap root layout in GlobalErrorBoundary</li>
+      <li><input type="checkbox"> Add per-page error.tsx files (dashboard, chat, settings)</li>
+      <li><input type="checkbox"> Create API error normalization utility</li>
+      <li><input type="checkbox"> Verify: throw in component, check fallback renders</li>
+    </ul>
+  </details>
+</div>
+
+<!-- PLAN 7 -->
+<div class="todo-card" data-category="security" data-priority="critical">
+  <div class="card-header">
+    <span class="card-emoji">🔒</span>
+    <div>
+      <div class="card-title">Plan 7: Security Hardening — Rate Limiting, CSRF &amp; Sanitization</div>
+      <div class="card-subtitle">ideated by deepseek v4 pro · 7 files + 30+ schema audits · medium complexity</div>
+    </div>
+  </div>
+  <div class="card-badges">
+    <span class="badge badge-critical">Security</span>
+    <span class="badge badge-critical">Critical</span>
+  </div>
+  <div class="card-body">
+    <div class="card-goal">Add rate limiting, CSRF protection, XSS sanitization, and Zod schema length hardening.</div>
+    <div>Zero rate limiting, no CSRF, no input sanitization, Zod schemas lack .max() constraints.</div>
+  </div>
+  <div class="card-skills">
+    <span class="skill-tag">@api-security-best-practices</span>
+    <span class="skill-tag">@backend-security-coder</span>
+    <span class="skill-tag">@cc-skill-security-review</span>
+    <span class="skill-tag">@cso</span>
+  </div>
+  <details class="card-files">
+    <summary>7 files + 30 schema audits</summary>
+    <div class="file-list">
+      <div><span class="file-new">+ new</span> middleware.ts (rate limiting + CSRF)</div>
+      <div><span class="file-new">+ new</span> lib/utils/sanitize.ts (DOMPurify wrapper)</div>
+      <div><span class="file-edit">~ edit</span> lib/services/web.ts, lib/stores/use-app-store.ts</div>
+      <div><span class="file-edit">~ edit</span> next.config.ts (body size limits)</div>
+      <div><span class="file-edit">~ audit</span> 30+ API route files (Zod .max() + sanitization)</div>
+    </div>
+  </details>
+  <details class="tasks-summary">
+    <summary>6 tasks</summary>
+    <ul>
+      <li><input type="checkbox"> Create middleware.ts: IP sliding window, 100 req/60s API, 20 req/60s auth</li>
+      <li><input type="checkbox"> Add CSRF token generation + validation on POST/PUT/DELETE</li>
+      <li><input type="checkbox"> Install DOMPurify, create sanitize.ts wrapper</li>
+      <li><input type="checkbox"> Audit 30+ Zod schemas: add .max(), .regex(), .min()</li>
+      <li><input type="checkbox"> Configure body size limits (1MB default, 10MB chat)</li>
+      <li><input type="checkbox"> Verify: rapid requests are rate-limited, CSRF blocks unauthenticated mutations</li>
+    </ul>
+  </details>
+</div>
+
+<!-- PLAN 8 -->
+<div class="todo-card" data-category="ai" data-priority="critical">
+  <div class="card-header">
+    <span class="card-emoji">📊</span>
+    <div>
+      <div class="card-title">Plan 8: AI Cost &amp; Token Tracking</div>
+      <div class="card-subtitle">ideated by deepseek v4 pro · 7 files · medium complexity</div>
+    </div>
+  </div>
+  <div class="card-badges">
+    <span class="badge badge-critical">AI / LLM</span>
+    <span class="badge badge-critical">Critical</span>
+  </div>
+  <div class="card-body">
+    <div class="card-goal">Track token usage per request, session, provider, lifetime. Show cost dashboard.</div>
+    <div>Usage event type defined but never emitted. Zero visibility into spend across 20+ providers.</div>
+  </div>
+  <div class="card-skills">
+    <span class="skill-tag">@ai-engineer</span>
+    <span class="skill-tag">@llm-ops</span>
+    <span class="skill-tag">@backend-dev-guidelines</span>
+  </div>
+  <details class="card-files">
+    <summary>7 files</summary>
+    <div class="file-list">
+      <div><span class="file-new">+ new</span> lib/ai/pricing.ts, lib/ai/cost.ts</div>
+      <div><span class="file-new">+ new</span> app/api/usage/route.ts, app/api/usage/session/[id]/route.ts</div>
+      <div><span class="file-edit">~ edit</span> lib/db/schema.ts, app/api/ai/chat/route.ts</div>
+      <div><span class="file-edit">~ edit</span> app/dashboard/settings/diagnostics/page.tsx</div>
+    </div>
+  </details>
+  <details class="tasks-summary">
+    <summary>7 tasks</summary>
+    <ul>
+      <li><input type="checkbox"> Capture usage from onFinish callback, persist to sessionMessages</li>
+      <li><input type="checkbox"> Add inputTokens/outputTokens columns to DB schema</li>
+      <li><input type="checkbox"> Create per-model pricing table (20+ providers)</li>
+      <li><input type="checkbox"> Build cost calculator (estimateCost, getSessionCost, getLifetimeCost)</li>
+      <li><input type="checkbox"> Add usage API endpoints (lifetime, per-session)</li>
+      <li><input type="checkbox"> Build cost dashboard in Diagnostics page</li>
+      <li><input type="checkbox"> Verify token counts and costs match provider dashboards</li>
+    </ul>
+  </details>
+</div>
+
+<!-- PLAN 9 -->
+<div class="todo-card" data-category="ai" data-priority="critical">
+  <div class="card-header">
+    <span class="card-emoji">🪟</span>
+    <div>
+      <div class="card-title">Plan 9: Context Window Management</div>
+      <div class="card-subtitle">ideated by deepseek v4 pro · 6 files · high complexity</div>
+    </div>
+  </div>
+  <div class="card-badges">
+    <span class="badge badge-critical">AI / LLM</span>
+    <span class="badge badge-critical">Critical</span>
+  </div>
+  <div class="card-body">
+    <div class="card-goal">Token-aware context: counting, per-model limits, auto-summarization, UI progress bar.</div>
+    <div>Zero token counting. 500-msg sessions send full history — silently fail at context limits.</div>
+  </div>
+  <div class="card-skills">
+    <span class="skill-tag">@ai-engineer</span>
+    <span class="skill-tag">@llm-ops</span>
+    <span class="skill-tag">@performance-engineer</span>
+  </div>
+  <details class="card-files">
+    <summary>6 files</summary>
+    <div class="file-list">
+      <div><span class="file-new">+ new</span> lib/ai/tokens.ts, lib/ai/summarizer.ts</div>
+      <div><span class="file-edit">~ edit</span> lib/ai/models.ts, app/api/ai/chat/route.ts</div>
+      <div><span class="file-edit">~ edit</span> components/chat/chat-interface.tsx, lib/chat/slash-commands.ts</div>
+    </div>
+  </details>
+  <details class="tasks-summary">
+    <summary>8 tasks</summary>
+    <ul>
+      <li><input type="checkbox"> Install tiktoken or use AI SDK countTokens()</li>
+      <li><input type="checkbox"> Build token counter with model-aware context limits</li>
+      <li><input type="checkbox"> Add contextWindow field to all model entries</li>
+      <li><input type="checkbox"> Create auto-summarizer (trigger at 80% context usage)</li>
+      <li><input type="checkbox"> Integrate into chat route: count before building messages</li>
+      <li><input type="checkbox"> Add context progress bar to chat UI (green→yellow→red)</li>
+      <li><input type="checkbox"> Implement /compact slash command server-side</li>
+      <li><input type="checkbox"> Verify: long conversation triggers summarization, bar updates</li>
+    </ul>
+  </details>
+</div>
+
+<!-- PLAN 10 -->
+<div class="todo-card" data-category="ai" data-priority="critical">
+  <div class="card-header">
+    <span class="card-emoji">🔄</span>
+    <div>
+      <div class="card-title">Plan 10: AI Provider Fallback &amp; Retry Logic</div>
+      <div class="card-subtitle">ideated by deepseek v4 pro · 7 files · medium complexity</div>
+    </div>
+  </div>
+  <div class="card-badges">
+    <span class="badge badge-critical">AI / LLM</span>
+    <span class="badge badge-critical">Critical</span>
+  </div>
+  <div class="card-body">
+    <div class="card-goal">Auto failover, exponential backoff retry, and circuit breaker for AI providers.</div>
+    <div>Single active provider — any outage breaks all chat. No retry for transient failures.</div>
+  </div>
+  <div class="card-skills">
+    <span class="skill-tag">@ai-engineer</span>
+    <span class="skill-tag">@backend-dev-guidelines</span>
+    <span class="skill-tag">@nodejs-best-practices</span>
+  </div>
+  <details class="card-files">
+    <summary>7 files</summary>
+    <div class="file-list">
+      <div><span class="file-new">+ new</span> lib/ai/fallback.ts, lib/ai/retry.ts, lib/ai/circuit-breaker.ts</div>
+      <div><span class="file-edit">~ edit</span> types/settings.ts, app/api/ai/chat/route.ts</div>
+      <div><span class="file-edit">~ edit</span> app/dashboard/settings/integrations/page.tsx</div>
+      <div><span class="file-edit">~ edit</span> components/chat/chat-interface.tsx</div>
+    </div>
+  </details>
+  <details class="tasks-summary">
+    <summary>7 tasks</summary>
+    <ul>
+      <li><input type="checkbox"> Add ranked fallback provider list to settings</li>
+      <li><input type="checkbox"> Build fallback wrapper (try primary, cascade on failure)</li>
+      <li><input type="checkbox"> Implement retry with jittered exponential backoff (1s/2s/4s)</li>
+      <li><input type="checkbox"> Build circuit breaker (open after 3 failures, 60s cooldown)</li>
+      <li><input type="checkbox"> Integrate into chat route, return X-Provider-Used header</li>
+      <li><input type="checkbox"> Add fallback indicator to chat UI + toast on failover</li>
+      <li><input type="checkbox"> Verify: trigger outages, confirm seamless fallback</li>
+    </ul>
+  </details>
+</div>
+
+<!-- PLAN 11 -->
+<div class="todo-card" data-category="ai" data-priority="high">
+  <div class="card-header">
+    <span class="card-emoji">🎛️</span>
+    <div>
+      <div class="card-title">Plan 11: Model Parameter Controls — Temperature, Top P, Max Tokens</div>
+      <div class="card-subtitle">ideated by deepseek v4 pro · 8 files · medium complexity</div>
+    </div>
+  </div>
+  <div class="card-badges">
+    <span class="badge badge-category">AI / LLM</span>
+    <span class="badge badge-high">High</span>
+  </div>
+  <div class="card-body">
+    <div class="card-goal">Expose temperature, top_p, max_tokens, frequency_penalty, seed, stop sequences in chat UI.</div>
+    <div>Only reasoning effort is configurable. No temperature, top_p, or sampling controls.</div>
+  </div>
+  <div class="card-skills">
+    <span class="skill-tag">@ai-engineer</span>
+    <span class="skill-tag">@frontend-developer</span>
+    <span class="skill-tag">@typescript-expert</span>
+  </div>
+  <details class="card-files">
+    <summary>8 files</summary>
+    <div class="file-list">
+      <div><span class="file-new">+ new</span> components/chat/param-controls.tsx</div>
+      <div><span class="file-edit">~ edit</span> types/settings.ts, lib/stores/use-app-store.ts</div>
+      <div><span class="file-edit">~ edit</span> components/chat/model-selector.tsx, app/api/ai/chat/route.ts</div>
+      <div><span class="file-edit">~ edit</span> lib/ai/runner.ts, lib/db/schema.ts, presets/page.tsx</div>
+    </div>
+  </details>
+  <details class="tasks-summary">
+    <summary>7 tasks</summary>
+    <ul>
+      <li><input type="checkbox"> Define GenerationParams type (temperature, topP, maxTokens, etc.)</li>
+      <li><input type="checkbox"> Build param-controls UI (sliders, inputs, collapsible Advanced)</li>
+      <li><input type="checkbox"> Plumb params through chat route → streamText() config</li>
+      <li><input type="checkbox"> Add to agent runner generateText() config</li>
+      <li><input type="checkbox"> Persist per-session in Zustand + session metadata</li>
+      <li><input type="checkbox"> Extend presets to include generation params</li>
+      <li><input type="checkbox"> Verify: temp=0 produces deterministic output, maxTokens=50 truncates</li>
+    </ul>
+  </details>
+</div>
+
+<!-- PLAN 12 -->
+<div class="todo-card" data-category="performance" data-priority="high">
+  <div class="card-header">
+    <span class="card-emoji">⚡</span>
+    <div>
+      <div class="card-title">Plan 12: List Virtualization — Memory Bank, Sessions, Emails &amp; More</div>
+      <div class="card-subtitle">ideated by deepseek v4 pro · 7 files · medium complexity</div>
+    </div>
+  </div>
+  <div class="card-badges">
+    <span class="badge badge-category">Performance</span>
+    <span class="badge badge-high">High</span>
+  </div>
+  <div class="card-body">
+    <div class="card-goal">Add react-virtuoso virtualized rendering to all list-heavy pages for smooth 1000+ item performance.</div>
+    <div>Memory bank, sessions, emails, notes render all items in DOM — lag and memory pressure at scale.</div>
+  </div>
+  <div class="card-skills">
+    <span class="skill-tag">@senior-frontend</span>
+    <span class="skill-tag">@react-best-practices</span>
+    <span class="skill-tag">@performance-engineer</span>
+  </div>
+  <details class="card-files">
+    <summary>7 files</summary>
+    <div class="file-list">
+      <div><span class="file-edit">~ edit</span> app/dashboard/memory-bank/page.tsx (VirtuosoGrid)</div>
+      <div><span class="file-edit">~ edit</span> app/dashboard/sessions/, email/, notes/page.tsx (Virtuoso)</div>
+      <div><span class="file-edit">~ edit</span> app/dashboard/skills/, images/, tasks/page.tsx (Virtuoso)</div>
+    </div>
+  </details>
+  <details class="tasks-summary">
+    <summary>7 tasks</summary>
+    <ul>
+      <li><input type="checkbox"> Install react-virtuoso, profile baseline render time</li>
+      <li><input type="checkbox"> Virtualize Memory Bank with VirtuosoGrid (fixed card height)</li>
+      <li><input type="checkbox"> Virtualize Sessions with fixedItemHeight + endReached infinite scroll</li>
+      <li><input type="checkbox"> Virtualize Emails with dynamic itemContent + pagination</li>
+      <li><input type="checkbox"> Virtualize Notes sidebar with fixed height items</li>
+      <li><input type="checkbox"> Virtualize Skills, Images, Tasks pages</li>
+      <li><input type="checkbox"> Verify: load 1000+ items, confirm smooth scrolling</li>
+    </ul>
+  </details>
+</div>
+
+<!-- PLAN 13 -->
+<div class="todo-card" data-category="performance" data-priority="high">
+  <div class="card-header">
+    <span class="card-emoji">📦</span>
+    <div>
+      <div class="card-title">Plan 13: Code Splitting &amp; Lazy Loading</div>
+      <div class="card-subtitle">ideated by deepseek v4 pro · 14 files · medium complexity</div>
+    </div>
+  </div>
+  <div class="card-badges">
+    <span class="badge badge-category">Performance</span>
+    <span class="badge badge-high">High</span>
+  </div>
+  <div class="card-body">
+    <div class="card-goal">Reduce initial bundle by lazy-loading Monaco, GSAP, d3, highlight.js, ical.js, pdf-parse.</div>
+    <div>All heavy deps load in initial bundle: Monaco ~5MB, d3 ~500KB, GSAP ~100KB — no code splitting.</div>
+  </div>
+  <div class="card-skills">
+    <span class="skill-tag">@senior-frontend</span>
+    <span class="skill-tag">@react-best-practices</span>
+    <span class="skill-tag">@performance-engineer</span>
+  </div>
+  <details class="card-files">
+    <summary>14 files</summary>
+    <div class="file-list">
+      <div><span class="file-new">+ new</span> components/ui/skeleton.tsx, components/ui/editor-skeleton.tsx</div>
+      <div><span class="file-edit">~ edit</span> components/ide/code-editor.tsx (dynamic import Monaco)</div>
+      <div><span class="file-edit">~ edit</span> components/memory-bank/memory-graph.tsx, notes/notes-graph.tsx (lazy d3)</div>
+      <div><span class="file-edit">~ edit</span> lib/hooks/use-gsap-entrance.ts (dynamic import GSAP)</div>
+      <div><span class="file-edit">~ edit</span> app/dashboard/ide/, console/, research/, calendar/ (dynamic pages)</div>
+      <div><span class="file-edit">~ edit</span> components/chat/claude-code-hero.tsx, images/page.tsx (next/image)</div>
+    </div>
+  </details>
+  <details class="tasks-summary">
+    <summary>8 tasks</summary>
+    <ul>
+      <li><input type="checkbox"> Profile current bundle with Next.js bundle analyzer</li>
+      <li><input type="checkbox"> Lazy-load Monaco editor with EditorSkeleton placeholder</li>
+      <li><input type="checkbox"> Lazy-load d3 visualizations (memory graph, notes graph, wiki)</li>
+      <li><input type="checkbox"> Lazy-load GSAP with CSS animation fallback</li>
+      <li><input type="checkbox"> Dynamic-import heavy pages (IDE, Console, Research, Calendar)</li>
+      <li><input type="checkbox"> Add Suspense + skeleton boundaries for all lazy pages</li>
+      <li><input type="checkbox"> Replace all raw &lt;img&gt; with next/image throughout codebase</li>
+      <li><input type="checkbox"> Verify: bundle size reduction, lazy pages load correctly</li>
+    </ul>
+  </details>
+</div>
+
+<!-- PLAN 14 -->
+<div class="todo-card" data-category="ux" data-priority="high">
+  <div class="card-header">
+    <span class="card-emoji">♿</span>
+    <div>
+      <div class="card-title">Plan 14: Accessibility Audit &amp; Remediation</div>
+      <div class="card-subtitle">ideated by deepseek v4 pro · 12+ files · medium complexity</div>
+    </div>
+  </div>
+  <div class="card-badges">
+    <span class="badge badge-category">UX / Accessibility</span>
+    <span class="badge badge-high">High</span>
+  </div>
+  <div class="card-body">
+    <div class="card-goal">WCAG 2.1 AA: skip link, form labels, focus management, alt text, ARIA live regions, 44px touch targets.</div>
+    <div>No skip-to-content, zero &lt;label&gt; associations, poor focus indicators, touch targets 32-36px.</div>
+  </div>
+  <div class="card-skills">
+    <span class="skill-tag">@senior-frontend</span>
+    <span class="skill-tag">@frontend-dev-guidelines</span>
+    <span class="skill-tag">@react-best-practices</span>
+    <span class="skill-tag">@ui-ux-designer</span>
+  </div>
+  <details class="card-files">
+    <summary>12+ files</summary>
+    <div class="file-list">
+      <div><span class="file-new">+ new</span> components/ui/label.tsx</div>
+      <div><span class="file-edit">~ edit</span> components/layout/dashboard-shell, sidebar, mobile-nav, topbar</div>
+      <div><span class="file-edit">~ edit</span> components/ui/button.tsx (bump sizes to 44px)</div>
+      <div><span class="file-edit">~ edit</span> app/globals.css, app/layout.tsx</div>
+      <div><span class="file-edit">~ edit</span> components/chat/chat-interface.tsx, components/ui/toaster.tsx</div>
+      <div><span class="file-edit">~ audit</span> 20+ settings form pages (add Label + htmlFor)</div>
+    </div>
+  </details>
+  <details class="tasks-summary">
+    <summary>10 tasks</summary>
+    <ul>
+      <li><input type="checkbox"> Add skip-to-content link + #main-content anchor</li>
+      <li><input type="checkbox"> Create Label component, audit 20+ forms for htmlFor associations</li>
+      <li><input type="checkbox"> Expand focus-visible rings to all interactive elements</li>
+      <li><input type="checkbox"> Add descriptive alt text to all images</li>
+      <li><input type="checkbox"> Add aria-live regions (chat, errors, toasts, streaming status)</li>
+      <li><input type="checkbox"> Bump touch targets: nav links, hamburger, buttons → 44px min</li>
+      <li><input type="checkbox"> Add viewport metadata export to root layout</li>
+      <li><input type="checkbox"> Configure eslint-plugin-jsx-a11y with strict rules (Plan 5)</li>
+      <li><input type="checkbox"> Keyboard navigation audit: all pages, modals, dialogs</li>
+      <li><input type="checkbox"> Verify: Lighthouse a11y score ≥ 90, lint passes a11y rules</li>
+    </ul>
+  </details>
+</div>
+
+<!-- PLAN 15 -->
+<div class="todo-card" data-category="ux" data-priority="medium">
+  <div class="card-header">
+    <span class="card-emoji">📴</span>
+    <div>
+      <div class="card-title">Plan 15: True Offline Support — Service Worker Caching</div>
+      <div class="card-subtitle">ideated by deepseek v4 pro · 6 files · medium complexity</div>
+    </div>
+  </div>
+  <div class="card-badges">
+    <span class="badge badge-category">UX / PWA</span>
+    <span class="badge badge-medium">Medium</span>
+  </div>
+  <div class="card-body">
+    <div class="card-goal">PWA with CacheFirst for static assets, NetworkFirst for API, offline fallback page, install prompt.</div>
+    <div>Service worker exists but fetch listener is a no-op. Zero caching. Network-dependent.</div>
+  </div>
+  <div class="card-skills">
+    <span class="skill-tag">@senior-frontend</span>
+    <span class="skill-tag">@frontend-dev-guidelines</span>
+    <span class="skill-tag">@performance-engineer</span>
+  </div>
+  <details class="card-files">
+    <summary>6 files</summary>
+    <div class="file-list">
+      <div><span class="file-edit">~ edit</span> public/sw.js (caching strategies + versioning)</div>
+      <div><span class="file-new">+ new</span> app/dashboard/offline/page.tsx, lib/hooks/use-online-status.ts</div>
+      <div><span class="file-edit">~ edit</span> components/layout/topbar.tsx, pwa-register.tsx, chat/chat-input.tsx</div>
+    </div>
+  </details>
+  <details class="tasks-summary">
+    <summary>6 tasks</summary>
+    <ul>
+      <li><input type="checkbox"> Implement CacheFirst for static assets, SWR for nav, NetworkFirst for API</li>
+      <li><input type="checkbox"> Add cache versioning (CACHE_NAME with deploy bump) + old cache cleanup</li>
+      <li><input type="checkbox"> Create offline fallback page with Matrix branding</li>
+      <li><input type="checkbox"> Add online/offline detection hook + topbar indicator</li>
+      <li><input type="checkbox"> Explore IndexedDB client fallback with Dexie.js (stretch)</li>
+      <li><input type="checkbox"> Add beforeinstallprompt handler for custom install UX</li>
+    </ul>
+  </details>
+</div>
+
+<!-- PLAN 16 -->
+<div class="todo-card" data-category="feature" data-priority="medium">
+  <div class="card-header">
+    <span class="card-emoji">🌳</span>
+    <div>
+      <div class="card-title">Plan 16: Conversation Branching &amp; Message Regeneration</div>
+      <div class="card-subtitle">ideated by deepseek v4 pro · 5 files · medium complexity</div>
+    </div>
+  </div>
+  <div class="card-badges">
+    <span class="badge badge-category">Feature</span>
+    <span class="badge badge-medium">Medium</span>
+  </div>
+  <div class="card-body">
+    <div class="card-goal">Regenerate responses, fork conversations, compare variants, branch tree visualization.</div>
+    <div>Sessions are strictly linear — no regenerate, no forking, no variant comparison.</div>
+  </div>
+  <div class="card-skills">
+    <span class="skill-tag">@ai-engineer</span>
+    <span class="skill-tag">@frontend-developer</span>
+    <span class="skill-tag">@backend-dev-guidelines</span>
+  </div>
+  <details class="card-files">
+    <summary>5 files</summary>
+    <div class="file-list">
+      <div><span class="file-edit">~ edit</span> lib/db/schema.ts (parentSessionId, forkedFromMessageId)</div>
+      <div><span class="file-edit">~ edit</span> components/chat/message-bubble.tsx (Regenerate button)</div>
+      <div><span class="file-edit">~ edit</span> components/chat/chat-interface.tsx (variant picker + fork)</div>
+      <div><span class="file-edit">~ edit</span> app/api/sessions/route.ts (forking support)</div>
+      <div><span class="file-edit">~ edit</span> app/dashboard/sessions/page.tsx (duplicate + tree view)</div>
+    </div>
+  </details>
+  <details class="tasks-summary">
+    <summary>6 tasks</summary>
+    <ul>
+      <li><input type="checkbox"> Add parentSessionId + forkedFromMessageId to sessions table</li>
+      <li><input type="checkbox"> Add Regenerate button on hover over assistant messages</li>
+      <li><input type="checkbox"> Build variant picker (1/3 dots) for multiple responses</li>
+      <li><input type="checkbox"> Add "Fork from here" action on any message</li>
+      <li><input type="checkbox"> Add session duplication + branch tree toggle on sessions page</li>
+      <li><input type="checkbox"> Verify: fork, regenerate, compare variants, tree renders</li>
+    </ul>
+  </details>
+</div>
+
+<!-- PLAN 17 -->
+<div class="todo-card" data-category="feature" data-priority="medium">
+  <div class="card-header">
+    <span class="card-emoji">🔗</span>
+    <div>
+      <div class="card-title">Plan 17: Obsidian Vault Two-Way Sync</div>
+      <div class="card-subtitle">ideated by deepseek v4 pro · 6 files · medium complexity</div>
+    </div>
+  </div>
+  <div class="card-badges">
+    <span class="badge badge-category">Feature</span>
+    <span class="badge badge-medium">Medium</span>
+  </div>
+  <div class="card-body">
+    <div class="card-goal">Two-way sync Dashboard Notes ↔ local Obsidian vault with chokidar file watcher.</div>
+    <div>Notes support [[wikilinks]] but no sync with actual Obsidian vault. Manual copy required.</div>
+  </div>
+  <div class="card-skills">
+    <span class="skill-tag">@backend-dev-guidelines</span>
+    <span class="skill-tag">@nodejs-best-practices</span>
+    <span class="skill-tag">@typescript-expert</span>
+  </div>
+  <details class="card-files">
+    <summary>6 files</summary>
+    <div class="file-list">
+      <div><span class="file-new">+ new</span> lib/services/obsidian-sync.ts</div>
+      <div><span class="file-new">+ new</span> app/api/notes/sync/route.ts, app/api/notes/sync/status/route.ts</div>
+      <div><span class="file-edit">~ edit</span> types/settings.ts, app/api/notes/route.ts</div>
+      <div><span class="file-edit">~ edit</span> app/dashboard/settings/integrations/page.tsx</div>
+    </div>
+  </details>
+  <details class="tasks-summary">
+    <summary>6 tasks</summary>
+    <ul>
+      <li><input type="checkbox"> Add vault path + sync settings (enabled, bidirectional/import/export)</li>
+      <li><input type="checkbox"> Install chokidar, create obsidian-sync service (watch + read/write)</li>
+      <li><input type="checkbox"> Implement syncToVault (Dashboard → .md file) and syncFromVault (.md → Dashboard)</li>
+      <li><input type="checkbox"> Add full reconciliation with conflict detection (last-write-wins)</li>
+      <li><input type="checkbox"> Add sync API endpoints + UI (picker, toggle, Sync Now button, log)</li>
+      <li><input type="checkbox"> Handle edge cases: invalid filename chars, folders, large vaults</li>
+    </ul>
+  </details>
+</div>
+
+<!-- PLAN 18 -->
+<div class="todo-card" data-category="onboarding" data-priority="medium">
+  <div class="card-header">
+    <span class="card-emoji">🪜</span>
+    <div>
+      <div class="card-title">Plan 18: Onboarding Walkthrough &amp; Feature Discovery</div>
+      <div class="card-subtitle">ideated by deepseek v4 pro · 12 files · medium complexity</div>
+    </div>
+  </div>
+  <div class="card-badges">
+    <span class="badge badge-category">Onboarding</span>
+    <span class="badge badge-medium">Medium</span>
+  </div>
+  <div class="card-body">
+    <div class="card-goal">5-step onboarding wizard, feature discovery drawer, contextual tooltips, CMD+K feature search.</div>
+    <div>17 pages + 20+ settings sub-pages with zero onboarding. Steep learning curve.</div>
+  </div>
+  <div class="card-skills">
+    <span class="skill-tag">@senior-frontend</span>
+    <span class="skill-tag">@frontend-dev-guidelines</span>
+    <span class="skill-tag">@ui-ux-designer</span>
+    <span class="skill-tag">@ai-product</span>
+  </div>
+  <details class="card-files">
+    <summary>12 files</summary>
+    <div class="file-list">
+      <div><span class="file-new">+ new</span> components/layout/onboarding-wizard.tsx, whats-new.tsx, contextual-tooltip.tsx</div>
+      <div><span class="file-edit">~ edit</span> types/settings.ts, components/layout/dashboard-shell, sidebar, topbar</div>
+      <div><span class="file-edit">~ edit</span> components/layout/command-palette.tsx</div>
+      <div><span class="file-edit">~ edit</span> app/dashboard/page.tsx, chat/page.tsx, memory-bank/page.tsx, ide/page.tsx</div>
+    </div>
+  </details>
+  <details class="tasks-summary">
+    <summary>6 tasks</summary>
+    <ul>
+      <li><input type="checkbox"> Build 5-step onboarding wizard (Welcome → Provider → Chat → Tour → Settings)</li>
+      <li><input type="checkbox"> Add onboarding state to settings (completed flag, dismissed features)</li>
+      <li><input type="checkbox"> Create What's New drawer with feature catalog + "Try it" links</li>
+      <li><input type="checkbox"> Add contextual pro-tip tooltips on key pages (dismissible)</li>
+      <li><input type="checkbox"> Index all features in CMD+K command palette search</li>
+      <li><input type="checkbox"> Verify: reset settings, walk through wizard, tooltips appear/dismiss</li>
+    </ul>
+  </details>
+</div>
+
+</div>
+
+<script type="text/markdown" id="raw-plans">
+
 # 📋 Matrix Dashboard & Builder — Implementation Plans
 
 ## 🔧 Plan 1: Custom Zip Filename for Matrix Builder Downloads
@@ -12,26 +952,10 @@ Replace the hardcoded `project.zip` download filename with a sanitized slug deri
 Extract the artifact title (already parsed from `<boltArtifact title="...">` in `message-parser.ts:338`), slugify it, and pass it through to the `downloadProject()` function.
 
 ### Tasks
-
-- [ ] **Create slugify utility** — new file `bolt.new-custom/app/utils/slug.ts`
-  - Accept a string (e.g., `"The Greater Flaw — Band Website"`) and return a URL/filesystem-safe slug
-  - Slug rules: lowercase, strip emoji, replace `&` → `and`, replace `—`/`-`/spaces → hyphens, collapse multiple hyphens, strip non-alphanumeric chars except hyphens
-  - Edge cases: `"Ember&Bean"` → `"ember-and-bean"`, accented chars → ASCII equivalents, empty/`undefined` → `"project"`, titles > 64 chars truncated at word boundary
-  - Export: `export function slugify(title: string): string`
-
-- [ ] **Update `downloadProject()` signature** — `bolt.new-custom/app/lib/download.ts`
-  - Change `downloadProject(files: FileMap)` → `downloadProject(files: FileMap, title?: string)`
-  - At line 37: replace `anchor.download = 'project.zip'` with `anchor.download = \`${slugify(title ?? "project")}.zip\``
-  - Import `slugify` from `~/utils/slug`
-
-- [ ] **Plumb artifact title from workbench store** — `bolt.new-custom/app/components/workbench/Workbench.client.tsx`
-  - At line 143 (where `downloadProject(files)` is called), read `firstArtifact?.title` from `workbenchStore.artifacts`
-  - Pass title as second argument: `downloadProject(files, artifactTitle)`
-
-- [ ] **Verification**
-  - Build a test project in Matrix Builder with a known brand name (e.g., "Artisan Coffee — Foundation")
-  - Click download → verify zip is named `artisan-coffee-foundation.zip` not `project.zip`
-  - Test edge cases: emoji in title, special chars, very long titles, empty title
+- [ ] **Create slugify utility** — new file `bolt.new-custom/app/utils/slug.ts` — slugify with edge cases (emoji, ampersand, em-dash, accented chars, truncation > 64 chars)
+- [ ] **Update `downloadProject()` signature** — `bolt.new-custom/app/lib/download.ts` — change to `downloadProject(files: FileMap, title?: string)`, replace `project.zip` with slugified name
+- [ ] **Plumb artifact title from workbench store** — `bolt.new-custom/app/components/workbench/Workbench.client.tsx` — read `firstArtifact?.title`, pass to download
+- [ ] **Verification** — test with emoji, special chars, long titles, empty title
 
 ### Files Touched
 | File | Action |
@@ -39,9 +963,6 @@ Extract the artifact title (already parsed from `<boltArtifact title="...">` in 
 | `bolt.new-custom/app/utils/slug.ts` | **NEW** — slugify utility |
 | `bolt.new-custom/app/lib/download.ts` | Edit — accept title, use slugified name |
 | `bolt.new-custom/app/components/workbench/Workbench.client.tsx` | Edit — read artifact title, pass to download |
-
-### 🔗 Dependencies
-- `fflate` (already in `bolt.new-custom/package.json`)
 
 ### 🧠 Skills
 `@senior-frontend` `@frontend-dev-guidelines` `@brainstorming` `@senior-architect`
@@ -57,65 +978,29 @@ Create a complete brand identity kit covering every asset type (logos, icons, fa
 The brand experience is fragmented — inline SVG "M" logo only, missing PWA icons (`icon-192.png`/`icon-512.png` referenced in manifest but don't exist), no favicon link tags, different logo on landing page, barebones README.
 
 ### Solution Overview
-Claude Design generates the full brand kit. Claude Code then applies it across all repos and files.
+Claude Design generates the full brand kit. Claude Code then applies it across all repos and files in 4 phases.
 
 ### Tasks
 
 #### 🎨 Phase 1: Claude Design — Generate Brand Kit
+- [ ] **Invoke Claude Design** for 3 sub-brands: ZB Automations (parent), Matrix Dashboard (emerald-sky, glassmorphism), Matrix Builder (creative, approachable)
+- [ ] **Deliverables**: SVG logos (full/mark/wordmark), PNG icons (16-512px), favicon package, social cards, color palette, typography system, brand guidelines PDF
 
-- [ ] **Invoke Claude Design** via `/design-sync` or direct prompt with these specs:
-  - **ZB Automations** (parent): Modern automation/AI tools company — sleek, technical
-  - **Matrix Dashboard** (sub-brand): Local-first AI command center — dark theme, emerald-sky gradient (`#10b981` → `#0ea5e9`), monospace, glassmorphism
-  - **Matrix Builder** (sub-brand): Conversational website/app builder — AI-powered, creative, approachable, clean landing page
-- [ ] **Deliverables from Claude Design**:
-  - SVG logos: full, mark-only, wordmark — for all 3 brands
-  - PNG icons: 16x16, 32x32, 180x180 (Apple touch), 192x192 (PWA), 512x512 (PWA)
-  - Favicon package: `favicon.ico` (multi-size), `favicon-16x16.png`, `favicon-32x32.png`, `apple-touch-icon.png`, `android-chrome-192x192.png`, `android-chrome-512x512.png`
-  - Social cards: Open Graph `og-image.png` (1200x630) for all 3 brands
-  - PWA manifest icons: `icon-192.png` (maskable), `icon-512.png` (maskable)
-  - Brand color palette: Hex codes, CSS variable version, Tailwind v4 config, UnoCSS config (for Matrix Builder)
-  - Typography system: Heading font, body font, monospace font with fallback stacks
-  - Brand guidelines PDF: Logo usage, spacing, minimum sizes, do's/don'ts
+#### 📦 Phase 2: Apply to Matrix Dashboard
+- [ ] **Public assets** — `icon.svg`, `icon-192.png`, `icon-512.png`, `favicon.ico`, `apple-touch-icon.png`, `og-image.png`
+- [ ] **HTML head** — `app/layout.tsx`: favicon, apple-touch-icon, og:image links, updated title
+- [ ] **PWA manifest** — verify icon paths, update brand names and colors
+- [ ] **Logo component** — replace inline "M" SVG with new brand mark
+- [ ] **Sidebar/Topbar** — update brand text everywhere
+- [ ] **Documentation** — README, CHANGELOG, landing pages
 
-#### 📦 Phase 2: Claude Code — Apply Brand Kit to Matrix Dashboard (`matrix-dash`)
+#### 📦 Phase 3: Apply to Matrix Builder
+- [ ] **Favicons + HTML** — replace favicons, update title/meta in entry.server.tsx and root.tsx
+- [ ] **Landing page** — replace logo in pre-chat landing, apply brand colors to uno.config.ts
+- [ ] **PWA + Workbench** — update manifest icons, brand the workbench header
 
-- [ ] **Public assets** — place all generated files in `public/`:
-  - `icon.svg`, `icon-192.png`, `icon-512.png`, `favicon.ico`, `apple-touch-icon.png`, `og-image.png`
-- [ ] **HTML head** — `app/layout.tsx`:
-  - Add `<link rel="icon">` (favicon), `<link rel="apple-touch-icon">`, `<meta property="og:image">`
-  - Update `<title>` from `"Matrix Dashboard"` to include ZB Automations parent branding
-- [ ] **PWA manifest** — `app/manifest.ts`:
-  - Verify all icon paths resolve (currently `icon-192.png` and `icon-512.png` don't exist)
-  - Update `name` and `short_name` with new branding
-  - Verify `background_color` and `theme_color` match brand palette
-- [ ] **Logo component** — `components/layout/logo.tsx`:
-  - Replace inline SVG "M" letterform with new Matrix Dashboard brand SVG
-- [ ] **Sidebar brand text** — `components/layout/sidebar.tsx:39`:
-  - Update brand display text
-- [ ] **Topbar fallback** — `components/layout/topbar.tsx:33`:
-  - Update fallback brand text
-- [ ] **Landing pages** — `public/index.html` and `docs/index.html`:
-  - Update `<title>`, meta description, add favicon links
-- [ ] **Documentation**:
-  - `README.md` — add brand header section with logo, update tech badges
-  - `CHANGELOG.md` — add brand section to header
-
-#### 📦 Phase 3: Claude Code — Apply Brand Kit to Matrix Builder (`bolt.new-custom`)
-
-- [ ] **Favicons** — replace `public/favicon.ico` and all favicon variants
-- [ ] **HTML head** — update `<title>` and meta tags in `app/entry.server.tsx` and `root.tsx`
-- [ ] **Landing page header** — replace logo in pre-chat landing page
-- [ ] **PWA manifest** — update icons and brand name
-- [ ] **Brand colors** — apply to `uno.config.ts` (Matrix Builder uses UnoCSS, not Tailwind)
-- [ ] **Workbench header** — brand the header where the download button lives
-- [ ] **Documentation** — update `README.md` and `CHANGELOG.md`
-
-#### 📦 Phase 4: Claude Code — Apply Brand Kit to ZB Automations Landing
-
-- [ ] **`deploy/landing/index.html`**:
-  - Replace 3-dot logo with new ZB Automations logo
-  - Update `<title>`, all meta tags, Open Graph tags
-  - Apply brand colors and typography from the brand kit
+#### 📦 Phase 4: Apply to ZB Automations Landing
+- [ ] **Landing page** — replace logo, update title/meta/OG tags, apply brand colors and typography
 
 ### Files Touched
 30+ files across 2 repos (`matrix-dash` + `bolt.new-custom`) + landing page.
@@ -128,123 +1013,594 @@ Claude Design generates the full brand kit. Claude Code then applies it across a
 ## 🖌️ Plan 3: Full UI Redesign — Matrix Dashboard → Matrix Builder Aesthetic
 
 ### Goal
-Redesign the entire Matrix Dashboard UI to visually align with the Matrix Builder's main landing page (the pre-chat screen shown before the first message). The two products should feel like a cohesive product family.
+Redesign the entire Matrix Dashboard UI to visually align with the Matrix Builder's main landing page. The two products should feel like a cohesive product family.
 
 ### Problem
-Matrix Dashboard and Matrix Builder currently look like completely different products — Dashboard has a terminal/dark aesthetic with emerald-sky gradients and card layouts, while Builder's landing page has a cleaner, more modern, prompt-centric design. They need a unified design language.
-
-### Reference
-Screenshot at `/Users/zach/Desktop/matrix-dash/builder-main-page-02/07/26.png` — use this as the primary visual reference.
+Matrix Dashboard and Matrix Builder currently look like completely different products — Dashboard has a terminal/dark aesthetic with emerald-sky gradients and card layouts, while Builder's landing page has a cleaner, more modern, prompt-centric design.
 
 ### Solution Overview
-Claude Design produces the complete design system. Claude Code implements it progressively across all dashboard components and pages.
+Claude Design produces the complete design system. Claude Code implements it progressively across 6 tiers: Theme Foundation → Layout Shell → UI Primitives → Key Pages → Consistency Sweep → Verification.
 
 ### Tasks
 
-#### 🎨 Phase 1: Claude Design — Design the New Dashboard UI
+#### 🎨 Phase 1: Claude Design
+- [ ] Design color system (CSS vars + Tailwind v4), typography, layout conventions, sidebar/topbar specs, 11 component restyles, page mockups
 
-- [ ] **Invoke Claude Design** via `/design-sync` or direct prompt with these specs:
-  - **Reference**: Screenshot at `/Users/zach/Desktop/matrix-dash/builder-main-page-02/07/26.png`
-  - **What Matrix Dashboard is**: A local-first AI command center with ~17 dashboard pages + 20+ settings sub-pages. Sidebar + topbar + content layout. Built with Next.js 15, React 19, Tailwind CSS v4.
-- [ ] **Deliverables from Claude Design**:
-  - **Color system**: Extract exact palette from builder landing page (bg, surface, accent, text hierarchy, borders). Produce CSS variables + Tailwind v4 config overrides. Dark and light variants.
-  - **Typography**: Match builder font choices (headings, body, monospace) with fallback stacks. Produce Tailwind font config.
-  - **Layout conventions**: Card styles, spacing rhythm (4px base), border radius scale, shadow language, container max-widths.
-  - **Sidebar design**: Colors, typography, icon style (Lucide), active state indicators, collapse behavior — matched to builder nav aesthetic.
-  - **Topbar design**: Breadcrumbs, search, notification bell, theme toggle — matched to builder header style.
-  - **Component library**: Full restyle spec for buttons (primary/secondary/ghost/destructive), inputs, cards, tabs, dialogs, toasts, badges, toggles, dropdown menus, command palette — all matching builder's design language.
-  - **Page mockups**: Dashboard Overview (homepage), Chat interface, Settings — as visual reference for implementation.
-  - **Typography scale**: Size, weight, line-height specs for each heading/body level.
-
-#### 📦 Phase 2: Claude Code — Implement the Redesign (Progressive Rollout)
-
-##### 🏗️ Tier 1: Theme Foundation (cascades everywhere)
-
-- [ ] **`lib/themes.ts`** — add new builder-aligned theme entry (or update the default/primary theme)
-  - Map all color tokens: `--background`, `--foreground`, `--card`, `--card-foreground`, `--primary`, `--primary-foreground`, `--secondary`, `--muted`, `--accent`, `--border`, `--ring`, `--destructive`, `--success`, `--warning`
-  - Define both dark and light variants
-- [ ] **`app/globals.css`** — update CSS variables to match Claude Design output
-  - Ensure `@theme` blocks in Tailwind v4 style are consistent
-  - Add any new utility classes needed
-- [ ] **Tailwind v4 config** — if `postcss.config.mjs` or any tailwind config needs updating for brand colors/typography
-- [ ] **Verify `next-themes` integration** — both `dark` and `light` class toggles work with new palette
-
-##### 🏗️ Tier 2: Layout Shell (affects every page)
-
-- [ ] **`components/layout/sidebar.tsx`** — full redesign:
-  - Background, text colors, active nav item indicator
-  - Logo area with new brand mark
-  - Navigation item spacing, icon sizing, font weights
-  - Collapse/expand states
-  - Bottom section (settings, theme toggle area)
-- [ ] **`components/layout/topbar.tsx`** — full redesign:
-  - Page title/breadcrumb styling
-  - Search bar (command palette trigger)
-  - Notification bell
-  - Theme toggle
-  - Mobile hamburger
-- [ ] **`components/layout/mobile-nav.tsx`** — match builder aesthetic:
-  - Bottom tab bar colors, active indicator
-  - Icon and label styling
-- [ ] **`components/layout/dashboard-shell.tsx`** — if layout structural adjustments are needed
-
-##### 🏗️ Tier 3: UI Primitives (cascades to all components)
-
-- [ ] **`components/ui/button.tsx`** — variants, sizes, hover/focus/active states, loading state
-- [ ] **`components/ui/card.tsx`** — shadows, borders, border-radius, padding, header/footer
-- [ ] **`components/ui/input.tsx`** — input, textarea, focus rings, error states
-- [ ] **`components/ui/tabs.tsx`** — tab indicator, active/inactive states, list overflow
-- [ ] **`components/ui/dialog.tsx`** — backdrop blur, content panel, close button
-- [ ] **`components/ui/toast.tsx`** / `toaster.tsx` — toast appearance, icon, close button
-- [ ] **`components/ui/badge.tsx`** — variants (default, secondary, outline, destructive)
-- [ ] **`components/ui/toggle.tsx`** — on/off states
-- [ ] **`components/ui/dropdown-menu.tsx`** — item spacing, hover states, separators
-- [ ] **`components/ui/select.tsx`** — trigger, content, item styling
-- [ ] **`components/ui/separator.tsx`** — colors, thickness
-
-##### 🏗️ Tier 4: Key Pages (highest traffic)
-
-- [ ] **`app/dashboard/page.tsx`** (Overview) — the homepage:
-  - Grid layout, stat cards, quick actions, recent activity
-  - Match builder's card density and visual hierarchy
-- [ ] **`app/dashboard/chat/page.tsx`** and chat components:
-  - `components/chat/chat-interface.tsx` — message list container
-  - `components/chat/message-bubble.tsx` — user vs assistant styling
-  - `components/chat/chat-input.tsx` — prompt input styling (match builder landing page input!)
-  - `components/chat/artifact.tsx` — artifact cards
-  - `components/chat/thinking-block.tsx` — thinking/chain-of-thought blocks
-  - `components/chat/model-selector.tsx` — provider/model dropdown
-- [ ] **Settings pages** — `app/dashboard/settings/`:
-  - Update settings layout (`layout.tsx`) sidebar styling
-  - Ensure all settings sub-pages inherit new UI primitives
-
-##### 🏗️ Tier 5: Remaining Pages (consistency sweep)
-
-- [ ] **Memory Bank** — `app/dashboard/memory-bank/` + `components/memory-bank/`
-- [ ] **Notes** — `app/dashboard/notes/` + `components/notes/`
-- [ ] **Tasks** — `app/dashboard/tasks/`
-- [ ] **Project Planning** — `app/dashboard/project-planning/` + `components/projects/`
-- [ ] **Calendar** — `app/dashboard/calendar/`
-- [ ] **Email** — `app/dashboard/email/`
-- [ ] **Research** — `app/dashboard/research/`
-- [ ] **Compare** — `app/dashboard/compare/`
-- [ ] **Images** — `app/dashboard/images/`
-- [ ] **Skills** — `app/dashboard/skills/`
-- [ ] **Sessions** — `app/dashboard/sessions/`
-- [ ] **IDE** — `app/dashboard/ide/` + `components/ide/`
-- [ ] **Console** — `app/dashboard/console/` + `components/console/`
-- [ ] **Matrix Builder gate** — `app/dashboard/matrix-builder/` + `components/matrix-builder/`
-
-##### 🔍 Tier 6: Verification
-
-- [ ] **TypeScript** — `pnpm typecheck` must pass with zero errors
-- [ ] **Visual QA** — side-by-side comparison of Dashboard Overview vs Builder landing page reference
-- [ ] **Dark mode** — toggle theme, verify all pages render correctly in both modes
-- [ ] **Mobile** — verify responsive layout, sidebar collapse, mobile nav
-- [ ] **Accessibility** — check color contrast ratios, focus indicators, keyboard navigation
+#### 📦 Phase 2: Implementation (6 Tiers)
+- [ ] **Tier 1: Theme Foundation** — `lib/themes.ts`, `app/globals.css`, Tailwind config
+- [ ] **Tier 2: Layout Shell** — sidebar, topbar, mobile-nav, dashboard-shell
+- [ ] **Tier 3: UI Primitives** — button, card, input, tabs, dialog, toast, badge, toggle, dropdown-menu, select, separator
+- [ ] **Tier 4: Key Pages** — Overview (homepage), Chat (interface + bubbles + input + artifacts), Settings layout
+- [ ] **Tier 5: Consistency Sweep** — Memory Bank, Notes, Tasks, Projects, Calendar, Email, Research, Compare, Images, Skills, Sessions, IDE, Console, Builder gate
+- [ ] **Tier 6: Verification** — TypeScript, visual QA, dark/light mode, mobile, accessibility
 
 ### Files Touched
 40+ files in `matrix-dash` — `app/globals.css`, `lib/themes.ts`, full `components/layout/`, full `components/ui/`, full `components/chat/`, all 17+ dashboard pages.
 
 ### 🧠 Skills
 `@frontend-design` `@senior-frontend` `@antigravity-design-expert` `@senior-architect` `@brainstorming`
+
+
+
+## 🧪 Plan 4: Test Infrastructure — Unit, Integration & E2E Testing (ideated by deepseek v4 pro)
+
+### Goal
+Establish a complete testing foundation: vitest, React Testing Library, API route tests, DB test helpers, component tests, and CI integration.
+
+### Problem
+Zero test infrastructure. 90+ API routes, 30+ components, 19 services — all untested. Any refactor risks regressions.
+
+### Solution Overview
+Install vitest + @testing-library/react. Create test utilities (DB seed helpers, render wrapper). Write initial tests for critical paths: chat streaming, memory pipeline, auth, UI primitives, crypto.
+
+### Tasks
+- [ ] **Install test dependencies** — vitest, @testing-library/react, @testing-library/jest-dom, @vitejs/plugin-react, jsdom
+- [ ] **Configure vitest** — `vitest.config.ts` with jsdom + path aliases
+- [ ] **Create test setup** — `vitest.setup.ts` with jest-dom matchers + DB mocks
+- [ ] **Add test scripts** — `pnpm test`, `pnpm test:watch`, `pnpm test:coverage`
+- [ ] **Build test utilities** — `lib/test-utils.tsx` (render wrapper), `lib/test-db.ts` (in-memory SQLite + seeds)
+- [ ] **Write API tests** — chat route (streaming + errors), memories CRUD, auth/verify, provider registry
+- [ ] **Write component tests** — chat-input, message-bubble, tool-call-block, sidebar, topbar, mobile-nav
+- [ ] **Write lib tests** — crypto (AES round-trip), slug (edge cases), wiki-link parser, daemon, embeddings
+
+### Files Touched
+| File | Action |
+|------|--------|
+| `vitest.config.ts` | **NEW** — vitest config |
+| `vitest.setup.ts` | **NEW** — test setup |
+| `lib/test-utils.tsx` | **NEW** — render helpers |
+| `lib/test-db.ts` | **NEW** — DB seed helpers |
+| `__tests__/api/`, `__tests__/components/`, `__tests__/lib/` | **NEW** — test suites |
+| `package.json` | Edit — test scripts |
+
+### 🧠 Skills
+`@testing-patterns` `@javascript-testing-patterns` `@nodejs-best-practices` `@cc-skill-coding-standards`
+
+
+
+## 🔧 Plan 5: Dev Tooling — ESLint, Prettier, Editor Config & Pre-commit Hooks (ideated by deepseek v4 pro)
+
+### Goal
+Add code quality enforcement beyond TypeScript: linting, formatting, editor consistency, and pre-commit guards.
+
+### Problem
+Zero linting, zero formatting enforcement, no editor config. Team/AI agents produce inconsistent code. No guardrails.
+
+### Solution Overview
+Install ESLint with Next.js + React + a11y plugins. Add Prettier. Create .editorconfig. Install husky + lint-staged.
+
+### Tasks
+- [ ] **ESLint** — install eslint, @eslint/js, typescript-eslint, eslint-config-next, eslint-plugin-react-hooks, eslint-plugin-jsx-a11y; create `eslint.config.mjs` flat config
+- [ ] **Prettier** — install prettier; create `.prettierrc` (2-space, single quotes, trailing commas, 100 width) + `.prettierignore`
+- [ ] **Editor config** — create `.editorconfig` (UTF-8, LF, 2-space, trim trailing whitespace)
+- [ ] **Pre-commit hooks** — install husky + lint-staged; configure lint-staged for ts/tsx/json/css/md files
+- [ ] **Bulk format + lint fix** — run `pnpm format` and `pnpm lint:fix` across entire codebase
+- [ ] **Verify** — `pnpm lint` zero errors, `pnpm format:check` passes
+
+### Files Touched
+| File | Action |
+|------|--------|
+| `eslint.config.mjs` | **NEW** — flat config |
+| `.prettierrc` | **NEW** — prettier config |
+| `.prettierignore` | **NEW** — prettier ignore |
+| `.editorconfig` | **NEW** — editor config |
+| `.husky/pre-commit` | **NEW** — pre-commit hook |
+| `package.json` | Edit — scripts + lint-staged |
+
+### 🧠 Skills
+`@cc-skill-coding-standards` `@nodejs-best-practices` `@typescript-expert`
+
+
+
+## 🛡️ Plan 6: Error Boundaries — React Resilience (ideated by deepseek v4 pro)
+
+### Goal
+Add React ErrorBoundary components to prevent component crashes from whitescreening the entire app.
+
+### Problem
+Zero ErrorBoundary components exist. Any unhandled render error crashes the full React tree to a blank page.
+
+### Solution Overview
+Create GlobalErrorBoundary in root layout. Add per-page error.tsx files. Create ErrorFallback with retry + home navigation. Add API error normalization.
+
+### Tasks
+- [ ] **Create ErrorFallback** — `components/ui/error-fallback.tsx` with error message, stack trace (dev), retry button, home link
+- [ ] **Create GlobalErrorBoundary** — `components/layout/error-boundary.tsx` class component with componentDidCatch
+- [ ] **Wrap root layout** — `app/layout.tsx` with GlobalErrorBoundary
+- [ ] **Add per-page error.tsx** — `app/dashboard/error.tsx`, `app/dashboard/chat/error.tsx`, `app/dashboard/settings/error.tsx`
+- [ ] **API error normalization** — `lib/utils/api-error.ts` mapping DB errors to user-friendly messages
+- [ ] **Verify** — throw in a component, confirm fallback renders
+
+### Files Touched
+| File | Action |
+|------|--------|
+| `components/ui/error-fallback.tsx` | **NEW** |
+| `components/layout/error-boundary.tsx` | **NEW** |
+| `app/layout.tsx` | Edit |
+| `app/dashboard/error.tsx` | **NEW** |
+| `app/dashboard/chat/error.tsx` | **NEW** |
+| `app/dashboard/settings/error.tsx` | **NEW** |
+| `lib/utils/api-error.ts` | **NEW** |
+
+### 🧠 Skills
+`@systematic-debugging` `@error-diagnostics-smart-debug` `@react-best-practices`
+
+
+
+## 🔒 Plan 7: Security Hardening — Rate Limiting, CSRF & Input Sanitization (ideated by deepseek v4 pro)
+
+### Goal
+Add rate limiting to all API routes, CSRF protection, XSS sanitization, and Zod schema length hardening.
+
+### Problem
+Zero rate limiting, no CSRF, no input sanitization (XSS risk), Zod schemas lack .max() constraints.
+
+### Solution Overview
+Create Next.js middleware for rate limiting + CSRF. Add DOMPurify sanitization. Audit 30+ Zod schemas with .max() constraints. Configure body size limits.
+
+### Tasks
+- [ ] **Create middleware.ts** — IP sliding window (100 req/60s API, 20 req/60s auth), CSRF validation on POST/PUT/DELETE
+- [ ] **CSRF token generation** — `lib/services/web.ts` + Zustand store + custom fetch header
+- [ ] **Install DOMPurify** — create `lib/utils/sanitize.ts`, apply to memories/notes/tasks/emails
+- [ ] **Harden Zod schemas** — audit 30+ routes: add .max() (titles: 500, content: 50000), .regex(), .min(1)
+- [ ] **Body size limits** — `next.config.ts`: 1MB default, 10MB chat
+- [ ] **Verify** — rapid requests blocked, CSRF rejects unauthenticated mutations
+
+### Files Touched
+| File | Action |
+|------|--------|
+| `middleware.ts` | **NEW** |
+| `lib/utils/sanitize.ts` | **NEW** |
+| `lib/services/web.ts` | Edit |
+| `lib/stores/use-app-store.ts` | Edit |
+| `next.config.ts` | Edit |
+| 30+ API route files | Edit — sanitization + Zod hardening |
+
+### 🧠 Skills
+`@api-security-best-practices` `@backend-security-coder` `@cc-skill-security-review` `@cso`
+
+
+
+## 📊 Plan 8: AI Cost & Token Tracking (ideated by deepseek v4 pro)
+
+### Goal
+Track token usage per request, session, provider, and lifetime. Display cost dashboard in Settings > Diagnostics.
+
+### Problem
+Usage event type defined but never emitted. Zero visibility into AI spend across 20+ providers.
+
+### Solution Overview
+Capture usage from AI SDK onFinish. Store in sessionMessages. Build pricing table + cost calculator. Add usage API + dashboard UI.
+
+### Tasks
+- [ ] **Emit usage events** — extract event.usage from onFinish, persist inputTokens/outputTokens to sessionMessages
+- [ ] **Add DB columns** — inputTokens, outputTokens to sessionMessages table (Drizzle migration)
+- [ ] **Create pricing table** — `lib/ai/pricing.ts` with per-model rates for all 20+ providers
+- [ ] **Create cost calculator** — `lib/ai/cost.ts` with estimateCost, getSessionCost, getLifetimeCost
+- [ ] **Add usage APIs** — `app/api/usage/route.ts` (lifetime + monthly), `app/api/usage/session/[id]/route.ts`
+- [ ] **Build usage dashboard** — Diagnostics page: lifetime/month/today cost, per-provider breakdown, top-10 sessions
+- [ ] **Verify** — run chat sessions, confirm accurate token counts and costs
+
+### Files Touched
+| File | Action |
+|------|--------|
+| `lib/ai/pricing.ts` | **NEW** |
+| `lib/ai/cost.ts` | **NEW** |
+| `app/api/usage/route.ts` | **NEW** |
+| `app/api/usage/session/[id]/route.ts` | **NEW** |
+| `lib/db/schema.ts` | Edit |
+| `app/api/ai/chat/route.ts` | Edit |
+| `app/dashboard/settings/diagnostics/page.tsx` | Edit |
+
+### 🧠 Skills
+`@ai-engineer` `@llm-ops` `@backend-dev-guidelines`
+
+
+
+## 🪟 Plan 9: Context Window Management (ideated by deepseek v4 pro)
+
+### Goal
+Token-aware context: counting, per-model limits, auto-summarization at 80%, context bar in chat UI.
+
+### Problem
+Zero token counting. 500-msg sessions send entire history — silently fail at context limits. Each model has different limits.
+
+### Solution Overview
+Install tiktoken / use AI SDK countTokens. Add contextWindow to model registry. Build auto-summarizer. Add context bar (green→yellow→red). Implement /compact command.
+
+### Tasks
+- [ ] **Install tokenizer** — tiktoken or AI SDK countTokens()
+- [ ] **Create token counter** — `lib/ai/tokens.ts`: countTokens, countMessages, getModelContextLimit, getContextUsagePercent
+- [ ] **Add contextWindow to models** — real values for all 20+ models
+- [ ] **Create summarizer** — `lib/ai/summarizer.ts`: trigger at 80%, use lightweight model, fallback to truncation
+- [ ] **Integrate into chat route** — count before building messages, trigger summarization, emit usage via onChunk
+- [ ] **Add context bar** — progress bar with tooltip, warning toast at 90%
+- [ ] **Implement /compact** — server-side summarization trigger
+- [ ] **Verify** — long conversation triggers summarization, bar updates
+
+### Files Touched
+| File | Action |
+|------|--------|
+| `lib/ai/tokens.ts` | **NEW** |
+| `lib/ai/summarizer.ts` | **NEW** |
+| `lib/ai/models.ts` | Edit |
+| `app/api/ai/chat/route.ts` | Edit |
+| `components/chat/chat-interface.tsx` | Edit |
+| `lib/chat/slash-commands.ts` | Edit |
+
+### 🧠 Skills
+`@ai-engineer` `@llm-ops` `@performance-engineer` `@frontend-dev-guidelines`
+
+
+
+## 🔄 Plan 10: AI Provider Fallback & Retry Logic (ideated by deepseek v4 pro)
+
+### Goal
+Auto failover, exponential backoff retry, and circuit breaker for AI providers.
+
+### Problem
+Single active provider — any outage breaks all chat. No retry for transient failures. No backup.
+
+### Solution Overview
+Add ranked fallback provider list setting. Build fallback/retry/circuit-breaker utilities. Integrate into chat route. Add UI indicator.
+
+### Tasks
+- [ ] **Fallback settings** — `providerFallbackOrder: string[]` with drag-to-reorder UI
+- [ ] **Create fallback wrapper** — `lib/ai/fallback.ts`: cascade through list, 30s timeout per attempt
+- [ ] **Add retry logic** — `lib/ai/retry.ts`: 3 retries, 1s/2s/4s backoff, ±25% jitter, only on 429/5xx
+- [ ] **Add circuit breaker** — `lib/ai/circuit-breaker.ts`: open after 3 failures, 60s cooldown, half-open probe
+- [ ] **Integrate into chat** — replace single provider with fallback chain, return X-Provider-Used header
+- [ ] **Add UI indicator** — "Routed via Anthropic (OpenAI unavailable)" + toast
+- [ ] **Verify** — trigger provider failures, confirm seamless failover
+
+### Files Touched
+| File | Action |
+|------|--------|
+| `lib/ai/fallback.ts` | **NEW** |
+| `lib/ai/retry.ts` | **NEW** |
+| `lib/ai/circuit-breaker.ts` | **NEW** |
+| `types/settings.ts` | Edit |
+| `app/api/ai/chat/route.ts` | Edit |
+| `app/dashboard/settings/integrations/page.tsx` | Edit |
+| `components/chat/chat-interface.tsx` | Edit |
+
+### 🧠 Skills
+`@ai-engineer` `@backend-dev-guidelines` `@nodejs-best-practices` `@performance-engineer`
+
+
+
+## 🎛️ Plan 11: Model Parameter Controls — Temperature, Top P, Max Tokens & More (ideated by deepseek v4 pro)
+
+### Goal
+Expose temperature, top_p, max_tokens, frequency_penalty, presence_penalty, seed, stop sequences in chat UI.
+
+### Problem
+Only reasoning effort is configurable. No temperature, top_p, or sampling controls.
+
+### Solution Overview
+Add GenerationParams type. Build param-controls UI with sliders. Pass to streamText()/generateText(). Persist per-session. Extend presets.
+
+### Tasks
+- [ ] **Define GenerationParams** — temperature, topP, maxTokens, frequencyPenalty, presencePenalty, seed, stopSequences
+- [ ] **Build param-controls UI** — collapsible Advanced section in model selector, sliders + inputs, reset button
+- [ ] **Plumb through chat route** — pass all params to streamText() config
+- [ ] **Add to agent runner** — accept GenerationParams in runAgent config
+- [ ] **Persist per-session** — Zustand store + session metadata
+- [ ] **Extend presets** — add param fields to presets table + editor
+- [ ] **Verify** — temp=0 deterministic, maxTokens=50 truncates
+
+### Files Touched
+| File | Action |
+|------|--------|
+| `components/chat/param-controls.tsx` | **NEW** |
+| `types/settings.ts` | Edit |
+| `lib/stores/use-app-store.ts` | Edit |
+| `components/chat/model-selector.tsx` | Edit |
+| `app/api/ai/chat/route.ts` | Edit |
+| `lib/ai/runner.ts` | Edit |
+| `lib/db/schema.ts` | Edit |
+| `app/dashboard/settings/presets/page.tsx` | Edit |
+
+### 🧠 Skills
+`@ai-engineer` `@frontend-developer` `@typescript-expert`
+
+
+
+## ⚡ Plan 12: List Virtualization — Memory Bank, Sessions, Emails, Notes & More (ideated by deepseek v4 pro)
+
+### Goal
+Add react-virtuoso virtualized rendering to all list-heavy pages for smooth 1000+ item performance.
+
+### Problem
+Memory bank, sessions, emails, notes render all items in DOM — lag and memory pressure at scale.
+
+### Solution Overview
+Install react-virtuoso. Replace flat .map() with Virtuoso/VirtuosoGrid in 7 pages. Add infinite scroll pagination.
+
+### Tasks
+- [ ] **Install react-virtuoso**, profile baseline performance
+- [ ] **Memory Bank** — VirtuosoGrid with fixed card height, search/filter preserved
+- [ ] **Sessions** — Virtuoso with fixedItemHeight + endReached infinite scroll
+- [ ] **Emails** — Virtuoso with dynamic itemContent + pagination
+- [ ] **Notes** — Virtuoso sidebar list
+- [ ] **Skills, Images, Tasks** — Virtualize remaining list pages
+- [ ] **Verify** — load 1000+ items, confirm smooth 60fps scrolling
+
+### Files Touched
+| File | Action |
+|------|--------|
+| `app/dashboard/memory-bank/page.tsx` | Edit |
+| `app/dashboard/sessions/page.tsx` | Edit |
+| `app/dashboard/email/page.tsx` | Edit |
+| `app/dashboard/notes/page.tsx` | Edit |
+| `app/dashboard/skills/page.tsx` | Edit |
+| `app/dashboard/images/page.tsx` | Edit |
+| `app/dashboard/tasks/page.tsx` | Edit |
+
+### 🧠 Skills
+`@senior-frontend` `@react-best-practices` `@performance-engineer`
+
+
+
+## 📦 Plan 13: Code Splitting & Lazy Loading (ideated by deepseek v4 pro)
+
+### Goal
+Reduce initial bundle by lazy-loading Monaco (~5MB), d3 (~500KB), GSAP (~100KB), highlight.js, ical.js, pdf-parse.
+
+### Problem
+All heavy deps load in initial bundle. No code splitting. No next/image usage (raw <img> tags everywhere).
+
+### Solution Overview
+Wrap heavy imports with Next.js dynamic(). Add Suspense + skeleton loaders. Lazy-load IDE/Console/Research/Calendar pages. Replace all <img> with next/image.
+
+### Tasks
+- [ ] **Profile current bundle** with Next.js bundle analyzer
+- [ ] **Lazy-load Monaco** — dynamic() + EditorSkeleton placeholder
+- [ ] **Lazy-load d3** — memory-graph, notes-graph, wiki-content with ssr:false
+- [ ] **Lazy-load GSAP** — dynamic import with CSS animation fallback
+- [ ] **Dynamic page imports** — IDE, Console, Research, Calendar pages
+- [ ] **Add Skeleton components** — card, list, editor, graph variants
+- [ ] **Replace all <img> with next/image** — claude-code-hero, images page, logo
+- [ ] **Verify** — measure bundle reduction, lazy pages load correctly
+
+### Files Touched
+| File | Action |
+|------|--------|
+| `components/ide/code-editor.tsx` | Edit |
+| `components/ui/skeleton.tsx` | **NEW** |
+| `components/ui/editor-skeleton.tsx` | **NEW** |
+| `components/memory-bank/memory-graph.tsx` | Edit |
+| `components/notes/notes-graph.tsx` | Edit |
+| `components/notes/wiki-content.tsx` | Edit |
+| `lib/hooks/use-gsap-entrance.ts` | Edit |
+| `app/dashboard/ide/page.tsx` | Edit |
+| `app/dashboard/console/page.tsx` | Edit |
+| `app/dashboard/research/page.tsx` | Edit |
+| `app/dashboard/calendar/page.tsx` | Edit |
+| `components/chat/claude-code-hero.tsx` | Edit |
+| `app/dashboard/images/page.tsx` | Edit |
+| `components/layout/logo.tsx` | Edit |
+
+### 🧠 Skills
+`@senior-frontend` `@react-best-practices` `@performance-engineer`
+
+
+
+## ♿ Plan 14: Accessibility Audit & Remediation (ideated by deepseek v4 pro)
+
+### Goal
+WCAG 2.1 AA: skip-to-content, form labels, focus management, alt text, ARIA live regions, 44px touch targets.
+
+### Problem
+No skip link, zero <label> associations, poor focus indicators, 32-36px touch targets, minimal alt text.
+
+### Solution Overview
+Skip link + #main-content. Label component + audit 20+ forms. Expand focus-visible rings. Alt text audit. aria-live regions. Bump touch targets to 44px. Configure jsx-a11y plugin.
+
+### Tasks
+- [ ] **Skip-to-content link** — with #main-content anchor
+- [ ] **Form labels** — create Label component, audit 20+ settings forms for htmlFor
+- [ ] **Focus-visible rings** — expand to all interactive elements in globals.css
+- [ ] **Alt text audit** — descriptive alt on all images, empty alt for decorative
+- [ ] **ARIA live regions** — chat (polite), errors (alert), toasts (assertive), streaming status
+- [ ] **Touch targets** — sidebar nav, hamburger, buttons: bump to 44px min
+- [ ] **Viewport meta** — export viewport metadata from root layout
+- [ ] **a11y linting** — eslint-plugin-jsx-a11y with strict rules (done in Plan 5)
+- [ ] **Keyboard nav audit** — all pages, modals, dialogs
+- [ ] **Verify** — Lighthouse a11y ≥ 90, lint passes a11y rules
+
+### Files Touched
+| File | Action |
+|------|--------|
+| `components/layout/dashboard-shell.tsx` | Edit |
+| `components/ui/label.tsx` | **NEW** |
+| `app/globals.css` | Edit |
+| `components/layout/sidebar.tsx` | Edit |
+| `components/layout/mobile-nav.tsx` | Edit |
+| `components/layout/topbar.tsx` | Edit |
+| `components/ui/button.tsx` | Edit |
+| `app/layout.tsx` | Edit |
+| `components/chat/chat-interface.tsx` | Edit |
+| `components/ui/toaster.tsx` | Edit |
+| 20+ settings form pages | Edit |
+| 5+ image components | Edit |
+
+### 🧠 Skills
+`@senior-frontend` `@frontend-dev-guidelines` `@react-best-practices` `@ui-ux-designer`
+
+
+
+## 📴 Plan 15: True Offline Support — Service Worker Caching (ideated by deepseek v4 pro)
+
+### Goal
+PWA with CacheFirst for static assets, NetworkFirst for API, offline fallback page, install prompt handler.
+
+### Problem
+Service worker exists but fetch is a no-op. Zero caching. App is fully network-dependent.
+
+### Solution Overview
+Implement 3 caching strategies in sw.js. Add cache versioning + cleanup. Create offline fallback page. Add online/offline detection hook. Explore IndexedDB client fallback (stretch).
+
+### Tasks
+- [ ] **Implement caching** — CacheFirst for /_next/static, SWR for HTML, NetworkFirst for API
+- [ ] **Cache versioning** — CACHE_NAME with deploy bump, old cache cleanup in activate
+- [ ] **Offline fallback page** — `app/dashboard/offline/page.tsx` with branding
+- [ ] **Online/offline detection** — `lib/hooks/use-online-status.ts` + topbar indicator + chat disable
+- [ ] **IndexedDB fallback** — stretch goal: Dexie.js for local state, sync on reconnect
+- [ ] **Install prompt** — beforeinstallprompt handler in pwa-register.tsx
+- [ ] **Verify** — toggle offline in DevTools, app shell loads, offline page for uncached routes
+
+### Files Touched
+| File | Action |
+|------|--------|
+| `public/sw.js` | Edit |
+| `app/dashboard/offline/page.tsx` | **NEW** |
+| `lib/hooks/use-online-status.ts` | **NEW** |
+| `components/layout/topbar.tsx` | Edit |
+| `components/layout/pwa-register.tsx` | Edit |
+| `components/chat/chat-input.tsx` | Edit |
+
+### 🧠 Skills
+`@senior-frontend` `@frontend-dev-guidelines` `@performance-engineer`
+
+
+
+## 🌳 Plan 16: Conversation Branching & Message Regeneration (ideated by deepseek v4 pro)
+
+### Goal
+Regenerate responses, fork conversations from any message, compare variants, branch tree visualization.
+
+### Problem
+Sessions are strictly linear — no regenerate, no forking, no variant comparison.
+
+### Solution Overview
+Add parentSessionId + forkedFromMessageId to DB. Add Regenerate button on assistant messages. Build variant picker. Add "Fork from here". Session duplication + branch tree view.
+
+### Tasks
+- [ ] **Add forking support** — parentSessionId + forkedFromMessageId to sessions table (Drizzle migration)
+- [ ] **Regenerate button** — on hover over assistant messages, re-send user message with same params
+- [ ] **Variant picker** — show 1/3 dots, allow deleting variants
+- [ ] **Fork from here** — create new session, copy messages up to fork point
+- [ ] **Session duplication** — clone full session
+- [ ] **Branch tree view** — toggle between flat list and parent/child tree on sessions page
+- [ ] **Verify** — fork, regenerate, compare variants, tree renders
+
+### Files Touched
+| File | Action |
+|------|--------|
+| `lib/db/schema.ts` | Edit |
+| `components/chat/message-bubble.tsx` | Edit |
+| `components/chat/chat-interface.tsx` | Edit |
+| `app/api/sessions/route.ts` | Edit |
+| `app/dashboard/sessions/page.tsx` | Edit |
+
+### 🧠 Skills
+`@ai-engineer` `@frontend-developer` `@backend-dev-guidelines`
+
+
+
+## 🔗 Plan 17: Obsidian Vault Two-Way Sync (ideated by deepseek v4 pro)
+
+### Goal
+Two-way sync Dashboard Notes ↔ local Obsidian vault with chokidar file watcher and conflict resolution.
+
+### Problem
+Notes support [[wikilinks]] but no sync with actual Obsidian vault. Manual copy required.
+
+### Solution Overview
+Add vault path setting. Install chokidar for file watching. Build sync service (to vault / from vault). Full reconciliation on startup. Add sync API + settings UI.
+
+### Tasks
+- [ ] **Vault settings** — obsidianVaultPath, syncEnabled, syncDirection (bidirectional/import/export)
+- [ ] **Install chokidar** — file watcher for vault directory changes
+- [ ] **Build sync service** — `lib/services/obsidian-sync.ts`: initWatcher, syncToVault, syncFromVault, reconcileAll
+- [ ] **Integrate into notes API** — trigger syncToVault on CRUD, add sync/status endpoints
+- [ ] **Add sync UI** — vault path picker, toggle, direction selector, Sync Now button, sync log
+- [ ] **Edge cases** — sanitize filenames (:, /, \), mirror folders, batch sync for large vaults
+- [ ] **Verify** — create note in Dashboard, appears in Obsidian; edit in Obsidian, reflected in Dashboard
+
+### Files Touched
+| File | Action |
+|------|--------|
+| `lib/services/obsidian-sync.ts` | **NEW** |
+| `app/api/notes/sync/route.ts` | **NEW** |
+| `app/api/notes/sync/status/route.ts` | **NEW** |
+| `types/settings.ts` | Edit |
+| `app/api/notes/route.ts` | Edit |
+| `app/dashboard/settings/integrations/page.tsx` | Edit |
+
+### 🧠 Skills
+`@backend-dev-guidelines` `@nodejs-best-practices` `@typescript-expert`
+
+
+
+## 🪜 Plan 18: Onboarding Walkthrough & Feature Discovery (ideated by deepseek v4 pro)
+
+### Goal
+5-step onboarding wizard, What's New feature drawer, contextual tooltips, CMD+K feature search.
+
+### Problem
+17 pages + 20+ settings sub-pages with zero onboarding guidance. Steep learning curve.
+
+### Solution Overview
+Build onboarding wizard (5 steps: Welcome → Provider → Chat → Tour → Settings). Create What's New drawer. Add dismissible contextual tooltips. Index features in CMD+K search.
+
+### Tasks
+- [ ] **Onboarding wizard** — 5-step flow with progress dots: Welcome + theme, Add provider, First chat, Feature tour, Settings overview
+- [ ] **Onboarding state** — onboardingCompleted, onboardingCompletedAt, featureDiscoveryDismissed in settings
+- [ ] **What's New drawer** — feature catalog by category, "Try it" links, "New" badges (last 30 days), dismissible
+- [ ] **Contextual tooltips** — pro-tip callouts on key pages (chat, memory bank, IDE), "Got it" dismiss
+- [ ] **Feature search** — CMD+K indexes all features with keywords, navigates directly
+- [ ] **Verify** — reset settings, walk wizard, tooltips appear/dismiss, features searchable
+
+### Files Touched
+| File | Action |
+|------|--------|
+| `components/layout/onboarding-wizard.tsx` | **NEW** |
+| `components/layout/whats-new.tsx` | **NEW** |
+| `components/layout/contextual-tooltip.tsx` | **NEW** |
+| `types/settings.ts` | Edit |
+| `components/layout/dashboard-shell.tsx` | Edit |
+| `components/layout/sidebar.tsx` | Edit |
+| `components/layout/topbar.tsx` | Edit |
+| `components/layout/command-palette.tsx` | Edit |
+| `app/dashboard/page.tsx` | Edit |
+| `app/dashboard/chat/page.tsx` | Edit |
+| `app/dashboard/memory-bank/page.tsx` | Edit |
+| `app/dashboard/ide/page.tsx` | Edit |
+
+### 🧠 Skills
+`@senior-frontend` `@frontend-dev-guidelines` `@ui-ux-designer` `@ai-product`
+
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+const raw=document.getElementById('raw-plans');
+if(raw){
+  const div=document.createElement('div');
+  div.className='markdown-body';
+  div.innerHTML=marked.parse(raw.textContent);
+  document.body.appendChild(div);
+}
+</script>
