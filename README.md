@@ -1,8 +1,39 @@
-# matrix-dash
+<div align="center">
 
-A local-first AI command center — your own private "Jarvis." Chat across 20+ providers, run a real on-disk IDE, manage skills, schedule tasks, triage email, and run local models through Ollama — all on your machine, with API keys encrypted at rest.
+# Matrix Dashboard
 
-Built with **Next.js 15** (App Router), **TypeScript** (strict), **better-sqlite3**, and **Tailwind CSS v4**.
+**A local-first AI command center — your own private "Jarvis."**
+Chat across 20+ providers, run a real on-disk IDE, manage skills, schedule tasks, triage email, and run local models through Ollama — all on your machine, with API keys encrypted at rest.
+
+[![Framework](https://img.shields.io/badge/framework-Next.js%2015-black?logo=nextdotjs)](https://nextjs.org)
+[![Language](https://img.shields.io/badge/language-TypeScript-blue?logo=typescript)](https://www.typescriptlang.org)
+[![Database](https://img.shields.io/badge/database-better--sqlite3-003b57?logo=sqlite)](https://github.com/WiseLibs/better-sqlite3)
+[![Styling](https://img.shields.io/badge/styling-Tailwind%20CSS%20v4-38bdf8?logo=tailwindcss)](https://tailwindcss.com)
+[![Hosting](https://img.shields.io/badge/self--hosted-your%20machine-34d399)](https://matrix.zbautomations.ie)
+
+</div>
+
+---
+
+## Table of Contents
+
+- [Screenshots](#screenshots)
+- [Highlights](#highlights)
+- [Security model](#security-model)
+- [Getting started](#getting-started)
+- [Credits & acknowledgements](#credits--acknowledgements)
+
+---
+
+## Screenshots
+
+<p align="center">
+  <img src="./public/screenshots/dashboard-overview.png" alt="Matrix Dashboard overview" width="100%" />
+</p>
+<p align="center">
+  <img src="./public/screenshots/dashboard-chat.png" alt="Matrix Dashboard multi-provider chat" width="49%" />
+  <img src="./public/screenshots/memory-bank.png" alt="Matrix Dashboard memory bank" width="49%" />
+</p>
 
 ---
 

@@ -1,4 +1,23 @@
+<p align="center"><img src="./public/icon-192.png" width="64" alt="Matrix Dashboard" /></p>
+
 # Changelog
+
+## 04/07/2026 @ 18:02:44 IST — "Claude Sonnet 5"
+
+**Goal:** Close the gaps found when asked "where did you not put logos/branding" — the two clear misses, plus the accent-color and screenshot work requested next: real product screenshots in both READMEs, and branded headers on both CHANGELOGs.
+
+**Fixed:**
+- `bolt.new-custom/app/components/header/Header.tsx` — the app's own persistent header (visible on every page) still used a generic Phosphor cube icon; replaced with an inline `>_` glyph matching `BuilderMark`, using `currentColor` so it inherits the accent color automatically.
+- `matrix-dash/public/index.html` — an undiscovered near-duplicate of `docs/index.html` (same Privacy Policy/ToS content, different title) that still had the old violet gradient; fixed to match.
+- `bolt.new-custom/uno.config.ts` — replaced the stock blue `accent` color ramp (`#2BA6FF`, StackBlitz's original) with a proper sky-blue ramp (`#38BDF8` at the 400 stop — the exact brand sky token) so Matrix Builder's buttons/links/active-states read as part of the ZB Automations family instead of clashing with it, while giving it a distinct "sky-forward" identity versus Matrix Dashboard's "emerald-forward" one.
+
+**Added — real product screenshots, not abstract cards:**
+- Booted matrix-dash's dev server with `HOME` pointed at a scratch directory (never touched the real `~/MatrixDash/matrix.db`, which has genuine personal data), seeded a handful of generic/non-personal demo memories and a demo chat session, and captured the Overview, Chat, and Memory Bank pages via headless Chromium.
+- Booted bolt.new-custom's dev server (it boots fine despite the in-progress Firebase→Cloudflare migration) and captured the landing/prompt screen with dark mode forced (it defaults to light without a `prefers-color-scheme` signal, which doesn't match the brand's dark aesthetic).
+- Composited all four into branded "browser chrome" frames (traffic-light dots in brand colors, a URL bar showing the real production domain, rounded corners, soft shadow) and embedded them in both READMEs under new "Screenshots" sections.
+- Added a small branded header image above `# Changelog` in both this file and `bolt.new-custom/CHANGELOG.md`.
+
+**Files Touched:** `bolt.new-custom/app/components/header/Header.tsx`, `bolt.new-custom/uno.config.ts`, `public/index.html`, `README.md`, `CHANGELOG.md`, `public/screenshots/{dashboard-overview,dashboard-chat,memory-bank}.png` (NEW), `bolt.new-custom/README.md`, `bolt.new-custom/CHANGELOG.md`, `bolt.new-custom/public/screenshots/builder-landing.png` (NEW)
 
 ## 04/07/2026 @ 17:59:14 IST — "Sonnet 5"
 
@@ -22,6 +41,60 @@
 **Files touched:** all in `bolt.new-custom` (separate, user-owned repo — left **uncommitted** there per standing convention; this entry documents the work). New: `app/utils/slug.ts` (+ `.spec.ts`), `app/utils/browser.ts` (+ `.spec.ts`), `app/lib/.server/download-counter.server.ts`, `app/routes/api.download-sequence.ts`, `app/lib/persistence/download-sequence.client.ts`, `app/lib/download.spec.ts`. Modified: `app/lib/download.ts`, `app/lib/.server/kv-client.server.ts` (two exports added), `app/components/workbench/Workbench.client.tsx`.
 
 `TODO.md` (this repo): marked Plan 1 complete (checked its 4 tasks, struck through the card, bumped the Completed stat 0→1). Note: `TODO.md`'s working-tree diff in this commit also includes an unrelated prior uncommitted change (deepseek-v4-pro's expansion from 3→18 plans plus a glassmorphism redesign of the file) that predates this session and was never committed — confirmed with the user and committed together here rather than left dangling.
+
+## 04/07/2026 @ 17:36:43 IST — "Claude Sonnet 5"
+
+**Goal:** Roll out the Matrix Builder (`bolt.new-custom`) side of the brand kit — the part carrying the actual legal/trademark risk the user flagged (StackBlitz's own logo assets still shipping in a live product). Edits only, nothing committed there — that repo is user-managed and reviewed/committed separately.
+
+**Fixed:**
+- Replaced all 8 checksum-confirmed stock StackBlitz files: `public/favicon.svg`, `public/logo.svg`, `icons/logo.svg` were StackBlitz's actual trademarked lightning-bolt mark (blue square, white bolt) — not generic placeholders, confirmed by inspecting the raw SVG paths. `icons/logo-text.svg` was the "bolt.new" wordmark as vector outline paths. Replaced all four with the new `BuilderMark` (">_" glyph) design. `icons/chat.svg`/`icons/stars.svg` (generic UI icons, lower risk but still stock) replaced with original equivalents. `public/social_preview_index.jpg` replaced with a rendered Matrix Builder card; `public/project-visibility.jpg` deleted (confirmed unreferenced anywhere in the repo). Re-verified via the same checksum diff used in the audit: zero files now match the pristine original.
+- `.github/ISSUE_TEMPLATE/config.yml` and `bug_report.yml` — removed contact links pointing at StackBlitz's own Help Center/Discord and a hotlinked StackBlitz-hosted image; these are misleading for a private fork with no relationship to StackBlitz's support infrastructure.
+
+**Changed — AI persona renamed from "Bolt" to "Matrix":**
+- User-facing chat copy in `AskUserDialog.tsx` (dialog text, placeholder, delegate option), 5 `chat-chips/*.ts` files (chip descriptions shown to users), `prompts.ts` (the system prompt's self-references and its description of injected UI sentinels), and matching doc-comments in `message-parser.ts`.
+- `formatters.ts`'s `LET_BOLT_DECIDE_MARKER` constant value updated in lockstep with the dialog string it matches against — this one's functional, not cosmetic, since the delegation-detection logic does a prefix match against the literal submitted text. Verified via the `chat-chips` test suite (34/34 passing) rather than assuming a find-replace was safe.
+- Left the `~/Desktop/Bolt-Projects` save-folder path and the internal `LET_BOLT_DECIDE`/`i-bolt-*`/`--bolt-elements-*` identifier names unchanged — sentinel/CSS-variable naming has zero user visibility and existing saved projects live under that folder name today.
+- `README.md` and `docs/CONTRIBUTING.md` rebranded to Matrix Builder while keeping an honest "forked from StackBlitz's bolt.new (MIT)" attribution line. `CONTRIBUTING.md` was materially wrong beyond branding — it described the *stock* bolt.new repo's setup (Cloudflare Pages, Anthropic key, `git clone stackblitz/bolt.new`), not this fork's actual Firebase/Gemini setup — rewritten to match reality.
+- `package.json` — added `repository`, `homepage`, `author`, `keywords`.
+
+**Verified:** `npx vitest run app/lib/chat-chips` (34/34 pass), `npx tsc --noEmit` (clean). Did not run the full suite — this repo currently has a large, unrelated, pre-existing uncommitted Firebase→Cloudflare migration in its working tree, and a full run would mix in noise from that in-progress state.
+
+**Files Touched (in `bolt.new-custom`, uncommitted):**
+`public/favicon.svg`, `public/logo.svg`, `public/social_preview_index.jpg`, `public/project-visibility.jpg` (deleted), `icons/logo.svg`, `icons/logo-text.svg`, `icons/chat.svg`, `icons/stars.svg`, `README.md`, `docs/CONTRIBUTING.md`, `package.json`, `.github/ISSUE_TEMPLATE/config.yml`, `.github/ISSUE_TEMPLATE/bug_report.yml`, `app/lib/.server/llm/prompts.ts`, `app/lib/runtime/message-parser.ts`, `app/components/chat/AskUserDialog.tsx`, `app/lib/chat-chips/{chip-tone,chip-quality,chip-brand,chip-references,chip-tweak,formatters}.ts`, `app/lib/chat-chips/__tests__/{sentinels,chip-builders,chip-formatters}.spec.ts`
+
+## 04/07/2026 @ 17:26:14 IST — "Claude Sonnet 5"
+
+**Goal:** Roll out the Matrix Dashboard side of the brand kit — new sibling mark for Matrix Builder, favicon/OG/apple-touch-icon wiring, README/package.json metadata, and landing-page polish — per the confirmed decisions in BRAND-AUDIT.md.
+
+**Added:**
+- `BuilderMark` in `components/layout/logo.tsx` — a ">_" prompt/cursor glyph in the same emerald→sky gradient language as `LogoMark`, giving Matrix Builder its own mark instead of a generic Phosphor cube icon. Wired into `matrix-builder-gate.tsx`'s ready/loading states.
+- `app/icon.svg` — wires the existing (previously orphaned) `public/icon.svg` M-glyph into Next.js's file-based favicon convention; the browser tab previously showed no custom icon at all.
+- `public/icon-192.png`, `public/icon-512.png` (maskable PWA icons — `app/manifest.ts` referenced these but they never existed), `public/apple-touch-icon.png`, `public/og-image.png` — rendered via a headless Chromium script (Playwright, borrowed from `bolt.new-custom`'s already-installed browser binaries) from a single HTML composition, since ImageMagick's built-in SVG renderer silently drops `url()` gradient references.
+- `deploy/landing/favicon.svg` + `og:image`/`twitter:*` meta tags + `og-image.png` for the zbautomations.ie landing page, which previously shipped with neither.
+- `BRAND-SPEC.md` — one-page color/type/mark reference extracted from the system that already existed in the code, so later asset work (bolt.new-custom) stays consistent.
+
+**Changed:**
+- `app/layout.tsx` — added `metadataBase`, `openGraph`, and `twitter` metadata blocks (previously only had a bare title/description).
+- `README.md` — added shields.io badges, a table of contents, and a centered header, matching the pattern already used in `bolt.new-custom`'s README.
+- `package.json` — added `description`, `repository`, `homepage`, `author`, `keywords` (previously only `name`/`version`/`private`).
+- `docs/index.html` — fixed a one-off violet accent to the standard emerald→sky gradient for palette consistency.
+
+**Files Touched:**
+- `components/layout/logo.tsx`, `components/matrix-builder/matrix-builder-gate.tsx`, `app/layout.tsx`, `app/icon.svg` (NEW), `README.md`, `package.json`, `docs/index.html`, `deploy/landing/index.html`, `deploy/landing/favicon.svg` (NEW), `deploy/landing/og-image.png` (NEW), `public/icon-192.png` (NEW), `public/icon-512.png` (NEW), `public/apple-touch-icon.png` (NEW), `public/og-image.png` (NEW), `BRAND-SPEC.md` (NEW), `CHANGELOG.md`
+
+## 04/07/2026 @ 17:11:46 IST — "Claude Sonnet 5"
+
+**Goal:** Execute Plan 2 (Full Brand Kit) from TODO.md, expanded per user request into an exhaustive, zero-skip audit of every branding touchpoint across the ZB Automations umbrella (`matrix-dash` + `bolt.new-custom`), ahead of generating and rolling out a coordinated brand identity.
+
+**Added:**
+- `BRAND-AUDIT.md` — full inventory of every branding touchpoint in both repos, produced by checksum-diffing `bolt.new-custom`'s assets against the pristine, unmodified StackBlitz `bolt.new` source. Confirmed 8 files (favicon, two social-preview JPGs, `logo.svg`, and 4 icon SVGs) are byte-identical to stock StackBlitz — the acceptance test for "done" is that diff returning zero matches.
+- Found and documented a bigger-than-expected gap: `bolt.new-custom`'s in-product AI assistant refers to itself as "Bolt" throughout live chat UI copy (system prompt, dialogs, chat chips) and hardcodes a `~/Desktop/Bolt-Projects` save path — a product-identity decision, not an asset swap, flagged for the user rather than decided unilaterally.
+- Documented 3 gating decisions that need a user call before any new asset is produced: Matrix Builder's mark-hierarchy position, whether to rename the `bolt.new-custom` GitHub repo, and whether to rename the "Bolt" AI persona.
+- Confirmed `/design-sync`/`/design` resolve to the `DesignSync` tool (no matching local skill exists); resolved the asset-generation approach as hand-authored SVG for marks/icons/favicons plus an HTML-template-to-screenshot technique for raster OG/social previews.
+
+**Files Touched:**
+- `BRAND-AUDIT.md` (NEW) — full audit inventory
+- `CHANGELOG.md` — this entry
 
 ## 02/07/2026 @ 20:31:31 IST — "deepseek-v4-pro"
 
