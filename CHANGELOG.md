@@ -1,5 +1,25 @@
 # Changelog
 
+## 04/07/2026 @ 17:26:14 IST — "Claude Sonnet 5"
+
+**Goal:** Roll out the Matrix Dashboard side of the brand kit — new sibling mark for Matrix Builder, favicon/OG/apple-touch-icon wiring, README/package.json metadata, and landing-page polish — per the confirmed decisions in BRAND-AUDIT.md.
+
+**Added:**
+- `BuilderMark` in `components/layout/logo.tsx` — a ">_" prompt/cursor glyph in the same emerald→sky gradient language as `LogoMark`, giving Matrix Builder its own mark instead of a generic Phosphor cube icon. Wired into `matrix-builder-gate.tsx`'s ready/loading states.
+- `app/icon.svg` — wires the existing (previously orphaned) `public/icon.svg` M-glyph into Next.js's file-based favicon convention; the browser tab previously showed no custom icon at all.
+- `public/icon-192.png`, `public/icon-512.png` (maskable PWA icons — `app/manifest.ts` referenced these but they never existed), `public/apple-touch-icon.png`, `public/og-image.png` — rendered via a headless Chromium script (Playwright, borrowed from `bolt.new-custom`'s already-installed browser binaries) from a single HTML composition, since ImageMagick's built-in SVG renderer silently drops `url()` gradient references.
+- `deploy/landing/favicon.svg` + `og:image`/`twitter:*` meta tags + `og-image.png` for the zbautomations.ie landing page, which previously shipped with neither.
+- `BRAND-SPEC.md` — one-page color/type/mark reference extracted from the system that already existed in the code, so later asset work (bolt.new-custom) stays consistent.
+
+**Changed:**
+- `app/layout.tsx` — added `metadataBase`, `openGraph`, and `twitter` metadata blocks (previously only had a bare title/description).
+- `README.md` — added shields.io badges, a table of contents, and a centered header, matching the pattern already used in `bolt.new-custom`'s README.
+- `package.json` — added `description`, `repository`, `homepage`, `author`, `keywords` (previously only `name`/`version`/`private`).
+- `docs/index.html` — fixed a one-off violet accent to the standard emerald→sky gradient for palette consistency.
+
+**Files Touched:**
+- `components/layout/logo.tsx`, `components/matrix-builder/matrix-builder-gate.tsx`, `app/layout.tsx`, `app/icon.svg` (NEW), `README.md`, `package.json`, `docs/index.html`, `deploy/landing/index.html`, `deploy/landing/favicon.svg` (NEW), `deploy/landing/og-image.png` (NEW), `public/icon-192.png` (NEW), `public/icon-512.png` (NEW), `public/apple-touch-icon.png` (NEW), `public/og-image.png` (NEW), `BRAND-SPEC.md` (NEW), `CHANGELOG.md`
+
 ## 04/07/2026 @ 17:11:46 IST — "Claude Sonnet 5"
 
 **Goal:** Execute Plan 2 (Full Brand Kit) from TODO.md, expanded per user request into an exhaustive, zero-skip audit of every branding touchpoint across the ZB Automations umbrella (`matrix-dash` + `bolt.new-custom`), ahead of generating and rolling out a coordinated brand identity.

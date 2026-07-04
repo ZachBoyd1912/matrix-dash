@@ -1,6 +1,14 @@
 {
   "name": "matrix-dash",
   "version": "0.1.0",
+  "description": "Matrix Dashboard — a local-first AI command center. Multi-provider chat, a real on-disk IDE, autonomous agents, and an integrated site builder, self-hosted on your own machine.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ZachBoyd1912/matrix-dash.git"
+  },
+  "homepage": "https://matrix.zbautomations.ie",
+  "author": "ZachBoyd1912",
+  "keywords": ["ai", "dashboard", "local-first", "self-hosted", "nextjs", "matrix"],
   "private": true,
   "scripts": {
     "predev": "rm -rf .next",

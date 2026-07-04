@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertTriangle, Blocks, ExternalLink, Loader2, Play, Sparkles } from "lucide-react";
+import { AlertTriangle, ExternalLink, Loader2, Play, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BuilderMark } from "@/components/layout/logo";
 
 interface BuilderStatus {
   running: boolean;
@@ -173,7 +174,7 @@ export default function MatrixBuilderGate() {
       <div className="page-h grid place-items-center p-6">
         <div className="w-full max-w-md text-center space-y-5">
           <div className="inline-grid place-items-center h-14 w-14 rounded-2xl bg-emerald-400/10 border border-emerald-400/30 shadow-[0_0_24px_-6px_rgba(52,211,153,0.6)]">
-            <Blocks size={24} className="text-emerald-300" />
+            <BuilderMark size={28} />
           </div>
           <div>
             <h2 className="text-lg font-bold tracking-tight">Matrix Builder is running</h2>
@@ -223,7 +224,7 @@ export default function MatrixBuilderGate() {
     <div className="page-h grid place-items-center p-6">
       <div className="flex flex-col items-center text-center gap-4">
         <span className="relative grid place-items-center h-14 w-14 rounded-2xl bg-emerald-400/10 border border-emerald-400/30 shadow-[0_0_24px_-6px_rgba(52,211,153,0.6)]">
-          <Blocks size={24} className="text-emerald-300" />
+          <BuilderMark size={28} />
         </span>
         <div className="glass rounded-full px-4 py-2.5 flex items-center gap-2.5 text-sm border border-white/5">
           <Loader2 size={16} className="animate-spin text-emerald-400" />

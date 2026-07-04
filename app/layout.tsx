@@ -5,9 +5,31 @@ import { ThemeProvider } from "next-themes";
 import { THEME_IDS, DEFAULT_THEME } from "@/lib/themes";
 import "./globals.css";
 
+const SITE_URL = "https://matrix.zbautomations.ie";
+const SITE_TITLE = "Matrix Dashboard";
+const SITE_DESCRIPTION = "Your local-first AI command center.";
+
 export const metadata: Metadata = {
-  title: "Matrix Dashboard",
-  description: "Your local-first AI command center.",
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  metadataBase: new URL(SITE_URL),
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
+  openGraph: {
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: SITE_URL,
+    siteName: SITE_TITLE,
+    type: "website",
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: ["/og-image.png"],
+  },
   other: {
     "google-site-verification": "GUiEmulK8l2VasAwqI03Vy639GgRrH6uRRbgavVyRFc",
   },
