@@ -17,10 +17,23 @@ Chat across 20+ providers, run a real on-disk IDE, manage skills, schedule tasks
 
 ## Table of Contents
 
+- [Screenshots](#screenshots)
 - [Highlights](#highlights)
 - [Security model](#security-model)
 - [Getting started](#getting-started)
 - [Credits & acknowledgements](#credits--acknowledgements)
+
+---
+
+## Screenshots
+
+<p align="center">
+  <img src="./public/screenshots/dashboard-overview.png" alt="Matrix Dashboard overview" width="100%" />
+</p>
+<p align="center">
+  <img src="./public/screenshots/dashboard-chat.png" alt="Matrix Dashboard multi-provider chat" width="49%" />
+  <img src="./public/screenshots/memory-bank.png" alt="Matrix Dashboard memory bank" width="49%" />
+</p>
 
 ---
 

@@ -1,4 +1,23 @@
+<p align="center"><img src="./public/icon-192.png" width="64" alt="Matrix Dashboard" /></p>
+
 # Changelog
+
+## 04/07/2026 @ 18:02:44 IST — "Claude Sonnet 5"
+
+**Goal:** Close the gaps found when asked "where did you not put logos/branding" — the two clear misses, plus the accent-color and screenshot work requested next: real product screenshots in both READMEs, and branded headers on both CHANGELOGs.
+
+**Fixed:**
+- `bolt.new-custom/app/components/header/Header.tsx` — the app's own persistent header (visible on every page) still used a generic Phosphor cube icon; replaced with an inline `>_` glyph matching `BuilderMark`, using `currentColor` so it inherits the accent color automatically.
+- `matrix-dash/public/index.html` — an undiscovered near-duplicate of `docs/index.html` (same Privacy Policy/ToS content, different title) that still had the old violet gradient; fixed to match.
+- `bolt.new-custom/uno.config.ts` — replaced the stock blue `accent` color ramp (`#2BA6FF`, StackBlitz's original) with a proper sky-blue ramp (`#38BDF8` at the 400 stop — the exact brand sky token) so Matrix Builder's buttons/links/active-states read as part of the ZB Automations family instead of clashing with it, while giving it a distinct "sky-forward" identity versus Matrix Dashboard's "emerald-forward" one.
+
+**Added — real product screenshots, not abstract cards:**
+- Booted matrix-dash's dev server with `HOME` pointed at a scratch directory (never touched the real `~/MatrixDash/matrix.db`, which has genuine personal data), seeded a handful of generic/non-personal demo memories and a demo chat session, and captured the Overview, Chat, and Memory Bank pages via headless Chromium.
+- Booted bolt.new-custom's dev server (it boots fine despite the in-progress Firebase→Cloudflare migration) and captured the landing/prompt screen with dark mode forced (it defaults to light without a `prefers-color-scheme` signal, which doesn't match the brand's dark aesthetic).
+- Composited all four into branded "browser chrome" frames (traffic-light dots in brand colors, a URL bar showing the real production domain, rounded corners, soft shadow) and embedded them in both READMEs under new "Screenshots" sections.
+- Added a small branded header image above `# Changelog` in both this file and `bolt.new-custom/CHANGELOG.md`.
+
+**Files Touched:** `bolt.new-custom/app/components/header/Header.tsx`, `bolt.new-custom/uno.config.ts`, `public/index.html`, `README.md`, `CHANGELOG.md`, `public/screenshots/{dashboard-overview,dashboard-chat,memory-bank}.png` (NEW), `bolt.new-custom/README.md`, `bolt.new-custom/CHANGELOG.md`, `bolt.new-custom/public/screenshots/builder-landing.png` (NEW)
 
 ## 04/07/2026 @ 17:36:43 IST — "Claude Sonnet 5"
 
