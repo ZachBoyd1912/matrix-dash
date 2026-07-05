@@ -125,7 +125,10 @@ sudo systemctl restart caddy
 sudo systemctl enable caddy
 
 echo "=== 8. Start Matrix Dashboard ==="
-sudo systemctl start matrix-dash
+# `restart`, not `start` — this script is meant to be re-run for every
+# redeploy, and `start` is a no-op on an already-running service, silently
+# leaving the OLD build serving traffic even after a successful rebuild.
+sudo systemctl restart matrix-dash
 
 echo ""
 echo "=== Setup complete! ==="

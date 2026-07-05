@@ -2,6 +2,18 @@
 
 # Changelog
 
+## 05/07/2026 @ 22:53:54 IST — "Claude Sonnet 5"
+
+**Goal:** The deploy script finally ran end-to-end successfully (exit 0, "Setup complete!"), but `matrix-dash.service`'s uptime was still 3 days post-deploy — the new build never actually got loaded into the running process.
+
+**Root cause:** `deploy/setup-server.sh` step 8 ran `sudo systemctl start matrix-dash`, not `restart`. `start` is a no-op on an already-active service — every prior successful deploy on this VM would have silently kept serving the OLD build no matter how correctly the rest of the pipeline ran, since the service was already running from a previous session and never got told to reload.
+
+**Fixed:** Changed to `sudo systemctl restart matrix-dash`. Manually restarted it once by hand first to unblock this deploy (confirmed new PID, fresh uptime), then fixed the script so every future run actually reloads the build.
+
+**Verification:** `sudo systemctl status matrix-dash` showed a fresh PID and few-second uptime after the manual restart, versus 3-day uptime beforehand.
+
+**Files Touched:** `deploy/setup-server.sh`, `CHANGELOG.md`.
+
 ## 05/07/2026 @ 22:38:09 IST — "Claude Sonnet 5"
 
 **Goal:** The `NODE_OPTIONS` fix from the previous entry didn't hold — a second full deploy attempt OOM'd at the exact same ~472-490MB heap ceiling as before, despite `--max-old-space-size=2048` being set.
