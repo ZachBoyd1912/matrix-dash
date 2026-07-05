@@ -1,9 +1,26 @@
 import type { Metadata } from "next";
-import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
+import { Instrument_Serif, Work_Sans, Fragment_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { THEME_IDS, DEFAULT_THEME } from "@/lib/themes";
 import "./globals.css";
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: "400",
+  style: ["italic", "normal"],
+  variable: "--font-instrument-serif",
+});
+const workSans = Work_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-work-sans",
+});
+const fragmentMono = Fragment_Mono({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-fragment-mono",
+});
 
 const SITE_URL = "https://matrix.zbautomations.ie";
 const SITE_TITLE = "Matrix Dashboard";
@@ -39,7 +56,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      className={`${GeistSans.variable} ${GeistMono.variable}`}
+      className={`${GeistMono.variable} ${instrumentSerif.variable} ${workSans.variable} ${fragmentMono.variable}`}
       suppressHydrationWarning
     >
       <body>

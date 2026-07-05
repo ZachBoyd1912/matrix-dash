@@ -46,7 +46,7 @@ export default function MemoryDetailPage() {
           <span className="eyebrow">
             <Brain size={11} /> Memory Detail
           </span>
-          <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold">
+          <h1 className="display text-gradient text-4xl md:text-5xl ">
             Memory
           </h1>
         </div>

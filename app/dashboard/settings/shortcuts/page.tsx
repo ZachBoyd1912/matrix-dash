@@ -26,7 +26,7 @@ export default function ShortcutsPage() {
           <span className="eyebrow">
             <Keyboard size={11} /> Keyboard
           </span>
-          <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">
+          <h1 className="display text-gradient text-4xl md:text-5xl mt-3">
             Keyboard shortcuts
           </h1>
           <p className="text-text-secondary text-sm mt-3">

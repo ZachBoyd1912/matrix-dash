@@ -84,7 +84,7 @@ export default function ResearchPage() {
           <span className="eyebrow">
             <FlaskConical size={11} /> Deep Research
           </span>
-          <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold tracking-tight mt-3">
+          <h1 className="display text-gradient text-4xl md:text-5xl tracking-tight mt-3">
             Deep Research
           </h1>
           <p className="text-text-secondary text-sm mt-2">

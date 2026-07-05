@@ -76,8 +76,8 @@ export function MobileNav() {
                 className="flex items-center gap-2"
               >
                 <LogoMark size={22} />
-                <span className="font-extrabold tracking-tight text-text-primary">
-                  Matrix<span className="text-emerald-400">.</span>Dash
+                <span className="font-display italic text-text-primary text-[17px]">
+                  Matrix Dash
                 </span>
               </Link>
               <button

@@ -91,7 +91,7 @@ export default function AgentToolsPage() {
         <div className="orb top-4 right-16 h-44 w-44 bg-sky-500/15" style={{ animationDelay: "-6s" }} />
         <div className="relative">
           <span className="eyebrow"><Wrench size={11} /> Agent capabilities</span>
-          <h2 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">Agent tools</h2>
+          <h2 className="display text-gradient text-4xl md:text-5xl mt-3">Agent tools</h2>
           <p className="text-text-secondary text-sm mt-3 max-w-2xl">
             Capabilities the agent may use in <span className="text-emerald-400">Agent</span> mode. Build reusable
             instruction packs on the <Link href="/dashboard/skills" className="text-emerald-400 hover:underline">Skills</Link> page.

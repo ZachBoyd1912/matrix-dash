@@ -175,7 +175,7 @@ export default function AppearancePage() {
           <span className="eyebrow">
             <Palette size={11} /> Appearance
           </span>
-          <h2 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">
+          <h2 className="display text-gradient text-4xl md:text-5xl mt-3">
             Appearance
           </h2>
           <p className="text-text-secondary text-sm mt-3 max-w-xl">

@@ -72,7 +72,7 @@ export default function WebhooksPage() {
         <div className="orb top-0 right-16 h-44 w-44 bg-sky-500/15" style={{ animationDelay: "-6s" }} />
         <div className="relative">
           <span className="eyebrow"><Webhook size={11} /> Integrations</span>
-          <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">Webhooks</h1>
+          <h1 className="display text-gradient text-4xl md:text-5xl mt-3">Webhooks</h1>
           <p className="text-text-secondary text-sm mt-3 max-w-xl">
             Outbound HTTP callbacks fired on events. Useful for Discord, Slack, IFTTT, n8n.
           </p>

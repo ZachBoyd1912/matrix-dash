@@ -82,7 +82,7 @@ export default function CalendarPage() {
               <CalendarDays size={11} /> Calendar
             </span>
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold">
+              <h1 className="display text-gradient text-4xl md:text-5xl ">
                 {cursor.toLocaleString("default", { month: "long", year: "numeric" })}
               </h1>
               <div className="flex items-center gap-1">

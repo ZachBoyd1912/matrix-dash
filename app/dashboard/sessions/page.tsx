@@ -66,7 +66,7 @@ export default function SessionsPage() {
         <div className="relative flex items-start justify-between gap-4">
           <div>
             <span className="eyebrow"><History size={11} /> Conversations</span>
-            <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">Sessions</h1>
+            <h1 className="display text-gradient text-4xl md:text-5xl mt-3">Sessions</h1>
             <p className="text-text-secondary text-sm mt-2">
               Every conversation is stored locally — resume any thread.
             </p>

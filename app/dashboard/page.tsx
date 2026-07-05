@@ -46,7 +46,7 @@ export default function Overview() {
           <span className="eyebrow">
             <Sparkles size={11} /> AI Command Center
           </span>
-          <h1 className="display text-gradient text-5xl md:text-6xl font-extrabold mt-5 max-w-2xl">
+          <h1 className="display text-gradient text-5xl md:text-6xl mt-5 max-w-2xl">
             Your AI command center.
           </h1>
           <p className="text-text-secondary text-sm md:text-base mt-4 max-w-xl leading-relaxed">

@@ -86,7 +86,7 @@ export default function DriveIntegrationPage() {
           <span className="eyebrow">
             <HardDrive size={11} /> Google Drive
           </span>
-          <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">Google Drive</h1>
+          <h1 className="display text-gradient text-4xl md:text-5xl mt-3">Google Drive</h1>
           <p className="text-text-secondary text-sm mt-3 max-w-2xl">
             Pull documents into the notes system and let the agent reference your Drive files in chat for context-aware answers.
           </p>

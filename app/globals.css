@@ -28,8 +28,10 @@
   --shadow-modal: 0 32px 128px rgba(0, 0, 0, 0.7);
   --shadow-inset: inset 0 1px 1px rgba(255, 255, 255, 0.06);
 
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-work-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, "JetBrains Mono", monospace;
+  --font-display: var(--font-instrument-serif), serif;
+  --font-label: var(--font-fragment-mono), ui-monospace, monospace;
 }
 
 @layer base {
@@ -295,14 +297,15 @@
   --color-emerald-accent: #9ca3af;
 }
 :root[data-theme="paper"] {
-  --color-bg-base: #f5f0e8;
-  --color-bg-surface: #fffdf8;
-  --color-bg-elevated: #fffefb;
-  --color-bg-overlay: #efe9df;
-  --color-text-primary: #2a2520;
-  --color-text-secondary: #6a6258;
-  --color-text-muted: #9a9388;
-  --color-emerald-accent: #b45309;
+  /* Paper Signal — the ZB Automations brand default (1d). */
+  --color-bg-base: #f4ecdd;
+  --color-bg-surface: #faf5ea;
+  --color-bg-elevated: #ece1cb;
+  --color-bg-overlay: #e4d6bc;
+  --color-text-primary: #241c14;
+  --color-text-secondary: #5c5142;
+  --color-text-muted: #8a7d68;
+  --color-emerald-accent: #a8461f;
 }
 :root[data-theme="light"] {
   --color-bg-base: #f8f8f8;
@@ -505,8 +508,11 @@
     color: transparent;
   }
   .display {
-    letter-spacing: -0.04em;
-    line-height: 0.95;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    line-height: 1.05;
   }
 
   /* Double-bezel: a glass plate seated in a machined tray (outer shell + core). */

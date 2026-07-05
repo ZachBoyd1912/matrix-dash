@@ -10,8 +10,8 @@ Chat across 20+ providers, run a real on-disk IDE, manage skills, schedule tasks
 [![Framework](https://img.shields.io/badge/framework-Next.js%2015-black?logo=nextdotjs)](https://nextjs.org)
 [![Language](https://img.shields.io/badge/language-TypeScript-blue?logo=typescript)](https://www.typescriptlang.org)
 [![Database](https://img.shields.io/badge/database-better--sqlite3-003b57?logo=sqlite)](https://github.com/WiseLibs/better-sqlite3)
-[![Styling](https://img.shields.io/badge/styling-Tailwind%20CSS%20v4-38bdf8?logo=tailwindcss)](https://tailwindcss.com)
-[![Hosting](https://img.shields.io/badge/self--hosted-your%20machine-34d399)](https://matrix.zbautomations.ie)
+[![Styling](https://img.shields.io/badge/styling-Tailwind%20CSS%20v4-a8461f?logo=tailwindcss)](https://tailwindcss.com)
+[![Hosting](https://img.shields.io/badge/self--hosted-your%20machine-c99a3d)](https://matrix.zbautomations.ie)
 
 </div>
 

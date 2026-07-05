@@ -97,7 +97,7 @@ export default function SlackIntegrationPage() {
           <span className="eyebrow">
             <MessageSquare size={11} /> Slack
           </span>
-          <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">Slack</h1>
+          <h1 className="display text-gradient text-4xl md:text-5xl mt-3">Slack</h1>
           <p className="text-text-secondary text-sm mt-3 max-w-2xl">
             Send summaries, search messages, and let the agent communicate through your connected Slack workspace.
           </p>

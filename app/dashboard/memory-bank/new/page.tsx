@@ -58,7 +58,7 @@ export default function NewMemoryPage() {
             <span className="eyebrow">
               <BrainCircuit size={11} /> Memory Bank
             </span>
-            <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold">
+            <h1 className="display text-gradient text-4xl md:text-5xl ">
               New memory
             </h1>
             <p className="text-text-secondary text-sm">Capture a fact worth remembering.</p>

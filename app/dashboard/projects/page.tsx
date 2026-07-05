@@ -196,7 +196,7 @@ export default function ProjectsPage() {
             <span className="eyebrow">
               <FolderKanban size={11} /> Project Planning
             </span>
-            <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">
+            <h1 className="display text-gradient text-4xl md:text-5xl mt-3">
               Projects
             </h1>
             <p className="text-text-secondary text-sm mt-2">

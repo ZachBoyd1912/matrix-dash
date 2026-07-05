@@ -41,7 +41,7 @@ export default function DiagnosticsPage() {
           <span className="eyebrow">
             <Sparkles size={11} /> System health
           </span>
-          <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">Diagnostics</h1>
+          <h1 className="display text-gradient text-4xl md:text-5xl mt-3">Diagnostics</h1>
           <p className="text-text-secondary text-sm mt-2">Health of every subsystem at a glance.</p>
         </div>
       </div>

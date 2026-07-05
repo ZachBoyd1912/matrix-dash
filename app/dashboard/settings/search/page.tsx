@@ -81,7 +81,7 @@ export default function SearchSettingsPage() {
           <span className="eyebrow">
             <Globe size={11} /> Web Search
           </span>
-          <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">Web Search</h1>
+          <h1 className="display text-gradient text-4xl md:text-5xl mt-3">Web Search</h1>
           <p className="text-text-secondary text-sm mt-3 max-w-2xl">
             Give chat live search grounding. Configure your search provider and test connectivity before enabling agent tools.
           </p>

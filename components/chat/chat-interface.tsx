@@ -330,7 +330,7 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
               <div className="grid place-items-center w-16 h-16 rounded-2xl glass bezel sheen transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]">
                 <LogoMark size={40} />
               </div>
-              <h1 className="text-3xl font-extrabold tracking-tight text-text-primary">Matrix Dash</h1>
+              <h1 className="font-display italic text-3xl text-text-primary">Matrix Dash</h1>
               <p className="eyebrow text-text-muted">Your AI command center</p>
             </div>
             {noProvider && (

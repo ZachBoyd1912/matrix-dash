@@ -107,7 +107,7 @@ export default function CalendarSettingsPage() {
         <div className="orb top-0 left-40 h-40 w-40 bg-rose-500/15" style={{ animationDelay: "-6s" }} />
         <div className="relative">
           <span className="eyebrow"><Calendar size={11} /> Calendar</span>
-          <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">Calendar</h1>
+          <h1 className="display text-gradient text-4xl md:text-5xl mt-3">Calendar</h1>
           <p className="text-text-secondary text-sm mt-3 max-w-xl">
             Manage personal calendars — local, CalDAV, or Google Calendar.
           </p>

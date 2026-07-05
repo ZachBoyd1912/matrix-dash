@@ -74,7 +74,7 @@ export default function BackupsPage() {
           <span className="eyebrow">
             <DatabaseBackup size={11} /> Snapshots
           </span>
-          <h2 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">
+          <h2 className="display text-gradient text-4xl md:text-5xl mt-3">
             Backups
           </h2>
           <p className="text-text-secondary text-sm mt-3">

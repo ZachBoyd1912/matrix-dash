@@ -71,7 +71,7 @@ export default function ImagesPage() {
           <span className="eyebrow">
             <Sparkles size={11} /> Image Studio
           </span>
-          <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">
+          <h1 className="display text-gradient text-4xl md:text-5xl mt-3">
             Image generation
           </h1>
           <p className="text-text-secondary text-sm mt-3 max-w-2xl">

@@ -108,7 +108,7 @@ function GitHubIntegrationInner() {
           <span className="eyebrow">
             <Github size={11} /> GitHub
           </span>
-          <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">GitHub</h1>
+          <h1 className="display text-gradient text-4xl md:text-5xl mt-3">GitHub</h1>
           <p className="text-text-secondary text-sm mt-3 max-w-2xl">
             Connect your GitHub account to let the agent manage repositories, issues, pull requests, and read code.
           </p>

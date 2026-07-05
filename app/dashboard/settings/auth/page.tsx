@@ -69,7 +69,7 @@ export default function AuthPage() {
           <span className="eyebrow">
             <ShieldCheck size={11} /> Security
           </span>
-          <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">
+          <h1 className="display text-gradient text-4xl md:text-5xl mt-3">
             Security (2FA)
           </h1>
           <p className="text-text-secondary text-sm mt-3 max-w-2xl">

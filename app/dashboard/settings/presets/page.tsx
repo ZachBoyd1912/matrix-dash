@@ -57,7 +57,7 @@ export default function PresetsPage() {
           <span className="eyebrow">
             <Sparkles size={11} /> Personas
           </span>
-          <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">Personas</h1>
+          <h1 className="display text-gradient text-4xl md:text-5xl mt-3">Personas</h1>
           <p className="text-text-secondary text-sm mt-3 max-w-2xl">
             Pre-built system prompts you can swap into a chat (&ldquo;Jarvis butler&rdquo;, &ldquo;Senior reviewer&rdquo;, etc.).
           </p>

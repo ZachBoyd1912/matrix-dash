@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>ZB Automations — AI Automation Studio</title>
 <meta name="description" content="ZB Automations builds Matrix: a local-first AI command center. Multi-provider chat, an on-disk IDE, autonomous agents, and an agency-grade site builder — one private control plane for your entire workflow." />
-<meta name="theme-color" content="#050505" />
+<meta name="theme-color" content="#a8461f" />
 
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
@@ -22,41 +22,41 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Work+Sans:wght@400;500;600;700&family=Fragment+Mono&display=swap" rel="stylesheet" />
 
 <style>
   /* ════════════════════════════════════════════════════════════════
      ZB AUTOMATIONS — landing. Design tokens mirror Matrix Dashboard's
-     Aurora Spatial layer (app/globals.css): emerald accent, near-black
-     surfaces, glassmorphism, GPU-only motion. One confident hue.
+     Paper Signal brand layer (app/globals.css): rust signal, warm paper
+     surfaces, hairline borders, serif-italic display type.
      ════════════════════════════════════════════════════════════════ */
   :root {
-    --bg-base: #050505;
-    --bg-surface: #0d0d0d;
-    --bg-elevated: #141414;
+    --bg-base: #f4ecdd;
+    --bg-surface: #faf5ea;
+    --bg-elevated: #ece1cb;
 
-    --text-primary: #e8e8e8;
-    --text-secondary: #8a8a8a;
-    --text-muted: #555;
+    --text-primary: #241c14;
+    --text-secondary: #5c5142;
+    --text-muted: #8a7d68;
 
-    --accent: #34d399;       /* emerald — Matrix signature */
-    --accent-2: #38bdf8;     /* sky, used sparingly */
-    --accent-3: #a855f7;     /* violet, ambient only */
+    --accent: #a8461f;       /* rust — ZB Automations signal */
+    --accent-2: #c99a3d;     /* ochre, secondary highlight */
+    --accent-3: #c99a3d;     /* ochre, ambient only */
 
-    --border-subtle: rgba(255,255,255,0.06);
-    --border-default: rgba(255,255,255,0.10);
-    --border-strong: rgba(255,255,255,0.18);
+    --border-subtle: rgba(36,28,20,0.10);
+    --border-default: rgba(36,28,20,0.16);
+    --border-strong: rgba(36,28,20,0.26);
 
     --ease-soft: cubic-bezier(0.16, 1, 0.3, 1);
     --ease-spatial: cubic-bezier(0.32, 0.72, 0, 1);
 
-    --shadow-card: 0 8px 32px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.05);
-    --shadow-elevated: 0 16px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08);
+    --shadow-card: 0 8px 32px rgba(36,28,20,0.10), 0 0 0 1px rgba(36,28,20,0.05);
+    --shadow-elevated: 0 16px 64px rgba(36,28,20,0.16), 0 0 0 1px rgba(36,28,20,0.07);
 
     --maxw: 1180px;
-    --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
-    --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
-    --font-mono: "JetBrains Mono", ui-monospace, monospace;
+    --font-display: "Instrument Serif", serif;
+    --font-body: "Work Sans", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: "Fragment Mono", ui-monospace, monospace;
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -79,14 +79,14 @@
   .aurora {
     position: fixed; inset: 0; z-index: -2; pointer-events: none;
     background-image:
-      radial-gradient(at 18% 10%, rgba(52,211,153,0.12) 0px, transparent 52%),
-      radial-gradient(at 84% 6%, rgba(56,189,248,0.07) 0px, transparent 48%),
-      radial-gradient(at 62% 88%, rgba(168,85,247,0.06) 0px, transparent 54%);
+      radial-gradient(at 18% 10%, rgba(168,70,31,0.12) 0px, transparent 52%),
+      radial-gradient(at 84% 6%, rgba(201,154,61,0.07) 0px, transparent 48%),
+      radial-gradient(at 62% 88%, rgba(201,154,61,0.06) 0px, transparent 54%);
   }
   /* Subtle dot grid overlay for depth. */
   .grid-overlay {
     position: fixed; inset: 0; z-index: -2; pointer-events: none;
-    background-image: radial-gradient(rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-image: radial-gradient(rgba(36,28,20,0.05) 1px, transparent 1px);
     background-size: 38px 38px;
     mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, #000 30%, transparent 75%);
     -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, #000 30%, transparent 75%);
@@ -97,13 +97,13 @@
     z-index: -1; pointer-events: none; will-change: transform; opacity: 0.5;
   }
   .orb-1 { top: -120px; left: -80px; width: 480px; height: 480px;
-    background: radial-gradient(circle, rgba(52,211,153,0.28), transparent 70%);
+    background: radial-gradient(circle, rgba(168,70,31,0.28), transparent 70%);
     animation: float-a 19s var(--ease-soft) infinite; }
   .orb-2 { top: 30%; right: -160px; width: 520px; height: 520px;
-    background: radial-gradient(circle, rgba(56,189,248,0.16), transparent 70%);
+    background: radial-gradient(circle, rgba(201,154,61,0.16), transparent 70%);
     animation: float-b 23s var(--ease-soft) infinite; }
   .orb-3 { bottom: -180px; left: 30%; width: 560px; height: 560px;
-    background: radial-gradient(circle, rgba(168,85,247,0.14), transparent 70%);
+    background: radial-gradient(circle, rgba(201,154,61,0.14), transparent 70%);
     animation: float-a 27s var(--ease-soft) infinite reverse; }
 
   @keyframes float-a { 0%,100%{transform:translate3d(0,0,0) scale(1);} 50%{transform:translate3d(40px,-40px,0) scale(1.08);} }
@@ -113,22 +113,22 @@
   .cursor-glow {
     position: fixed; top: 0; left: 0; width: 460px; height: 460px;
     border-radius: 9999px; z-index: -1; pointer-events: none;
-    background: radial-gradient(circle, rgba(52,211,153,0.07), transparent 65%);
+    background: radial-gradient(circle, rgba(168,70,31,0.07), transparent 65%);
     transform: translate3d(-50%, -50%, 0); transition: opacity 0.4s ease;
     will-change: transform; opacity: 0;
   }
 
-  ::selection { background: rgba(52,211,153,0.3); color: #fff; }
+  ::selection { background: rgba(168,70,31,0.3); color: #241c14; }
   ::-webkit-scrollbar { width: 9px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 5px; }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.16); }
+  ::-webkit-scrollbar-thumb { background: rgba(36,28,20,0.14); border-radius: 5px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(36,28,20,0.25); }
 
   .wrap { width: 100%; max-width: var(--maxw); margin-inline: auto; padding-inline: 28px; }
 
   /* ───── Glass primitives ───── */
   .glass {
-    background: rgba(18,18,18,0.55);
+    background: rgba(250,245,234,0.62);
     backdrop-filter: blur(24px) saturate(140%);
     -webkit-backdrop-filter: blur(24px) saturate(140%);
     border: 1px solid var(--border-subtle);
@@ -162,7 +162,7 @@
     border-bottom: 1px solid transparent;
   }
   header.nav.scrolled {
-    background: rgba(8,8,8,0.7);
+    background: rgba(244,236,221,0.75);
     backdrop-filter: blur(20px) saturate(140%);
     -webkit-backdrop-filter: blur(20px) saturate(140%);
     border-bottom: 1px solid var(--border-subtle);
@@ -170,8 +170,7 @@
   .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 70px; }
   .brand { display: flex; align-items: center; gap: 11px; text-decoration: none; color: var(--text-primary); }
   .brand .mark { width: 30px; height: 30px; flex-shrink: 0; }
-  .brand .name { font-family: var(--font-display); font-weight: 600; font-size: 15.5px; letter-spacing: -0.02em; }
-  .brand .name b { color: var(--accent); font-weight: 600; }
+  .brand .name { font-family: var(--font-display); font-style: italic; font-size: 17px; letter-spacing: -0.01em; }
   .nav-links { display: flex; align-items: center; gap: 34px; }
   .nav-links a.link {
     color: var(--text-secondary); text-decoration: none; font-size: 13.5px; font-weight: 450;
@@ -197,8 +196,8 @@
   .btn:hover .arrow { transform: translateX(3px); }
 
   .btn-primary {
-    color: #04140d; font-weight: 600;
-    background: linear-gradient(135deg, #5eead4, var(--accent) 60%, #1fae7e);
+    color: #faf5ea; font-weight: 600;
+    background: var(--accent);
     box-shadow: 0 8px 28px -10px color-mix(in srgb, var(--accent) 75%, transparent),
                 inset 0 1px 0 rgba(255,255,255,0.35);
   }
@@ -209,18 +208,18 @@
   }
   .btn-ghost {
     color: var(--text-primary);
-    background: rgba(255,255,255,0.03);
+    background: rgba(36,28,20,0.04);
     border: 1px solid var(--border-default);
     backdrop-filter: blur(8px);
   }
-  .btn-ghost:hover { transform: translateY(-2px); border-color: var(--border-strong); background: rgba(255,255,255,0.06); }
+  .btn-ghost:hover { transform: translateY(-2px); border-color: var(--border-strong); background: rgba(36,28,20,0.07); }
 
   /* ───── Hero ───── */
   .hero { position: relative; padding: 190px 0 110px; }
   .hero-grid { display: grid; grid-template-columns: 1.18fr 0.82fr; gap: 56px; align-items: center; }
 
   .hero h1 {
-    font-family: var(--font-display); font-weight: 700;
+    font-family: var(--font-display); font-style: italic;
     font-size: clamp(2.9rem, 6.4vw, 5.2rem);
     line-height: 0.98; letter-spacing: -0.035em; margin: 26px 0 0;
   }
@@ -235,7 +234,7 @@
   }
   .hero-cta { display: flex; gap: 14px; margin-top: 38px; flex-wrap: wrap; }
   .hero-meta { display: flex; gap: 26px; margin-top: 46px; flex-wrap: wrap; }
-  .hero-meta .item .k { font-family: var(--font-display); font-weight: 600; font-size: 1.5rem; letter-spacing: -0.03em; }
+  .hero-meta .item .k { font-family: var(--font-display); font-style: italic; font-size: 1.5rem; letter-spacing: -0.03em; }
   .hero-meta .item .v { color: var(--text-muted); font-size: 12px; font-family: var(--font-mono); letter-spacing: 0.04em; text-transform: uppercase; margin-top: 2px; }
 
   /* Hero side: live terminal card */
@@ -245,7 +244,7 @@
     background: rgba(10,10,10,0.72);
     backdrop-filter: blur(28px) saturate(150%); -webkit-backdrop-filter: blur(28px) saturate(150%);
     border: 1px solid var(--border-default);
-    box-shadow: var(--shadow-elevated), 0 40px 80px -40px rgba(52,211,153,0.25);
+    box-shadow: var(--shadow-elevated), 0 40px 80px -40px rgba(168,70,31,0.25);
   }
   .terminal::before {
     content: ""; position: absolute; inset: 0 18% auto 18%; height: 1px; border-radius: 9999px;
@@ -254,7 +253,7 @@
   }
   .term-bar { display: flex; align-items: center; gap: 7px; padding: 13px 16px; border-bottom: 1px solid var(--border-subtle); }
   .term-bar .dot { width: 11px; height: 11px; border-radius: 9999px; }
-  .dot.r { background: #f43f5e; } .dot.y { background: #fbbf24; } .dot.g { background: #34d399; }
+  .dot.r { background: #f43f5e; } .dot.y { background: #fbbf24; } .dot.g { background: #3f6b3f; }
   .term-bar .title { margin-left: 8px; font-family: var(--font-mono); font-size: 11.5px; color: var(--text-muted); }
   .term-body { padding: 18px 18px 22px; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.85; }
   .term-body .row { opacity: 0; transform: translateY(6px); animation: term-in 0.5s var(--ease-soft) forwards; }
@@ -270,7 +269,7 @@
   section { position: relative; padding: 96px 0; }
   .sec-head { max-width: 640px; margin-bottom: 56px; }
   .sec-head h2 {
-    font-family: var(--font-display); font-weight: 600;
+    font-family: var(--font-display); font-style: italic;
     font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -0.03em; line-height: 1.05; margin-top: 18px;
   }
   .sec-head p { color: var(--text-secondary); font-size: 1.05rem; margin-top: 16px; max-width: 56ch; }
@@ -279,14 +278,14 @@
   .marquee { overflow: hidden; padding: 26px 0; border-top: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle); -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); }
   .marquee-track { display: flex; gap: 56px; width: max-content; animation: scroll-x 34s linear infinite; }
   .marquee:hover .marquee-track { animation-play-state: paused; }
-  .marquee span { font-family: var(--font-display); font-weight: 500; font-size: 1.05rem; color: var(--text-muted); white-space: nowrap; letter-spacing: -0.01em; }
+  .marquee span { font-family: var(--font-display); font-style: italic; font-size: 1.05rem; color: var(--text-muted); white-space: nowrap; letter-spacing: -0.01em; }
   @keyframes scroll-x { to { transform: translateX(-50%); } }
 
   /* ───── Bento ───── */
   .bento { display: grid; grid-template-columns: repeat(6, 1fr); gap: 18px; }
   .card {
     position: relative; border-radius: 18px; padding: 28px; overflow: hidden;
-    background: rgba(18,18,18,0.5);
+    background: rgba(250,245,234,0.55);
     backdrop-filter: blur(20px) saturate(135%); -webkit-backdrop-filter: blur(20px) saturate(135%);
     border: 1px solid var(--border-subtle);
     transition: transform 0.5s var(--ease-soft), box-shadow 0.5s var(--ease-soft), border-color 0.5s var(--ease-soft);
@@ -312,16 +311,16 @@
     border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
     color: var(--accent); margin-bottom: 18px;
   }
-  .card h3 { font-family: var(--font-display); font-weight: 600; font-size: 1.18rem; letter-spacing: -0.02em; }
+  .card h3 { font-family: var(--font-display); font-style: italic; font-size: 1.18rem; letter-spacing: -0.02em; }
   .card p { color: var(--text-secondary); font-size: 0.94rem; margin-top: 9px; line-height: 1.6; }
   .card .tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 16px; }
-  .card .tag { font-family: var(--font-mono); font-size: 10.5px; color: var(--text-muted); padding: 3px 9px; border-radius: 7px; border: 1px solid var(--border-subtle); background: rgba(255,255,255,0.02); }
+  .card .tag { font-family: var(--font-mono); font-size: 10.5px; color: var(--text-muted); padding: 3px 9px; border-radius: 7px; border: 1px solid var(--border-subtle); background: rgba(36,28,20,0.035); }
 
   /* ───── Stats ───── */
   .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
   .stat { text-align: center; padding: 38px 20px; border-radius: 16px; }
   .stat .num {
-    font-family: var(--font-display); font-weight: 700; font-size: clamp(2.4rem, 5vw, 3.4rem); letter-spacing: -0.04em; line-height: 1;
+    font-family: var(--font-display); font-style: italic; font-size: clamp(2.4rem, 5vw, 3.4rem); letter-spacing: -0.04em; line-height: 1;
     background: linear-gradient(135deg, var(--text-primary), color-mix(in srgb, var(--accent) 60%, var(--text-primary)) 60%, var(--accent));
     -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
   }
@@ -330,9 +329,9 @@
   /* ───── Builder showcase ───── */
   .showcase { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 50px; align-items: center; }
   .showcase .pane {
-    border-radius: 20px; padding: 8px; background: rgba(255,255,255,0.025);
+    border-radius: 20px; padding: 8px; background: rgba(36,28,20,0.035);
     border: 1px solid var(--border-subtle);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 30px 70px -34px rgba(0,0,0,0.7);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 30px 70px -34px rgba(36,28,20,0.4);
   }
   .showcase .pane-core {
     border-radius: 14px; background: var(--bg-surface); overflow: hidden;
@@ -340,7 +339,7 @@
   }
   .gen-bar { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--border-subtle); font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
   .gen-canvas { padding: 22px; display: grid; gap: 12px; }
-  .skel { border-radius: 8px; background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(52,211,153,0.10) 50%, rgba(255,255,255,0.04) 75%); background-size: 200% 100%; animation: shimmer 2.4s linear infinite; }
+  .skel { border-radius: 8px; background: linear-gradient(90deg, rgba(36,28,20,0.06) 25%, rgba(168,70,31,0.14) 50%, rgba(36,28,20,0.06) 75%); background-size: 200% 100%; animation: shimmer 2.4s linear infinite; }
   @keyframes shimmer { to { background-position: -200% 0; } }
   .skel.h1 { height: 30px; width: 70%; } .skel.h2 { height: 14px; width: 92%; } .skel.h3 { height: 14px; width: 80%; }
   .skel.block { height: 96px; width: 100%; margin-top: 6px; }
@@ -354,16 +353,16 @@
 
   /* ───── CTA band ───── */
   .cta-band { position: relative; overflow: hidden; border-radius: 26px; padding: 72px 40px; text-align: center;
-    background: linear-gradient(160deg, rgba(20,20,20,0.7), rgba(8,8,8,0.7));
+    background: linear-gradient(160deg, var(--bg-elevated), var(--bg-surface));
     border: 1px solid var(--border-default);
     box-shadow: var(--shadow-elevated);
   }
   .cta-band::after {
     content: ""; position: absolute; inset: -40% 20% auto 20%; height: 320px; z-index: 0;
-    background: radial-gradient(ellipse at top, rgba(52,211,153,0.22), transparent 70%); pointer-events: none;
+    background: radial-gradient(ellipse at top, rgba(168,70,31,0.22), transparent 70%); pointer-events: none;
   }
   .cta-band > * { position: relative; z-index: 1; }
-  .cta-band h2 { font-family: var(--font-display); font-weight: 700; font-size: clamp(2rem, 4.5vw, 3.2rem); letter-spacing: -0.035em; line-height: 1.04; }
+  .cta-band h2 { font-family: var(--font-display); font-style: italic; font-size: clamp(2rem, 4.5vw, 3.2rem); letter-spacing: -0.035em; line-height: 1.04; }
   .cta-band p { color: var(--text-secondary); margin: 18px auto 34px; max-width: 48ch; font-size: 1.05rem; }
 
   /* ───── Footer ───── */
@@ -424,13 +423,9 @@
   <div class="wrap nav-inner">
     <a class="brand" href="#top" aria-label="ZB Automations home">
       <svg class="mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="1" width="30" height="30" rx="9" fill="#0b0b0b" stroke="rgba(255,255,255,0.1)"/>
-        <circle cx="10" cy="11" r="2.6" fill="#34d399"/>
-        <circle cx="22" cy="11" r="2.6" fill="#34d399" fill-opacity="0.55"/>
-        <circle cx="16" cy="22" r="2.6" fill="#38bdf8"/>
-        <path d="M10 11.5 L16 21 M22 11.5 L16 21 M10.5 11 H21.5" stroke="#34d399" stroke-width="1.4" stroke-opacity="0.6" stroke-linecap="round"/>
+        <circle cx="16" cy="16" r="14.5" stroke="#a8461f" stroke-width="1.3"/><circle cx="16" cy="16" r="10.5" stroke="#a8461f" stroke-width="1"/><path d="M20 16 L23.5 16 M18.83 18.83 L21.3 21.3 M16 20 L16 23.5 M13.17 18.83 L10.7 21.3 M12 16 L8.5 16 M13.17 13.17 L10.7 10.7 M16 12 L16 8.5 M18.83 13.17 L21.3 10.7" stroke="#a8461f" stroke-width="1.4" stroke-linecap="round"/>
       </svg>
-      <span class="name">ZB<b>·</b>Automations</span>
+      <span class="name">ZB Automations</span>
     </a>
     <nav class="nav-links">
       <a class="link" href="#platform">Platform</a>
@@ -565,7 +560,7 @@
     <div class="wrap showcase">
       <div class="pane reveal">
         <div class="pane-core">
-          <div class="gen-bar"><span class="dot g" style="width:9px;height:9px;border-radius:9999px;background:#34d399;display:inline-block"></span> matrix-builder · generating</div>
+          <div class="gen-bar"><span class="dot g" style="width:9px;height:9px;border-radius:9999px;background:#3f6b3f;display:inline-block"></span> matrix-builder · generating</div>
           <div class="gen-canvas">
             <div class="skel h1"></div>
             <div class="skel h2"></div>
@@ -618,13 +613,9 @@
       <div class="col-brand">
         <a class="brand" href="#top" aria-label="ZB Automations home">
           <svg class="mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="1" y="1" width="30" height="30" rx="9" fill="#0b0b0b" stroke="rgba(255,255,255,0.1)"/>
-            <circle cx="10" cy="11" r="2.6" fill="#34d399"/>
-            <circle cx="22" cy="11" r="2.6" fill="#34d399" fill-opacity="0.55"/>
-            <circle cx="16" cy="22" r="2.6" fill="#38bdf8"/>
-            <path d="M10 11.5 L16 21 M22 11.5 L16 21 M10.5 11 H21.5" stroke="#34d399" stroke-width="1.4" stroke-opacity="0.6" stroke-linecap="round"/>
+            <circle cx="16" cy="16" r="14.5" stroke="#a8461f" stroke-width="1.3"/><circle cx="16" cy="16" r="10.5" stroke="#a8461f" stroke-width="1"/><path d="M20 16 L23.5 16 M18.83 18.83 L21.3 21.3 M16 20 L16 23.5 M13.17 18.83 L10.7 21.3 M12 16 L8.5 16 M13.17 13.17 L10.7 10.7 M16 12 L16 8.5 M18.83 13.17 L21.3 10.7" stroke="#a8461f" stroke-width="1.4" stroke-linecap="round"/>
           </svg>
-          <span class="name">ZB<b>·</b>Automations</span>
+          <span class="name">ZB Automations</span>
         </a>
         <p>A local-first AI command center. Built and self-hosted on infrastructure you own.</p>
       </div>

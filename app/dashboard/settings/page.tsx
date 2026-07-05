@@ -36,7 +36,7 @@ export default function ProvidersPage() {
           <span className="eyebrow">
             <Plug size={11} /> AI Providers
           </span>
-          <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">
+          <h1 className="display text-gradient text-4xl md:text-5xl mt-3">
             AI Providers
           </h1>
           <p className="text-text-secondary text-sm mt-3 max-w-xl">

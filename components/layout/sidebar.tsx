@@ -31,12 +31,12 @@ export function Sidebar() {
         <div className="flex items-center justify-between px-3 h-14 border-b border-white/5">
           <Link href="/dashboard" className="group flex items-center gap-2.5 overflow-hidden">
             <span className="relative grid place-items-center shrink-0">
-              <span className="absolute inset-0 rounded-lg bg-emerald-400/25 blur-md opacity-50 group-hover:opacity-100 transition-opacity duration-500" />
+              <span className="absolute inset-0 rounded-lg bg-[#a8461f]/20 blur-md opacity-50 group-hover:opacity-100 transition-opacity duration-500" />
               <LogoMark size={24} className="relative" />
             </span>
             {!collapsed && (
-              <span className="font-extrabold tracking-tight text-text-primary text-[15px] whitespace-nowrap">
-                Matrix<span className="text-emerald-400">.</span>Dash
+              <span className="font-display italic text-text-primary text-[16px] whitespace-nowrap">
+                Matrix Dash
               </span>
             )}
           </Link>

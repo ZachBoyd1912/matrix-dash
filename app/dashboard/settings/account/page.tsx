@@ -53,7 +53,7 @@ export default function AccountPage() {
           <span className="eyebrow">
             <UserCircle size={11} /> Profile
           </span>
-          <h2 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">
+          <h2 className="display text-gradient text-4xl md:text-5xl mt-3">
             Account
           </h2>
           <p className="text-text-secondary text-sm mt-3 max-w-xl">

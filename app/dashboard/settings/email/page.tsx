@@ -137,7 +137,7 @@ export default function EmailSettingsPage() {
           <span className="eyebrow">
             <Mail size={11} /> Email
           </span>
-          <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">Email</h1>
+          <h1 className="display text-gradient text-4xl md:text-5xl mt-3">Email</h1>
           <p className="text-text-secondary text-sm mt-3 max-w-2xl">
             Connect a real IMAP/SMTP account for live sync, sending, and AI triage. Credentials are
             AES-256-GCM encrypted at rest.

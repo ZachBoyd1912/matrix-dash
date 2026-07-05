@@ -68,7 +68,7 @@ export default function TokensPage() {
           <span className="eyebrow">
             <KeyRound size={11} /> API Access
           </span>
-          <h2 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">
+          <h2 className="display text-gradient text-4xl md:text-5xl mt-3">
             API Tokens
           </h2>
           <p className="text-text-secondary text-sm mt-3 max-w-2xl">

@@ -142,7 +142,7 @@ export default function ComparePage() {
             <span className="eyebrow mb-4">
               <GitCompare size={11} /> Model Arena
             </span>
-            <h1 className="display text-gradient text-5xl md:text-6xl font-extrabold mt-4">Compare</h1>
+            <h1 className="display text-gradient text-5xl md:text-6xl mt-4">Compare</h1>
             <p className="text-text-secondary text-sm mt-3 max-w-md">
               Run one prompt across up to four models, side by side. Generated sites render{" "}
               <span className="text-text-primary">live</span>. Blind mode hides names until you vote.

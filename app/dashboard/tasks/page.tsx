@@ -27,7 +27,7 @@ export default function TasksPage() {
         <div className="relative flex items-center justify-between">
           <div>
             <span className="eyebrow"><ListChecks size={11} /> Tasks &amp; Automations</span>
-            <h1 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">Tasks &amp; Automations</h1>
+            <h1 className="display text-gradient text-4xl md:text-5xl mt-3">Tasks &amp; Automations</h1>
             <p className="text-text-secondary text-sm mt-2">
               To-dos with reminders, plus scheduled jobs Jarvis runs for you.
             </p>

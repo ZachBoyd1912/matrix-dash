@@ -58,7 +58,7 @@ export default function ContactsPage() {
           <span className="eyebrow">
             <ContactIcon size={11} /> Address Book
           </span>
-          <h2 className="display text-gradient text-4xl md:text-5xl font-extrabold mt-3">Contacts</h2>
+          <h2 className="display text-gradient text-4xl md:text-5xl mt-3">Contacts</h2>
           <p className="text-text-secondary text-sm mt-2">
             A tiny address book the agent uses when you say &ldquo;email Alice&rdquo;.
           </p>

@@ -33,12 +33,12 @@ export const THEMES: ThemeMeta[] = [
   { id: "lavender", label: "Lavender", bg: "#1a1528", surface: "#241d38", accent: "#a78bfa" },
   { id: "cute", label: "Cute", bg: "#1f0a1f", surface: "#2c0f2c", accent: "#f472b6" },
   { id: "gpt", label: "GPT", bg: "#0d0d0d", surface: "#161616", accent: "#9ca3af" },
-  { id: "paper", label: "Paper", bg: "#f5f0e8", surface: "#fffdf8", accent: "#b45309", light: true },
+  { id: "paper", label: "Paper Signal", bg: "#f4ecdd", surface: "#faf5ea", accent: "#a8461f", light: true },
   { id: "light", label: "Light", bg: "#f8f8f8", surface: "#ffffff", accent: "#34d399", light: true },
 ];
 
 export const THEME_IDS = THEMES.map((t) => t.id);
-export const DEFAULT_THEME = "matrix";
+export const DEFAULT_THEME = "paper";
 
 export function themeMeta(id: string): ThemeMeta | undefined {
   return THEMES.find((t) => t.id === id);
