@@ -2,6 +2,16 @@
 
 # Changelog
 
+## 05/07/2026 @ 21:40:28 IST — "Claude Sonnet 5"
+
+**Goal:** Unblock the production redeploy attempted in the previous entry — it failed before reaching the build/restart/sync steps.
+
+**Fixed:** The VM's `deploy/setup-server.sh` run failed at `pnpm install --frozen-lockfile` with `[ERR_PNPM_IGNORED_BUILDS]` for `better-sqlite3`, `esbuild`, and `sharp` — the VM's `corepack prepare pnpm@latest --activate` step picked up a pnpm version that no longer reads the `pnpm.onlyBuiltDependencies` key in `package.json` (pnpm's own warning: "no longer read... see https://pnpm.io/settings for the new home of each setting"). Moved this setting to a new `pnpm-workspace.yaml` at the repo root (pnpm's current expected location for build-approval config), and added `esbuild`/`sharp` to the allowlist alongside `better-sqlite3` (only the latter was previously listed, but the newer pnpm now gates all three). Verified locally: `pnpm install --frozen-lockfile` no longer prints the ignored-builds warning. Cause: this repo had never hit a pnpm version new enough to enforce this until the VM's `corepack prepare pnpm@latest` picked one up mid-deploy — nothing broke locally because the local lockfile's dependencies were already built once before this pnpm behavior existed.
+
+**Verification:** `pnpm typecheck` clean; `pnpm install --frozen-lockfile` clean (no ignored-builds warning). Full production redeploy re-attempted next.
+
+**Files Touched:** `package.json`, `pnpm-workspace.yaml` (NEW), `CHANGELOG.md`.
+
 ## 05/07/2026 @ 21:37:27 IST — "Claude Sonnet 5"
 
 **Goal:** Fix the Paper Signal rebrand (54be725/e91d885) never having gone live in production, and add real SEO/GEO to the one surface that's actually publicly crawlable — discovered via direct verification (curl against the live domains) rather than assumption, per user report that "the brand kit update didn't go live."
