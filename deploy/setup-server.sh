@@ -51,7 +51,11 @@ if [ ! -f .env.production ] && [ -f deploy/.env.production ]; then
 fi
 
 pnpm install --frozen-lockfile
-pnpm build
+
+# The e2-micro's ~955MB RAM leads Node to auto-detect a heap ceiling around
+# ~470-490MB, which OOMs during the build's type-checking pass. Raise it
+# explicitly — the VM has 2GB swap to back it (confirmed via `free -h`).
+NODE_OPTIONS="--max-old-space-size=2048" pnpm build
 
 # The standalone output is at .next/standalone/. Copy static + public there.
 cp -r .next/static "$STANDALONE_DIR/.next/static"

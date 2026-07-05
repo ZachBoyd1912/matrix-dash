@@ -2,6 +2,16 @@
 
 # Changelog
 
+## 05/07/2026 @ 22:27:30 IST — "Claude Sonnet 5"
+
+**Goal:** Fix a build-time OOM crash on the VM discovered once the pnpm blockers were finally clear — `next build` compiled successfully (7.4min) then crashed during its type-checking pass with "FATAL ERROR: Reached heap limit Allocation failed."
+
+**Fixed:** `free -h` on the VM showed the crash wasn't a true system OOM — swap had ~1.7GB free at the time. The e2-micro's ~955MB physical RAM makes V8 auto-detect a conservative old-space heap ceiling (crash logs showed it topping out around 472-491MB), well under what the 2GB swap could actually back. Added `NODE_OPTIONS="--max-old-space-size=2048"` to the `pnpm build` invocation in `deploy/setup-server.sh`. Verified directly on the VM before committing: a manual `NODE_OPTIONS="--max-old-space-size=2048" pnpm build` completed the full build successfully, including the new `app/robots.ts` (`/robots.txt` appears correctly in the route manifest) and `/manifest.webmanifest`.
+
+**Verification:** Full build succeeded end-to-end on the VM with this fix (exit code 0, complete route manifest printed) before this change was committed.
+
+**Files Touched:** `deploy/setup-server.sh`, `CHANGELOG.md`.
+
 ## 05/07/2026 @ 21:47:28 IST — "Claude Sonnet 5"
 
 **Goal:** Fix the pnpm-workspace.yaml build-approval config for real — my earlier `onlyBuiltDependencies`-only fix still failed identically on the VM even after the branch switch.
