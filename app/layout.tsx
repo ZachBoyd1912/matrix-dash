@@ -30,6 +30,8 @@ export const metadata: Metadata = {
   title: SITE_TITLE,
   description: SITE_DESCRIPTION,
   metadataBase: new URL(SITE_URL),
+  robots: { index: false, follow: false },
+  alternates: { canonical: SITE_URL },
   icons: {
     apple: "/apple-touch-icon.png",
   },

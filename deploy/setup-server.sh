@@ -95,10 +95,10 @@ sudo systemctl enable matrix-dash
 
 echo "=== 6. Set up landing page ==="
 sudo mkdir -p "$LANDING_DIR"
-if [ -f "$APP_DIR/deploy/landing/index.html" ]; then
-  sudo cp "$APP_DIR/deploy/landing/index.html" "$LANDING_DIR/index.html"
+if [ -d "$APP_DIR/deploy/landing" ]; then
+  sudo rsync -a --delete "$APP_DIR/deploy/landing/" "$LANDING_DIR/"
 else
-  echo "  WARN: deploy/landing/index.html not found — writing minimal fallback"
+  echo "  WARN: deploy/landing/ not found — writing minimal fallback"
   sudo tee "$LANDING_DIR/index.html" > /dev/null <<'HTML'
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ZB Automations</title></head>

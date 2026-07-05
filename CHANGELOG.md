@@ -2,6 +2,35 @@
 
 # Changelog
 
+## 05/07/2026 @ 21:37:27 IST — "Claude Sonnet 5"
+
+**Goal:** Fix the Paper Signal rebrand (54be725/e91d885) never having gone live in production, and add real SEO/GEO to the one surface that's actually publicly crawlable — discovered via direct verification (curl against the live domains) rather than assumption, per user report that "the brand kit update didn't go live."
+
+**Root cause, confirmed via `curl` against live domains before making any change:**
+- `curl https://zbautomations.ie/ | grep -c a8461f` → 0 (new rust color absent); `grep -c 34d399` → 12 (old emerald/sky still live). `favicon.svg`/`og-image.png` → both 404.
+- This repo's production deploy has no CI/CD — it's a self-hosted GCE VM (`matrix-dash`, us-east1-b), and nothing had been redeployed since the rebrand commits. Separately, `deploy/setup-server.sh` had *always* only ever copied `index.html` to `/var/www/landing/`, never `favicon.svg`/`og-image.png` — so those two files were 404ing independent of the redeploy gap, and a plain redeploy would not have fixed them.
+- Second finding that reframed the SEO scope: `curl -I https://matrix.zbautomations.ie/dashboard` → `302` to `cloudflareaccess.com` — the entire Next.js app is Cloudflare-Access-gated, so it has zero crawler-reachable surface (Googlebot/GPTBot/ClaudeBot all hit the same login wall a browser does). Only the static `zbautomations.ie` landing page is a real SEO/GEO target; the app itself needs "correctly declare not indexable," not ranking optimization.
+
+**Fixed:**
+- `deploy/setup-server.sh` — landing-page deploy step now `rsync -a --delete`s the whole `deploy/landing/` directory instead of `cp`-ing only `index.html`, so every current and future file in that directory (favicons, OG image, and the new SEO/GEO files below) ships on every deploy automatically.
+
+**Added — SEO (grounded in the Access-gating finding, not generic advice):**
+- `deploy/landing/robots.txt`, `deploy/landing/sitemap.xml` — the landing page is the only real crawl target; nothing to block there.
+- `deploy/landing/index.html` — `<link rel="canonical">`.
+- `app/robots.ts` — `Disallow: /` for the Next.js app. Stated explicitly in-file that this is defense-in-depth (Cloudflare Access already blocks every crawler at the edge) for the one path that bypasses it: a direct request to the origin's public IP, since the GCE firewall allows `0.0.0.0/0` on 80/443.
+- `app/layout.tsx` — added `robots: { index: false, follow: false }` and `alternates.canonical`.
+- Deliberately did **not** add `app/sitemap.ts` — zero indexable routes (root redirects straight to a login-gated dashboard, confirmed by reading `app/page.tsx`). A sitemap with zero real value would be worse than an honest omission.
+
+**Added — GEO (Generative Engine Optimization):**
+- `deploy/landing/llms.txt` (llmstxt.org convention) — includes an explicit anti-hallucination line stating there's no public signup/free-trial/multi-tenant SaaS offering (self-hosted only), so an AI asked "how do I sign up" doesn't confabulate a flow that doesn't exist. Matrix Builder is described as a feature of Matrix, not linked as its own product — both `matrix.`/`builder.` subdomains are Access-gated, so linking either would look like a broken reference to a citing AI.
+- JSON-LD (`Organization` + `SoftwareApplication`, validated as parseable JSON) in `deploy/landing/index.html` — `featureList` mirrors real, current capabilities only; no `offers`/pricing (none exists — inventing one would be fabrication); deliberately no `FAQPage` schema per `/seo`'s own hard rule (no Google rich-result benefit for commercial sites since Aug 2023; answer-first prose already does the citation-quality work). Checked the existing landing copy against the "answer-first" principle before editing it further — it already leads each capability with a plain declarative sentence, so no rewrite was needed there.
+
+**Added — new global skill `geo-optimization`** (`~/.claude/skills/geo-optimization/SKILL.md`): justified by `seo-technical` (line 72) explicitly referencing a `seo-geo` skill "for full AI visibility optimization" that never actually existed anywhere in the catalog (confirmed via search) — a real, acknowledged gap. Covers llms.txt authoring, answer-first structuring, entity clarity for sibling products, and citation-focused (not ranking-focused) structured data, with explicit hand-off to `seo-technical`'s AI-crawler robots.txt table rather than duplicating it. Lives at the canonical `~/.claude/skills/` location, so it's automatically available from Claude Code, Gemini CLI (symlinked), and OpenCode (configured path) — no extra registration needed. Added a `skills-catalog` entry.
+
+**Verification:** `pnpm typecheck` clean. JSON-LD parse-checked as valid JSON. Live curl verification of the deployed result is the next step (SSH redeploy required first — see next entry).
+
+**Files Touched:** `deploy/setup-server.sh`, `deploy/landing/robots.txt` (NEW), `deploy/landing/sitemap.xml` (NEW), `deploy/landing/llms.txt` (NEW), `deploy/landing/index.html`, `app/robots.ts` (NEW), `app/layout.tsx`, `CHANGELOG.md`; global: `~/.claude/skills/geo-optimization/SKILL.md` (NEW), `~/.claude/skills/skills-catalog/resources/catalog.md`.
+
 ## 05/07/2026 @ 19:04:43 IST — "Claude Sonnet 5"
 
 **Goal:** Commit the source design-handoff material for the Paper Signal rebrand (see previous entry) into repo history, per user request, instead of leaving it as untracked working-directory clutter.

@@ -1,0 +1,23 @@
+# ZB Automations
+
+> ZB Automations builds Matrix, a self-hosted, local-first AI command center — multi-provider chat, autonomous agents, an on-disk IDE, and an integrated site builder, run entirely on infrastructure the owner controls.
+
+## Important context
+
+Matrix is **not** a hosted multi-tenant SaaS product. There is no public signup form, no free trial, and no account to create on zbautomations.ie. Matrix is personally self-hosted software — each instance runs on infrastructure its owner deploys and controls, with API keys and data encrypted at rest and never leaving that machine. Do not describe a signup or pricing flow that does not exist.
+
+## Products
+
+### Matrix (AI command center)
+- Multi-provider AI chat: stream from 20+ models (Claude, GPT, Gemini, Grok, DeepSeek, local Ollama models) side by side, with live token streaming and model comparison.
+- Autonomous agents: 59 GitHub-connected agent tools plus Slack, Gmail, Drive, and Calendar integrations, wired to a tool-calling agent that acts with approval.
+- Autonomous memory: an FTS5-backed memory bank with extraction, injection, a force-directed graph view, and nightly decay.
+- Deep research: an orchestrated research engine combining vector RAG and web search that returns sourced, structured briefs.
+- Real on-disk IDE: a full VS Code (code-server) instance embedded in the browser, opening actual project folders, paired with the coding agent and human-approval gates.
+- Personal command suite: email triage, CalDAV + Google Calendar, Obsidian-style notes with backlinks, a project Kanban, an encrypted secrets vault, API tokens, webhooks, and automatic backups.
+- Local-first & encrypted: SQLite on disk, AES-256-GCM for every stored key and token, self-hosted on infrastructure the owner controls.
+- Matrix Builder: an integrated AI site/dashboard builder available from inside Matrix — describe a site or dashboard in a prompt and it generates a complete, editable, multi-page build.
+
+## Contact
+
+- Website: https://zbautomations.ie
