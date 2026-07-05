@@ -2,6 +2,16 @@
 
 # Changelog
 
+## 05/07/2026 @ 21:47:28 IST — "Claude Sonnet 5"
+
+**Goal:** Fix the pnpm-workspace.yaml build-approval config for real — my earlier `onlyBuiltDependencies`-only fix still failed identically on the VM even after the branch switch.
+
+**Fixed:** The VM runs pnpm 11.10.0 (freshly `corepack prepare pnpm@latest`'d), while local dev is on 10.33.2 — `onlyBuiltDependencies` alone wasn't sufficient for pnpm 11's build-approval gate; it wants an explicit `allowBuilds: { pkg: true }` map instead. Discovered this because pnpm 11 auto-appends a scaffold `allowBuilds` block (`pkg: "set this to true or false"`) into `pnpm-workspace.yaml` when it hits ignored builds — found it contaminating the VM's copy of the file after a prior failed install attempt, which was the clue. Added `allowBuilds: { better-sqlite3: true, esbuild: true, sharp: true }` alongside the existing `onlyBuiltDependencies` list (kept both, not replaced — hedges against the local machine and VM being on different pnpm majors rather than assuming they'll always match). Verified directly on the VM before committing: `pnpm install --frozen-lockfile` now actually runs all five postinstall scripts (better-sqlite3, esbuild ×3, sharp) instead of blocking them.
+
+**Verification:** Live-tested on the VM (not just locally) before finalizing, given the previous fix had passed locally but still failed there.
+
+**Files Touched:** `pnpm-workspace.yaml`, `CHANGELOG.md`.
+
 ## 05/07/2026 @ 21:44:37 IST — "Claude Sonnet 5"
 
 **Goal:** Fix two more production-deploy findings discovered while diagnosing the retried redeploy — a much bigger root cause than the earlier pnpm issue, plus a genuinely dangerous pre-existing script bug.
