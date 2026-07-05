@@ -2,6 +2,14 @@
 
 # Changelog
 
+## 05/07/2026 @ 19:04:43 IST — "Claude Sonnet 5"
+
+**Goal:** Commit the source design-handoff material for the Paper Signal rebrand (see previous entry) into repo history, per user request, instead of leaving it as untracked working-directory clutter.
+
+**Added:** `ZB-Automations-Design-System.zip` (the original zip the user provided) and its extracted contents `design_handoff_zb_automations_brand_system/README.md` + `design_handoff_zb_automations_brand_system/ZB Automations Brand Directions.dc.html` (a Claude design-canvas file showing all 4 candidate brand directions side by side, of which 1d "Paper Signal" was selected and implemented). Reference material only — not read by the app at runtime.
+
+**Files Touched:** `ZB-Automations-Design-System.zip` (NEW), `design_handoff_zb_automations_brand_system/README.md` (NEW), `design_handoff_zb_automations_brand_system/ZB Automations Brand Directions.dc.html` (NEW), `CHANGELOG.md`.
+
 ## 05/07/2026 @ 18:59:22 IST — "Claude Sonnet 5"
 
 **Goal:** Implement brand direction "1d — Paper Signal" from the ZB Automations brand-system design handoff as the new default identity for Matrix Dashboard: warm paper color system, Instrument Serif/Work Sans/Fragment Mono type, wax-seal ring marks, and matching favicons/OG banners/README/landing page — while keeping the existing glass/shadow/backdrop-blur visual language rather than the handoff's flat "no shadows" purity rule (explicit user call).
