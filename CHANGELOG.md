@@ -2,6 +2,23 @@
 
 # Changelog
 
+## 05/07/2026 @ 23:13:22 IST — "Claude Sonnet 5"
+
+**Goal:** Fix a real outage the user caught via screenshot — `builder.zbautomations.ie` returning Cloudflare error 525 "SSL handshake failed" — that this session's own repeated redeploys caused.
+
+**Root cause:** `deploy/Caddyfile` (committed to the repo) never had a `builder.zbautomations.ie` block — only `matrix.zbautomations.ie` and the root landing domain. Per project memory, Builder's Caddy routing had only ever been hand-added directly on the VM's `/etc/caddy/Caddyfile`, never committed back to the repo. `setup-server.sh` step 7 does `cp deploy/Caddyfile /etc/caddy/Caddyfile` on every run — this session ran that script 6 times while chasing the other deploy bugs above, each time silently overwriting the VM's hand-configured file with the incomplete repo version and dropping Builder's routing entirely. Confirmed via `sudo journalctl -u caddy`: Caddy's own startup log showed `"domains":["matrix.zbautomations.ie","zbautomations.ie"]` — Builder wasn't even in Caddy's managed-TLS list anymore. `matrix-builder.service` itself was healthy the whole time (verified: active, listening on `127.0.0.1:5001`, responds `200` locally) — this was purely a reverse-proxy config gap, not a service failure.
+
+**Fixed:** Added a `builder.zbautomations.ie { reverse_proxy localhost:5001 }` block to `deploy/Caddyfile`, applied immediately on the VM (`systemctl reload caddy`), and verified externally: `https://builder.zbautomations.ie` went from a `000`/SSL-handshake-failure to a normal `302` (the expected Cloudflare Access redirect, same as `matrix.zbautomations.ie`).
+
+**Also analyzed from the same screenshot batch, no code change needed:**
+- `zbautomations.ie` still showing the old dark theme in the user's browser: contradicts fresh `curl` checks (no cache) showing correct new content server-side — almost certainly the user's own browser cache serving a stale copy from before the redeploy. Recommended a hard refresh / incognito check.
+- `matrix.zbautomations.ie/dashboard` showing the new logo mark and serif font but an old-looking accent color (not paper): this is **expected**, not a bug — `next-themes` persists the last-selected theme per-browser in localStorage, and this browser already had a different theme selected from before the rebrand. Per the explicit design ("branding stays 1d regardless of which color theme is selected"), a returning browser's stored preference correctly overrides the new default; only new/cleared sessions see Paper Signal by default.
+- Matrix Builder's own favicon (a blue lightning bolt, bolt.new's mark) showing in the browser tab: expected, out of scope — separate repo, never touched.
+
+**Verification:** Live `curl` before and after the fix (`000` → `302`); confirmed `matrix-builder.service` was never actually down via `systemctl status` + `journalctl` + direct localhost:5001 check.
+
+**Files Touched:** `deploy/Caddyfile`, `CHANGELOG.md`.
+
 ## 05/07/2026 @ 22:53:54 IST — "Claude Sonnet 5"
 
 **Goal:** The deploy script finally ran end-to-end successfully (exit 0, "Setup complete!"), but `matrix-dash.service`'s uptime was still 3 days post-deploy — the new build never actually got loaded into the running process.
