@@ -2,6 +2,18 @@
 
 # Changelog
 
+## 05/07/2026 @ 21:44:37 IST — "Claude Sonnet 5"
+
+**Goal:** Fix two more production-deploy findings discovered while diagnosing the retried redeploy — a much bigger root cause than the earlier pnpm issue, plus a genuinely dangerous pre-existing script bug.
+
+**Fixed — critical, verified no actual production impact:**
+- **The VM was never on `main`.** SSH diagnosis showed it checked out on a stale feature branch `feat/matrix-builder-embed` (commit `363977e`) — `git pull` in `setup-server.sh` had been "succeeding" this whole time against that branch's own remote, never touching `main` at all. This is the real root cause of the rebrand never appearing live, deeper than "nothing was redeployed." Verified via `git merge-base --is-ancestor` that `363977e` is already an ancestor of `origin/main` and there are zero commits unique to the feature branch (`git log origin/main..origin/feat/matrix-builder-embed` empty) — safe to switch, nothing lost.
+- **`setup-server.sh` unconditionally overwrote `/opt/matrix-dash/.env.production`** with the repo's placeholder template (`deploy/.env.production`) on every single run, not just first-time bootstrap. My first two (failed) deploy attempts had already done this to the VM's root `.env.production`. Caught before the build step could copy that placeholder into `.next/standalone/.env.production` (the file the *running* systemd service actually reads) — confirmed via `diff` that the standalone copy was untouched and still had real secrets, restored the root copy from it (verified identical after). **Production OAuth was never actually broken at any point** — the exposure window was root-copy-only, closed before the build step that would have propagated it. Fixed `setup-server.sh` itself: now only bootstraps `.env.production` from the placeholder if the file doesn't already exist, never overwrites an existing one.
+
+**Verification:** `diff` confirmed restored root `.env.production` byte-identical to the untouched standalone copy. Branch-safety confirmed via `git merge-base --is-ancestor` + empty unique-commit diff before switching, not assumed.
+
+**Files Touched:** `deploy/setup-server.sh`, `CHANGELOG.md`.
+
 ## 05/07/2026 @ 21:40:28 IST — "Claude Sonnet 5"
 
 **Goal:** Unblock the production redeploy attempted in the previous entry — it failed before reaching the build/restart/sync steps.

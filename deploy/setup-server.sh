@@ -42,10 +42,12 @@ else
   cd "$APP_DIR"
 fi
 
-# Copy production env if present
-if [ -f deploy/.env.production ]; then
+# Bootstrap .env.production from the placeholder template on FIRST setup only.
+# Never overwrite an existing one — the real secrets get filled in by hand
+# after bootstrap and must survive every subsequent redeploy.
+if [ ! -f .env.production ] && [ -f deploy/.env.production ]; then
   cp deploy/.env.production .env.production
-  echo "  Copied .env.production"
+  echo "  Bootstrapped .env.production from placeholder template (fill in real secrets before going live)"
 fi
 
 pnpm install --frozen-lockfile
