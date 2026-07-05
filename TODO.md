@@ -100,12 +100,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
   <div class="todo-orb todo-orb-1"></div>
   <div class="todo-orb todo-orb-2"></div>
   <h1>Matrix Dashboard &amp; Builder — Implementation Plans</h1>
-  <p class="subtitle"><span>18</span> plans · <span>1</span> completed · <span>0</span> in progress · Last updated 04/07/2026 @ 17:59:14 IST</p>
+  <p class="subtitle"><span>18</span> plans · <span>2</span> completed · <span>0</span> in progress · Last updated 05/07/2026 @ 02:53:18 IST</p>
 </div>
 
 <div class="todo-stats">
   <div class="todo-stat"><div class="stat-num">18</div><div class="stat-label">Total Plans</div></div>
-  <div class="todo-stat"><div class="stat-num">1</div><div class="stat-label">Completed</div></div>
+  <div class="todo-stat"><div class="stat-num">2</div><div class="stat-label">Completed</div></div>
   <div class="todo-stat"><div class="stat-num">0</div><div class="stat-label">In Progress</div></div>
   <div class="todo-stat critical-stat"><div class="stat-num">5</div><div class="stat-label">Critical</div></div>
 </div>
@@ -166,7 +166,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
 </div>
 
 <!-- PLAN 2 -->
-<div class="todo-card" data-category="branding" data-priority="medium">
+<div class="todo-card completed" data-category="branding" data-priority="medium">
   <div class="card-header">
     <span class="card-emoji">🎨</span>
     <div>
@@ -197,12 +197,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
     </div>
   </details>
   <details class="tasks-summary">
-    <summary>18 tasks across 4 phases</summary>
+    <summary>18/18 tasks ✅</summary>
     <ul>
-      <li><input type="checkbox"> Phase 1: Claude Design generates full brand kit</li>
-      <li><input type="checkbox"> Phase 2: Apply to Matrix Dashboard (public assets, HTML head, PWA, logo)</li>
-      <li><input type="checkbox"> Phase 3: Apply to Matrix Builder (favicons, HTML, UnoCSS, workbench)</li>
-      <li><input type="checkbox"> Phase 4: Apply to zbautomations.ie landing page</li>
+      <li><input type="checkbox" checked> Phase 1: Claude Design generates full brand kit</li>
+      <li><input type="checkbox" checked> Phase 2: Apply to Matrix Dashboard (public assets, HTML head, PWA, logo)</li>
+      <li><input type="checkbox" checked> Phase 3: Apply to Matrix Builder (favicons, HTML, UnoCSS, workbench)</li>
+      <li><input type="checkbox" checked> Phase 4: Apply to zbautomations.ie landing page</li>
     </ul>
   </details>
 </div>
@@ -983,24 +983,24 @@ Claude Design generates the full brand kit. Claude Code then applies it across a
 ### Tasks
 
 #### 🎨 Phase 1: Claude Design — Generate Brand Kit
-- [ ] **Invoke Claude Design** for 3 sub-brands: ZB Automations (parent), Matrix Dashboard (emerald-sky, glassmorphism), Matrix Builder (creative, approachable)
-- [ ] **Deliverables**: SVG logos (full/mark/wordmark), PNG icons (16-512px), favicon package, social cards, color palette, typography system, brand guidelines PDF
+- [x] **Invoke Claude Design** for 3 sub-brands: ZB Automations (parent), Matrix Dashboard (emerald-sky, glassmorphism), Matrix Builder (creative, approachable)
+- [x] **Deliverables**: SVG logos (full/mark/wordmark), PNG icons (16-512px), favicon package, social cards, color palette, typography system, brand guidelines PDF
 
 #### 📦 Phase 2: Apply to Matrix Dashboard
-- [ ] **Public assets** — `icon.svg`, `icon-192.png`, `icon-512.png`, `favicon.ico`, `apple-touch-icon.png`, `og-image.png`
-- [ ] **HTML head** — `app/layout.tsx`: favicon, apple-touch-icon, og:image links, updated title
-- [ ] **PWA manifest** — verify icon paths, update brand names and colors
-- [ ] **Logo component** — replace inline "M" SVG with new brand mark
-- [ ] **Sidebar/Topbar** — update brand text everywhere
-- [ ] **Documentation** — README, CHANGELOG, landing pages
+- [x] **Public assets** — `icon.svg`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`, `og-image.png` (favicon served via Next.js's `app/icon.svg` file-convention instead of a separate `favicon.ico`)
+- [x] **HTML head** — `app/layout.tsx`: favicon, apple-touch-icon, og:image links, updated title
+- [x] **PWA manifest** — verify icon paths, update brand names and colors
+- [x] **Logo component** — replace inline "M" SVG with new brand mark
+- [x] **Sidebar/Topbar** — update brand text everywhere
+- [x] **Documentation** — README, CHANGELOG, landing pages
 
 #### 📦 Phase 3: Apply to Matrix Builder
-- [ ] **Favicons + HTML** — replace favicons, update title/meta in entry.server.tsx and root.tsx
-- [ ] **Landing page** — replace logo in pre-chat landing, apply brand colors to uno.config.ts
-- [ ] **PWA + Workbench** — update manifest icons, brand the workbench header
+- [x] **Favicons + HTML** — replace favicons, update title/meta in entry.server.tsx and root.tsx
+- [x] **Landing page** — replace logo in pre-chat landing, apply brand colors to uno.config.ts
+- [x] **PWA + Workbench** — update manifest icons, brand the workbench header
 
 #### 📦 Phase 4: Apply to ZB Automations Landing
-- [ ] **Landing page** — replace logo, update title/meta/OG tags, apply brand colors and typography
+- [x] **Landing page** — replace logo, update title/meta/OG tags, apply brand colors and typography
 
 ### Files Touched
 30+ files across 2 repos (`matrix-dash` + `bolt.new-custom`) + landing page.

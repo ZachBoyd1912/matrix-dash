@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="./public/icon-192.png" width="64" alt="Matrix Dashboard" />
+
 # Matrix Dashboard
 
 **A local-first AI command center — your own private "Jarvis."**

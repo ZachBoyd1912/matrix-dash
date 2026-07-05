@@ -2,6 +2,22 @@
 
 # Changelog
 
+## 05/07/2026 @ 02:54:26 IST — "Claude Sonnet 5"
+
+**Goal:** Close out TODO.md's Plan 2 (Full Brand Kit) for real — verify every acceptance criterion from BRAND-AUDIT.md against actual file state (not just trust prior CHANGELOG claims), fix any genuine gaps, and update TODO.md's stale checkboxes/stats to match reality. Plan 2's work had already landed across several 04/07/2026 commits, but unlike Plan 1 it never got a "mark complete" pass.
+
+**Verified — 2 parallel audits, one per repo, against BRAND-AUDIT.md's own acceptance tests:**
+- `bolt.new-custom` (Matrix Builder): 9/9 items confirmed DONE via commit `406bbc7`. Checksum-diffed all 6 previously-stock-StackBlitz SVGs against the pristine original at `~/Desktop/bolt.new original` — all now different. `social_preview_index.jpg` replaced, `project-visibility.jpg` deleted. AI persona fully renamed "Bolt" → "Matrix" in all user-facing copy (system prompt, dialogs, chat chips) — `LET_BOLT_DECIDE_MARKER`'s string value correctly reads "Matrix" (only its identifier name still says BOLT, never rendered). GitHub issue templates, README/CONTRIBUTING, `package.json` metadata, UnoCSS accent ramp (`#38BDF8`), and `Header.tsx`'s inline glyph all confirmed correct.
+- `matrix-dash`: 8/10 items confirmed DONE (manifest icon paths, all 5 PWA/OG assets, `app/icon.svg`, `package.json` metadata, landing-page favicon/og:image, `docs/index.html`↔`public/index.html` gradient parity, `BuilderMark` alongside `LogoMark`). 2 were partial, both the same root cause (see Fixed).
+- Grepped both repos for leftover "Bolt"/"StackBlitz" references outside legitimate attribution — every hit in matrix-dash (kanban color-key literals, DB seed descriptions, `matrix-builder.ts`'s `DEFAULT_DIR`) points at the real sibling app/folder on disk, not leaked branding. No action needed.
+
+**Fixed:**
+- `README.md` — was missing the branded header image that `CHANGELOG.md` already had; added `<img src="./public/icon-192.png" width="64" alt="Matrix Dashboard" />` above the `# Matrix Dashboard` title.
+- `bolt.new-custom/e2e/_helpers.ts`, `e2e/app-shell.e2e.ts`, `e2e/normal-user.e2e.ts` (separate repo, edits left uncommitted per that repo's ownership convention) — the `406bbc7` rebrand commit changed the chat placeholder text but these 3 e2e tests still asserted the old `"How can Bolt help you today?"` string, which no longer exists in `BaseChat.tsx`'s `PLACEHOLDERS` array. Updated all 3 to assert the actual current initial placeholder, `"Describe the site or dashboard you want to build…"` (confirmed via `BaseChat.tsx`'s `useState(0)` initial `placeholderIndex`). Note for later: `app-shell.e2e.ts` and `normal-user.e2e.ts` also assert on suggestion-chip text ("build a todo app", "build a simple blog using astro") that no longer exists anywhere in the app source — a separate, pre-existing gap unrelated to this rebrand, left untouched since it's outside this pass's scope.
+- `TODO.md` — Plan 2's card now has the `completed` class, all task checkboxes (card summary + detailed Phase 1-4 section) checked, summary text changed to "18/18 tasks ✅" matching Plan 1's pattern. Hero subtitle and stats block bumped "1 completed" → "2 completed". Noted inline that the Phase 2 "favicon.ico" task item was satisfied via Next.js's `app/icon.svg` file-convention instead of a literal `.ico` file. Timestamp refreshed.
+
+**Files Touched:** `README.md`, `TODO.md`, `CHANGELOG.md`; `bolt.new-custom/e2e/_helpers.ts`, `bolt.new-custom/e2e/app-shell.e2e.ts`, `bolt.new-custom/e2e/normal-user.e2e.ts` (uncommitted, separate repo).
+
 ## 04/07/2026 @ 18:02:44 IST — "Claude Sonnet 5"
 
 **Goal:** Close the gaps found when asked "where did you not put logos/branding" — the two clear misses, plus the accent-color and screenshot work requested next: real product screenshots in both READMEs, and branded headers on both CHANGELOGs.
