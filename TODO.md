@@ -100,18 +100,18 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
   <div class="todo-orb todo-orb-1"></div>
   <div class="todo-orb todo-orb-2"></div>
   <h1>Matrix Dashboard &amp; Builder — Implementation Plans</h1>
-  <p class="subtitle"><span>18</span> plans · <span>2</span> completed · <span>0</span> in progress · Last updated 05/07/2026 @ 02:53:18 IST</p>
+  <p class="subtitle"><span>19</span> plans · <span>2</span> completed · <span>0</span> in progress · Last updated 06/07/2026 @ 00:35:28 IST</p>
 </div>
 
 <div class="todo-stats">
-  <div class="todo-stat"><div class="stat-num">18</div><div class="stat-label">Total Plans</div></div>
+  <div class="todo-stat"><div class="stat-num">19</div><div class="stat-label">Total Plans</div></div>
   <div class="todo-stat"><div class="stat-num">2</div><div class="stat-label">Completed</div></div>
   <div class="todo-stat"><div class="stat-num">0</div><div class="stat-label">In Progress</div></div>
   <div class="todo-stat critical-stat"><div class="stat-num">5</div><div class="stat-label">Critical</div></div>
 </div>
 
 <div class="todo-filters">
-  <span class="todo-pill active" onclick="try{document.querySelectorAll('.todo-pill').forEach(p=>p.classList.remove('active'));this.classList.add('active');document.querySelectorAll('.todo-card').forEach(c=>c.style.display='')}catch(e){}">All <span class="count">18</span></span>
+  <span class="todo-pill active" onclick="try{document.querySelectorAll('.todo-pill').forEach(p=>p.classList.remove('active'));this.classList.add('active');document.querySelectorAll('.todo-card').forEach(c=>c.style.display='')}catch(e){}">All <span class="count">19</span></span>
   <span class="todo-pill" onclick="try{document.querySelectorAll('.todo-pill').forEach(p=>p.classList.remove('active'));this.classList.add('active');document.querySelectorAll('.todo-card').forEach(c=>c.style.display=c.querySelector('.badge-critical')?'':'none')}catch(e){}">Critical <span class="count">5</span></span>
   <span class="todo-pill" onclick="try{document.querySelectorAll('.todo-pill').forEach(p=>p.classList.remove('active'));this.classList.add('active');document.querySelectorAll('.todo-card').forEach(c=>c.style.display=c.dataset.category==='ai'?'':'none')}catch(e){}">AI/LLM</span>
   <span class="todo-pill" onclick="try{document.querySelectorAll('.todo-pill').forEach(p=>p.classList.remove('active'));this.classList.add('active');document.querySelectorAll('.todo-card').forEach(c=>c.style.display=c.dataset.category==='code-quality'?'':'none')}catch(e){}">Quality</span>
@@ -934,6 +934,56 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
   </details>
 </div>
 
+<!-- PLAN 19 -->
+<div class="todo-card" data-category="marketing" data-priority="high">
+  <div class="card-header">
+    <span class="card-emoji">🔍</span>
+    <div>
+      <div class="card-title">Plan 19: SEO/GEO — zbautomations.ie Landing Page</div>
+      <div class="card-subtitle">ideated by claude-haiku-4-5 · ~15 files · medium complexity</div>
+    </div>
+  </div>
+  <div class="card-badges">
+    <span class="badge badge-category">Marketing / SEO</span>
+    <span class="badge badge-high">High</span>
+  </div>
+  <div class="card-body">
+    <div class="card-goal">Close the remaining gap on zbautomations.ie from ~62/100 to the honest ceiling (~82-85/100) — 90 isn't reachable since AI crawlers stay blocked by explicit choice.</div>
+    <div>An audit scored the site 42/100. A concurrent session already fixed the stale deploy pipeline and shipped canonical/JSON-LD/sitemap.xml/llms.txt (commits 0a5c9db..e393a48), raising the live score to ~62 — but www.zbautomations.ie still 525s, no security headers exist, and the site is still a single page with no Privacy/Terms/About.</div>
+  </div>
+  <div class="card-skills">
+    <span class="skill-tag">@seo</span>
+    <span class="skill-tag">@seo-technical</span>
+    <span class="skill-tag">@geo-optimization</span>
+  </div>
+  <details class="card-files">
+    <summary>~15 files</summary>
+    <div class="file-list">
+      <div><span class="file-edit">~ edit</span> deploy/Caddyfile (www redirect block + security headers)</div>
+      <div><span class="file-edit">~ edit</span> deploy/landing/index.html (trim meta description, self-hosted fonts)</div>
+      <div><span class="file-new">+ new</span> deploy/landing/fonts/*.woff2</div>
+      <div><span class="file-new">+ new</span> deploy/landing/shared.css</div>
+      <div><span class="file-new">+ new</span> deploy/landing/privacy.html, terms.html, about.html</div>
+      <div><span class="file-new">+ new</span> deploy/landing/resources/index.html + ~4 article pages</div>
+      <div><span class="file-edit">~ edit</span> deploy/landing/sitemap.xml (extend with new URLs)</div>
+    </div>
+  </details>
+  <details class="tasks-summary">
+    <summary>9 tasks</summary>
+    <ul>
+      <li><input type="checkbox"> Fix www.zbautomations.ie (Caddyfile www block + redirect; diff VM vs repo Caddyfile first; Cloudflare Redirect Rule fallback if ACME fails behind the proxy)</li>
+      <li><input type="checkbox"> Add security headers (HSTS, X-Content-Type-Options, X-Frame-Options, CSP) to deploy/Caddyfile</li>
+      <li><input type="checkbox"> Trim meta description to ≤160 characters</li>
+      <li><input type="checkbox"> Self-host landing-page fonts (remove render-blocking Google Fonts link)</li>
+      <li><input type="checkbox"> Add Privacy Policy + Terms pages on the public domain (also fixes OAuth-verification-crawler access, currently blocked behind matrix.'s Cloudflare Access)</li>
+      <li><input type="checkbox"> Add About page</li>
+      <li><input type="checkbox"> Add a small content/resources section (~4 articles + FAQ) for topical depth</li>
+      <li><input type="checkbox"> Extend sitemap.xml with all new URLs</li>
+      <li><input type="checkbox"> Verify: PageSpeed Insights (CWV), Rich Results Test + validator.schema.org (existing JSON-LD), W3C HTML validator, honest rubric re-score</li>
+    </ul>
+  </details>
+</div>
+
 </div>
 
 <script type="text/markdown" id="raw-plans">
@@ -1591,6 +1641,46 @@ Build onboarding wizard (5 steps: Welcome → Provider → Chat → Tour → Set
 
 ### 🧠 Skills
 `@senior-frontend` `@frontend-dev-guidelines` `@ui-ux-designer` `@ai-product`
+
+
+
+## 🔍 Plan 19: SEO/GEO — zbautomations.ie Landing Page (ideated by claude-haiku-4-5)
+
+### Goal
+Close the remaining SEO/GEO gap on `zbautomations.ie` from ~62/100 to the honest ceiling of ~82-85/100. 90/100 is not reachable: AI Search Readiness is 10% of the rubric and the user chose to keep blocking AI crawlers (GPTBot, ClaudeBot, Google-Extended), which structurally caps that category.
+
+### Problem
+An SEO audit scored `zbautomations.ie` 42/100 — stale production deploy, no schema, no sitemap, single page, `www` subdomain 525ing. A concurrent session (see `production-deploy-pipeline-bugs` and `seo-geo-landing-page` memories, commits `0a5c9db`..`e393a48`) independently fixed the deploy pipeline (stale branch, `.env` overwrite, pnpm build gate, build OOM, `systemctl start`→`restart` no-op) and shipped a canonical tag, `Organization`+`SoftwareApplication` JSON-LD, `sitemap.xml`, and `llms.txt` — confirmed live, raising the score to ~62. Still open: `www.zbautomations.ie` returns HTTP 525, no security headers exist, the meta description is ~208 characters (truncates in SERPs), fonts load render-blocking, and the site remains a single page with no Privacy/Terms/About/content.
+
+### Solution Overview
+Fix the two remaining Caddy-level issues (`www` redirect, security headers), polish the existing page (meta description, self-hosted fonts), then build the content depth that's the single largest lever left: Privacy/Terms/About pages (which also fix a separately-flagged problem — `matrix.zbautomations.ie`'s Privacy/ToS page is Cloudflare-Access-gated and unreachable by Google/GitHub/Slack's OAuth-verification crawlers) plus a small resources/articles section. Extend the sitemap as pages are added. Verify everything with real external tools, not self-grading.
+
+**Note on `llms.txt` and blocked crawlers:** the new `llms.txt` is well-authored, but GPTBot/ClaudeBot/Google-Extended are disallowed from fetching anything on the site (including `/llms.txt` itself) under the current robots.txt — its practical reach today is limited to AI systems not on that blocklist. This is a known consequence of the user's explicit choice to keep blocking, not a bug to fix here.
+
+### Tasks
+- [ ] **Fix `www.zbautomations.ie`** — add a `www` block to `deploy/Caddyfile` redirecting to the apex; diff the VM's live Caddyfile against the repo's before overwriting (per the `builder.zbautomations.ie` drift incident); fall back to a Cloudflare Redirect Rule if Caddy's ACME issuance fails behind the proxy
+- [ ] **Add security headers** — HSTS, X-Content-Type-Options, X-Frame-Options, CSP in `deploy/Caddyfile`
+- [ ] **Trim meta description** — `deploy/landing/index.html`, ≤160 characters
+- [ ] **Self-host fonts** — download Instrument Serif/Work Sans/Fragment Mono WOFF2 into `deploy/landing/fonts/`, drop the render-blocking Google Fonts `<link>`
+- [ ] **Add Privacy Policy + Terms pages** — new `deploy/landing/privacy.html`/`terms.html`, rescoped from the existing `docs/index.html`/`public/index.html` blurb to cover ZB Automations as a company with real GDPR language (recommend legal review before relying on it)
+- [ ] **Add About page** — `deploy/landing/about.html`, seeded from existing positioning copy
+- [ ] **Add content/resources section** — `deploy/landing/resources/` hub + ~4 articles + FAQ, each with `Article` JSON-LD, for topical depth (Content Quality is 23% of the score and a single page caps ~50-60)
+- [ ] **Extend `sitemap.xml`** — add every new URL as pages are created
+- [ ] **Verify** — PageSpeed Insights (CWV), Google Rich Results Test + validator.schema.org (existing JSON-LD), W3C HTML validator (new pages), honest rubric re-score against `references/quality-gates.md`/`references/eeat-framework.md`
+
+### Files Touched
+| File | Action |
+|------|--------|
+| `deploy/Caddyfile` | Edit — `www` redirect block, security headers |
+| `deploy/landing/index.html` | Edit — meta description, self-hosted font links |
+| `deploy/landing/fonts/*.woff2` | **NEW** |
+| `deploy/landing/shared.css` | **NEW** — extracted styles for reuse across new pages |
+| `deploy/landing/privacy.html`, `terms.html`, `about.html` | **NEW** |
+| `deploy/landing/resources/index.html` + ~4 article pages | **NEW** |
+| `deploy/landing/sitemap.xml` | Edit — extend with new URLs |
+
+### 🧠 Skills
+`@seo` `@seo-technical` `@geo-optimization`
 
 </script>
 

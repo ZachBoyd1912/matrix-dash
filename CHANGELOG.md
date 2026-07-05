@@ -2,6 +2,17 @@
 
 # Changelog
 
+## 06/07/2026 @ 00:35:28 IST — "Claude Haiku 4.5"
+
+**Goal:** Record a new backlog plan in `TODO.md` for the remaining SEO/GEO work on `zbautomations.ie`, reconciled against work a concurrent session already shipped while this session was blocked waiting on it.
+
+**Added:**
+- `TODO.md` — Plan 19: SEO/GEO — zbautomations.ie Landing Page. An SEO audit this session ran against the live site scored it 42/100; a plan was drafted (in plan mode) to close the gap toward a user-approved, honest target of ~82-85/100 — 90 isn't reachable because the user explicitly chose to keep blocking AI crawlers (GPTBot/ClaudeBot/Google-Extended), which structurally caps the AI Search Readiness category (10% of the rubric) regardless of other work. Mid-plan, memory (`production-deploy-pipeline-bugs`, `seo-geo-landing-page`) and the entries immediately below showed a separate concurrent session had independently fixed the stale production-deploy pipeline (stale branch, `.env` overwrite, pnpm build gate, build OOM, `systemctl start`→`restart` no-op, a missing `builder.zbautomations.ie` Caddy block) and shipped a canonical tag, `Organization`+`SoftwareApplication` JSON-LD, `sitemap.xml`, and `llms.txt` to the live site (commits `0a5c9db`..`e393a48`) — confirmed live via direct `curl` against `zbautomations.ie`, raising the real current score to ~62 before this plan's own work even starts. Plan 19's task list was cut down to only what's still genuinely open: the `www.zbautomations.ie` HTTP 525 (no `www` block exists in `deploy/Caddyfile`), missing security headers, an oversized meta description, render-blocking Google Fonts on the static landing page, and the still-single-page site (no Privacy/Terms/About/content) — the last of which is the largest lever, since Content Quality is 23% of the rubric and a single page caps around 50-60.
+
+**Verification:** Confirmed both the HTML card grid and the markdown fallback (`<script type="text/markdown" id="raw-plans">`) sections of `TODO.md` were updated consistently (19 `todo-card` divs present, hero stats and filter count bumped 18→19). Did not execute any of Plan 19's tasks — this entry is a planning/backlog addition only, not an implementation.
+
+**Files Touched:** `TODO.md`, `CHANGELOG.md`.
+
 ## 05/07/2026 @ 23:13:22 IST — "Claude Sonnet 5"
 
 **Goal:** Fix a real outage the user caught via screenshot — `builder.zbautomations.ie` returning Cloudflare error 525 "SSL handshake failed" — that this session's own repeated redeploys caused.
