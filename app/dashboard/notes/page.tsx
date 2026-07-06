@@ -83,15 +83,18 @@ export default function NotesPage() {
 
   return (
     <div ref={ref} className="page-h grid grid-cols-1 md:grid-cols-[300px_1fr]">
-      <aside className="border-r border-white/5 flex flex-col bg-white/[0.01]">
-        <div className="p-3 border-b border-white/5 space-y-2">
+      <aside className="flex flex-col border-r border-white/5 bg-white/[0.01]">
+        <div className="space-y-2 border-b border-white/5 p-3">
           <div className="relative">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+            <Search
+              size={13}
+              className="text-text-muted absolute top-1/2 left-3 -translate-y-1/2"
+            />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search notes…"
-              className="pl-9 h-9 text-xs"
+              className="h-9 pl-9 text-xs"
             />
           </div>
           <div className="flex gap-2">
@@ -109,7 +112,7 @@ export default function NotesPage() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-2 space-y-1">
+        <div className="flex-1 space-y-1 overflow-y-auto p-2">
           {notes === null ? (
             Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14" />)
           ) : notes.length === 0 ? (
@@ -131,7 +134,7 @@ export default function NotesPage() {
                 key={note.id}
                 onClick={() => setSelectedId(note.id)}
                 className={cn(
-                  "w-full text-left p-2 rounded-md transition-colors group",
+                  "group w-full rounded-md p-2 text-left transition-colors",
                   selectedId === note.id
                     ? "bg-white/[0.06] ring-1 ring-emerald-400/20"
                     : "hover:bg-white/[0.03]"
@@ -139,16 +142,16 @@ export default function NotesPage() {
               >
                 <div className="flex items-start gap-2">
                   {note.isFavorite && (
-                    <Star size={11} className="text-amber-400 fill-amber-400 mt-1 shrink-0" />
+                    <Star size={11} className="mt-1 shrink-0 fill-amber-400 text-amber-400" />
                   )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-text-primary truncate">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-text-primary truncate text-xs font-medium">
                       {note.title || "Untitled"}
                     </p>
-                    <p className="text-[10px] text-text-muted mt-0.5 truncate">
+                    <p className="text-text-muted mt-0.5 truncate text-[10px]">
                       {note.content.slice(0, 60) || "Empty note"}
                     </p>
-                    <p className="text-[10px] text-text-muted mt-0.5">{timeAgo(note.updatedAt)}</p>
+                    <p className="text-text-muted mt-0.5 text-[10px]">{timeAgo(note.updatedAt)}</p>
                   </div>
                 </div>
               </button>
@@ -160,7 +163,7 @@ export default function NotesPage() {
       <section className="min-w-0">
         {view === "graph" ? (
           <div className="h-full p-4">
-            <div className="glass rounded-xl h-full overflow-hidden">
+            <div className="glass h-full overflow-hidden rounded-xl">
               {graph && graph.nodes.length > 0 ? (
                 <NotesGraph
                   data={graph}
@@ -170,7 +173,7 @@ export default function NotesPage() {
                   }}
                 />
               ) : (
-                <div className="h-full grid place-items-center">
+                <div className="grid h-full place-items-center">
                   <EmptyState
                     icon={<Network size={16} />}
                     title="No graph yet"
@@ -190,12 +193,16 @@ export default function NotesPage() {
             onNavigateId={setSelectedId}
           />
         ) : (
-          <div className="h-full grid place-items-center p-8">
+          <div className="grid h-full place-items-center p-8">
             <EmptyState
               icon={<FileText size={16} />}
               title="No note selected"
               description="Create your first note or pick one from the sidebar."
-              action={<Button variant="primary" size="sm" onClick={() => create()}><Plus size={13} /> New note</Button>}
+              action={
+                <Button variant="primary" size="sm" onClick={() => create()}>
+                  <Plus size={13} /> New note
+                </Button>
+              }
             />
           </div>
         )}

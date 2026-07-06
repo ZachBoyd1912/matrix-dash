@@ -57,7 +57,11 @@ export default function VaultPage() {
   };
 
   const remove = async (e: VaultEntryPublic) => {
-    const ok = await confirm({ title: `Delete "${e.label}"?`, confirmLabel: "Delete", danger: true });
+    const ok = await confirm({
+      title: `Delete "${e.label}"?`,
+      confirmLabel: "Delete",
+      danger: true,
+    });
     if (!ok) return;
     await fetch(`/api/vault?id=${e.id}`, { method: "DELETE" });
     refresh();
@@ -67,15 +71,18 @@ export default function VaultPage() {
     <div ref={ref} className="space-y-6">
       <div className="relative overflow-hidden py-10">
         <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
-        <div className="orb top-0 right-16 h-44 w-44 bg-sky-500/15" style={{ animationDelay: "-6s" }} />
+        <div
+          className="orb top-0 right-16 h-44 w-44 bg-sky-500/15"
+          style={{ animationDelay: "-6s" }}
+        />
         <div className="relative">
           <span className="eyebrow">
             <Lock size={11} /> Secrets
           </span>
-          <h1 className="display text-gradient text-4xl md:text-5xl mt-3">Vault</h1>
-          <p className="text-text-secondary text-sm mt-3 max-w-xl">
-            Encrypted local key-value store for secrets the agent or your scripts need. Same AES-256-GCM
-            as API keys.
+          <h1 className="display text-gradient mt-3 text-4xl md:text-5xl">Vault</h1>
+          <p className="text-text-secondary mt-3 max-w-xl text-sm">
+            Encrypted local key-value store for secrets the agent or your scripts need. Same
+            AES-256-GCM as API keys.
           </p>
         </div>
       </div>
@@ -85,17 +92,27 @@ export default function VaultPage() {
       </Button>
 
       {list.length === 0 ? (
-        <EmptyState icon={<Shield size={16} />} title="Vault is empty" description="Store API keys, passwords, anything." />
+        <EmptyState
+          icon={<Shield size={16} />}
+          title="Vault is empty"
+          description="Store API keys, passwords, anything."
+        />
       ) : (
         <div className="space-y-3">
           {list.map((e) => (
-            <Card key={e.id} interactive className="flex items-center justify-between gap-3 rounded-xl">
+            <Card
+              key={e.id}
+              interactive
+              className="flex items-center justify-between gap-3 rounded-xl"
+            >
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-text-primary">{e.label}</p>
+                <p className="text-text-primary text-sm font-medium">{e.label}</p>
                 {revealed[e.id] ? (
-                  <p className="text-[11px] text-emerald-300 font-mono mt-0.5 break-all">{revealed[e.id]}</p>
+                  <p className="mt-0.5 font-mono text-[11px] break-all text-emerald-300">
+                    {revealed[e.id]}
+                  </p>
                 ) : (
-                  <p className="text-[11px] text-text-muted mt-0.5">••••••••••••</p>
+                  <p className="text-text-muted mt-0.5 text-[11px]">••••••••••••</p>
                 )}
               </div>
               <Button size="icon" variant="ghost" onClick={() => reveal(e.id)} aria-label="Reveal">
@@ -111,11 +128,25 @@ export default function VaultPage() {
 
       <Dialog open={open} onClose={() => setOpen(false)} title="New secret">
         <div className="space-y-3">
-          <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Label (e.g. Stripe key)" autoFocus />
-          <Input value={value} onChange={(e) => setValue(e.target.value)} placeholder="Secret value" type="password" />
+          <Input
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="Label (e.g. Stripe key)"
+            autoFocus
+          />
+          <Input
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder="Secret value"
+            type="password"
+          />
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button variant="primary" onClick={create} disabled={!label.trim() || !value.trim()}>Store</Button>
+            <Button variant="ghost" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={create} disabled={!label.trim() || !value.trim()}>
+              Store
+            </Button>
           </div>
         </div>
       </Dialog>

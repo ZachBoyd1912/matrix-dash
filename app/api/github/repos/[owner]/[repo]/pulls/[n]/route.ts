@@ -18,15 +18,12 @@ export async function GET(_req: Request, ctx: Ctx) {
   if (!conn) {
     return Response.json({ error: "No active GitHub connection" }, { status: 400 });
   }
-  const res = await fetch(
-    `https://api.github.com/repos/${owner}/${repo}/pulls/${n}`,
-    {
-      headers: {
-        Authorization: `Bearer ${process.env.GITHUB_CLIENT_ID || ""}`,
-        Accept: "application/vnd.github+json",
-      },
-    }
-  );
+  const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${n}`, {
+    headers: {
+      Authorization: `Bearer ${process.env.GITHUB_CLIENT_ID || ""}`,
+      Accept: "application/vnd.github+json",
+    },
+  });
   const data = await res.json();
   return Response.json(data);
 }
@@ -47,18 +44,15 @@ export async function PATCH(req: Request, ctx: Ctx) {
   if (!conn) {
     return Response.json({ error: "No active GitHub connection" }, { status: 400 });
   }
-  const res = await fetch(
-    `https://api.github.com/repos/${owner}/${repo}/pulls/${n}`,
-    {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${process.env.GITHUB_CLIENT_ID || ""}`,
-        "Content-Type": "application/json",
-        Accept: "application/vnd.github+json",
-      },
-      body: JSON.stringify(payload),
-    }
-  );
+  const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/pulls/${n}`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${process.env.GITHUB_CLIENT_ID || ""}`,
+      "Content-Type": "application/json",
+      Accept: "application/vnd.github+json",
+    },
+    body: JSON.stringify(payload),
+  });
   const data = await res.json();
   return Response.json(data);
 }

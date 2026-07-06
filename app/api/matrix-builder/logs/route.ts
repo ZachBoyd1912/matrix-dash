@@ -18,7 +18,13 @@ function toLines(text: string): LogLine[] {
     const t = stripAnsi(raw).replace(/\s+$/, "");
     if (!t) continue;
     const ts = Date.now();
-    out.push({ id: makeLogId(ts), ts, level: inferLevel(t, "log"), source: "builder-server", text: t });
+    out.push({
+      id: makeLogId(ts),
+      ts,
+      level: inferLevel(t, "log"),
+      source: "builder-server",
+      text: t,
+    });
   }
   return out;
 }

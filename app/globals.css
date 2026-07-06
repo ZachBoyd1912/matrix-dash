@@ -61,7 +61,7 @@
 
   body {
     background-image:
-      radial-gradient(at 18% 12%, rgba(52, 211, 153, 0.10) 0px, transparent 55%),
+      radial-gradient(at 18% 12%, rgba(52, 211, 153, 0.1) 0px, transparent 55%),
       radial-gradient(at 82% 8%, rgba(56, 189, 248, 0.06) 0px, transparent 50%),
       radial-gradient(at 60% 90%, rgba(168, 85, 247, 0.05) 0px, transparent 55%);
     background-attachment: fixed;
@@ -323,9 +323,21 @@
 /* ─── Accent propagation (any named theme) ─────────────────────────────── */
 :root[data-theme] body {
   background-image:
-    radial-gradient(at 18% 12%, color-mix(in srgb, var(--color-emerald-accent) 12%, transparent) 0px, transparent 55%),
-    radial-gradient(at 82% 8%, color-mix(in srgb, var(--color-emerald-accent) 7%, transparent) 0px, transparent 50%),
-    radial-gradient(at 60% 90%, color-mix(in srgb, var(--color-emerald-accent) 5%, transparent) 0px, transparent 55%);
+    radial-gradient(
+      at 18% 12%,
+      color-mix(in srgb, var(--color-emerald-accent) 12%, transparent) 0px,
+      transparent 55%
+    ),
+    radial-gradient(
+      at 82% 8%,
+      color-mix(in srgb, var(--color-emerald-accent) 7%, transparent) 0px,
+      transparent 50%
+    ),
+    radial-gradient(
+      at 60% 90%,
+      color-mix(in srgb, var(--color-emerald-accent) 5%, transparent) 0px,
+      transparent 55%
+    );
 }
 :root[data-theme] ::selection {
   background: color-mix(in srgb, var(--color-emerald-accent) 35%, transparent);
@@ -403,7 +415,8 @@
 }
 
 @keyframes pulse-dot {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.4;
     transform: scale(0.95);
   }
@@ -591,13 +604,23 @@
 }
 
 @keyframes float-slow {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  50% { transform: translate3d(0, -16px, 0) scale(1.07); }
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, -16px, 0) scale(1.07);
+  }
 }
 
 @keyframes glow-pulse {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.6; }
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.6;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -49,7 +49,10 @@ export async function POST(_req: Request, ctx: Ctx) {
     const count = await syncAccount(account);
     return Response.json({ ok: true, imported: count });
   } catch (err) {
-    return Response.json({ ok: false, error: err instanceof Error ? err.message : String(err) }, { status: 500 });
+    return Response.json(
+      { ok: false, error: err instanceof Error ? err.message : String(err) },
+      { status: 500 }
+    );
   }
 }
 

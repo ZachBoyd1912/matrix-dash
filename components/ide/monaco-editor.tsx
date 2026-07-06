@@ -6,7 +6,7 @@ import type { OnChange, OnMount } from "@monaco-editor/react";
 const Monaco = dynamic(() => import("@monaco-editor/react").then((m) => m.default), {
   ssr: false,
   loading: () => (
-    <div className="h-full w-full grid place-items-center text-xs text-text-muted">
+    <div className="text-text-muted grid h-full w-full place-items-center text-xs">
       Loading editor…
     </div>
   ),

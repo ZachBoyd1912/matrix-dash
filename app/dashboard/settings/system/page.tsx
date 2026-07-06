@@ -51,11 +51,10 @@ export default function SystemPage() {
           <span className="eyebrow">
             <Database size={11} /> System
           </span>
-          <h1 className="display text-gradient text-4xl md:text-5xl mt-3">
-            System
-          </h1>
-          <p className="text-text-secondary text-sm mt-3 max-w-xl">
-            Export everything as JSON or wipe scoped data. The database lives at ~/MatrixDash/matrix.db.
+          <h1 className="display text-gradient mt-3 text-4xl md:text-5xl">System</h1>
+          <p className="text-text-secondary mt-3 max-w-xl text-sm">
+            Export everything as JSON or wipe scoped data. The database lives at
+            ~/MatrixDash/matrix.db.
           </p>
         </div>
       </div>
@@ -63,8 +62,8 @@ export default function SystemPage() {
       <Card interactive className="rounded-2xl">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-medium text-text-primary">Export local data</p>
-            <p className="text-xs text-text-secondary mt-0.5">
+            <p className="text-text-primary text-sm font-medium">Export local data</p>
+            <p className="text-text-secondary mt-0.5 text-xs">
               Downloads a single JSON containing every table.
             </p>
           </div>
@@ -78,7 +77,7 @@ export default function SystemPage() {
         <p className="flex items-center gap-1.5 text-sm font-medium text-rose-300">
           <AlertTriangle size={13} /> Danger zone
         </p>
-        <p className="text-xs text-text-secondary mt-1 mb-3">
+        <p className="text-text-secondary mt-1 mb-3 text-xs">
           These operations are permanent and not recoverable. Export first.
         </p>
         <div className="grid grid-cols-2 gap-2.5">

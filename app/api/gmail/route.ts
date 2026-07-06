@@ -5,12 +5,12 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
-    
+
     if (body.action === "sync") {
       const count = await syncGmailEmails(body.limit ?? 50);
       return Response.json({ ok: true, imported: count });
     }
-    
+
     if (body.action === "send") {
       const { to, subject, body: emailBody, cc, bcc } = body;
       if (!to || !subject || !emailBody) {

@@ -40,7 +40,13 @@ export async function POST(req: Request) {
     try {
       getDb()
         .insert(sessionMessages)
-        .values({ id: randomUUID(), sessionId, role: "user", content: prompt, createdAt: new Date().toISOString() })
+        .values({
+          id: randomUUID(),
+          sessionId,
+          role: "user",
+          content: prompt,
+          createdAt: new Date().toISOString(),
+        })
         .run();
     } catch {
       /* best-effort */
@@ -86,6 +92,9 @@ export async function POST(req: Request) {
   });
 
   return new Response(stream, {
-    headers: { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-cache, no-transform" },
+    headers: {
+      "content-type": "application/x-ndjson; charset=utf-8",
+      "cache-control": "no-cache, no-transform",
+    },
   });
 }

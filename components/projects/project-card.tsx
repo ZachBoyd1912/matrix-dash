@@ -26,24 +26,24 @@ const ACCENT: Record<string, string> = {
 
 // Coloured tech tags — detected from the freeform stack strings.
 const TAG_DEFS: { match: RegExp; label: string; className: string }[] = [
-  { match: /next\.?js/i,   label: "Next.js",  className: "border-white/30 text-white" },
-  { match: /react/i,       label: "React",    className: "border-cyan-400/40 text-cyan-300" },
-  { match: /vite/i,        label: "Vite",     className: "border-indigo-400/40 text-indigo-300" },
-  { match: /tailwind/i,    label: "Tailwind", className: "border-sky-400/40 text-sky-300" },
-  { match: /three/i,       label: "Three.js", className: "border-orange-400/40 text-orange-300" },
-  { match: /gsap/i,        label: "GSAP",     className: "border-lime-400/40 text-lime-300" },
-  { match: /framer/i,      label: "Framer",   className: "border-blue-400/40 text-blue-300" },
-  { match: /firebase/i,    label: "Firebase", className: "border-amber-400/40 text-amber-300" },
-  { match: /supabase/i,    label: "Supabase", className: "border-emerald-400/40 text-emerald-300" },
-  { match: /drizzle/i,     label: "Drizzle",  className: "border-lime-400/40 text-lime-300" },
-  { match: /turso|libsql/i,label: "Turso",    className: "border-teal-400/40 text-teal-300" },
-  { match: /sqlite/i,      label: "SQLite",   className: "border-sky-500/40 text-sky-300" },
-  { match: /fastapi/i,     label: "FastAPI",  className: "border-teal-400/40 text-teal-300" },
-  { match: /flask/i,       label: "Flask",    className: "border-white/20 text-text-secondary" },
-  { match: /python/i,      label: "Python",   className: "border-blue-400/40 text-blue-300" },
-  { match: /remix/i,       label: "Remix",    className: "border-white/30 text-white" },
-  { match: /chroma/i,      label: "ChromaDB", className: "border-orange-500/40 text-orange-300" },
-  { match: /postgres/i,    label: "Postgres", className: "border-sky-400/40 text-sky-300" },
+  { match: /next\.?js/i, label: "Next.js", className: "border-white/30 text-white" },
+  { match: /react/i, label: "React", className: "border-cyan-400/40 text-cyan-300" },
+  { match: /vite/i, label: "Vite", className: "border-indigo-400/40 text-indigo-300" },
+  { match: /tailwind/i, label: "Tailwind", className: "border-sky-400/40 text-sky-300" },
+  { match: /three/i, label: "Three.js", className: "border-orange-400/40 text-orange-300" },
+  { match: /gsap/i, label: "GSAP", className: "border-lime-400/40 text-lime-300" },
+  { match: /framer/i, label: "Framer", className: "border-blue-400/40 text-blue-300" },
+  { match: /firebase/i, label: "Firebase", className: "border-amber-400/40 text-amber-300" },
+  { match: /supabase/i, label: "Supabase", className: "border-emerald-400/40 text-emerald-300" },
+  { match: /drizzle/i, label: "Drizzle", className: "border-lime-400/40 text-lime-300" },
+  { match: /turso|libsql/i, label: "Turso", className: "border-teal-400/40 text-teal-300" },
+  { match: /sqlite/i, label: "SQLite", className: "border-sky-500/40 text-sky-300" },
+  { match: /fastapi/i, label: "FastAPI", className: "border-teal-400/40 text-teal-300" },
+  { match: /flask/i, label: "Flask", className: "border-white/20 text-text-secondary" },
+  { match: /python/i, label: "Python", className: "border-blue-400/40 text-blue-300" },
+  { match: /remix/i, label: "Remix", className: "border-white/30 text-white" },
+  { match: /chroma/i, label: "ChromaDB", className: "border-orange-500/40 text-orange-300" },
+  { match: /postgres/i, label: "Postgres", className: "border-sky-400/40 text-sky-300" },
 ];
 
 function deriveTags(project: Project): { label: string; className: string }[] {
@@ -72,14 +72,14 @@ export function ProjectCard({ project, onViewTasks }: Props) {
     <div
       className={cn(
         "relative rounded-2xl border border-white/[0.07] bg-white/[0.02] p-5 pl-6 transition-colors duration-200 hover:border-white/[0.14]",
-        "before:absolute before:left-0 before:top-4 before:bottom-4 before:w-[3px] before:rounded-full",
+        "before:absolute before:top-4 before:bottom-4 before:left-0 before:w-[3px] before:rounded-full",
         ACCENT[project.badge] ?? "before:bg-white/20"
       )}
     >
       {/* Header: name + badge */}
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2 min-w-0">
-          <h3 className="text-[1.05rem] font-semibold tracking-tight text-text-primary truncate">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <h3 className="text-text-primary truncate text-[1.05rem] font-semibold tracking-tight">
             {project.name}
           </h3>
           {project.path && (
@@ -87,17 +87,17 @@ export function ProjectCard({ project, onViewTasks }: Props) {
               href={`file://${project.path}`}
               target="_blank"
               rel="noreferrer"
-              className="text-text-muted hover:text-emerald-400 shrink-0 transition-colors"
+              className="text-text-muted shrink-0 transition-colors hover:text-emerald-400"
               title="Open in Finder"
             >
               <ExternalLink size={13} />
             </a>
           )}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex shrink-0 items-center gap-2">
           <button
             onClick={() => onViewTasks(project.id)}
-            className="text-[11px] font-medium text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/10 px-2 py-1 rounded-md transition-colors flex items-center gap-1"
+            className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-emerald-400 transition-colors hover:bg-emerald-400/10 hover:text-emerald-300"
             title="Filter the task board by this project"
           >
             <FolderKanban size={11} />
@@ -105,8 +105,8 @@ export function ProjectCard({ project, onViewTasks }: Props) {
           </button>
           <span
             className={cn(
-              "inline-flex items-center h-5 px-2.5 rounded-full text-[10px] font-semibold uppercase tracking-wider border",
-              BADGE_COLORS[project.badge] ?? "border-white/10 text-text-muted"
+              "inline-flex h-5 items-center rounded-full border px-2.5 text-[10px] font-semibold tracking-wider uppercase",
+              BADGE_COLORS[project.badge] ?? "text-text-muted border-white/10"
             )}
           >
             {project.badge}
@@ -116,61 +116,77 @@ export function ProjectCard({ project, onViewTasks }: Props) {
 
       {/* Description */}
       <div className="mt-3">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-blue-400">
+        <span className="text-[10px] font-semibold tracking-[0.08em] text-blue-400 uppercase">
           Description
         </span>
-        <p className={cn("text-[13px] mt-0.5 leading-relaxed", isEmpty ? "text-text-muted italic" : "text-text-secondary")}>
+        <p
+          className={cn(
+            "mt-0.5 text-[13px] leading-relaxed",
+            isEmpty ? "text-text-muted italic" : "text-text-secondary"
+          )}
+        >
           {project.description}
         </p>
       </div>
 
       {/* Purpose */}
       <div className="mt-2.5">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-400">
+        <span className="text-[10px] font-semibold tracking-[0.08em] text-amber-400 uppercase">
           Purpose
         </span>
-        <p className={cn("text-[13px] mt-0.5 leading-relaxed", isEmpty ? "text-text-muted italic" : "text-text-secondary")}>
+        <p
+          className={cn(
+            "mt-0.5 text-[13px] leading-relaxed",
+            isEmpty ? "text-text-muted italic" : "text-text-secondary"
+          )}
+        >
           {project.purpose}
         </p>
       </div>
 
       {/* Tech Stack */}
       <div className="mt-2.5">
-        <span className="text-[10px] font-semibold uppercase tracking-[0.08em] text-teal-400">
+        <span className="text-[10px] font-semibold tracking-[0.08em] text-teal-400 uppercase">
           Tech Stack
         </span>
         {project.frontend || project.backend || project.database ? (
           <>
-            <div className="flex flex-wrap gap-x-5 gap-y-1 mt-1">
+            <div className="mt-1 flex flex-wrap gap-x-5 gap-y-1">
               {project.frontend && (
-                <span className="text-[12px] text-text-muted flex items-center gap-1.5">
+                <span className="text-text-muted flex items-center gap-1.5 text-[12px]">
                   <Layers size={11} className="text-blue-400" />
-                  <span className="text-text-secondary font-medium uppercase text-[10px] tracking-wide">FE</span>
+                  <span className="text-text-secondary text-[10px] font-medium tracking-wide uppercase">
+                    FE
+                  </span>
                   {project.frontend}
                 </span>
               )}
               {project.backend && (
-                <span className="text-[12px] text-text-muted flex items-center gap-1.5">
+                <span className="text-text-muted flex items-center gap-1.5 text-[12px]">
                   <Terminal size={11} className="text-amber-400" />
-                  <span className="text-text-secondary font-medium uppercase text-[10px] tracking-wide">BE</span>
+                  <span className="text-text-secondary text-[10px] font-medium tracking-wide uppercase">
+                    BE
+                  </span>
                   {project.backend}
                 </span>
               )}
               {project.database && (
-                <span className="text-[12px] text-text-muted flex items-center gap-1.5">
+                <span className="text-text-muted flex items-center gap-1.5 text-[12px]">
                   <Database size={11} className="text-emerald-400" />
-                  <span className="text-text-secondary font-medium uppercase text-[10px] tracking-wide">DB</span>
+                  <span className="text-text-secondary text-[10px] font-medium tracking-wide uppercase">
+                    DB
+                  </span>
                   {project.database}
                 </span>
               )}
             </div>
             {tags.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-2">
+              <div className="mt-2 flex flex-wrap gap-1.5">
                 {tags.map((t) => (
                   <span
                     key={t.label}
                     className={cn(
-                      "text-[10px] px-1.5 py-0.5 rounded-md border bg-white/[0.03]",
+                      "rounded-md border bg-white/[0.03] px-1.5 py-0.5 text-[10px]",
                       t.className
                     )}
                   >
@@ -181,7 +197,7 @@ export function ProjectCard({ project, onViewTasks }: Props) {
             )}
           </>
         ) : (
-          <p className="text-[13px] mt-0.5 text-text-muted italic">TBD · TBD · TBD</p>
+          <p className="text-text-muted mt-0.5 text-[13px] italic">TBD · TBD · TBD</p>
         )}
       </div>
     </div>

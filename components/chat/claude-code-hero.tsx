@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 
 function Kbd({ children }: { children: ReactNode }) {
   return (
-    <kbd className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-white/10 border border-white/15 text-[12px] leading-none text-[#cfcdc9] mx-0.5">
+    <kbd className="mx-0.5 inline-flex items-center rounded-md border border-white/15 bg-white/10 px-1.5 py-0.5 text-[12px] leading-none text-[#cfcdc9]">
       {children}
     </kbd>
   );
@@ -18,16 +18,16 @@ function Kbd({ children }: { children: ReactNode }) {
  */
 export function ClaudeCodeEmpty({ children }: { children: ReactNode }) {
   return (
-    <div className="flex-1 flex flex-col min-h-0 bg-[#0d0d0d]">
-      <div className="pt-8 flex items-center justify-center gap-2">
+    <div className="flex min-h-0 flex-1 flex-col bg-[#0d0d0d]">
+      <div className="flex items-center justify-center gap-2 pt-8">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/claude-logo.svg" alt="" className="h-[18px] w-[18px]" />
-        <span className="font-serif text-xl text-[#e8e6e3] tracking-tight">Claude Code</span>
+        <span className="font-serif text-xl tracking-tight text-[#e8e6e3]">Claude Code</span>
       </div>
-      <div className="flex-1 flex flex-col items-center justify-center gap-6 px-4">
+      <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/clawd.svg" alt="Clawd" className="w-[120px] h-auto" />
-        <p className="text-[15px] text-[#8a8782] text-center leading-relaxed">
+        <img src="/clawd.svg" alt="Clawd" className="h-auto w-[120px]" />
+        <p className="text-center text-[15px] leading-relaxed text-[#8a8782]">
           Press <Kbd>Shift</Kbd> <Kbd>Tab</Kbd> to automatically approve
           <br />
           code edits

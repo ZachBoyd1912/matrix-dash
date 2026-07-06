@@ -105,7 +105,9 @@ export const files = sqliteTable("files", {
 // ─── EMAILS (local mailbox) ───────────────────────────────
 export const emails = sqliteTable("emails", {
   id: text("id").primaryKey(),
-  folder: text("folder", { enum: ["inbox", "sent", "drafts", "trash"] }).notNull().default("inbox"),
+  folder: text("folder", { enum: ["inbox", "sent", "drafts", "trash"] })
+    .notNull()
+    .default("inbox"),
   fromAddr: text("from_addr").notNull().default(""),
   toAddr: text("to_addr").notNull().default(""),
   subject: text("subject").notNull().default(""),

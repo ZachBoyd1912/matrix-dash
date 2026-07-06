@@ -74,7 +74,9 @@ export async function extractMemories(messages: ModelMessage[]): Promise<void> {
   // Only need the last few turns for context.
   const recent = messages.slice(-4);
   const conversation = recent
-    .map((m) => `${m.role}: ${typeof m.content === "string" ? m.content : JSON.stringify(m.content)}`)
+    .map(
+      (m) => `${m.role}: ${typeof m.content === "string" ? m.content : JSON.stringify(m.content)}`
+    )
     .join("\n");
 
   if (conversation.trim().length === 0) return;

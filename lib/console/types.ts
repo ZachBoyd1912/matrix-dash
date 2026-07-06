@@ -50,7 +50,6 @@ export function levelColor(level: LogLevel): string {
   }
 }
 
-// eslint-disable-next-line no-control-regex
 const ANSI_RE = /\[[0-9;]*m/g;
 
 /** Drop ANSI SGR color codes — dev servers emit plenty; we colorize ourselves. */

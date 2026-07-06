@@ -4,8 +4,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const redirectTo =
-    url.searchParams.get("redirect_to") || "/dashboard/settings/calendar";
+  const redirectTo = url.searchParams.get("redirect_to") || "/dashboard/settings/calendar";
 
   const clientId = process.env.GOOGLE_CLIENT_ID;
   if (!clientId) {
@@ -18,10 +17,7 @@ export async function GET(req: Request) {
 
   const authorizeUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   authorizeUrl.searchParams.set("client_id", clientId);
-  authorizeUrl.searchParams.set(
-    "redirect_uri",
-    `${url.origin}/api/oauth/google-calendar/callback`
-  );
+  authorizeUrl.searchParams.set("redirect_uri", `${url.origin}/api/oauth/google-calendar/callback`);
   authorizeUrl.searchParams.set("response_type", "code");
   authorizeUrl.searchParams.set(
     "scope",

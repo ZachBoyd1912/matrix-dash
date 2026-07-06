@@ -9,10 +9,13 @@ type ToolBlock = Extract<Block, { kind: "tool_call" }>;
 
 /** The single status indicator (running spinner / emerald dot / rose x). */
 export function StatusGlyph({ status }: { status: ToolStatus }) {
-  if (status === "running") return <Loader2 size={12} className="text-emerald-300 animate-spin shrink-0" />;
-  if (status === "error") return <span className="text-rose-400 shrink-0 leading-none">✗</span>;
+  if (status === "running")
+    return <Loader2 size={12} className="shrink-0 animate-spin text-emerald-300" />;
+  if (status === "error") return <span className="shrink-0 leading-none text-rose-400">✗</span>;
   return (
-    <span className="text-emerald-400 shrink-0 leading-none drop-shadow-[0_0_4px_rgba(52,211,153,0.7)]">●</span>
+    <span className="shrink-0 leading-none text-emerald-400 drop-shadow-[0_0_4px_rgba(52,211,153,0.7)]">
+      ●
+    </span>
   );
 }
 
@@ -51,7 +54,7 @@ export function ToolCallBlock({ block }: { block: ToolBlock }) {
   return (
     <div
       className={cn(
-        "group my-1.5 rounded-xl border bg-white/[0.02] overflow-hidden transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
+        "group my-1.5 overflow-hidden rounded-xl border bg-white/[0.02] transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
         block.status === "error" ? "border-rose-500/20" : "border-white/5 hover:border-white/10"
       )}
     >
@@ -59,7 +62,7 @@ export function ToolCallBlock({ block }: { block: ToolBlock }) {
         type="button"
         onClick={() => hasBody && setOpen((v) => !v)}
         className={cn(
-          "w-full flex items-center gap-2 px-3 h-9 text-[12px] font-mono text-text-secondary transition-colors duration-200",
+          "text-text-secondary flex h-9 w-full items-center gap-2 px-3 font-mono text-[12px] transition-colors duration-200",
           hasBody ? "hover:text-text-primary cursor-pointer" : "cursor-default"
         )}
       >
@@ -75,7 +78,10 @@ export function ToolCallBlock({ block }: { block: ToolBlock }) {
         {hasBody && (
           <ChevronRight
             size={12}
-            className={cn("ml-auto shrink-0 transition-transform duration-200", open && "rotate-90")}
+            className={cn(
+              "ml-auto shrink-0 transition-transform duration-200",
+              open && "rotate-90"
+            )}
           />
         )}
       </button>
@@ -89,9 +95,9 @@ export function ToolCallBlock({ block }: { block: ToolBlock }) {
           <div className="overflow-hidden">
             <pre
               className={cn(
-                "mx-3 mb-2.5 px-3 py-2 text-[11px] leading-relaxed whitespace-pre-wrap break-words font-mono max-h-72 overflow-y-auto rounded-lg bg-black/30 border-l-2",
+                "mx-3 mb-2.5 max-h-72 overflow-y-auto rounded-lg border-l-2 bg-black/30 px-3 py-2 font-mono text-[11px] leading-relaxed break-words whitespace-pre-wrap",
                 block.status === "error"
-                  ? "text-rose-300/90 border-rose-500/40"
+                  ? "border-rose-500/40 text-rose-300/90"
                   : "text-text-muted border-emerald-400/30"
               )}
             >

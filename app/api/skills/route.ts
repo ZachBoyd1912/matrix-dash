@@ -65,9 +65,7 @@ export async function PATCH(req: Request) {
   if (!parsed.success) return Response.json({ error: parsed.error.flatten() }, { status: 400 });
 
   const { isEnabled, ids } = parsed.data;
-  const base = getDb()
-    .update(skills)
-    .set({ isEnabled, updatedAt: new Date().toISOString() });
+  const base = getDb().update(skills).set({ isEnabled, updatedAt: new Date().toISOString() });
   const res = (ids && ids.length > 0 ? base.where(inArray(skills.id, ids)) : base).run();
   return Response.json({ ok: true, updated: res.changes });
 }

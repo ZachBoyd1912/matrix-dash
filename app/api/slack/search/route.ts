@@ -10,11 +10,7 @@ export async function GET(req: Request) {
   const q = url.searchParams.get("q");
   if (!q) return Response.json({ error: "query required" }, { status: 400 });
 
-  const ws = getDb()
-    .select()
-    .from(slackWorkspaces)
-    .where(eq(slackWorkspaces.isActive, true))
-    .get();
+  const ws = getDb().select().from(slackWorkspaces).where(eq(slackWorkspaces.isActive, true)).get();
   if (!ws) {
     return Response.json({ error: "No active Slack workspace" }, { status: 400 });
   }

@@ -18,7 +18,7 @@ function Highlighted({ text, query }: { text: string; query?: string }) {
     }
     if (at > from) parts.push(text.slice(from, at));
     parts.push(
-      <mark key={key++} className="rounded-sm bg-emerald-400/30 text-text-primary">
+      <mark key={key++} className="text-text-primary rounded-sm bg-emerald-400/30">
         {text.slice(at, at + q.length)}
       </mark>
     );
@@ -31,11 +31,11 @@ function Highlighted({ text, query }: { text: string; query?: string }) {
 export function LogLineRow({ line, query }: { line: LogLine; query?: string }) {
   return (
     <div className="flex gap-2 px-3 py-[1px] font-mono text-[11px] leading-relaxed hover:bg-white/[0.025]">
-      <span className="shrink-0 tabular-nums text-text-muted">{fmtTime(line.ts)}</span>
+      <span className="text-text-muted shrink-0 tabular-nums">{fmtTime(line.ts)}</span>
       <span className={cn("w-[42px] shrink-0 font-semibold uppercase", levelColor(line.level))}>
         {line.level}
       </span>
-      <span className="min-w-0 whitespace-pre-wrap break-words text-text-secondary">
+      <span className="text-text-secondary min-w-0 break-words whitespace-pre-wrap">
         <Highlighted text={line.text} query={query} />
       </span>
     </div>

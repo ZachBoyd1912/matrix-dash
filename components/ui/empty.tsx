@@ -13,19 +13,17 @@ export function EmptyState({ icon, title, description, action, className }: Prop
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center text-center p-8 rounded-xl border border-white/5 bg-white/[0.02]",
+        "flex flex-col items-center justify-center rounded-xl border border-white/5 bg-white/[0.02] p-8 text-center",
         className
       )}
     >
       {icon && (
-        <div className="mb-3 h-10 w-10 rounded-full grid place-items-center bg-white/5 text-text-secondary">
+        <div className="text-text-secondary mb-3 grid h-10 w-10 place-items-center rounded-full bg-white/5">
           {icon}
         </div>
       )}
-      <h3 className="text-sm font-medium text-text-primary mb-1">{title}</h3>
-      {description && (
-        <p className="text-xs text-text-secondary max-w-xs mb-4">{description}</p>
-      )}
+      <h3 className="text-text-primary mb-1 text-sm font-medium">{title}</h3>
+      {description && <p className="text-text-secondary mb-4 max-w-xs text-xs">{description}</p>}
       {action}
     </div>
   );

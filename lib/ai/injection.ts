@@ -68,9 +68,7 @@ export function buildMemoryContext(userMessage: string): string {
     i++;
   }
 
-  const lines = balanced.map(
-    (m) => `- ${m.content} (${m.type}, used ${m.usageCount}×)`
-  );
+  const lines = balanced.map((m) => `- ${m.content} (${m.type}, used ${m.usageCount}×)`);
   const context =
     "[Autonomous Memory Context]\n" +
     "The following memories are relevant to this conversation:\n" +

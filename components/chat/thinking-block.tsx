@@ -21,16 +21,14 @@ export function ThinkingBlock({ thinking, active }: Props) {
   const chars = thinking.length;
 
   return (
-    <div className="mb-2 rounded-lg border border-white/10 bg-white/[0.03] overflow-hidden">
+    <div className="mb-2 overflow-hidden rounded-lg border border-white/10 bg-white/[0.03]">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-text-secondary hover:text-text-primary transition-colors"
+        className="text-text-secondary hover:text-text-primary flex w-full items-center gap-2 px-3 py-1.5 text-[11px] transition-colors"
       >
         <Brain size={12} className={cn("text-violet-300", active && "animate-pulse")} />
-        <span className="font-medium">
-          {active ? "Thinking…" : "Thought process"}
-        </span>
+        <span className="font-medium">{active ? "Thinking…" : "Thought process"}</span>
         <span className="text-text-muted">· {chars} chars</span>
         <ChevronRight
           size={12}
@@ -38,7 +36,7 @@ export function ThinkingBlock({ thinking, active }: Props) {
         />
       </button>
       {open && (
-        <pre className="px-3 pb-2.5 pt-0.5 text-[11px] leading-relaxed text-text-muted whitespace-pre-wrap font-mono max-h-72 overflow-y-auto">
+        <pre className="text-text-muted max-h-72 overflow-y-auto px-3 pt-0.5 pb-2.5 font-mono text-[11px] leading-relaxed whitespace-pre-wrap">
           {thinking}
         </pre>
       )}

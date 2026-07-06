@@ -56,7 +56,12 @@ function toModelMessages(body: AnthropicBody): ModelMessage[] {
         if (b.type === "text" && b.text) parts.push({ type: "text", text: b.text });
         else if (b.type === "tool_use" && b.id) {
           names.set(b.id, b.name ?? "tool");
-          parts.push({ type: "tool-call", toolCallId: b.id, toolName: b.name ?? "tool", input: b.input ?? {} });
+          parts.push({
+            type: "tool-call",
+            toolCallId: b.id,
+            toolName: b.name ?? "tool",
+            input: b.input ?? {},
+          });
         }
       }
       out.push({ role: "assistant", content: parts } as unknown as ModelMessage);
@@ -71,14 +76,18 @@ function toModelMessages(body: AnthropicBody): ModelMessage[] {
             type: "tool-result",
             toolCallId: b.tool_use_id,
             toolName: names.get(b.tool_use_id) ?? "tool",
-            output: b.is_error ? { type: "error-text", value: text } : { type: "text", value: text },
+            output: b.is_error
+              ? { type: "error-text", value: text }
+              : { type: "text", value: text },
           });
         } else if (b.type === "text" && b.text) {
           textParts.push({ type: "text", text: b.text });
         }
       }
-      if (toolParts.length) out.push({ role: "tool", content: toolParts } as unknown as ModelMessage);
-      if (textParts.length) out.push({ role: "user", content: textParts } as unknown as ModelMessage);
+      if (toolParts.length)
+        out.push({ role: "tool", content: toolParts } as unknown as ModelMessage);
+      if (textParts.length)
+        out.push({ role: "user", content: textParts } as unknown as ModelMessage);
     }
   }
   return out;
@@ -98,20 +107,30 @@ function buildTools(body: AnthropicBody): ToolSet | undefined {
 }
 
 const enc = new TextEncoder();
-const sse = (event: string, data: object) => enc.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+const sse = (event: string, data: object) =>
+  enc.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 
 export async function POST(req: Request) {
   let body: AnthropicBody;
   try {
     body = (await req.json()) as AnthropicBody;
   } catch {
-    return Response.json({ type: "error", error: { type: "invalid_request_error", message: "Invalid JSON" } }, { status: 400 });
+    return Response.json(
+      { type: "error", error: { type: "invalid_request_error", message: "Invalid JSON" } },
+      { status: 400 }
+    );
   }
 
   const provider = getActiveProvider();
   if (!provider) {
     return Response.json(
-      { type: "error", error: { type: "api_error", message: "No active Matrix provider. Add one in Settings → Add Models." } },
+      {
+        type: "error",
+        error: {
+          type: "api_error",
+          message: "No active Matrix provider. Add one in Settings → Add Models.",
+        },
+      },
       { status: 503 }
     );
   }
@@ -122,7 +141,8 @@ export async function POST(req: Request) {
   const sys = systemText(body.system);
   if (sys) {
     const i = messages.findIndex((m) => m.role === "user" && typeof m.content === "string");
-    if (i >= 0) messages[i] = { role: "user", content: `${sys}\n\n———\n\n${messages[i].content as string}` };
+    if (i >= 0)
+      messages[i] = { role: "user", content: `${sys}\n\n———\n\n${messages[i].content as string}` };
     else messages.unshift({ role: "user", content: sys });
   }
 
@@ -134,7 +154,10 @@ export async function POST(req: Request) {
     result = streamText({ model: resolveModel(provider), messages, tools: buildTools(body) });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    return Response.json({ type: "error", error: { type: "api_error", message: msg } }, { status: 500 });
+    return Response.json(
+      { type: "error", error: { type: "api_error", message: msg } },
+      { status: 500 }
+    );
   }
 
   const msgId = `msg_${provider.id.slice(0, 8)}${Date.now().toString(36)}`;
@@ -171,9 +194,21 @@ export async function POST(req: Request) {
             if (!textOpen) {
               index++;
               textOpen = true;
-              controller.enqueue(sse("content_block_start", { type: "content_block_start", index, content_block: { type: "text", text: "" } }));
+              controller.enqueue(
+                sse("content_block_start", {
+                  type: "content_block_start",
+                  index,
+                  content_block: { type: "text", text: "" },
+                })
+              );
             }
-            controller.enqueue(sse("content_block_delta", { type: "content_block_delta", index, delta: { type: "text_delta", text: part.text } }));
+            controller.enqueue(
+              sse("content_block_delta", {
+                type: "content_block_delta",
+                index,
+                delta: { type: "text_delta", text: part.text },
+              })
+            );
           } else if (part.type === "tool-call") {
             closeText();
             sawTool = true;
@@ -182,7 +217,12 @@ export async function POST(req: Request) {
               sse("content_block_start", {
                 type: "content_block_start",
                 index,
-                content_block: { type: "tool_use", id: part.toolCallId, name: part.toolName, input: {} },
+                content_block: {
+                  type: "tool_use",
+                  id: part.toolCallId,
+                  name: part.toolName,
+                  input: {},
+                },
               })
             );
             controller.enqueue(
@@ -206,7 +246,10 @@ export async function POST(req: Request) {
         controller.enqueue(sse("message_stop", { type: "message_stop" }));
       } catch (e) {
         controller.enqueue(
-          sse("error", { type: "error", error: { type: "api_error", message: e instanceof Error ? e.message : String(e) } })
+          sse("error", {
+            type: "error",
+            error: { type: "api_error", message: e instanceof Error ? e.message : String(e) },
+          })
         );
       } finally {
         controller.close();
@@ -215,6 +258,9 @@ export async function POST(req: Request) {
   });
 
   return new Response(stream, {
-    headers: { "content-type": "text/event-stream; charset=utf-8", "cache-control": "no-cache, no-transform" },
+    headers: {
+      "content-type": "text/event-stream; charset=utf-8",
+      "cache-control": "no-cache, no-transform",
+    },
   });
 }

@@ -22,7 +22,9 @@ export async function webSearch(query: string): Promise<SearchResult[]> {
       signal: AbortSignal.timeout(15_000),
     });
     if (res.ok) {
-      const data = (await res.json()) as { results?: { title: string; url: string; content: string }[] };
+      const data = (await res.json()) as {
+        results?: { title: string; url: string; content: string }[];
+      };
       return (data.results ?? []).map((r) => ({ title: r.title, url: r.url, snippet: r.content }));
     }
   }
@@ -34,8 +36,12 @@ export async function webSearch(query: string): Promise<SearchResult[]> {
     url.searchParams.set("format", "json");
     const res = await fetch(url, { signal: AbortSignal.timeout(15_000) });
     if (res.ok) {
-      const data = (await res.json()) as { results?: { title: string; url: string; content: string }[] };
-      return (data.results ?? []).slice(0, 8).map((r) => ({ title: r.title, url: r.url, snippet: r.content ?? "" }));
+      const data = (await res.json()) as {
+        results?: { title: string; url: string; content: string }[];
+      };
+      return (data.results ?? [])
+        .slice(0, 8)
+        .map((r) => ({ title: r.title, url: r.url, snippet: r.content ?? "" }));
     }
   }
 
@@ -54,7 +60,11 @@ export async function webSearch(query: string): Promise<SearchResult[]> {
   };
   const out: SearchResult[] = [];
   if (data.AbstractText) {
-    out.push({ title: data.Heading ?? query, url: data.AbstractURL ?? "", snippet: data.AbstractText });
+    out.push({
+      title: data.Heading ?? query,
+      url: data.AbstractURL ?? "",
+      snippet: data.AbstractText,
+    });
   }
   for (const topic of data.RelatedTopics ?? []) {
     if (topic.Text && topic.FirstURL) {

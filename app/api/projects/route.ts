@@ -1,4 +1,3 @@
-import { randomUUID } from "crypto";
 import { eq, asc } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
@@ -32,7 +31,10 @@ export async function POST(req: Request) {
   }
   const parsed = createSchema.safeParse(payload);
   if (!parsed.success) return Response.json({ error: parsed.error.flatten() }, { status: 400 });
-  const id = parsed.data.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const id = parsed.data.name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
   const now = new Date().toISOString();
   getDb()
     .insert(projects)

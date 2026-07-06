@@ -39,7 +39,7 @@ export default function NewMemoryPage() {
   };
 
   return (
-    <div ref={ref} className="px-4 md:px-8 py-10 max-w-2xl mx-auto space-y-8">
+    <div ref={ref} className="mx-auto max-w-2xl space-y-8 px-4 py-10 md:px-8">
       <div className="relative">
         <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
         <div
@@ -49,7 +49,7 @@ export default function NewMemoryPage() {
         <div className="relative flex items-start gap-3">
           <Link
             href="/dashboard/memory-bank"
-            className="text-text-muted hover:text-text-primary mt-1 p-1 rounded-md hover:bg-white/5 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            className="text-text-muted hover:text-text-primary mt-1 rounded-md p-1 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-white/5"
             aria-label="Back"
           >
             <ArrowLeft size={15} />
@@ -58,15 +58,13 @@ export default function NewMemoryPage() {
             <span className="eyebrow">
               <BrainCircuit size={11} /> Memory Bank
             </span>
-            <h1 className="display text-gradient text-4xl md:text-5xl ">
-              New memory
-            </h1>
+            <h1 className="display text-gradient text-4xl md:text-5xl">New memory</h1>
             <p className="text-text-secondary text-sm">Capture a fact worth remembering.</p>
           </div>
         </div>
       </div>
 
-      <Card interactive className="rounded-2xl space-y-4">
+      <Card interactive className="space-y-4 rounded-2xl">
         <Textarea
           autoFocus
           rows={4}
@@ -74,10 +72,14 @@ export default function NewMemoryPage() {
           value={content}
           onChange={(e) => setContent(e.target.value)}
         />
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <label className="block text-[10px] uppercase text-text-muted mb-1">Type</label>
-            <Select value={type} onChange={(e) => setType(e.target.value as MemoryType)} className="w-full">
+            <label className="text-text-muted mb-1 block text-[10px] uppercase">Type</label>
+            <Select
+              value={type}
+              onChange={(e) => setType(e.target.value as MemoryType)}
+              className="w-full"
+            >
               {MEMORY_TYPES.map((t) => (
                 <option key={t} value={t}>
                   {MEMORY_TYPE_META[t].label}
@@ -86,7 +88,7 @@ export default function NewMemoryPage() {
             </Select>
           </div>
           <div>
-            <label className="block text-[10px] uppercase text-text-muted mb-1">
+            <label className="text-text-muted mb-1 block text-[10px] uppercase">
               Importance · {importance.toFixed(2)}
             </label>
             <input
@@ -96,15 +98,19 @@ export default function NewMemoryPage() {
               step={0.05}
               value={importance}
               onChange={(e) => setImportance(parseFloat(e.target.value))}
-              className="w-full accent-emerald-400 h-9"
+              className="h-9 w-full accent-emerald-400"
             />
           </div>
         </div>
         <div>
-          <label className="block text-[10px] uppercase text-text-muted mb-1">Tags</label>
-          <Input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="comma,separated,keywords" />
+          <label className="text-text-muted mb-1 block text-[10px] uppercase">Tags</label>
+          <Input
+            value={tags}
+            onChange={(e) => setTags(e.target.value)}
+            placeholder="comma,separated,keywords"
+          />
         </div>
-        <label className="flex items-center gap-2 text-xs text-text-secondary cursor-pointer">
+        <label className="text-text-secondary flex cursor-pointer items-center gap-2 text-xs">
           <input
             type="checkbox"
             checked={pinned}

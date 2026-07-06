@@ -58,7 +58,7 @@ export function KanbanColumn({
   return (
     <div
       className={cn(
-        "flex flex-col min-h-[400px] transition-colors duration-200",
+        "flex min-h-[400px] flex-col transition-colors duration-200",
         !isLast && "border-r border-white/[0.06]",
         isOver && "bg-emerald-400/[0.04]"
       )}
@@ -66,7 +66,7 @@ export function KanbanColumn({
       {/* ── Drop zone + Add button ── */}
       <div
         ref={setNodeRef}
-        className="flex-1 p-2 space-y-1.5 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
+        className="flex-1 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent space-y-1.5 overflow-y-auto p-2"
       >
         <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
           {tasks.map((task) => {
@@ -87,17 +87,17 @@ export function KanbanColumn({
         </SortableContext>
 
         {tasks.length === 0 && !isOver && (
-          <div className="flex items-center justify-center h-20 text-[10px] text-text-muted/30 text-center border border-dashed border-white/[0.04] rounded-lg mx-1">
+          <div className="text-text-muted/30 mx-1 flex h-20 items-center justify-center rounded-lg border border-dashed border-white/[0.04] text-center text-[10px]">
             <span>Empty</span>
           </div>
         )}
       </div>
 
       {/* ── Add task button ── */}
-      <div className="p-1.5 border-t border-white/[0.04]">
+      <div className="border-t border-white/[0.04] p-1.5">
         <button
           onClick={() => onAddTask(column.id)}
-          className="w-full flex items-center justify-center gap-1 py-1.5 rounded-md text-[10px] text-text-muted hover:text-emerald-400 hover:bg-emerald-400/[0.06] transition-colors"
+          className="text-text-muted flex w-full items-center justify-center gap-1 rounded-md py-1.5 text-[10px] transition-colors hover:bg-emerald-400/[0.06] hover:text-emerald-400"
           aria-label={`Add task to ${column.label}`}
         >
           <Plus size={12} />

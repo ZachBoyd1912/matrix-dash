@@ -42,10 +42,9 @@ export async function GET(req: Request) {
 
     let email = "unknown@google.com";
     try {
-      const userRes = await fetch(
-        "https://www.googleapis.com/oauth2/v2/userinfo",
-        { headers: { Authorization: `Bearer ${data.access_token}` } }
-      );
+      const userRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+        headers: { Authorization: `Bearer ${data.access_token}` },
+      });
       if (userRes.ok) {
         const user = await userRes.json();
         email = user.email || email;
@@ -74,6 +73,8 @@ export async function GET(req: Request) {
     );
   } catch (e) {
     console.error("[google-calendar/callback]", e);
-    return Response.redirect(new URL("/dashboard/settings/calendar?error=token_exchange_failed", base));
+    return Response.redirect(
+      new URL("/dashboard/settings/calendar?error=token_exchange_failed", base)
+    );
   }
 }

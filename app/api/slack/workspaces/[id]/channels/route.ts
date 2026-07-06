@@ -25,11 +25,7 @@ function toPublic(row: typeof slackChannels.$inferSelect): SlackChannelPublic {
 
 export async function GET(_req: Request, ctx: Ctx) {
   const { id } = await ctx.params;
-  const rows = getDb()
-    .select()
-    .from(slackChannels)
-    .where(eq(slackChannels.workspaceId, id))
-    .all();
+  const rows = getDb().select().from(slackChannels).where(eq(slackChannels.workspaceId, id)).all();
   return Response.json(rows.map(toPublic));
 }
 

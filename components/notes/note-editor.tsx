@@ -78,23 +78,25 @@ export function NoteEditor({ note, backlinks, onChange, onNavigateTitle, onNavig
   };
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="px-4 md:px-6 py-3 border-b border-white/5 flex items-center gap-2">
+    <div className="flex h-full flex-col">
+      <div className="flex items-center gap-2 border-b border-white/5 px-4 py-3 md:px-6">
         <Input
           value={title}
           onChange={(e) => updateTitle(e.target.value)}
-          className="flex-1 h-9 text-base font-semibold border-transparent bg-transparent focus:bg-white/[0.03]"
+          className="h-9 flex-1 border-transparent bg-transparent text-base font-semibold focus:bg-white/[0.03]"
           placeholder="Untitled note"
         />
-        <span className="text-[10px] text-text-muted">
+        <span className="text-text-muted text-[10px]">
           saved {timeAgo(savedAt ?? note.updatedAt)}
         </span>
-        <div className="flex items-center gap-1 glass-input rounded-md p-0.5">
+        <div className="glass-input flex items-center gap-1 rounded-md p-0.5">
           <button
             onClick={() => setTab("edit")}
             className={cn(
-              "h-7 px-2 rounded-[5px] transition-colors",
-              tab === "edit" ? "bg-white/10 text-text-primary" : "text-text-muted hover:text-text-secondary"
+              "h-7 rounded-[5px] px-2 transition-colors",
+              tab === "edit"
+                ? "text-text-primary bg-white/10"
+                : "text-text-muted hover:text-text-secondary"
             )}
             aria-label="Edit mode"
           >
@@ -103,8 +105,10 @@ export function NoteEditor({ note, backlinks, onChange, onNavigateTitle, onNavig
           <button
             onClick={() => setTab("preview")}
             className={cn(
-              "h-7 px-2 rounded-[5px] transition-colors",
-              tab === "preview" ? "bg-white/10 text-text-primary" : "text-text-muted hover:text-text-secondary"
+              "h-7 rounded-[5px] px-2 transition-colors",
+              tab === "preview"
+                ? "text-text-primary bg-white/10"
+                : "text-text-muted hover:text-text-secondary"
             )}
             aria-label="Preview mode"
           >
@@ -112,53 +116,53 @@ export function NoteEditor({ note, backlinks, onChange, onNavigateTitle, onNavig
           </button>
         </div>
         <Button size="icon" variant="ghost" onClick={toggleFavorite} aria-label="Favorite">
-          <Star size={14} className={note.isFavorite ? "text-amber-400 fill-amber-400/30" : ""} />
+          <Star size={14} className={note.isFavorite ? "fill-amber-400/30 text-amber-400" : ""} />
         </Button>
         <Button size="icon" variant="ghost" onClick={remove} aria-label="Delete">
           <Trash2 size={14} className="text-rose-400" />
         </Button>
       </div>
 
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[1fr_280px]">
+      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[1fr_280px]">
         <div className="overflow-y-auto p-4 md:p-6">
           {tab === "edit" ? (
             <textarea
               value={content}
               onChange={(e) => updateContent(e.target.value)}
-              className="w-full min-h-[70vh] bg-transparent text-sm font-mono leading-relaxed focus:outline-none resize-none text-text-primary placeholder:text-text-muted"
+              className="text-text-primary placeholder:text-text-muted min-h-[70vh] w-full resize-none bg-transparent font-mono text-sm leading-relaxed focus:outline-none"
               placeholder="Start writing… use [[Title]] for wiki links."
             />
           ) : (
             <WikiContent content={content} onNavigate={onNavigateTitle} />
           )}
         </div>
-        <aside className="border-l border-white/5 overflow-y-auto p-4 bg-white/[0.01]">
-          <div className="text-[10px] uppercase text-text-muted mb-2">Outgoing links</div>
+        <aside className="overflow-y-auto border-l border-white/5 bg-white/[0.01] p-4">
+          <div className="text-text-muted mb-2 text-[10px] uppercase">Outgoing links</div>
           {backlinks.outgoing.length === 0 ? (
-            <p className="text-xs text-text-muted mb-4">none</p>
+            <p className="text-text-muted mb-4 text-xs">none</p>
           ) : (
-            <ul className="space-y-1 mb-4">
+            <ul className="mb-4 space-y-1">
               {backlinks.outgoing.map((l) => (
                 <li
                   key={l.linkId}
                   onClick={() => onNavigateId(l.note.id)}
-                  className="text-xs text-text-secondary hover:text-emerald-400 cursor-pointer py-1 px-2 rounded hover:bg-white/5 truncate"
+                  className="text-text-secondary cursor-pointer truncate rounded px-2 py-1 text-xs hover:bg-white/5 hover:text-emerald-400"
                 >
                   → {l.note.title || "Untitled"}
                 </li>
               ))}
             </ul>
           )}
-          <div className="text-[10px] uppercase text-text-muted mb-2">Backlinks</div>
+          <div className="text-text-muted mb-2 text-[10px] uppercase">Backlinks</div>
           {backlinks.incoming.length === 0 ? (
-            <p className="text-xs text-text-muted">none</p>
+            <p className="text-text-muted text-xs">none</p>
           ) : (
             <ul className="space-y-1">
               {backlinks.incoming.map((l) => (
                 <li
                   key={l.linkId}
                   onClick={() => onNavigateId(l.note.id)}
-                  className="text-xs text-text-secondary hover:text-emerald-400 cursor-pointer py-1 px-2 rounded hover:bg-white/5 truncate"
+                  className="text-text-secondary cursor-pointer truncate rounded px-2 py-1 text-xs hover:bg-white/5 hover:text-emerald-400"
                 >
                   ← {l.note.title || "Untitled"}
                 </li>
@@ -167,11 +171,14 @@ export function NoteEditor({ note, backlinks, onChange, onNavigateTitle, onNavig
           )}
           {note.tags && (
             <>
-              <div className="text-[10px] uppercase text-text-muted mt-4 mb-2">Tags</div>
+              <div className="text-text-muted mt-4 mb-2 text-[10px] uppercase">Tags</div>
               <div className="flex flex-wrap gap-1.5">
-                {note.tags.split(",").filter(Boolean).map((t) => (
-                  <Badge key={t}>{t.trim()}</Badge>
-                ))}
+                {note.tags
+                  .split(",")
+                  .filter(Boolean)
+                  .map((t) => (
+                    <Badge key={t}>{t.trim()}</Badge>
+                  ))}
               </div>
             </>
           )}

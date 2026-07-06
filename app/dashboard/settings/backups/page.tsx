@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Archive, Download, Trash2, DatabaseBackup } from "lucide-react";
+import { Archive, Trash2, DatabaseBackup } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -74,11 +74,10 @@ export default function BackupsPage() {
           <span className="eyebrow">
             <DatabaseBackup size={11} /> Snapshots
           </span>
-          <h2 className="display text-gradient text-4xl md:text-5xl mt-3">
-            Backups
-          </h2>
-          <p className="text-text-secondary text-sm mt-3">
-            Auto-snapshots of everything in <code className="text-emerald-300">~/MatrixDash/backups</code>. Last 10 kept.
+          <h2 className="display text-gradient mt-3 text-4xl md:text-5xl">Backups</h2>
+          <p className="text-text-secondary mt-3 text-sm">
+            Auto-snapshots of everything in{" "}
+            <code className="text-emerald-300">~/MatrixDash/backups</code>. Last 10 kept.
           </p>
         </div>
       </div>
@@ -86,8 +85,8 @@ export default function BackupsPage() {
       <Card interactive>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-text-primary">Nightly auto-backup</p>
-            <p className="text-xs text-text-secondary mt-0.5">Runs at 4:00 am local time.</p>
+            <p className="text-text-primary text-sm font-medium">Nightly auto-backup</p>
+            <p className="text-text-secondary mt-0.5 text-xs">Runs at 4:00 am local time.</p>
           </div>
           <Switch checked={autoBackup} onCheckedChange={toggleAuto} label="Auto backup" />
         </div>
@@ -102,10 +101,14 @@ export default function BackupsPage() {
       ) : (
         <div className="space-y-3">
           {list.map((b) => (
-            <Card key={b.name} interactive className="flex items-center justify-between gap-3 rounded-xl">
+            <Card
+              key={b.name}
+              interactive
+              className="flex items-center justify-between gap-3 rounded-xl"
+            >
               <div className="min-w-0">
-                <p className="text-sm font-medium text-text-primary font-mono">{b.name}</p>
-                <p className="text-[11px] text-text-muted mt-0.5">
+                <p className="text-text-primary font-mono text-sm font-medium">{b.name}</p>
+                <p className="text-text-muted mt-0.5 text-[11px]">
                   {fmtSize(b.size)} · {timeAgo(b.createdAt)}
                 </p>
               </div>

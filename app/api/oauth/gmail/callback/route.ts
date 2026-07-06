@@ -109,6 +109,8 @@ export async function GET(req: Request) {
     );
   } catch (e) {
     console.error("[gmail/callback]", e);
-    return Response.redirect(new URL("/dashboard/settings/email?error=token_exchange_failed", base));
+    return Response.redirect(
+      new URL("/dashboard/settings/email?error=token_exchange_failed", base)
+    );
   }
 }

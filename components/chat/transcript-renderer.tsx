@@ -26,8 +26,8 @@ export function TranscriptRenderer({
   // Empty assistant placeholder while the first token is in flight.
   if (blocks.length === 0) {
     return streaming ? (
-      <span className="inline-flex items-center gap-1.5 text-[11px] text-text-muted">
-        <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
+      <span className="text-text-muted inline-flex items-center gap-1.5 text-[11px]">
+        <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-300" />
         Working…
       </span>
     ) : null;
@@ -43,7 +43,7 @@ export function TranscriptRenderer({
               <div key={i} className="relative">
                 <Markdown content={block.text} />
                 {streaming && isLast && block.text && (
-                  <span className="inline-block w-[6px] h-3 -mb-0.5 ml-0.5 bg-emerald-400 rounded-sm animate-pulse" />
+                  <span className="-mb-0.5 ml-0.5 inline-block h-3 w-[6px] animate-pulse rounded-sm bg-emerald-400" />
                 )}
               </div>
             );
@@ -57,7 +57,7 @@ export function TranscriptRenderer({
             return (
               <div
                 key={i}
-                className="rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-200 text-xs px-3 py-2"
+                className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200"
               >
                 {block.text}
               </div>

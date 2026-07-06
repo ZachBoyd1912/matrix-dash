@@ -8,7 +8,12 @@ import type { LanguageModel } from "ai";
 import { getDb } from "@/lib/db/client";
 import { aiProviders } from "@/lib/db/schema";
 import { decrypt } from "@/lib/utils/crypto";
-import { DEFAULT_MODELS, providerSpec, type AiProviderPublic, type ProviderKind } from "@/types/ai-provider";
+import {
+  DEFAULT_MODELS,
+  providerSpec,
+  type AiProviderPublic,
+  type ProviderKind,
+} from "@/types/ai-provider";
 
 export type ProviderRecord = typeof aiProviders.$inferSelect;
 

@@ -36,21 +36,25 @@ export function ApprovalCard({
   if (block.status !== "pending") {
     const denied = block.status === "denied";
     return (
-      <div className="my-2 flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/5 bg-white/[0.02] text-[11px] font-mono text-text-muted">
-        {denied ? <X size={12} className="text-rose-400" /> : <Check size={12} className="text-emerald-400" />}
+      <div className="text-text-muted my-2 flex items-center gap-2 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-1.5 font-mono text-[11px]">
+        {denied ? (
+          <X size={12} className="text-rose-400" />
+        ) : (
+          <Check size={12} className="text-emerald-400" />
+        )}
         {denied ? "Denied" : "Allowed"} · {block.name}
       </div>
     );
   }
 
   return (
-    <div className="my-3 rounded-xl border border-amber-400/30 bg-amber-400/[0.06] shadow-[0_0_28px_-10px_rgba(251,191,36,0.55)] p-3 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]">
-      <div className="flex items-center gap-2 mb-2">
+    <div className="my-3 rounded-xl border border-amber-400/30 bg-amber-400/[0.06] p-3 shadow-[0_0_28px_-10px_rgba(251,191,36,0.55)] transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]">
+      <div className="mb-2 flex items-center gap-2">
         <ShieldAlert size={13} className="text-amber-300" />
-        <span className="text-[12px] font-semibold text-text-primary">Approval required</span>
-        <span className="ml-auto text-[10px] font-mono text-text-muted">{block.name}</span>
+        <span className="text-text-primary text-[12px] font-semibold">Approval required</span>
+        <span className="text-text-muted ml-auto font-mono text-[10px]">{block.name}</span>
       </div>
-      <pre className="rounded-lg bg-black/40 border border-white/5 px-3 py-2 text-[11px] font-mono text-emerald-200/90 overflow-x-auto whitespace-pre-wrap break-words mb-3">
+      <pre className="mb-3 overflow-x-auto rounded-lg border border-white/5 bg-black/40 px-3 py-2 font-mono text-[11px] break-words whitespace-pre-wrap text-emerald-200/90">
         {summarize(block)}
       </pre>
       <div className="flex items-center gap-2">
@@ -58,7 +62,7 @@ export function ApprovalCard({
           type="button"
           disabled={submitting}
           onClick={() => decide("allow")}
-          className="h-8 px-3 rounded-lg text-[12px] font-medium bg-emerald-400 text-black shadow-[0_0_22px_-4px_rgba(52,211,153,0.7)] hover:bg-emerald-300 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98] disabled:opacity-50"
+          className="h-8 rounded-lg bg-emerald-400 px-3 text-[12px] font-medium text-black shadow-[0_0_22px_-4px_rgba(52,211,153,0.7)] transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-emerald-300 active:scale-[0.98] disabled:opacity-50"
         >
           Allow
         </button>
@@ -66,7 +70,7 @@ export function ApprovalCard({
           type="button"
           disabled={submitting}
           onClick={() => decide("allow_always")}
-          className="h-8 px-3 rounded-lg text-[12px] font-medium text-emerald-300 border border-emerald-400/30 bg-emerald-400/10 hover:bg-emerald-400/15 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98] disabled:opacity-50"
+          className="h-8 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 text-[12px] font-medium text-emerald-300 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-emerald-400/15 active:scale-[0.98] disabled:opacity-50"
         >
           Allow always
         </button>
@@ -74,7 +78,7 @@ export function ApprovalCard({
           type="button"
           disabled={submitting}
           onClick={() => decide("deny")}
-          className="h-8 px-3 rounded-lg text-[12px] font-medium text-rose-300 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/30 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98] ml-auto disabled:opacity-50"
+          className="ml-auto h-8 rounded-lg border border-transparent px-3 text-[12px] font-medium text-rose-300 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-rose-500/30 hover:bg-rose-500/10 active:scale-[0.98] disabled:opacity-50"
         >
           Deny
         </button>

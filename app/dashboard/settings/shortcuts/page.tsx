@@ -26,23 +26,21 @@ export default function ShortcutsPage() {
           <span className="eyebrow">
             <Keyboard size={11} /> Keyboard
           </span>
-          <h1 className="display text-gradient text-4xl md:text-5xl mt-3">
-            Keyboard shortcuts
-          </h1>
-          <p className="text-text-secondary text-sm mt-3">
+          <h1 className="display text-gradient mt-3 text-4xl md:text-5xl">Keyboard shortcuts</h1>
+          <p className="text-text-secondary mt-3 text-sm">
             Everything reachable without leaving the keyboard.
           </p>
         </div>
       </div>
-      <Card interactive className="divide-y divide-white/5 p-0 rounded-2xl">
+      <Card interactive className="divide-y divide-white/5 rounded-2xl p-0">
         {SHORTCUTS.map((shortcut) => (
           <div
             key={shortcut.action}
             className="flex items-center justify-between px-5 py-4 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-white/[0.02]"
           >
             <div>
-              <p className="text-sm text-text-primary">{shortcut.action}</p>
-              <p className="text-[10px] uppercase tracking-wider text-text-muted mt-0.5">
+              <p className="text-text-primary text-sm">{shortcut.action}</p>
+              <p className="text-text-muted mt-0.5 text-[10px] tracking-wider uppercase">
                 {shortcut.context}
               </p>
             </div>
@@ -50,7 +48,7 @@ export default function ShortcutsPage() {
               {shortcut.keys.map((key) => (
                 <kbd
                   key={key}
-                  className="min-w-7 h-7 px-2 grid place-items-center rounded-lg bg-white/5 border border-white/10 text-xs text-text-secondary font-mono"
+                  className="text-text-secondary grid h-7 min-w-7 place-items-center rounded-lg border border-white/10 bg-white/5 px-2 font-mono text-xs"
                 >
                   {key}
                 </kbd>

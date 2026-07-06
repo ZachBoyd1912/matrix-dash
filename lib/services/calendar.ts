@@ -9,7 +9,15 @@ import { decrypt } from "@/lib/utils/crypto";
 type Cal = typeof calendars.$inferSelect;
 
 /** Parse a VEVENT-bearing ICS string into normalized event rows. */
-function parseIcs(ics: string): { uid: string; title: string; description: string; location: string; startsAt: string; endsAt: string; allDay: boolean }[] {
+function parseIcs(ics: string): {
+  uid: string;
+  title: string;
+  description: string;
+  location: string;
+  startsAt: string;
+  endsAt: string;
+  allDay: boolean;
+}[] {
   const out: ReturnType<typeof parseIcs> = [];
   try {
     const jcal = ICAL.parse(ics);

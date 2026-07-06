@@ -54,7 +54,8 @@ export function ProviderForm({ onCreated }: Props) {
       const data = (await res.json()) as { models: ModelInfo[]; error?: string };
       setModels(data.models ?? []);
       if (data.error) setModelError(data.error);
-      else if ((data.models ?? []).length === 0) setModelError("No models returned — enter one manually.");
+      else if ((data.models ?? []).length === 0)
+        setModelError("No models returned — enter one manually.");
       else if (!defaultModel && data.models[0]) setDefaultModel(data.models[0].id);
     } catch {
       setModelError("Couldn't reach the provider — enter a model id manually.");
@@ -97,13 +98,17 @@ export function ProviderForm({ onCreated }: Props) {
   return (
     <Card>
       <div className="space-y-3">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
-            <label className="text-[10px] uppercase text-text-muted block mb-1">Label</label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="My Anthropic key" />
+            <label className="text-text-muted mb-1 block text-[10px] uppercase">Label</label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="My Anthropic key"
+            />
           </div>
           <div>
-            <label className="text-[10px] uppercase text-text-muted block mb-1">Provider</label>
+            <label className="text-text-muted mb-1 block text-[10px] uppercase">Provider</label>
             <Select
               value={provider}
               onChange={(e) => onKindChange(e.target.value as ProviderKind)}
@@ -117,10 +122,13 @@ export function ProviderForm({ onCreated }: Props) {
             </Select>
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
-            <label className="text-[10px] uppercase text-text-muted block mb-1">
-              API key {!keyRequired && <span className="text-text-muted/60 normal-case">(optional — local)</span>}
+            <label className="text-text-muted mb-1 block text-[10px] uppercase">
+              API key{" "}
+              {!keyRequired && (
+                <span className="text-text-muted/60 normal-case">(optional — local)</span>
+              )}
             </label>
             <Input
               type="password"
@@ -131,13 +139,13 @@ export function ProviderForm({ onCreated }: Props) {
             />
           </div>
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-[10px] uppercase text-text-muted">Default model</label>
+            <div className="mb-1 flex items-center justify-between">
+              <label className="text-text-muted text-[10px] uppercase">Default model</label>
               <button
                 type="button"
                 onClick={loadModels}
                 disabled={(keyRequired && !apiKey.trim()) || loadingModels}
-                className="text-[10px] text-emerald-400 hover:underline disabled:opacity-40 disabled:no-underline flex items-center gap-1"
+                className="flex items-center gap-1 text-[10px] text-emerald-400 hover:underline disabled:no-underline disabled:opacity-40"
               >
                 <RefreshCw size={10} className={loadingModels ? "animate-spin" : ""} />
                 {loadingModels ? "Loading…" : "Load models"}
@@ -163,18 +171,20 @@ export function ProviderForm({ onCreated }: Props) {
                 placeholder={spec?.defaultModel || "model id"}
               />
             )}
-            {modelError && <p className="text-[10px] text-amber-400/80 mt-1">{modelError}</p>}
+            {modelError && <p className="mt-1 text-[10px] text-amber-400/80">{modelError}</p>}
           </div>
         </div>
         {showsBaseUrl(provider) && (
           <div>
-            <label className="text-[10px] uppercase text-text-muted block mb-1">
+            <label className="text-text-muted mb-1 block text-[10px] uppercase">
               Base URL {needsBaseUrl && <span className="text-rose-400">*</span>}
             </label>
             <Input
               value={baseUrl}
               onChange={(e) => setBaseUrl(e.target.value)}
-              placeholder={needsBaseUrl ? "https://your-endpoint/v1" : "Pre-filled — override if needed"}
+              placeholder={
+                needsBaseUrl ? "https://your-endpoint/v1" : "Pre-filled — override if needed"
+              }
               className="font-mono text-xs"
             />
           </div>
@@ -183,12 +193,17 @@ export function ProviderForm({ onCreated }: Props) {
           <Button
             variant="primary"
             onClick={submit}
-            disabled={!name.trim() || (keyRequired && !apiKey.trim()) || (needsBaseUrl && !baseUrl.trim()) || submitting}
+            disabled={
+              !name.trim() ||
+              (keyRequired && !apiKey.trim()) ||
+              (needsBaseUrl && !baseUrl.trim()) ||
+              submitting
+            }
           >
             <Plus size={14} /> {submitting ? "Adding…" : "Add provider"}
           </Button>
         </div>
-        <p className="text-[10px] text-text-muted">
+        <p className="text-text-muted text-[10px]">
           {keyRequired
             ? "API keys are encrypted with AES-256-GCM. The key lives in ~/MatrixDash/.key (mode 0600)."
             : "Local models run on your machine — no API key needed. Make sure the server is running at the base URL above."}

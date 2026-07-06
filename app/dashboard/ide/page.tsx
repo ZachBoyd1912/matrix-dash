@@ -2,7 +2,19 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { FolderOpen, FolderPlus, Plus, Save, X, Clock, HardDrive, PanelRight, MessageSquare, Code2, FileCode } from "lucide-react";
+import {
+  FolderOpen,
+  FolderPlus,
+  Plus,
+  Save,
+  X,
+  Clock,
+  HardDrive,
+  PanelRight,
+  MessageSquare,
+  Code2,
+  FileCode,
+} from "lucide-react";
 import { FileTree } from "@/components/ide/file-tree";
 import { EditorTabs } from "@/components/ide/editor-tabs";
 import { MonacoEditor } from "@/components/ide/monaco-editor";
@@ -368,11 +380,19 @@ export default function IdePage() {
       });
       setOpenOrder((prev) =>
         prev.map((k) =>
-          k === entry.path ? to : k.startsWith(entry.path + "/") ? to + k.slice(entry.path.length) : k
+          k === entry.path
+            ? to
+            : k.startsWith(entry.path + "/")
+              ? to + k.slice(entry.path.length)
+              : k
         )
       );
       setActivePath((cur) =>
-        cur === entry.path ? to : cur && cur.startsWith(entry.path + "/") ? to + cur.slice(entry.path.length) : cur
+        cur === entry.path
+          ? to
+          : cur && cur.startsWith(entry.path + "/")
+            ? to + cur.slice(entry.path.length)
+            : cur
       );
       if (workspace) await loadTree(workspace.root);
       toast.success(`Renamed to ${newName}`);
@@ -435,9 +455,9 @@ export default function IdePage() {
   // Real VS Code (code-server) surface — its own lifecycle lives in the gate.
   if (view === "vscode") {
     return (
-      <div className="page-h flex flex-col min-h-0">
+      <div className="page-h flex min-h-0 flex-col">
         <ViewToggle view={view} onChange={persistView} />
-        <div className="flex-1 min-h-0">
+        <div className="min-h-0 flex-1">
           <CodeServerGate />
         </div>
       </div>
@@ -447,22 +467,24 @@ export default function IdePage() {
   // Empty state — workspace picker.
   if (!workspace) {
     return (
-      <div className="page-h flex flex-col min-h-0">
+      <div className="page-h flex min-h-0 flex-col">
         <ViewToggle view={view} onChange={persistView} />
-        <div className="flex-1 min-h-0 grid place-items-center p-6">
+        <div className="grid min-h-0 flex-1 place-items-center p-6">
           <div className="w-full max-w-xl space-y-6">
             <div className="text-center">
-              <div className="inline-grid place-items-center h-14 w-14 rounded-2xl bg-emerald-400/10 border border-emerald-400/20 mb-4">
+              <div className="mb-4 inline-grid h-14 w-14 place-items-center rounded-2xl border border-emerald-400/20 bg-emerald-400/10">
                 <FolderOpen size={24} className="text-emerald-400" />
               </div>
               <h2 className="text-xl font-bold tracking-tight">Open a project folder</h2>
-              <p className="text-text-secondary text-sm mt-1">
+              <p className="text-text-secondary mt-1 text-sm">
                 Edit real files on disk — a full Monaco workspace, like VS Code inside Matrix.
               </p>
             </div>
 
-            <div className="glass rounded-xl p-4 space-y-3">
-              <label className="text-[10px] uppercase tracking-wider text-text-muted block">Folder path</label>
+            <div className="glass space-y-3 rounded-xl p-4">
+              <label className="text-text-muted block text-[10px] tracking-wider uppercase">
+                Folder path
+              </label>
               <div className="flex gap-2">
                 <Input
                   autoFocus
@@ -474,38 +496,46 @@ export default function IdePage() {
                   placeholder="/Users/you/projects/my-app"
                   className="font-mono text-xs"
                 />
-                <Button variant="primary" onClick={() => openWorkspace(pathInput)} disabled={opening || !pathInput.trim()}>
+                <Button
+                  variant="primary"
+                  onClick={() => openWorkspace(pathInput)}
+                  disabled={opening || !pathInput.trim()}
+                >
                   <FolderOpen size={14} /> {opening ? "Opening…" : "Open"}
                 </Button>
               </div>
-              <p className="text-[10px] text-text-muted">
-                Paste an absolute path. Heavy folders (node_modules, .git, dist…) are skipped automatically.
+              <p className="text-text-muted text-[10px]">
+                Paste an absolute path. Heavy folders (node_modules, .git, dist…) are skipped
+                automatically.
               </p>
             </div>
 
             {recents.length > 0 && (
               <div className="space-y-2">
-                <p className="text-[10px] uppercase tracking-wider text-text-muted flex items-center gap-1.5">
+                <p className="text-text-muted flex items-center gap-1.5 text-[10px] tracking-wider uppercase">
                   <Clock size={11} /> Recent workspaces
                 </p>
                 <div className="space-y-1.5">
                   {recents.map((r) => (
                     <div
                       key={r.id}
-                      className="group flex items-center gap-3 px-3 py-2.5 rounded-lg glass-input cursor-pointer hover:bg-white/5 hover:border-emerald-400/20 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                      className="group glass-input flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-emerald-400/20 hover:bg-white/5"
                       onClick={() => openWorkspace(r.path)}
                     >
-                      <HardDrive size={15} className="text-text-muted group-hover:text-emerald-400/80 shrink-0 transition-colors" />
+                      <HardDrive
+                        size={15}
+                        className="text-text-muted shrink-0 transition-colors group-hover:text-emerald-400/80"
+                      />
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-text-primary truncate">{r.name}</p>
-                        <p className="text-[10px] text-text-muted font-mono truncate">{r.path}</p>
+                        <p className="text-text-primary truncate text-sm font-medium">{r.name}</p>
+                        <p className="text-text-muted truncate font-mono text-[10px]">{r.path}</p>
                       </div>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           removeRecent(r.id);
                         }}
-                        className="text-text-muted hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98] p-1"
+                        className="text-text-muted p-1 opacity-0 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:opacity-100 hover:text-rose-400 active:scale-[0.98]"
                         aria-label="Remove from recents"
                       >
                         <X size={13} />
@@ -517,7 +547,7 @@ export default function IdePage() {
             )}
 
             {booted && recents.length === 0 && (
-              <p className="text-center text-[11px] text-text-muted">No recent workspaces yet.</p>
+              <p className="text-text-muted text-center text-[11px]">No recent workspaces yet.</p>
             )}
           </div>
         </div>
@@ -529,166 +559,182 @@ export default function IdePage() {
 
   // Workspace open mode.
   return (
-    <div className="page-h flex flex-col min-h-0">
+    <div className="page-h flex min-h-0 flex-col">
       <ViewToggle view={view} onChange={persistView} />
       <div
-        className={`flex-1 min-h-0 grid ${
+        className={`grid min-h-0 flex-1 ${
           chatOpen
             ? "grid-cols-[180px_1fr_300px] md:grid-cols-[240px_1fr_380px]"
             : "grid-cols-[200px_1fr] md:grid-cols-[260px_1fr]"
         }`}
       >
-        <aside className="border-r border-white/5 bg-white/[0.01] flex flex-col min-h-0">
-        <div className="px-3 py-2 border-b border-white/5 flex items-center justify-between gap-1">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <FolderOpen size={13} className="text-emerald-400 shrink-0" />
-            <span className="text-xs font-semibold text-text-primary truncate" title={workspace.root}>
-              {workspace.name}
-            </span>
-          </div>
-          <div className="flex items-center gap-0.5 shrink-0">
-            <button
-              onClick={() => persistChat(!chatOpen)}
-              className={`p-1 rounded-md hover:bg-white/5 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98] ${
-                chatOpen ? "text-emerald-400" : "text-text-muted hover:text-text-primary"
-              }`}
-              aria-label="Toggle AI chat"
-              aria-pressed={chatOpen}
-              title="Toggle AI chat panel"
-            >
-              <PanelRight size={13} />
-            </button>
-            <button
-              onClick={() => promptNewFile(workspace.root)}
-              className="text-text-muted hover:text-text-primary p-1 rounded-md hover:bg-white/5 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98]"
-              aria-label="New file"
-              title="New file at root"
-            >
-              <Plus size={13} />
-            </button>
-            <button
-              onClick={() => promptNewFolder(workspace.root)}
-              className="text-text-muted hover:text-text-primary p-1 rounded-md hover:bg-white/5 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98]"
-              aria-label="New folder"
-              title="New folder at root"
-            >
-              <FolderPlus size={13} />
-            </button>
-            <button
-              onClick={closeWorkspace}
-              className="text-text-muted hover:text-rose-400 p-1 rounded-md hover:bg-white/5 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98]"
-              aria-label="Close workspace"
-              title="Close workspace"
-            >
-              <X size={13} />
-            </button>
-          </div>
-        </div>
-        <FileTree
-          tree={tree}
-          activePath={activePath}
-          onOpenFile={openFile}
-          onNewFile={promptNewFile}
-          onNewFolder={promptNewFolder}
-          onRename={renameEntry}
-          onDelete={deleteEntry}
-          onCopyPath={copyPath}
-        />
-      </aside>
-
-      <section className="flex flex-col min-w-0">
-        {tabFiles.length > 0 && (
-          <EditorTabs files={tabFiles} activeId={activePath} dirty={dirty} onSelect={setActivePath} onClose={closeFile} />
-        )}
-        <div className="flex-1 min-h-0 relative">
-          {active ? (
-            <>
-              <MonacoEditor
-                key={active.path}
-                value={active.content}
-                language={active.language || "plaintext"}
-                onChange={onChange}
-                onSave={saveActive}
-                onCursor={(line, col) => setCursor({ line, col })}
-              />
-              {dirty.has(active.path) && (
-                <Button
-                  size="sm"
-                  variant="primary"
-                  onClick={saveActive}
-                  className="absolute top-3 right-4 z-10"
-                >
-                  <Save size={13} /> Save
-                </Button>
-              )}
-            </>
-          ) : (
-            <div className="h-full grid place-items-center p-8">
-              <EmptyState
-                title="No file open"
-                description="Pick a file from the tree, or right-click to create one."
-                action={
-                  <Button variant="primary" size="sm" onClick={() => promptNewFile(workspace.root)}>
-                    <Plus size={13} /> New file
-                  </Button>
-                }
-              />
+        <aside className="flex min-h-0 flex-col border-r border-white/5 bg-white/[0.01]">
+          <div className="flex items-center justify-between gap-1 border-b border-white/5 px-3 py-2">
+            <div className="flex min-w-0 items-center gap-1.5">
+              <FolderOpen size={13} className="shrink-0 text-emerald-400" />
+              <span
+                className="text-text-primary truncate text-xs font-semibold"
+                title={workspace.root}
+              >
+                {workspace.name}
+              </span>
             </div>
-          )}
-        </div>
-        <div className="border-t border-white/5 px-4 h-7 flex items-center justify-between text-[10px] text-text-muted">
-          <div className="flex items-center gap-3 min-w-0">
-            <span className="text-emerald-400/80">{workspace.name}</span>
-            {active && <span className="truncate font-mono">{active.path}</span>}
-          </div>
-          <div className="flex items-center gap-3 shrink-0">
-            {active && (
-              <>
-                <span>{active.language}</span>
-                <span>
-                  Ln {cursor.line}, Col {cursor.col}
-                </span>
-                {active.truncated && <span className="text-amber-400">truncated</span>}
-                <span>UTF-8</span>
-                {dirty.has(active.path) && <span className="text-emerald-400">● unsaved</span>}
-              </>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {chatOpen && (
-        <aside className="border-l border-white/5 bg-white/[0.01] flex flex-col min-h-0">
-          <div className="px-3 py-2 border-b border-white/5 flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold text-text-primary flex items-center gap-1.5">
-              <MessageSquare size={13} className="text-emerald-400" /> AI Chat
-            </span>
-            <div className="flex items-center gap-2 min-w-0">
-              {active ? (
-                <span
-                  className="text-[10px] text-text-muted truncate max-w-[140px] font-mono"
-                  title={`Context: ${active.path}`}
-                >
-                  {active.name}
-                </span>
-              ) : (
-                <span className="text-[10px] text-text-muted">no file context</span>
-              )}
+            <div className="flex shrink-0 items-center gap-0.5">
               <button
-                onClick={() => persistChat(false)}
-                className="text-text-muted hover:text-rose-400 p-1 rounded-md hover:bg-white/5 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98] shrink-0"
-                aria-label="Close AI chat"
-                title="Close chat"
+                onClick={() => persistChat(!chatOpen)}
+                className={`rounded-md p-1 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-white/5 active:scale-[0.98] ${
+                  chatOpen ? "text-emerald-400" : "text-text-muted hover:text-text-primary"
+                }`}
+                aria-label="Toggle AI chat"
+                aria-pressed={chatOpen}
+                title="Toggle AI chat panel"
+              >
+                <PanelRight size={13} />
+              </button>
+              <button
+                onClick={() => promptNewFile(workspace.root)}
+                className="text-text-muted hover:text-text-primary rounded-md p-1 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-white/5 active:scale-[0.98]"
+                aria-label="New file"
+                title="New file at root"
+              >
+                <Plus size={13} />
+              </button>
+              <button
+                onClick={() => promptNewFolder(workspace.root)}
+                className="text-text-muted hover:text-text-primary rounded-md p-1 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-white/5 active:scale-[0.98]"
+                aria-label="New folder"
+                title="New folder at root"
+              >
+                <FolderPlus size={13} />
+              </button>
+              <button
+                onClick={closeWorkspace}
+                className="text-text-muted rounded-md p-1 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-white/5 hover:text-rose-400 active:scale-[0.98]"
+                aria-label="Close workspace"
+                title="Close workspace"
               >
                 <X size={13} />
               </button>
             </div>
           </div>
-          <div className="flex-1 min-h-0">
-            <ChatInterface embedded contextText={() => (active ? fileChatContext(active) : null)} />
-          </div>
+          <FileTree
+            tree={tree}
+            activePath={activePath}
+            onOpenFile={openFile}
+            onNewFile={promptNewFile}
+            onNewFolder={promptNewFolder}
+            onRename={renameEntry}
+            onDelete={deleteEntry}
+            onCopyPath={copyPath}
+          />
         </aside>
-      )}
+
+        <section className="flex min-w-0 flex-col">
+          {tabFiles.length > 0 && (
+            <EditorTabs
+              files={tabFiles}
+              activeId={activePath}
+              dirty={dirty}
+              onSelect={setActivePath}
+              onClose={closeFile}
+            />
+          )}
+          <div className="relative min-h-0 flex-1">
+            {active ? (
+              <>
+                <MonacoEditor
+                  key={active.path}
+                  value={active.content}
+                  language={active.language || "plaintext"}
+                  onChange={onChange}
+                  onSave={saveActive}
+                  onCursor={(line, col) => setCursor({ line, col })}
+                />
+                {dirty.has(active.path) && (
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    onClick={saveActive}
+                    className="absolute top-3 right-4 z-10"
+                  >
+                    <Save size={13} /> Save
+                  </Button>
+                )}
+              </>
+            ) : (
+              <div className="grid h-full place-items-center p-8">
+                <EmptyState
+                  title="No file open"
+                  description="Pick a file from the tree, or right-click to create one."
+                  action={
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => promptNewFile(workspace.root)}
+                    >
+                      <Plus size={13} /> New file
+                    </Button>
+                  }
+                />
+              </div>
+            )}
+          </div>
+          <div className="text-text-muted flex h-7 items-center justify-between border-t border-white/5 px-4 text-[10px]">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="text-emerald-400/80">{workspace.name}</span>
+              {active && <span className="truncate font-mono">{active.path}</span>}
+            </div>
+            <div className="flex shrink-0 items-center gap-3">
+              {active && (
+                <>
+                  <span>{active.language}</span>
+                  <span>
+                    Ln {cursor.line}, Col {cursor.col}
+                  </span>
+                  {active.truncated && <span className="text-amber-400">truncated</span>}
+                  <span>UTF-8</span>
+                  {dirty.has(active.path) && <span className="text-emerald-400">● unsaved</span>}
+                </>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {chatOpen && (
+          <aside className="flex min-h-0 flex-col border-l border-white/5 bg-white/[0.01]">
+            <div className="flex items-center justify-between gap-2 border-b border-white/5 px-3 py-2">
+              <span className="text-text-primary flex items-center gap-1.5 text-xs font-semibold">
+                <MessageSquare size={13} className="text-emerald-400" /> AI Chat
+              </span>
+              <div className="flex min-w-0 items-center gap-2">
+                {active ? (
+                  <span
+                    className="text-text-muted max-w-[140px] truncate font-mono text-[10px]"
+                    title={`Context: ${active.path}`}
+                  >
+                    {active.name}
+                  </span>
+                ) : (
+                  <span className="text-text-muted text-[10px]">no file context</span>
+                )}
+                <button
+                  onClick={() => persistChat(false)}
+                  className="text-text-muted shrink-0 rounded-md p-1 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-white/5 hover:text-rose-400 active:scale-[0.98]"
+                  aria-label="Close AI chat"
+                  title="Close chat"
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            </div>
+            <div className="min-h-0 flex-1">
+              <ChatInterface
+                embedded
+                contextText={() => (active ? fileChatContext(active) : null)}
+              />
+            </div>
+          </aside>
+        )}
       </div>
 
       <NewEntryDialog dialog={dialog} setDialog={setDialog} submit={submitDialog} />
@@ -709,14 +755,14 @@ function ViewToggle({
   onChange: (next: "vscode" | "lite") => void;
 }) {
   return (
-    <div className="shrink-0 border-b border-white/5 glass-strong px-3 py-1.5 flex items-center gap-1">
+    <div className="glass-strong flex shrink-0 items-center gap-1 border-b border-white/5 px-3 py-1.5">
       <div className="inline-flex items-center rounded-full border border-white/5 bg-black/20 p-0.5">
         <button
           onClick={() => onChange("vscode")}
-          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98] ${
+          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98] ${
             view === "vscode"
-              ? "bg-emerald-400/10 border border-emerald-400/30 text-emerald-300 shadow-[0_0_18px_-6px_rgba(52,211,153,0.6)]"
-              : "border border-transparent text-text-muted hover:text-text-primary hover:bg-white/5"
+              ? "border border-emerald-400/30 bg-emerald-400/10 text-emerald-300 shadow-[0_0_18px_-6px_rgba(52,211,153,0.6)]"
+              : "text-text-muted hover:text-text-primary border border-transparent hover:bg-white/5"
           }`}
           aria-pressed={view === "vscode"}
           title="Real VS Code (code-server)"
@@ -725,10 +771,10 @@ function ViewToggle({
         </button>
         <button
           onClick={() => onChange("lite")}
-          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98] ${
+          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98] ${
             view === "lite"
-              ? "bg-emerald-400/10 border border-emerald-400/30 text-emerald-300 shadow-[0_0_18px_-6px_rgba(52,211,153,0.6)]"
-              : "border border-transparent text-text-muted hover:text-text-primary hover:bg-white/5"
+              ? "border border-emerald-400/30 bg-emerald-400/10 text-emerald-300 shadow-[0_0_18px_-6px_rgba(52,211,153,0.6)]"
+              : "text-text-muted hover:text-text-primary border border-transparent hover:bg-white/5"
           }`}
           aria-pressed={view === "lite"}
           title="Built-in Lite editor"

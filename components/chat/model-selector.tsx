@@ -59,7 +59,8 @@ export function ModelSelector() {
         setModels(data.models ?? []);
         modelCache.set(activeId, data.models ?? []);
         if (data.error) setError(data.error);
-        else if ((data.models ?? []).length === 0) setError("No models returned — type a model id manually.");
+        else if ((data.models ?? []).length === 0)
+          setError("No models returned — type a model id manually.");
       } catch {
         setError("Couldn't reach the provider — type a model id manually.");
       } finally {
@@ -135,26 +136,28 @@ export function ModelSelector() {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="glass-input flex items-center gap-1 text-xs h-7 px-2 rounded-md text-text-secondary hover:text-text-primary max-w-[180px]"
+        className="glass-input text-text-secondary hover:text-text-primary flex h-7 max-w-[180px] items-center gap-1 rounded-md px-2 text-xs"
         aria-label="Select model"
         title={currentModel || "Select a model"}
       >
-        {reasoningOn && reasoningEffort !== "off" && <Brain size={11} className="text-emerald-400 shrink-0" />}
+        {reasoningOn && reasoningEffort !== "off" && (
+          <Brain size={11} className="shrink-0 text-emerald-400" />
+        )}
         <span className="truncate">{currentModel || "default model"}</span>
         <ChevronDown size={12} className="shrink-0 opacity-60" />
       </button>
 
       {open && (
-        <div className="absolute bottom-full right-0 mb-2 w-72 glass-strong rounded-xl border border-white/10 shadow-2xl p-2 z-50">
+        <div className="glass-strong absolute right-0 bottom-full z-50 mb-2 w-72 rounded-xl border border-white/10 p-2 shadow-2xl">
           {/* Search + refresh */}
-          <div className="flex items-center gap-1 mb-2">
-            <div className="flex items-center gap-1.5 glass-input rounded-md px-2 flex-1">
+          <div className="mb-2 flex items-center gap-1">
+            <div className="glass-input flex flex-1 items-center gap-1.5 rounded-md px-2">
               <Search size={12} className="text-text-muted shrink-0" />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search or type a model id…"
-                className="bg-transparent text-xs py-1.5 w-full focus:outline-none text-text-primary placeholder:text-text-muted"
+                className="text-text-primary placeholder:text-text-muted w-full bg-transparent py-1.5 text-xs focus:outline-none"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && query.trim()) pick(query.trim());
                 }}
@@ -164,7 +167,7 @@ export function ModelSelector() {
             <button
               type="button"
               onClick={() => load(true)}
-              className="h-7 w-7 grid place-items-center rounded-md text-text-muted hover:text-text-primary hover:bg-white/5"
+              className="text-text-muted hover:text-text-primary grid h-7 w-7 place-items-center rounded-md hover:bg-white/5"
               aria-label="Refresh models"
               title="Refresh models"
             >
@@ -174,17 +177,17 @@ export function ModelSelector() {
 
           {/* Reasoning level */}
           {reasoningOn && (
-            <div className="flex items-center justify-between mb-2 px-1">
-              <span className="text-[10px] uppercase text-text-muted flex items-center gap-1">
+            <div className="mb-2 flex items-center justify-between px-1">
+              <span className="text-text-muted flex items-center gap-1 text-[10px] uppercase">
                 <Brain size={11} /> Thinking
               </span>
-              <div className="flex items-center glass-input rounded-full p-0.5 text-[10px]">
+              <div className="glass-input flex items-center rounded-full p-0.5 text-[10px]">
                 {EFFORTS.map((e) => (
                   <button
                     key={e.value}
                     onClick={() => setReasoningEffort(e.value)}
                     className={cn(
-                      "h-5 px-2 rounded-full transition-colors",
+                      "h-5 rounded-full px-2 transition-colors",
                       reasoningEffort === e.value
                         ? "bg-emerald-400/20 text-emerald-300"
                         : "text-text-muted hover:text-text-secondary"
@@ -198,11 +201,11 @@ export function ModelSelector() {
           )}
 
           {/* Model list */}
-          <div className="max-h-60 overflow-y-auto -mx-1 px-1">
+          <div className="-mx-1 max-h-60 overflow-y-auto px-1">
             {loading && models.length === 0 ? (
-              <p className="text-[11px] text-text-muted px-2 py-3 text-center">Loading models…</p>
+              <p className="text-text-muted px-2 py-3 text-center text-[11px]">Loading models…</p>
             ) : filtered.length === 0 ? (
-              <p className="text-[11px] text-text-muted px-2 py-3 text-center">
+              <p className="text-text-muted px-2 py-3 text-center text-[11px]">
                 {error ?? "No matching models."}
               </p>
             ) : (
@@ -211,12 +214,12 @@ export function ModelSelector() {
                   key={m.id}
                   onClick={() => pick(m.id)}
                   className={cn(
-                    "w-full flex items-center justify-between gap-2 text-left text-xs px-2 py-1.5 rounded-md hover:bg-white/5",
+                    "flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-xs hover:bg-white/5",
                     m.id === currentModel ? "text-emerald-300" : "text-text-secondary"
                   )}
                 >
                   <span className="truncate">{m.label || m.id}</span>
-                  <span className="flex items-center gap-1 shrink-0">
+                  <span className="flex shrink-0 items-center gap-1">
                     {m.reasoning && <Brain size={11} className="text-text-muted" />}
                     {m.id === active.defaultModel && (
                       <Star size={10} className="text-amber-400" fill="currentColor" />
@@ -228,7 +231,7 @@ export function ModelSelector() {
           </div>
 
           {error && filtered.length > 0 && (
-            <p className="text-[10px] text-amber-400/80 px-2 pt-1">{error}</p>
+            <p className="px-2 pt-1 text-[10px] text-amber-400/80">{error}</p>
           )}
 
           {/* Set as default */}
@@ -236,7 +239,7 @@ export function ModelSelector() {
             <button
               type="button"
               onClick={setDefault}
-              className="w-full mt-2 flex items-center justify-center gap-1.5 text-[11px] h-7 rounded-md bg-white/5 hover:bg-white/10 text-text-secondary"
+              className="text-text-secondary mt-2 flex h-7 w-full items-center justify-center gap-1.5 rounded-md bg-white/5 text-[11px] hover:bg-white/10"
             >
               <Star size={11} /> Set “{currentModel}” as default
             </button>

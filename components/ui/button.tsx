@@ -16,8 +16,7 @@ const variantClasses: Record<Variant, string> = {
   ghost: "text-text-secondary hover:text-text-primary hover:bg-white/5",
   outline:
     "border border-white/15 bg-transparent text-text-primary hover:bg-white/5 hover:border-white/25",
-  danger:
-    "bg-rose-500/15 text-rose-300 hover:bg-rose-500/25 border border-rose-500/20",
+  danger: "bg-rose-500/15 text-rose-300 hover:bg-rose-500/25 border border-rose-500/20",
 };
 
 const sizeClasses: Record<Size, string> = {
@@ -32,7 +31,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     <button
       ref={ref}
       className={cn(
-        "inline-flex items-center justify-center gap-2 font-medium transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40",
+        "inline-flex items-center justify-center gap-2 font-medium transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] focus-visible:ring-2 focus-visible:ring-emerald-400/40 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50",
         variantClasses[variant],
         sizeClasses[size],
         className

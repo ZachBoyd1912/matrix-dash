@@ -35,19 +35,19 @@ export function Dialog({ open, onClose, title, description, children, className 
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
       <div
         className={cn(
-          "relative glass-strong rounded-2xl w-full max-w-lg p-6 animate-[fadeIn_180ms_ease-out]",
+          "glass-strong relative w-full max-w-lg animate-[fadeIn_180ms_ease-out] rounded-2xl p-6",
           className
         )}
       >
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 text-text-muted hover:text-text-primary p-1 rounded-md hover:bg-white/5"
+          className="text-text-muted hover:text-text-primary absolute top-3 right-3 rounded-md p-1 hover:bg-white/5"
           aria-label="Close"
         >
           <X size={16} />
         </button>
-        {title && <h2 className="text-lg font-semibold text-text-primary mb-1">{title}</h2>}
-        {description && <p className="text-xs text-text-secondary mb-4">{description}</p>}
+        {title && <h2 className="text-text-primary mb-1 text-lg font-semibold">{title}</h2>}
+        {description && <p className="text-text-secondary mb-4 text-xs">{description}</p>}
         {children}
       </div>
     </div>

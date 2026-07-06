@@ -152,7 +152,7 @@ export function FileTree({
     <>
       <div className="flex-1 overflow-y-auto p-1 select-none">
         {rows.length === 0 ? (
-          <p className="text-xs text-text-muted text-center py-8 px-2">
+          <p className="text-text-muted px-2 py-8 text-center text-xs">
             This folder is empty.
             <br />
             Right-click to add a file.
@@ -176,8 +176,11 @@ export function FileTree({
 
       {menu && (
         <div
-          className="fixed z-[60] min-w-[176px] glass-strong rounded-lg p-1 text-xs shadow-2xl border border-white/10"
-          style={{ top: Math.min(menu.y, window.innerHeight - 230), left: Math.min(menu.x, window.innerWidth - 190) }}
+          className="glass-strong fixed z-[60] min-w-[176px] rounded-lg border border-white/10 p-1 text-xs shadow-2xl"
+          style={{
+            top: Math.min(menu.y, window.innerHeight - 230),
+            left: Math.min(menu.x, window.innerWidth - 190),
+          }}
           onClick={(e) => e.stopPropagation()}
         >
           <MenuItem
@@ -221,13 +224,23 @@ export function FileTree({
   );
 }
 
-function MenuItem({ label, onClick, danger }: { label: string; onClick: () => void; danger?: boolean }) {
+function MenuItem({
+  label,
+  onClick,
+  danger,
+}: {
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+}) {
   return (
     <button
       onClick={onClick}
       className={cn(
-        "w-full text-left px-2.5 py-1.5 rounded-md transition-colors",
-        danger ? "text-rose-300 hover:bg-rose-500/15" : "text-text-secondary hover:bg-white/8 hover:text-text-primary"
+        "w-full rounded-md px-2.5 py-1.5 text-left transition-colors",
+        danger
+          ? "text-rose-300 hover:bg-rose-500/15"
+          : "text-text-secondary hover:text-text-primary hover:bg-white/8"
       )}
     >
       {label}
@@ -262,14 +275,17 @@ function TreeNodes(props: NodesProps) {
           return (
             <li key={node.path}>
               <div
-                className="group flex items-center gap-1 px-1.5 py-1 rounded-md text-text-secondary text-xs cursor-pointer hover:bg-white/[0.04] hover:text-text-primary"
+                className="group text-text-secondary hover:text-text-primary flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-1 text-xs hover:bg-white/[0.04]"
                 style={{ paddingLeft: pad }}
                 onClick={() => props.onToggle(node.path)}
                 onContextMenu={(e) => props.onContext(e, node)}
               >
                 <ChevronRight
                   size={12}
-                  className={cn("shrink-0 transition-transform text-text-muted", isOpen && "rotate-90")}
+                  className={cn(
+                    "text-text-muted shrink-0 transition-transform",
+                    isOpen && "rotate-90"
+                  )}
                 />
                 {isOpen ? (
                   <FolderOpen size={13} className="shrink-0 text-amber-400" />
@@ -295,10 +311,10 @@ function TreeNodes(props: NodesProps) {
           <li key={node.path}>
             <div
               className={cn(
-                "group flex items-center gap-1.5 px-1.5 py-1 rounded-md text-xs cursor-pointer transition-colors",
+                "group flex cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-1 text-xs transition-colors",
                 isActive
-                  ? "bg-white/[0.08] text-text-primary"
-                  : "text-text-secondary hover:bg-white/[0.04] hover:text-text-primary"
+                  ? "text-text-primary bg-white/[0.08]"
+                  : "text-text-secondary hover:text-text-primary hover:bg-white/[0.04]"
               )}
               style={{ paddingLeft: pad + 13 }}
               onClick={() => props.onOpenFile(node.path)}
@@ -342,7 +358,7 @@ function RenameInput({
         if (e.key === "Enter") onRenameCommit(node);
         else if (e.key === "Escape") onRenameCancel();
       }}
-      className="flex-1 min-w-0 bg-black/40 border border-emerald-400/40 rounded px-1 py-0 text-xs text-text-primary focus:outline-none"
+      className="text-text-primary min-w-0 flex-1 rounded border border-emerald-400/40 bg-black/40 px-1 py-0 text-xs focus:outline-none"
     />
   );
 }

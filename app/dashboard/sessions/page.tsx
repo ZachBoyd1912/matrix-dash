@@ -32,7 +32,6 @@ export default function SessionsPage() {
       window.history.replaceState(null, "", "/dashboard/sessions");
       create();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const create = async () => {
@@ -59,15 +58,20 @@ export default function SessionsPage() {
   };
 
   return (
-    <div ref={ref} className="px-4 md:px-8 py-10 max-w-5xl mx-auto space-y-8">
+    <div ref={ref} className="mx-auto max-w-5xl space-y-8 px-4 py-10 md:px-8">
       <div className="relative">
         <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
-        <div className="orb -top-10 right-16 h-44 w-44 bg-sky-500/15" style={{ animationDelay: "-6s" }} />
+        <div
+          className="orb -top-10 right-16 h-44 w-44 bg-sky-500/15"
+          style={{ animationDelay: "-6s" }}
+        />
         <div className="relative flex items-start justify-between gap-4">
           <div>
-            <span className="eyebrow"><History size={11} /> Conversations</span>
-            <h1 className="display text-gradient text-4xl md:text-5xl mt-3">Sessions</h1>
-            <p className="text-text-secondary text-sm mt-2">
+            <span className="eyebrow">
+              <History size={11} /> Conversations
+            </span>
+            <h1 className="display text-gradient mt-3 text-4xl md:text-5xl">Sessions</h1>
+            <p className="text-text-secondary mt-2 text-sm">
               Every conversation is stored locally — resume any thread.
             </p>
           </div>
@@ -78,7 +82,7 @@ export default function SessionsPage() {
       </div>
 
       {sessions === null ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-24 rounded-2xl" />
           ))}
@@ -88,29 +92,35 @@ export default function SessionsPage() {
           icon={<MessageSquare size={16} />}
           title="No sessions yet"
           description="Start your first conversation."
-          action={<Button variant="primary" onClick={create}><Plus size={14} /> New session</Button>}
+          action={
+            <Button variant="primary" onClick={create}>
+              <Plus size={14} /> New session
+            </Button>
+          }
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {sessions.map((s) => (
             <Card key={s.id} interactive className="group rounded-2xl">
               <Link href={`/dashboard/sessions/${s.id}`} className="block">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <h3 className="text-sm font-semibold text-text-primary truncate">
-                      {s.name}
-                    </h3>
-                    <p className="text-[11px] text-text-muted mt-1">
-                      {s.messageCount} {s.messageCount === 1 ? "message" : "messages"} · {timeAgo(s.updatedAt)}
+                    <h3 className="text-text-primary truncate text-sm font-semibold">{s.name}</h3>
+                    <p className="text-text-muted mt-1 text-[11px]">
+                      {s.messageCount} {s.messageCount === 1 ? "message" : "messages"} ·{" "}
+                      {timeAgo(s.updatedAt)}
                     </p>
                   </div>
-                  <ArrowRight size={14} className="island-icon text-text-muted group-hover:text-emerald-400 transition-colors mt-1 shrink-0" />
+                  <ArrowRight
+                    size={14}
+                    className="island-icon text-text-muted mt-1 shrink-0 transition-colors group-hover:text-emerald-400"
+                  />
                 </div>
               </Link>
-              <div className="mt-3 pt-3 border-t border-white/5 flex justify-end">
+              <div className="mt-3 flex justify-end border-t border-white/5 pt-3">
                 <button
                   onClick={() => remove(s.id)}
-                  className="text-text-muted hover:text-rose-400 transition-colors text-[11px] flex items-center gap-1"
+                  className="text-text-muted flex items-center gap-1 text-[11px] transition-colors hover:text-rose-400"
                 >
                   <Trash2 size={11} /> Delete
                 </button>

@@ -2,6 +2,26 @@
 
 # Changelog
 
+## 06/07/2026 @ 01:10:22 IST — "Claude Sonnet 5"
+
+**Goal:** Execute Plan 5 (dev tooling) from `TODO.md`, the first step of a 19-plan roadmap sequencing all remaining TODO items by actual file-level dependency (planned this session, approved by the user, saved at `~/.claude/plans/yes-velvet-matsumoto.md`).
+
+**Added:**
+- `eslint.config.mjs` — flat config via `eslint-config-next` (`next/core-web-vitals` + `next/typescript`, ESLint 9 + `eslint-config-next@15.5.20` pinned to match this project's Next 15.3 peer deps — the unpinned `pnpm add` resolved ESLint 10 / `eslint-config-next@16`, which have unmet peer dependencies against each other). `@typescript-eslint/no-explicit-any` downgraded to `warn` for this initial rollout (60 pre-existing instances, ~55 concentrated in `lib/services/github.ts`'s untyped GitHub API responses) — ratchet to `error` once those response shapes are typed; that's real, separate typing work, not tooling setup.
+- `.prettierrc` / `.prettierignore` — 2-space, double quotes (matches 100% of existing imports; TODO.md's plan spec said single quotes, deviated to avoid an unnecessary full-repo re-quote), 100 col width, `prettier-plugin-tailwindcss` for class sorting.
+- `.editorconfig` — UTF-8/LF/2-space.
+- `.husky/pre-commit` running `lint-staged` (eslint --fix + prettier --write on staged files).
+- `package.json` — `lint`, `lint:fix`, `format`, `format:check`, `prepare` scripts + `lint-staged` config block.
+
+**Fixed (bulk lint/format pass across real project source, ~184 files):**
+- Removed ~15 unused imports (`app/api/*/route.ts`, several `app/dashboard/settings/*/page.tsx`, `components/projects/*`, `lib/ai/tools.ts`, `lib/services/gmail.ts`), one dead function (`kanban-board.tsx`'s `getAdjacentCols`), one unused catch-callback param, and one unescaped apostrophe (`react/no-unescaped-entities` in `settings/email/page.tsx`).
+- First `eslint .` run reported 20,266 problems — nearly all noise: a 107MB gitignored `.netlify/` build-cache duplicated the whole app plus vendored `vscode-extension/` and `.agent/` (an unrelated third-party VS Code extension) inside a bundled serverless handler. Excluded `.next/`, `.netlify/`, `.agent/`, `vscode-extension/`, and `next-env.d.ts` from lint scope — real problem count dropped to 84, all in actual project files.
+- `pnpm format`'s first pass also reformatted `vscode-extension/matrix-agent/` (a separate sub-project with its own `package.json`/tsconfig/esbuild) and `deploy/landing/index.html` (the separate zbautomations.ie marketing site — Plan 19's dedicated territory, already hand-tuned to ~62/100 by a prior session). Reverted both via `git checkout` and added `vscode-extension` + `deploy` to `.prettierignore` — this project's tooling should not reach into either.
+
+**Verification:** `pnpm typecheck` (0 errors), `pnpm lint` (exit 0; 60 warnings, 0 errors), `pnpm format:check` ("All matched files use Prettier code style!"), confirmed `.husky/pre-commit` invokes `lint-staged` and `core.hooksPath` resolves to `.husky/_`. Confirmed `git status` shows zero changes under `deploy/`, `.netlify`, `.agent`, or `vscode-extension/` after the revert.
+
+**Files Touched:** `eslint.config.mjs` (new), `.prettierrc` (new), `.prettierignore` (new), `.editorconfig` (new), `.husky/pre-commit` (new), `package.json`, plus ~184 files reformatted/lint-fixed across `app/`, `components/`, `lib/`, `types/`.
+
 ## 06/07/2026 @ 00:35:28 IST — "Claude Haiku 4.5"
 
 **Goal:** Record a new backlog plan in `TODO.md` for the remaining SEO/GEO work on `zbautomations.ie`, reconciled against work a concurrent session already shipped while this session was blocked waiting on it.

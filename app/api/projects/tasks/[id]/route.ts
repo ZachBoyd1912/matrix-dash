@@ -12,7 +12,9 @@ const updateSchema = z.object({
   priority: z.enum(["low", "normal", "high", "urgent"]).optional(),
   kind: z.enum(["task", "bug", "error", "feature"]).optional(),
   projectId: z.string().nullable().optional(),
-  kanbanStatus: z.enum(["backlog", "planned", "in-progress", "developed", "tested", "completed"]).optional(),
+  kanbanStatus: z
+    .enum(["backlog", "planned", "in-progress", "developed", "tested", "completed"])
+    .optional(),
   kanbanOrder: z.number().int().optional(),
 });
 

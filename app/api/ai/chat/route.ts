@@ -92,7 +92,16 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { messages, providerId, modelOverride, sessionId, mode, presetId, systemContext, reasoningEffort } = body;
+  const {
+    messages,
+    providerId,
+    modelOverride,
+    sessionId,
+    mode,
+    presetId,
+    systemContext,
+    reasoningEffort,
+  } = body;
   if (!Array.isArray(messages) || messages.length === 0) {
     return Response.json({ error: "messages required" }, { status: 400 });
   }
@@ -112,8 +121,7 @@ export async function POST(req: Request) {
   }
 
   const lastUser = [...messages].reverse().find((m) => m.role === "user");
-  const userText =
-    lastUser && typeof lastUser.content === "string" ? lastUser.content : "";
+  const userText = lastUser && typeof lastUser.content === "string" ? lastUser.content : "";
 
   const memoryContext = userText ? buildMemoryContext(userText) : "";
   const appSettings = getAppSettings();
@@ -133,10 +141,15 @@ export async function POST(req: Request) {
   // and folded into the single leading system message rather than sent as its own
   // message — so it can't pollute the transcript, session history, or extraction,
   // and no provider adapter has to cope with two consecutive system messages.
-  const hostContext =
-    typeof systemContext === "string" ? systemContext.slice(0, 20000) : "";
+  const hostContext = typeof systemContext === "string" ? systemContext.slice(0, 20000) : "";
 
-  const systemBits = [presetPrompt || appSettings.systemPrompt, agentPreamble, skillsPrompt, memoryContext, hostContext]
+  const systemBits = [
+    presetPrompt || appSettings.systemPrompt,
+    agentPreamble,
+    skillsPrompt,
+    memoryContext,
+    hostContext,
+  ]
     .map((b) => b?.trim())
     .filter((b): b is string => !!b);
 
@@ -162,7 +175,10 @@ export async function POST(req: Request) {
         ? [{ role: "user", content: systemContent } as ModelMessage, ...messages]
         : messages.map((m, idx) =>
             idx === i
-              ? ({ ...m, content: `${systemContent}\n\n———\n\n${m.content as string}` } as ModelMessage)
+              ? ({
+                  ...m,
+                  content: `${systemContent}\n\n———\n\n${m.content as string}`,
+                } as ModelMessage)
               : m
           );
   }
@@ -273,7 +289,12 @@ export async function POST(req: Request) {
             // Claude-Code-style tool card (matched to its result by toolCallId).
             emit({ type: "tool_call", id: part.toolCallId, name: part.toolName, args: part.input });
           } else if (part.type === "tool-result") {
-            emit({ type: "tool_result", id: part.toolCallId, name: part.toolName, result: part.output });
+            emit({
+              type: "tool_result",
+              id: part.toolCallId,
+              name: part.toolName,
+              result: part.output,
+            });
           } else if (part.type === "tool-error") {
             const msg = part.error instanceof Error ? part.error.message : String(part.error);
             emit({ type: "tool_result", id: part.toolCallId, name: part.toolName, error: msg });

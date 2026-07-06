@@ -33,39 +33,39 @@ export function Topbar() {
     "Matrix Dash";
 
   return (
-    <header className="sticky top-0 z-20 h-14 glass-strong relative">
+    <header className="glass-strong relative sticky top-0 z-20 h-14">
       {/* Aurora bottom hairline */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-emerald-400/20 to-transparent" />
-      <div className="h-full flex items-center justify-between px-4 md:px-6">
+      <div className="flex h-full items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setMobileNavOpen(!mobileNavOpen)}
-            className="md:hidden h-8 w-8 grid place-items-center rounded-md text-text-muted hover:text-text-primary hover:bg-white/5 transition-colors"
+            className="text-text-muted hover:text-text-primary grid h-8 w-8 place-items-center rounded-md transition-colors hover:bg-white/5 md:hidden"
             aria-label="Open navigation"
           >
             <Menu size={16} />
           </button>
           <div className="flex items-center gap-2.5">
             <span className="h-4 w-[3px] rounded-full bg-gradient-to-b from-emerald-400 to-sky-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]" />
-            <h1 className="text-sm font-semibold text-text-primary tracking-tight">{title}</h1>
+            <h1 className="text-text-primary text-sm font-semibold tracking-tight">{title}</h1>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle />
           <button
             onClick={() => setCommandOpen(true)}
-            className="hidden sm:flex items-center gap-2 h-8 pl-3 pr-2 rounded-full glass-input text-xs text-text-muted hover:text-text-primary hover:border-white/15 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            className="glass-input text-text-muted hover:text-text-primary hidden h-8 items-center gap-2 rounded-full pr-2 pl-3 text-xs transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-white/15 sm:flex"
             aria-label="Open command palette"
           >
             <Search size={14} />
             <span>Search…</span>
-            <kbd className="ml-1 inline-flex items-center gap-0.5 text-[10px] text-text-muted">
-              <span className="px-1.5 py-0.5 rounded bg-white/[0.06] border border-white/5">⌘</span>
-              <span className="px-1.5 py-0.5 rounded bg-white/[0.06] border border-white/5">K</span>
+            <kbd className="text-text-muted ml-1 inline-flex items-center gap-0.5 text-[10px]">
+              <span className="rounded border border-white/5 bg-white/[0.06] px-1.5 py-0.5">⌘</span>
+              <span className="rounded border border-white/5 bg-white/[0.06] px-1.5 py-0.5">K</span>
             </kbd>
           </button>
           <NotificationBell />
-          <div className="relative h-8 w-8 grid place-items-center rounded-full bg-gradient-to-br from-emerald-400/30 to-sky-400/30 border border-white/10 shadow-[0_0_16px_-4px_rgba(52,211,153,0.5)]">
+          <div className="relative grid h-8 w-8 place-items-center rounded-full border border-white/10 bg-gradient-to-br from-emerald-400/30 to-sky-400/30 shadow-[0_0_16px_-4px_rgba(52,211,153,0.5)]">
             <Sparkles size={13} className="text-emerald-300" />
           </div>
         </div>

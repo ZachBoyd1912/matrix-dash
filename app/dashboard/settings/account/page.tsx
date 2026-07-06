@@ -53,35 +53,39 @@ export default function AccountPage() {
           <span className="eyebrow">
             <UserCircle size={11} /> Profile
           </span>
-          <h2 className="display text-gradient text-4xl md:text-5xl mt-3">
-            Account
-          </h2>
-          <p className="text-text-secondary text-sm mt-3 max-w-xl">
+          <h2 className="display text-gradient mt-3 text-4xl md:text-5xl">Account</h2>
+          <p className="text-text-secondary mt-3 max-w-xl text-sm">
             Local profile — used in memory context and email defaults. Nothing leaves this machine.
           </p>
         </div>
       </div>
       <Card interactive className="rounded-2xl">
-        <div className="flex items-center gap-4 mb-5">
-          <div className="h-14 w-14 rounded-full grid place-items-center text-lg font-bold bg-gradient-to-br from-emerald-400/30 to-sky-400/30 border border-white/10 text-text-primary">
+        <div className="mb-5 flex items-center gap-4">
+          <div className="text-text-primary grid h-14 w-14 place-items-center rounded-full border border-white/10 bg-gradient-to-br from-emerald-400/30 to-sky-400/30 text-lg font-bold">
             {initial}
           </div>
           <div>
-            <p className="text-sm font-medium text-text-primary">{name || "Unnamed"}</p>
-            <p className="text-xs text-text-muted">{email || "no email set"}</p>
+            <p className="text-text-primary text-sm font-medium">{name || "Unnamed"}</p>
+            <p className="text-text-muted text-xs">{email || "no email set"}</p>
           </div>
         </div>
         <div className="space-y-3">
           <div>
-            <label className="block text-[10px] uppercase text-text-muted mb-1">Name</label>
+            <label className="text-text-muted mb-1 block text-[10px] uppercase">Name</label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Zach" />
           </div>
           <div>
-            <label className="block text-[10px] uppercase text-text-muted mb-1">Email</label>
-            <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+            <label className="text-text-muted mb-1 block text-[10px] uppercase">Email</label>
+            <Input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+            />
           </div>
           <div>
-            <label className="block text-[10px] uppercase text-text-muted mb-1">Role / context</label>
+            <label className="text-text-muted mb-1 block text-[10px] uppercase">
+              Role / context
+            </label>
             <Input
               value={role}
               onChange={(e) => setRole(e.target.value)}

@@ -36,6 +36,12 @@ export async function POST(req: Request, ctx: Ctx) {
   if (!conn) {
     return Response.json({ error: "No active GitHub connection" }, { status: 400 });
   }
-  const result = await createIssue(conn.id, `${owner}/${repo}`, parsed.data.title, parsed.data.body ?? "", parsed.data.labels);
+  const result = await createIssue(
+    conn.id,
+    `${owner}/${repo}`,
+    parsed.data.title,
+    parsed.data.body ?? "",
+    parsed.data.labels
+  );
   return Response.json(result);
 }

@@ -29,8 +29,8 @@ export function ConfirmHost() {
     >
       {state.requireText && (
         <div className="mb-4">
-          <label className="block text-[10px] uppercase text-text-muted mb-1">
-            Type <span className="text-rose-300 font-mono">{state.requireText}</span> to confirm
+          <label className="text-text-muted mb-1 block text-[10px] uppercase">
+            Type <span className="font-mono text-rose-300">{state.requireText}</span> to confirm
           </label>
           <Input
             autoFocus

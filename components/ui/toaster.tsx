@@ -15,20 +15,20 @@ export function Toaster() {
   const dismiss = useFeedback((s) => s.dismissToast);
 
   return (
-    <div className="fixed bottom-4 right-4 z-[60] flex flex-col gap-2 w-[min(360px,calc(100vw-2rem))] pointer-events-none">
+    <div className="pointer-events-none fixed right-4 bottom-4 z-[60] flex w-[min(360px,calc(100vw-2rem))] flex-col gap-2">
       {toasts.map((t) => (
         <div
           key={t.id}
           className={cn(
-            "glass-strong rounded-xl p-3 flex items-start gap-2.5 pointer-events-auto",
+            "glass-strong pointer-events-auto flex items-start gap-2.5 rounded-xl p-3",
             "animate-[toastIn_220ms_cubic-bezier(0.32,0.72,0,1)]"
           )}
         >
           <span className="mt-0.5 shrink-0">{ICONS[t.variant]}</span>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium text-text-primary">{t.title}</p>
+            <p className="text-text-primary text-xs font-medium">{t.title}</p>
             {t.description && (
-              <p className="text-[11px] text-text-secondary mt-0.5">{t.description}</p>
+              <p className="text-text-secondary mt-0.5 text-[11px]">{t.description}</p>
             )}
           </div>
           <button

@@ -67,13 +67,16 @@ export default function ResearchPage() {
     await fetch("/api/notes", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ title: `Research: ${question.slice(0, 60)}`, content: reportRef.current }),
+      body: JSON.stringify({
+        title: `Research: ${question.slice(0, 60)}`,
+        content: reportRef.current,
+      }),
     });
     toast.success("Saved to Notes");
   };
 
   return (
-    <div ref={ref} className="px-4 md:px-8 py-10 max-w-3xl mx-auto space-y-6">
+    <div ref={ref} className="mx-auto max-w-3xl space-y-6 px-4 py-10 md:px-8">
       <div className="relative overflow-hidden">
         <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
         <div
@@ -84,11 +87,12 @@ export default function ResearchPage() {
           <span className="eyebrow">
             <FlaskConical size={11} /> Deep Research
           </span>
-          <h1 className="display text-gradient text-4xl md:text-5xl tracking-tight mt-3">
+          <h1 className="display text-gradient mt-3 text-4xl tracking-tight md:text-5xl">
             Deep Research
           </h1>
-          <p className="text-text-secondary text-sm mt-2">
-            The agent plans sub-questions, searches the web, reads sources, and synthesizes a cited report.
+          <p className="text-text-secondary mt-2 text-sm">
+            The agent plans sub-questions, searches the web, reads sources, and synthesizes a cited
+            report.
           </p>
         </div>
       </div>
@@ -110,20 +114,22 @@ export default function ResearchPage() {
 
       {(running || statuses.length > 0) && (
         <Card interactive className="rounded-2xl">
-          <div className="flex items-center gap-2 mb-2">
-            <p className="text-xs font-semibold text-text-primary">Progress</p>
+          <div className="mb-2 flex items-center gap-2">
+            <p className="text-text-primary text-xs font-semibold">Progress</p>
             {running && <Loader2 size={12} className="animate-spin text-emerald-400" />}
           </div>
-          <div className="space-y-1 max-h-40 overflow-y-auto">
+          <div className="max-h-40 space-y-1 overflow-y-auto">
             {statuses.map((s, i) => (
-              <p key={i} className="text-[11px] text-text-secondary flex items-center gap-1.5">
+              <p key={i} className="text-text-secondary flex items-center gap-1.5 text-[11px]">
                 <span className="h-1 w-1 rounded-full bg-emerald-400/60" /> {s}
               </p>
             ))}
           </div>
           {sources.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-white/5">
-              <p className="text-[10px] uppercase text-text-muted mb-1.5">Sources ({sources.length})</p>
+            <div className="mt-3 border-t border-white/5 pt-3">
+              <p className="text-text-muted mb-1.5 text-[10px] uppercase">
+                Sources ({sources.length})
+              </p>
               <div className="space-y-1">
                 {sources.map((s, i) => (
                   <a
@@ -131,9 +137,10 @@ export default function ResearchPage() {
                     href={s.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-[11px] text-sky-400 hover:underline flex items-center gap-1 truncate"
+                    className="flex items-center gap-1 truncate text-[11px] text-sky-400 hover:underline"
                   >
-                    <ExternalLink size={9} className="shrink-0" /> <span className="truncate">{s.title}</span>
+                    <ExternalLink size={9} className="shrink-0" />{" "}
+                    <span className="truncate">{s.title}</span>
                   </a>
                 ))}
               </div>
@@ -144,8 +151,8 @@ export default function ResearchPage() {
 
       {report ? (
         <Card interactive className="rounded-2xl">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-semibold text-text-primary">Report</p>
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-text-primary text-sm font-semibold">Report</p>
             <Button size="sm" variant="secondary" onClick={saveAsNote}>
               <Save size={12} /> Save to Notes
             </Button>

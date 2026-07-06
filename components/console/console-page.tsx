@@ -27,8 +27,10 @@ function Segmented<T extends string>({
           key={v}
           onClick={() => onChange(v)}
           className={cn(
-            "px-2.5 h-6 rounded-md text-[11px] font-medium transition-colors",
-            value === v ? "bg-white/10 text-text-primary" : "text-text-muted hover:text-text-secondary"
+            "h-6 rounded-md px-2.5 text-[11px] font-medium transition-colors",
+            value === v
+              ? "text-text-primary bg-white/10"
+              : "text-text-muted hover:text-text-secondary"
           )}
         >
           {label}
@@ -44,7 +46,7 @@ function BridgeHint() {
       <p>No app-console output yet.</p>
       <p className="text-text-muted">
         Capturing the embedded app&apos;s browser console needs a small{" "}
-        <code className="font-mono text-text-secondary">postMessage</code> bridge added inside the
+        <code className="text-text-secondary font-mono">postMessage</code> bridge added inside the
         Matrix Builder app (it&apos;s cross-origin, so it can&apos;t be read from here directly).
         Once that bridge is added, its logs appear here automatically.
       </p>
@@ -102,16 +104,19 @@ export default function ConsolePage() {
   const builderLines = builderTab === "builder-server" ? builderServer.lines : builderBrowser;
 
   return (
-    <div className="page-h flex flex-col min-h-0">
+    <div className="page-h flex min-h-0 flex-col">
       {/* Global toolbar */}
-      <div className="shrink-0 flex flex-wrap items-center gap-2.5 px-4 py-2.5 border-b border-white/5 glass-strong">
+      <div className="glass-strong flex shrink-0 flex-wrap items-center gap-2.5 border-b border-white/5 px-4 py-2.5">
         <div className="relative">
-          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
+          <Search
+            size={13}
+            className="text-text-muted absolute top-1/2 left-2.5 -translate-y-1/2"
+          />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Filter logs…"
-            className="glass-input h-8 w-52 rounded-lg pl-8 pr-3 text-xs text-text-primary"
+            className="glass-input text-text-primary h-8 w-52 rounded-lg pr-3 pl-8 text-xs"
           />
         </div>
 
@@ -123,10 +128,10 @@ export default function ConsolePage() {
                 key={lv}
                 onClick={() => toggleLevel(lv)}
                 className={cn(
-                  "px-2 h-7 rounded-md text-[10px] font-semibold uppercase border transition-colors",
+                  "h-7 rounded-md border px-2 text-[10px] font-semibold uppercase transition-colors",
                   on
                     ? cn("border-white/15 bg-white/5", levelColor(lv))
-                    : "border-transparent text-text-muted hover:text-text-secondary"
+                    : "text-text-muted hover:text-text-secondary border-transparent"
                 )}
               >
                 {lv}
@@ -138,14 +143,14 @@ export default function ConsolePage() {
         <div className="ml-auto flex items-center gap-1.5">
           <button
             onClick={() => setPaused((p) => !p)}
-            className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg glass-input text-xs text-text-secondary hover:text-text-primary hover:border-white/15 transition-colors"
+            className="glass-input text-text-secondary hover:text-text-primary inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs transition-colors hover:border-white/15"
           >
             {paused ? <Play size={13} /> : <Pause size={13} />}
             {paused ? "Resume" : "Pause"}
           </button>
           <button
             onClick={clearAll}
-            className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-lg glass-input text-xs text-text-secondary hover:text-rose-400 hover:border-white/15 transition-colors"
+            className="glass-input text-text-secondary inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs transition-colors hover:border-white/15 hover:text-rose-400"
           >
             <Trash2 size={13} /> Clear all
           </button>
@@ -153,10 +158,10 @@ export default function ConsolePage() {
       </div>
 
       {/* Two clearly-divided project sections */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2">
+      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-2">
         {/* Matrix Dashboard */}
-        <section className="flex flex-col min-h-0 border-b lg:border-b-0 lg:border-r border-white/5">
-          <header className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-white/5">
+        <section className="flex min-h-0 flex-col border-b border-white/5 lg:border-r lg:border-b-0">
+          <header className="flex shrink-0 items-center gap-2 border-b border-white/5 px-3 py-2">
             <LayoutDashboard size={13} className="text-emerald-400" />
             <span className="text-xs font-semibold text-emerald-400">Matrix Dashboard</span>
             <div className="ml-auto">
@@ -175,7 +180,11 @@ export default function ConsolePage() {
             paused={paused}
             query={query}
             connected={dashTab === "dash-server" ? dashServer.connected : undefined}
-            onClear={dashTab === "dash-server" ? () => clearServer("dash") : () => clearStore("dash-browser")}
+            onClear={
+              dashTab === "dash-server"
+                ? () => clearServer("dash")
+                : () => clearStore("dash-browser")
+            }
             label={dashTab}
             emptyHint={
               dashTab === "dash-browser"
@@ -186,8 +195,8 @@ export default function ConsolePage() {
         </section>
 
         {/* Matrix Builder */}
-        <section className="flex flex-col min-h-0">
-          <header className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-white/5">
+        <section className="flex min-h-0 flex-col">
+          <header className="flex shrink-0 items-center gap-2 border-b border-white/5 px-3 py-2">
             <Blocks size={13} className="text-violet-400" />
             <span className="text-xs font-semibold text-violet-400">Matrix Builder</span>
             <div className="ml-auto">

@@ -82,7 +82,13 @@ export function appendEvent(blocks: Block[], idMap: Map<string, number>, ev: Str
       return blocks;
     case "tool_call":
       idMap.set(ev.id, blocks.length);
-      blocks.push({ kind: "tool_call", id: ev.id, name: ev.name, args: ev.args, status: "running" });
+      blocks.push({
+        kind: "tool_call",
+        id: ev.id,
+        name: ev.name,
+        args: ev.args,
+        status: "running",
+      });
       return blocks;
     case "tool_result": {
       const i = idMap.get(ev.id);
@@ -162,7 +168,11 @@ function safeStringify(value: unknown): string {
 export function serializeBlocksForStorage(blocks: Block[]): string {
   const capped = blocks.map((b) =>
     b.kind === "tool_call"
-      ? { ...b, result: capForStorage(b.result), error: b.error ? b.error.slice(0, STORE_CAP) : b.error }
+      ? {
+          ...b,
+          result: capForStorage(b.result),
+          error: b.error ? b.error.slice(0, STORE_CAP) : b.error,
+        }
       : b
   );
   return JSON.stringify(capped);

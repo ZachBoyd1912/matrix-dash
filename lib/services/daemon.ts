@@ -61,7 +61,12 @@ async function runScheduledJob(jobId: string) {
       .set({ lastRunAt: new Date().toISOString(), lastResult: result.slice(0, 4000) })
       .where(eq(scheduledJobs.id, jobId))
       .run();
-    await notify({ title: `Job: ${job.name}`, body: result.slice(0, 280), kind: "info", href: "/dashboard/tasks" });
+    await notify({
+      title: `Job: ${job.name}`,
+      body: result.slice(0, 280),
+      kind: "info",
+      href: "/dashboard/tasks",
+    });
     void fireWebhooks("job.completed", { id: job.id, name: job.name });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

@@ -494,7 +494,9 @@ export function getSqlite(): Database.Database {
 /** Idempotently create integration tables that may not exist yet (hot-reload safe). */
 function ensureIntegrationTables(sqlite: Database.Database) {
   const hasTable = (name: string) => {
-    const row = sqlite.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(name) as { name: string } | undefined;
+    const row = sqlite
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?")
+      .get(name) as { name: string } | undefined;
     return !!row;
   };
   const exec = (ddl: string, name: string) => {
@@ -505,7 +507,8 @@ function ensureIntegrationTables(sqlite: Database.Database) {
     `CREATE TABLE oauth_states (
       id TEXT PRIMARY KEY, state TEXT NOT NULL UNIQUE, provider TEXT NOT NULL,
       redirect_to TEXT NOT NULL, expires_at TEXT NOT NULL, created_at TEXT NOT NULL
-    )`, "oauth_states"
+    )`,
+    "oauth_states"
   );
 
   exec(
@@ -513,7 +516,8 @@ function ensureIntegrationTables(sqlite: Database.Database) {
       id TEXT PRIMARY KEY, label TEXT NOT NULL DEFAULT 'GitHub', access_token TEXT NOT NULL,
       github_user TEXT NOT NULL, avatar_url TEXT, scopes TEXT NOT NULL DEFAULT 'repo,user,notifications',
       is_active INTEGER DEFAULT 1, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, last_synced_at TEXT
-    )`, "github_connections"
+    )`,
+    "github_connections"
   );
 
   exec(
@@ -522,7 +526,8 @@ function ensureIntegrationTables(sqlite: Database.Database) {
       full_name TEXT NOT NULL, owner TEXT NOT NULL, name TEXT NOT NULL, description TEXT,
       stars INTEGER DEFAULT 0, language TEXT, is_private INTEGER DEFAULT 0,
       default_branch TEXT DEFAULT 'main', html_url TEXT NOT NULL, synced_at TEXT NOT NULL
-    )`, "github_repos"
+    )`,
+    "github_repos"
   );
 
   exec(
@@ -530,7 +535,8 @@ function ensureIntegrationTables(sqlite: Database.Database) {
       id TEXT PRIMARY KEY, connection_id TEXT NOT NULL, repo_full_name TEXT NOT NULL,
       issue_number INTEGER NOT NULL, title TEXT NOT NULL, body TEXT, state TEXT NOT NULL,
       labels TEXT, assignee TEXT, html_url TEXT, created_at TEXT NOT NULL, updated_at TEXT
-    )`, "github_issues"
+    )`,
+    "github_issues"
   );
 
   exec(
@@ -539,7 +545,8 @@ function ensureIntegrationTables(sqlite: Database.Database) {
       pr_number INTEGER NOT NULL, title TEXT NOT NULL, body TEXT, state TEXT NOT NULL,
       author TEXT, base_ref TEXT, head_ref TEXT, html_url TEXT,
       created_at TEXT NOT NULL, updated_at TEXT, merged_at TEXT
-    )`, "github_pull_requests"
+    )`,
+    "github_pull_requests"
   );
 
   exec(
@@ -547,7 +554,8 @@ function ensureIntegrationTables(sqlite: Database.Database) {
       id TEXT PRIMARY KEY, label TEXT NOT NULL DEFAULT 'Slack', access_token TEXT NOT NULL,
       team_id TEXT NOT NULL, team_name TEXT NOT NULL, bot_user_id TEXT, scopes TEXT NOT NULL,
       is_active INTEGER DEFAULT 1, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
-    )`, "slack_workspaces"
+    )`,
+    "slack_workspaces"
   );
 
   exec(
@@ -555,7 +563,8 @@ function ensureIntegrationTables(sqlite: Database.Database) {
       id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL REFERENCES slack_workspaces(id) ON DELETE CASCADE,
       channel_id TEXT NOT NULL, name TEXT NOT NULL, topic TEXT, member_count INTEGER,
       is_private INTEGER DEFAULT 0, synced_at TEXT NOT NULL
-    )`, "slack_channels"
+    )`,
+    "slack_channels"
   );
 
   exec(
@@ -564,7 +573,8 @@ function ensureIntegrationTables(sqlite: Database.Database) {
       refresh_token TEXT NOT NULL, google_email TEXT NOT NULL,
       scopes TEXT NOT NULL DEFAULT 'drive.readonly', is_active INTEGER DEFAULT 1,
       token_expires TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
-    )`, "drive_connections"
+    )`,
+    "drive_connections"
   );
 
   exec(
@@ -572,7 +582,8 @@ function ensureIntegrationTables(sqlite: Database.Database) {
       id TEXT PRIMARY KEY, connection_id TEXT NOT NULL REFERENCES drive_connections(id) ON DELETE CASCADE,
       drive_id TEXT NOT NULL, name TEXT NOT NULL, mime_type TEXT NOT NULL,
       parent_folder TEXT, extracted_text TEXT, synced_at TEXT NOT NULL
-    )`, "drive_docs"
+    )`,
+    "drive_docs"
   );
 
   exec(
@@ -580,7 +591,8 @@ function ensureIntegrationTables(sqlite: Database.Database) {
       id TEXT PRIMARY KEY, google_email TEXT NOT NULL, access_token TEXT NOT NULL,
       refresh_token TEXT NOT NULL, token_expires TEXT NOT NULL,
       is_active INTEGER DEFAULT 1, created_at TEXT NOT NULL
-    )`, "google_calendar_connections"
+    )`,
+    "google_calendar_connections"
   );
 
   exec(
@@ -588,7 +600,8 @@ function ensureIntegrationTables(sqlite: Database.Database) {
       id TEXT PRIMARY KEY, google_email TEXT NOT NULL, access_token TEXT NOT NULL,
       refresh_token TEXT NOT NULL, token_expires TEXT NOT NULL,
       imap_enabled INTEGER DEFAULT 1, is_active INTEGER DEFAULT 1, created_at TEXT NOT NULL
-    )`, "gmail_connections"
+    )`,
+    "gmail_connections"
   );
 }
 
@@ -647,67 +660,175 @@ function seedProjects(sqlite: Database.Database) {
     INSERT INTO projects (id, name, description, purpose, frontend, backend, database, badge, path, status, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)
   `);
-  const projects: [string, string, string, string, string | null, string | null, string | null, string, string | null, string, string][] = [
-    ["antigravity-awesome-skills", "antigravity-awesome-skills",
+  const projects: [
+    string,
+    string,
+    string,
+    string,
+    string | null,
+    string | null,
+    string | null,
+    string,
+    string | null,
+    string,
+    string,
+  ][] = [
+    [
+      "antigravity-awesome-skills",
+      "antigravity-awesome-skills",
       "Open-source ecosystem of 1,465+ reusable agent prompt skill packages for Claude, Gemini, and Cursor AI coding assistants featuring a community CLI installer and companion skill discovery web app.",
       "Monetizes through platform ecosystem lock-in effects, premium skill distribution marketplaces, and enterprise catalog licensing agreements. Solves fragmented AI agent capability discovery across diverse developer communities worldwide.",
-      "React 19, Vite, Tailwind CSS v4, Framer Motion", "Supabase BaaS, Python validation tooling", "Supabase PostgreSQL",
-      "platform", "/Users/zach/Desktop/antigravity-awesome-skills", now, now],
-    ["bolt-new-original", "bolt.new original",
+      "React 19, Vite, Tailwind CSS v4, Framer Motion",
+      "Supabase BaaS, Python validation tooling",
+      "Supabase PostgreSQL",
+      "platform",
+      "/Users/zach/Desktop/antigravity-awesome-skills",
+      now,
+      now,
+    ],
+    [
+      "bolt-new-original",
+      "bolt.new original",
       "Browser-based AI agent from StackBlitz generating full-stack web applications entirely from natural language descriptions running inside secure WebContainer sandbox environments with real-time live preview.",
       "Monetizes through SaaS subscription tiers and usage-based compute pricing for AI-powered app generation. Solves the fundamental accessibility gap between idea conception and functional software prototype globally.",
-      "Remix v2, Vite, UnoCSS, CodeMirror", "Cloudflare Pages, AI SDK (OpenAI)", "None (ephemeral / Cloudflare KV)",
-      "platform", "/Users/zach/Desktop/bolt.new original", now, now],
-    ["bolt-new-custom", "bolt.new-custom",
+      "Remix v2, Vite, UnoCSS, CodeMirror",
+      "Cloudflare Pages, AI SDK (OpenAI)",
+      "None (ephemeral / Cloudflare KV)",
+      "platform",
+      "/Users/zach/Desktop/bolt.new original",
+      now,
+      now,
+    ],
+    [
+      "bolt-new-custom",
+      "bolt.new-custom",
       "Custom branded fork of bolt.new called Matrix Builder with full Firebase backend, multi-provider AI model integrations including Google and OpenAI, PostHog analytics, and comprehensive telemetry systems.",
       "Monetizes through Firebase service resale margins and custom enterprise deployment contracts for AI-generated applications. Solves the critical production gap between AI prototypes and real-world shippable software.",
-      "Remix v2, React 18, Vite, UnoCSS, Radix UI", "Firebase Functions, Express, AI SDK", "Firestore, Realtime DB, SQLite",
-      "fullstack", "/Users/zach/Desktop/bolt.new-custom", now, now],
-    ["bolt-projects", "Bolt-Projects",
+      "Remix v2, React 18, Vite, UnoCSS, Radix UI",
+      "Firebase Functions, Express, AI SDK",
+      "Firestore, Realtime DB, SQLite",
+      "fullstack",
+      "/Users/zach/Desktop/bolt.new-custom",
+      now,
+      now,
+    ],
+    [
+      "bolt-projects",
+      "Bolt-Projects",
       "Collection of nineteen individually exported bolt.new AI-generated Vite React frontend applications each containing its own project files, dependencies, and complete build history for future reuse.",
       "Demonstrates rapid AI-assisted frontend development velocity as portfolio proof-of-work for global freelance and agency client acquisition. Serves as reusable component library accelerating future project bootstrapping.",
-      "React 18, Vite, Tailwind CSS, GSAP, Framer Motion", null, null,
-      "frontend", "/Users/zach/Desktop/Bolt-Projects", now, now],
-    ["fansly-ai-automation", "fansly_ai_automation",
+      "React 18, Vite, Tailwind CSS, GSAP, Framer Motion",
+      null,
+      null,
+      "frontend",
+      "/Users/zach/Desktop/Bolt-Projects",
+      now,
+      now,
+    ],
+    [
+      "fansly-ai-automation",
+      "fansly_ai_automation",
       "Multi-account AI-powered NSFW creator automation platform managing chat conversations, content scheduling, subscriber analytics, and earnings tracking through integrated Gemini and DeepSeek language models.",
       "Monetizes through recurring SaaS subscription revenue models, per-creator commission percentages, and white-label platform licensing for larger agencies. Solves creator burnout by fully automating fan engagement at global scale.",
-      "Next.js 16, React 19, Tailwind CSS v4, TanStack Query", "Next.js API routes, NextAuth v5, Drizzle ORM", "Turso (libSQL / SQLite)",
-      "fullstack", "/Users/zach/Desktop/fansly_ai_automation", now, now],
-    ["forevergrateful", "forevergrateful",
+      "Next.js 16, React 19, Tailwind CSS v4, TanStack Query",
+      "Next.js API routes, NextAuth v5, Drizzle ORM",
+      "Turso (libSQL / SQLite)",
+      "fullstack",
+      "/Users/zach/Desktop/fansly_ai_automation",
+      now,
+      now,
+    ],
+    [
+      "forevergrateful",
+      "forevergrateful",
       "Immersive 3D interactive brand artist website built with Three.js featuring a detailed animated bear character model with GSAP-driven scroll animations, lookbook gallery, and newsletter signup system.",
       "Monetizes as premium agency showcase portfolio piece and brand licensing asset for merchandise or NFT conversion funnels. Solves the need for memorable digital brand identity in saturated global attention markets.",
-      "React 18, Vite, Three.js (r3f/drei), GSAP", null, null,
-      "frontend", "/Users/zach/Desktop/forevergrateful", now, now],
-    ["matrix-dash", "matrix-dash",
+      "React 18, Vite, Three.js (r3f/drei), GSAP",
+      null,
+      null,
+      "frontend",
+      "/Users/zach/Desktop/forevergrateful",
+      now,
+      now,
+    ],
+    [
+      "matrix-dash",
+      "matrix-dash",
       "Comprehensive all-in-one personal productivity command center with AI copilot featuring autonomous memory management, email and calendar sync, file management, task scheduling, IDE integration, and system monitoring.",
       "Monetizes through paid SaaS subscription model with premium feature tiers and local-first enterprise tooling deployment licenses. Solves personal information fragmentation across dozens of disconnected digital services globally.",
-      "Next.js 15, React 19, Tailwind CSS v4, GSAP, D3.js, Radix UI", "Next.js API routes, Drizzle ORM, AI SDK (multi-provider)", "SQLite (better-sqlite3 via Drizzle)",
-      "fullstack", "/Users/zach/Desktop/matrix-dash", now, now],
-    ["odysseus", "odysseus",
+      "Next.js 15, React 19, Tailwind CSS v4, GSAP, D3.js, Radix UI",
+      "Next.js API routes, Drizzle ORM, AI SDK (multi-provider)",
+      "SQLite (better-sqlite3 via Drizzle)",
+      "fullstack",
+      "/Users/zach/Desktop/matrix-dash",
+      now,
+      now,
+    ],
+    [
+      "odysseus",
+      "odysseus",
       "Self-hosted open-source AI assistant platform with multi-LLM chat, RAG vector document search, calendar and email integration, code execution sandbox, MCP protocol support, and PWA companion phone app.",
       "Monetizes through managed enterprise hosting tiers, white-label deployment services, and premium on-premise support and maintenance contracts. Solves data sovereignty privacy concerns of cloud-only AI for security-conscious users.",
-      "Vanilla JS SPA, PWA service workers", "Python FastAPI, SQLAlchemy, ChromaDB", "SQLite, ChromaDB (vector embeddings)",
-      "fullstack", "/Users/zach/Desktop/odysseus", now, now],
-    ["youtube-pipeline", "youtube-pipeline",
+      "Vanilla JS SPA, PWA service workers",
+      "Python FastAPI, SQLAlchemy, ChromaDB",
+      "SQLite, ChromaDB (vector embeddings)",
+      "fullstack",
+      "/Users/zach/Desktop/odysseus",
+      now,
+      now,
+    ],
+    [
+      "youtube-pipeline",
+      "youtube-pipeline",
       "Fully automated staged YouTube content production pipeline handling topic research via Gemini AI, script writing, OpenAI asset generation, YouTube platform upload, and scheduled weekly analytics reporting.",
       "Monetizes through managed automated channel network agency services and recurring content production subscription packages for global creators. Solves labor-intensive content bottleneck in consistent high-volume YouTube publishing.",
-      null, "Python Flask, Google APIs, Gemini, OpenAI, Twilio", "Google Sheets (lightweight operational store)",
-      "automation", "/Users/zach/Desktop/youtube-pipeline", now, now],
-    ["make-blueprints-ready", "make_blueprints_ready",
+      null,
+      "Python Flask, Google APIs, Gemini, OpenAI, Twilio",
+      "Google Sheets (lightweight operational store)",
+      "automation",
+      "/Users/zach/Desktop/youtube-pipeline",
+      now,
+      now,
+    ],
+    [
+      "make-blueprints-ready",
+      "make_blueprints_ready",
       "Set of five structured JSON blueprint configuration files defining Make.com automation workflow scenarios for daily briefing, content editing, asset generation, scheduled uploading, and weekly analytics.",
       "Serves as deployable reusable automation templates for rapid marketing operations infrastructure across multiple distribution channels. Solves repetitive manual workflow inefficiencies in global multi-platform content distribution at scale.",
-      null, null, null,
-      "automation", "/Users/zach/Desktop/make_blueprints_ready", now, now],
-    ["tgf-landing-page", "TGF Landing Page",
+      null,
+      null,
+      null,
+      "automation",
+      "/Users/zach/Desktop/make_blueprints_ready",
+      now,
+      now,
+    ],
+    [
+      "tgf-landing-page",
+      "TGF Landing Page",
       "Band artist promotional landing page website featuring brutalist 3D Three.js canvas background, YouTube and Spotify video embeds, gallery lightbox, show listings, news section, and contact submission form.",
       "Monetizes as reusable agency landing page template product and music-marketing industry vertical prototype for client acquisition. Solves indie artists' need for professional web presence without technical coding skills.",
-      "React 19, Vite 8, Three.js (r3f/drei), GSAP, Tailwind CSS v4", null, null,
-      "frontend", "/Users/zach/Desktop/TGF Landing Page", now, now],
-    ["the-greater-flaw", "The Greater Flaw (empty)",
+      "React 19, Vite 8, Three.js (r3f/drei), GSAP, Tailwind CSS v4",
+      null,
+      null,
+      "frontend",
+      "/Users/zach/Desktop/TGF Landing Page",
+      now,
+      now,
+    ],
+    [
+      "the-greater-flaw",
+      "The Greater Flaw (empty)",
       "Currently empty project directory on disk containing no source code, configuration, or application content yet requiring strategic business direction or formal project initiation planning decision.",
       "Pending strategic decision regarding expansion into full band management platform or complete archival deprecation of this placeholder directory. No immediate monetization model or global problem-solving purpose identified at this stage.",
-      null, null, null,
-      "empty", "/Users/zach/Desktop/The Greater Flaw", now, now],
+      null,
+      null,
+      null,
+      "empty",
+      "/Users/zach/Desktop/The Greater Flaw",
+      now,
+      now,
+    ],
   ];
   for (const p of projects) stmt.run(...p);
 }

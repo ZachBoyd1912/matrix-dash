@@ -56,9 +56,7 @@ export function tidyMemories(): { merged: number; deleted: number } {
   }
 
   // Clean up self-links created by the re-point step.
-  getSqlite()
-    .prepare(`DELETE FROM memory_links WHERE source_memory_id = target_memory_id`)
-    .run();
+  getSqlite().prepare(`DELETE FROM memory_links WHERE source_memory_id = target_memory_id`).run();
 
   return { merged, deleted: removed.size };
 }

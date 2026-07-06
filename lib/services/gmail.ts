@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
-import { gmailConnections, emails, emailAccounts } from "@/lib/db/schema";
+import { gmailConnections, emails } from "@/lib/db/schema";
 import { decrypt, encrypt } from "@/lib/utils/crypto";
 import { notify } from "@/lib/services/notify";
 
@@ -147,7 +147,11 @@ export async function syncGmailEmails(maxTotal = 100): Promise<number> {
     if (!messageIds.length) break;
 
     for (const { id } of messageIds) {
-      const existing = db.select({ id: emails.id }).from(emails).where(eq(emails.messageId, id)).get();
+      const existing = db
+        .select({ id: emails.id })
+        .from(emails)
+        .where(eq(emails.messageId, id))
+        .get();
       if (existing) continue;
 
       const msgRes = await gmailApi(`/messages/${id}?format=full`);
@@ -163,13 +167,22 @@ export async function syncGmailEmails(maxTotal = 100): Promise<number> {
       const isRead = !labels.includes("UNREAD");
       const isStarred = labels.includes("STARRED");
       const isTrash = labels.includes("TRASH") || labels.includes("SPAM");
-      const folder = isTrash ? "trash" : (labels.includes("SENT") ? "sent" : "inbox");
+      const folder = isTrash ? "trash" : labels.includes("SENT") ? "sent" : "inbox";
 
-      db.insert(emails).values({
-        id: randomUUID(), folder, fromAddr: from, toAddr: to,
-        subject, body, isRead, isStarred, messageId: id,
-        createdAt: msg.internalDate ? new Date(parseInt(msg.internalDate)).toISOString() : now,
-      }).run();
+      db.insert(emails)
+        .values({
+          id: randomUUID(),
+          folder,
+          fromAddr: from,
+          toAddr: to,
+          subject,
+          body,
+          isRead,
+          isStarred,
+          messageId: id,
+          createdAt: msg.internalDate ? new Date(parseInt(msg.internalDate)).toISOString() : now,
+        })
+        .run();
       imported++;
     }
 
@@ -179,7 +192,10 @@ export async function syncGmailEmails(maxTotal = 100): Promise<number> {
 
   db.update(gmailConnections).set({ createdAt: now }).where(eq(gmailConnections.id, conn.id)).run();
   if (imported > 0) {
-    notify({ title: "Gmail synced", body: `${imported} new email${imported > 1 ? "s" : ""} imported` });
+    notify({
+      title: "Gmail synced",
+      body: `${imported} new email${imported > 1 ? "s" : ""} imported`,
+    });
   }
   return imported;
 }
@@ -263,9 +279,7 @@ export async function getGmailEmail(messageId: string) {
 
 /** Search Gmail using Gmail search syntax. */
 export async function searchGmailEmails(query: string, limit = 20) {
-  const res = await gmailApi(
-    `/messages?q=${encodeURIComponent(query)}&maxResults=${limit}`
-  );
+  const res = await gmailApi(`/messages?q=${encodeURIComponent(query)}&maxResults=${limit}`);
   if (!res.ok) return [];
   const data = await res.json();
   const messageIds: { id: string }[] = data.messages ?? [];
@@ -273,7 +287,9 @@ export async function searchGmailEmails(query: string, limit = 20) {
 
   const results = await Promise.all(
     messageIds.map(async ({ id }) => {
-      const res = await gmailApi(`/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`);
+      const res = await gmailApi(
+        `/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`
+      );
       if (!res.ok) return null;
       const msg: any = await res.json();
       const headers = msg.payload?.headers;
@@ -315,7 +331,7 @@ export async function modifyGmailLabel(
   const db = getDb();
   const local = db.select().from(emails).where(eq(emails.messageId, messageId)).get();
   if (!local) return { ok: true, labels: data.labelIds };
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
   const emailId = local!.id;
 
   const updates: Partial<typeof emails.$inferInsert> = {};
@@ -325,9 +341,9 @@ export async function modifyGmailLabel(
   if (removeLabels?.includes("STARRED")) updates.isStarred = false;
   if (addLabels?.includes("TRASH")) updates.folder = "trash";
   if (removeLabels?.includes("TRASH")) updates.folder = "inbox";
-    if (Object.keys(updates).length > 0) {
-      db.update(emails).set(updates).where(eq(emails.id, emailId!)).run();
-    }
+  if (Object.keys(updates).length > 0) {
+    db.update(emails).set(updates).where(eq(emails.id, emailId!)).run();
+  }
 }
 
 // ─── Labels ───────────────────────────────────────────

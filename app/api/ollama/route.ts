@@ -21,7 +21,8 @@ export interface Hardware {
 function detectChip(cpuManu: string | undefined, gpuModel: string): Chip {
   const g = gpuModel.toLowerCase();
   if ((cpuManu || "").toLowerCase().includes("apple") || g.includes("apple")) return "apple";
-  if (g.includes("nvidia") || g.includes("geforce") || g.includes("rtx") || g.includes("quadro")) return "nvidia";
+  if (g.includes("nvidia") || g.includes("geforce") || g.includes("rtx") || g.includes("quadro"))
+    return "nvidia";
   if (g.includes("amd") || g.includes("radeon")) return "amd";
   if (g.includes("intel")) return "intel";
   return "cpu";
@@ -60,7 +61,7 @@ export async function GET() {
   // Discrete GPU: use detected VRAM. Pure CPU: treat free RAM as the budget.
   const usableVramGb = unified
     ? Math.round((totalRamGb ?? 8) * 0.7 * 10) / 10
-    : discreteVramGb ?? Math.round((freeRamGb ?? totalRamGb ?? 8) * 10) / 10;
+    : (discreteVramGb ?? Math.round((freeRamGb ?? totalRamGb ?? 8) * 10) / 10);
 
   const hardware: Hardware = {
     totalRamGb,

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty";
-import { toast, confirm } from "@/lib/stores/use-feedback";
+import { confirm } from "@/lib/stores/use-feedback";
 import { useGsapEntrance } from "@/lib/hooks/use-gsap-entrance";
 import { timeAgo } from "@/lib/utils/time";
 import type { ApiTokenPublic } from "@/types/jarvis";
@@ -43,7 +43,11 @@ export default function TokensPage() {
   };
 
   const remove = async (t: ApiTokenPublic) => {
-    const ok = await confirm({ title: `Revoke "${t.label}"?`, confirmLabel: "Revoke", danger: true });
+    const ok = await confirm({
+      title: `Revoke "${t.label}"?`,
+      confirmLabel: "Revoke",
+      danger: true,
+    });
     if (!ok) return;
     await fetch(`/api/tokens?id=${t.id}`, { method: "DELETE" });
     refresh();
@@ -68,13 +72,11 @@ export default function TokensPage() {
           <span className="eyebrow">
             <KeyRound size={11} /> API Access
           </span>
-          <h2 className="display text-gradient text-4xl md:text-5xl mt-3">
-            API Tokens
-          </h2>
-          <p className="text-text-secondary text-sm mt-3 max-w-2xl">
+          <h2 className="display text-gradient mt-3 text-4xl md:text-5xl">API Tokens</h2>
+          <p className="text-text-secondary mt-3 max-w-2xl text-sm">
             Bearer tokens for the inbound webhook endpoint at{" "}
-            <code className="text-emerald-300">/api/hooks/&lt;token&gt;</code>. Use them from Shortcuts, Home
-            Assistant, or any script.
+            <code className="text-emerald-300">/api/hooks/&lt;token&gt;</code>. Use them from
+            Shortcuts, Home Assistant, or any script.
           </p>
         </div>
       </div>
@@ -84,18 +86,26 @@ export default function TokensPage() {
       </Button>
 
       {list.length === 0 ? (
-        <EmptyState icon={<KeyRound size={16} />} title="No tokens yet" description="Create one to call Jarvis from outside." />
+        <EmptyState
+          icon={<KeyRound size={16} />}
+          title="No tokens yet"
+          description="Create one to call Jarvis from outside."
+        />
       ) : (
         <div className="space-y-3">
           {list.map((t) => (
-            <Card key={t.id} interactive className="flex items-center justify-between gap-3 rounded-2xl">
+            <Card
+              key={t.id}
+              interactive
+              className="flex items-center justify-between gap-3 rounded-2xl"
+            >
               <div className="flex min-w-0 items-center gap-3">
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-500/10 text-emerald-400">
                   <Webhook size={15} />
                 </span>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-text-primary">{t.label}</p>
-                  <p className="text-[11px] text-text-muted mt-0.5 font-mono">
+                  <p className="text-text-primary text-sm font-medium">{t.label}</p>
+                  <p className="text-text-muted mt-0.5 font-mono text-[11px]">
                     {t.token} · {t.lastUsedAt ? `used ${timeAgo(t.lastUsedAt)}` : "never used"}
                   </p>
                 </div>
@@ -108,19 +118,37 @@ export default function TokensPage() {
         </div>
       )}
 
-      <Dialog open={open} onClose={() => { setOpen(false); setCreated(null); }} title={created ? "Token created" : "New API token"} description={created ? "Copy this now — you won't see it again." : "Give your token a memorable label."}>
+      <Dialog
+        open={open}
+        onClose={() => {
+          setOpen(false);
+          setCreated(null);
+        }}
+        title={created ? "Token created" : "New API token"}
+        description={
+          created ? "Copy this now — you won't see it again." : "Give your token a memorable label."
+        }
+      >
         {created ? (
           <div className="space-y-3">
-            <code className="block text-xs text-emerald-300 bg-white/[0.03] p-3 rounded-xl break-all font-mono">
+            <code className="block rounded-xl bg-white/[0.03] p-3 font-mono text-xs break-all text-emerald-300">
               {created}
             </code>
             <div className="flex justify-end gap-2">
               <Button variant="secondary" onClick={copy}>
                 {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? "Copied" : "Copy"}
               </Button>
-              <Button variant="primary" onClick={() => { setOpen(false); setCreated(null); }}>Done</Button>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  setOpen(false);
+                  setCreated(null);
+                }}
+              >
+                Done
+              </Button>
             </div>
-            <p className="text-[10px] text-text-muted">
+            <p className="text-text-muted text-[10px]">
               Try it:{" "}
               <code className="text-text-primary">
                 {`curl -X POST /api/hooks/${created.slice(0, 12)}… -d '{"action":"notify","title":"hi"}'`}
@@ -129,10 +157,19 @@ export default function TokensPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Shortcuts on iPhone" autoFocus />
+            <Input
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              placeholder="Shortcuts on iPhone"
+              autoFocus
+            />
             <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button variant="primary" onClick={create} disabled={!label.trim()}>Create</Button>
+              <Button variant="ghost" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="primary" onClick={create} disabled={!label.trim()}>
+                Create
+              </Button>
             </div>
           </div>
         )}

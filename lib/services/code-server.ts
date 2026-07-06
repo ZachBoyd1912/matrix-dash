@@ -123,7 +123,7 @@ export function writeBrandedSettings(): void {
       "statusBar.background": "#0a0a0a",
       "statusBar.foreground": "#34d399",
       "titleBar.activeBackground": "#0a0a0a",
-      "focusBorder": "#34d399",
+      focusBorder: "#34d399",
     },
     "editor.fontFamily": "JetBrains Mono, monospace",
     "editor.fontLigatures": true,

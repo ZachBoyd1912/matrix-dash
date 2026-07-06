@@ -17,23 +17,15 @@ import type { KanbanTask, Project } from "@/types/jarvis";
 
 // ── 6-Column Layout ────────────────────────────────────────────────
 export const COLUMNS: ColumnDef[] = [
-  { id: "backlog",     label: "Backlog",      accent: "bg-slate-400"   },
-  { id: "planned",     label: "Planned",      accent: "bg-blue-400"    },
-  { id: "in-progress", label: "In Progress",  accent: "bg-amber-400"   },
-  { id: "developed",   label: "Developed",    accent: "bg-purple-400"  },
-  { id: "tested",      label: "Tested",       accent: "bg-cyan-400"    },
-  { id: "completed",   label: "Completed",    accent: "bg-emerald-400" },
+  { id: "backlog", label: "Backlog", accent: "bg-slate-400" },
+  { id: "planned", label: "Planned", accent: "bg-blue-400" },
+  { id: "in-progress", label: "In Progress", accent: "bg-amber-400" },
+  { id: "developed", label: "Developed", accent: "bg-purple-400" },
+  { id: "tested", label: "Tested", accent: "bg-cyan-400" },
+  { id: "completed", label: "Completed", accent: "bg-emerald-400" },
 ];
 
 const COLUMN_IDS = COLUMNS.map((c) => c.id);
-
-function getAdjacentCols(status: string): { prev: string | null; next: string | null } {
-  const idx = COLUMN_IDS.indexOf(status);
-  return {
-    prev: idx > 0 ? COLUMN_IDS[idx - 1] : null,
-    next: idx < COLUMN_IDS.length - 1 ? COLUMN_IDS[idx + 1] : null,
-  };
-}
 
 interface Props {
   tasks: KanbanTask[];
@@ -59,9 +51,7 @@ export function KanbanBoard({
   const [activeId, setActiveId] = useState<string | null>(null);
   const pendingChanges = useRef<Map<string, string>>(new Map());
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
-  );
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   // Group tasks by column
   const columnTasks = useMemo(() => {
@@ -75,10 +65,7 @@ export function KanbanBoard({
     return map;
   }, [tasks]);
 
-  const activeTask = useMemo(
-    () => tasks.find((t) => t.id === activeId) ?? null,
-    [tasks, activeId]
-  );
+  const activeTask = useMemo(() => tasks.find((t) => t.id === activeId) ?? null, [tasks, activeId]);
   const activeProject = activeTask
     ? projects.find((p) => p.id === activeTask.projectId)
     : undefined;
@@ -145,7 +132,8 @@ export function KanbanBoard({
       targetTasks.splice(insertIndex, 0, { ...activeTask, kanbanStatus: targetStatus });
 
       const updatedAll = tasks.map((t) => {
-        if (t.id === activeTask.id) return { ...t, kanbanStatus: targetStatus, kanbanOrder: insertIndex };
+        if (t.id === activeTask.id)
+          return { ...t, kanbanStatus: targetStatus, kanbanOrder: insertIndex };
         const inCol = targetTasks.find((nt) => nt.id === t.id);
         if (inCol) return { ...t, kanbanOrder: targetTasks.indexOf(inCol) };
         return t;
@@ -168,7 +156,9 @@ export function KanbanBoard({
               })
             ),
           ]);
-        } catch { /* refetch fixes */ }
+        } catch {
+          /* refetch fixes */
+        }
         onNotifyTabs?.();
       } else {
         onTasksReorder(updatedAll);
@@ -184,7 +174,9 @@ export function KanbanBoard({
                 })
               )
           );
-        } catch { /* silent */ }
+        } catch {
+          /* silent */
+        }
         onNotifyTabs?.();
       }
     },
@@ -206,10 +198,10 @@ export function KanbanBoard({
       onDragEnd={handleDragEnd}
     >
       {/* ── Table Container ── */}
-      <div className="rounded-xl border border-white/[0.06] overflow-hidden bg-white/[0.015]">
+      <div className="overflow-hidden rounded-xl border border-white/[0.06] bg-white/[0.015]">
         {/* ── Title Bar ── */}
-        <div className="px-4 py-3 border-b border-white/[0.06] bg-white/[0.02]">
-          <h3 className="text-sm font-semibold text-text-primary tracking-wide text-center">
+        <div className="border-b border-white/[0.06] bg-white/[0.02] px-4 py-3">
+          <h3 className="text-text-primary text-center text-sm font-semibold tracking-wide">
             Requirement / Task / Incident Progress
           </h3>
         </div>
@@ -224,11 +216,11 @@ export function KanbanBoard({
               }`}
             >
               <div className="flex items-center justify-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${col.accent}`} />
-                <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-widest">
+                <span className={`h-2 w-2 rounded-full ${col.accent}`} />
+                <span className="text-text-secondary text-[11px] font-semibold tracking-widest uppercase">
                   {col.label}
                 </span>
-                <span className="text-[10px] text-text-muted bg-white/5 px-1.5 py-0.5 rounded-full font-medium tabular-nums">
+                <span className="text-text-muted rounded-full bg-white/5 px-1.5 py-0.5 text-[10px] font-medium tabular-nums">
                   {(columnTasks[col.id] ?? []).length}
                 </span>
               </div>
@@ -237,7 +229,7 @@ export function KanbanBoard({
         </div>
 
         {/* ── Grid Body ── */}
-        <div className="grid grid-cols-6 min-h-[400px]">
+        <div className="grid min-h-[400px] grid-cols-6">
           {COLUMNS.map((col, i) => (
             <KanbanColumn
               key={col.id}
@@ -256,7 +248,7 @@ export function KanbanBoard({
 
       <DragOverlay>
         {activeTask && (
-          <div className="rotate-[2deg] scale-105 shadow-[0_20px_60px_-12px_rgba(0,0,0,0.6)]">
+          <div className="scale-105 rotate-[2deg] shadow-[0_20px_60px_-12px_rgba(0,0,0,0.6)]">
             <KanbanCard
               task={activeTask}
               project={activeProject}

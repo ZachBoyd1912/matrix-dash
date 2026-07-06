@@ -135,7 +135,8 @@ export interface ToolCallRecord {
   state: "call" | "result" | "error";
 }
 
-export type KanbanStatus = "backlog" | "planned" | "in-progress" | "developed" | "tested" | "completed";
+export type KanbanStatus =
+  "backlog" | "planned" | "in-progress" | "developed" | "tested" | "completed";
 
 export interface Project {
   id: string;

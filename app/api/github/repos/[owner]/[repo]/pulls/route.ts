@@ -37,6 +37,13 @@ export async function POST(req: Request, ctx: Ctx) {
   if (!conn) {
     return Response.json({ error: "No active GitHub connection" }, { status: 400 });
   }
-  const result = await createPR(conn.id, `${owner}/${repo}`, parsed.data.title, parsed.data.body ?? "", parsed.data.head, parsed.data.base);
+  const result = await createPR(
+    conn.id,
+    `${owner}/${repo}`,
+    parsed.data.title,
+    parsed.data.body ?? "",
+    parsed.data.head,
+    parsed.data.base
+  );
   return Response.json(result);
 }

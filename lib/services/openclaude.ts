@@ -60,12 +60,18 @@ function providerEnv(p: ProviderRecord): Record<string, string> {
   const model = p.defaultModel || DEFAULT_MODELS[p.provider] || "";
   const spec = providerSpec(p.provider);
   const sdk = spec?.sdk ?? "openai-compat";
-  if (sdk === "google") return { CLAUDE_CODE_USE_GEMINI: "1", GEMINI_API_KEY: key, GEMINI_MODEL: model };
+  if (sdk === "google")
+    return { CLAUDE_CODE_USE_GEMINI: "1", GEMINI_API_KEY: key, GEMINI_MODEL: model };
   if (sdk === "anthropic") return { ANTHROPIC_API_KEY: key, ANTHROPIC_MODEL: model };
   // openai-compat / mistral / xai → OpenAI-compatible endpoint. CLAUDE_CODE_USE_OPENAI
   // selects this provider instead of OpenClaude's default Opengateway.
   const baseURL = p.baseUrl || spec?.baseUrl || "https://api.openai.com/v1";
-  return { CLAUDE_CODE_USE_OPENAI: "1", OPENAI_BASE_URL: baseURL, OPENAI_API_KEY: key, OPENAI_MODEL: model };
+  return {
+    CLAUDE_CODE_USE_OPENAI: "1",
+    OPENAI_BASE_URL: baseURL,
+    OPENAI_API_KEY: key,
+    OPENAI_MODEL: model,
+  };
 }
 
 function permissionArgs(level: PowerLevel): string[] {
@@ -96,7 +102,8 @@ function mapEvent(ev: OCEvent, emit: (e: StreamEvent) => void, sid?: string) {
   if (ev.type === "assistant" && ev.message?.content) {
     for (const c of ev.message.content) {
       if (c.type === "text" && typeof c.text === "string") emit({ type: "text", value: c.text });
-      else if (c.type === "tool_use") emit({ type: "tool_call", id: String(c.id), name: String(c.name), args: c.input });
+      else if (c.type === "tool_use")
+        emit({ type: "tool_call", id: String(c.id), name: String(c.name), args: c.input });
     }
     return;
   }
@@ -104,7 +111,12 @@ function mapEvent(ev: OCEvent, emit: (e: StreamEvent) => void, sid?: string) {
     for (const c of ev.message.content) {
       if (c.type === "tool_result") {
         const text = typeof c.content === "string" ? c.content : JSON.stringify(c.content);
-        emit({ type: "tool_result", id: String(c.tool_use_id), result: text, error: c.is_error ? text : undefined });
+        emit({
+          type: "tool_result",
+          id: String(c.tool_use_id),
+          result: text,
+          error: c.is_error ? text : undefined,
+        });
       }
     }
     return;
@@ -131,7 +143,14 @@ export function runOpenClaudeTurn(opts: {
   const bin = findBin();
   const root = getWorkspaceRoot();
   const resume = matrixSessionId ? ocSessions.get(matrixSessionId) : undefined;
-  const args = ["-p", prompt, "--output-format", "stream-json", "--verbose", ...permissionArgs(getPowerLevel())];
+  const args = [
+    "-p",
+    prompt,
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    ...permissionArgs(getPowerLevel()),
+  ];
   if (resume) args.push("--resume", resume);
   const env = { ...process.env, ...providerEnv(provider) };
 
@@ -140,7 +159,10 @@ export function runOpenClaudeTurn(opts: {
     try {
       child = spawn(bin, args, { cwd: root, env });
     } catch (e) {
-      emit({ type: "error", value: `Failed to start OpenClaude: ${e instanceof Error ? e.message : String(e)}` });
+      emit({
+        type: "error",
+        value: `Failed to start OpenClaude: ${e instanceof Error ? e.message : String(e)}`,
+      });
       return resolve({ ok: false, error: "spawn failed" });
     }
     const onAbort = () => {

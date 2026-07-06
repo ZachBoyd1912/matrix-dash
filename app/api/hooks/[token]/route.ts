@@ -66,7 +66,10 @@ export async function POST(req: Request, ctx: Ctx) {
         const result = await runAgent(body.prompt);
         return Response.json({ ok: true, result });
       } catch (err) {
-        return Response.json({ ok: false, error: err instanceof Error ? err.message : String(err) }, { status: 500 });
+        return Response.json(
+          { ok: false, error: err instanceof Error ? err.message : String(err) },
+          { status: 500 }
+        );
       }
     default:
       return Response.json({ error: "unknown action" }, { status: 400 });

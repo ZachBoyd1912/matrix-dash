@@ -63,7 +63,9 @@ interface Props {
 }
 
 export function ChatInterface({ sessionId, initialMessages, embedded, contextText }: Props) {
-  const [messages, setMessages] = useState<ChatMessage[]>(() => (initialMessages ?? []).map(toChatMessage));
+  const [messages, setMessages] = useState<ChatMessage[]>(() =>
+    (initialMessages ?? []).map(toChatMessage)
+  );
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -95,11 +97,13 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
 
   const ccBanner =
     useClaudeCode && ccInstalled === false ? (
-      <div className="max-w-3xl mx-auto px-4 mb-2">
-        <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 text-amber-200 text-xs px-4 py-3 leading-relaxed">
+      <div className="mx-auto mb-2 max-w-3xl px-4">
+        <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-xs leading-relaxed text-amber-200">
           OpenClaude isn&apos;t installed yet. Run{" "}
-          <code className="font-mono bg-black/30 px-1 rounded">npm install -g @gitlawb/openclaude@latest</code> in a
-          terminal, then reload — it runs on your active Matrix model automatically.
+          <code className="rounded bg-black/30 px-1 font-mono">
+            npm install -g @gitlawb/openclaude@latest
+          </code>{" "}
+          in a terminal, then reload — it runs on your active Matrix model automatically.
         </div>
       </div>
     ) : null;
@@ -157,7 +161,11 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
         const inject = (msg: string) =>
           setMessages((prev) => [
             ...prev,
-            { id: uid(), role: "assistant" as const, blocks: [{ kind: "text" as const, text: msg }] },
+            {
+              id: uid(),
+              role: "assistant" as const,
+              blocks: [{ kind: "text" as const, text: msg }],
+            },
           ]);
         let handled = true;
         switch (cmd) {
@@ -190,7 +198,10 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
             break;
           }
           case "help":
-            inject("Slash commands:\n" + SLASH_COMMANDS.map((c) => `/${c.name} — ${c.description}`).join("\n"));
+            inject(
+              "Slash commands:\n" +
+                SLASH_COMMANDS.map((c) => `/${c.name} — ${c.description}`).join("\n")
+            );
             break;
           default:
             handled = false; // compact / init / review → send to the engine
@@ -310,35 +321,54 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
         abortRef.current = null;
       }
     },
-    [messages, providers, providerId, sessionId, chatMode, useClaudeCode, autoSpeak, attachment, contextText, modelOverride, reasoningEffort, router, setModelSelectorOpen]
+    [
+      messages,
+      providers,
+      providerId,
+      sessionId,
+      chatMode,
+      useClaudeCode,
+      autoSpeak,
+      attachment,
+      contextText,
+      modelOverride,
+      reasoningEffort,
+      router,
+      setModelSelectorOpen,
+    ]
   );
 
   const empty = messages.length === 0;
   const noProvider = providers.length === 0;
 
   return (
-    <div className="flex flex-col h-full min-h-0">
+    <div className="flex h-full min-h-0 flex-col">
       {empty && !embedded ? (
         useClaudeCode ? (
           <ClaudeCodeEmpty>
             {ccBanner}
-            <ChatInput onSubmit={send} onAttach={() => fileInputRef.current?.click()} busy={streaming} disabled={noProvider} />
+            <ChatInput
+              onSubmit={send}
+              onAttach={() => fileInputRef.current?.click()}
+              busy={streaming}
+              disabled={noProvider}
+            />
           </ClaudeCodeEmpty>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center px-4">
-            <div className="flex flex-col items-center gap-3 mb-8">
-              <div className="grid place-items-center w-16 h-16 rounded-2xl glass bezel sheen transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]">
+          <div className="flex flex-1 flex-col items-center justify-center px-4">
+            <div className="mb-8 flex flex-col items-center gap-3">
+              <div className="glass bezel sheen grid h-16 w-16 place-items-center rounded-2xl transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]">
                 <LogoMark size={40} />
               </div>
-              <h1 className="font-display italic text-3xl text-text-primary">Matrix Dash</h1>
+              <h1 className="font-display text-text-primary text-3xl italic">Matrix Dash</h1>
               <p className="eyebrow text-text-muted">Your AI command center</p>
             </div>
             {noProvider && (
-              <div className="mb-6 glass rounded-xl px-4 py-3 text-xs text-text-secondary max-w-md text-center transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]">
+              <div className="glass text-text-secondary mb-6 max-w-md rounded-xl px-4 py-3 text-center text-xs transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]">
                 No AI provider yet. Add one in{" "}
                 <Link
                   href="/dashboard/settings"
-                  className="text-emerald-300 hover:text-emerald-200 underline decoration-emerald-400/40 underline-offset-2 transition-colors duration-200"
+                  className="text-emerald-300 underline decoration-emerald-400/40 underline-offset-2 transition-colors duration-200 hover:text-emerald-200"
                 >
                   Settings → Add Models
                 </Link>{" "}
@@ -346,7 +376,12 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
               </div>
             )}
             <div className="w-full">
-              <ChatInput onSubmit={send} onAttach={() => fileInputRef.current?.click()} busy={streaming} disabled={noProvider} />
+              <ChatInput
+                onSubmit={send}
+                onAttach={() => fileInputRef.current?.click()}
+                busy={streaming}
+                disabled={noProvider}
+              />
             </div>
           </div>
         )
@@ -354,34 +389,36 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
         <>
           <div
             ref={scrollRef}
-            className="flex-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.12)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb:hover]:bg-white/20"
+            className="flex-1 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.12)_transparent] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb:hover]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent"
           >
-            <div className="max-w-3xl mx-auto px-4 md:px-6 py-8 space-y-6">
+            <div className="mx-auto max-w-3xl space-y-6 px-4 py-8 md:px-6">
               {messages.map((m) => (
                 <MessageBubble
                   key={m.id}
                   role={m.role}
                   blocks={m.blocks}
-                  streaming={streaming && m.role === "assistant" && m.id === messages[messages.length - 1].id}
+                  streaming={
+                    streaming && m.role === "assistant" && m.id === messages[messages.length - 1].id
+                  }
                   onApprove={approve}
                 />
               ))}
               {error && (
-                <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-200 text-xs px-4 py-3 shadow-[0_0_18px_-8px_rgba(244,63,94,0.6)]">
+                <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs text-rose-200 shadow-[0_0_18px_-8px_rgba(244,63,94,0.6)]">
                   {error}
                 </div>
               )}
             </div>
           </div>
-          <div className="py-4 bg-gradient-to-t from-bg-base via-bg-base/80 to-transparent">
+          <div className="from-bg-base via-bg-base/80 bg-gradient-to-t to-transparent py-4">
             {attachment && (
-              <div className="max-w-3xl mx-auto px-4 mb-2">
-                <div className="inline-flex items-center gap-2 glass-input rounded-full px-3 py-1 text-xs text-text-secondary border border-emerald-400/20 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]">
+              <div className="mx-auto mb-2 max-w-3xl px-4">
+                <div className="glass-input text-text-secondary inline-flex items-center gap-2 rounded-full border border-emerald-400/20 px-3 py-1 text-xs transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]">
                   <Paperclip size={11} className="text-emerald-300" />
                   <span className="max-w-[200px] truncate">{attachment.name}</span>
                   <button
                     onClick={() => setAttachment(null)}
-                    className="text-text-muted hover:text-rose-400 transition-colors duration-200 active:scale-[0.98]"
+                    className="text-text-muted transition-colors duration-200 hover:text-rose-400 active:scale-[0.98]"
                     aria-label="Remove attachment"
                   >
                     <X size={11} />

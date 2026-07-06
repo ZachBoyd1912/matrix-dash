@@ -63,7 +63,7 @@ export function MemoryDetail({ memory, links, onChange, onSelectLinked }: Props)
         <Badge className={`${meta.bg} ${meta.border} ${meta.color}`}>{meta.label}</Badge>
         <div className="flex items-center gap-1">
           <Button size="icon" variant="ghost" onClick={togglePin} aria-label="Pin">
-            <Pin size={14} className={memory.isPinned ? "text-amber-400 fill-amber-400/30" : ""} />
+            <Pin size={14} className={memory.isPinned ? "fill-amber-400/30 text-amber-400" : ""} />
           </Button>
           <Button size="icon" variant="ghost" onClick={remove} aria-label="Delete">
             <Trash2 size={14} className="text-rose-400" />
@@ -81,7 +81,7 @@ export function MemoryDetail({ memory, links, onChange, onSelectLinked }: Props)
           />
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-[10px] uppercase text-text-muted mb-1">Type</label>
+              <label className="text-text-muted mb-1 block text-[10px] uppercase">Type</label>
               <Select
                 value={type}
                 onChange={(e) => setType(e.target.value as Memory["type"])}
@@ -95,7 +95,7 @@ export function MemoryDetail({ memory, links, onChange, onSelectLinked }: Props)
               </Select>
             </div>
             <div>
-              <label className="block text-[10px] uppercase text-text-muted mb-1">
+              <label className="text-text-muted mb-1 block text-[10px] uppercase">
                 Importance · {importance.toFixed(2)}
               </label>
               <input
@@ -110,15 +110,15 @@ export function MemoryDetail({ memory, links, onChange, onSelectLinked }: Props)
             </div>
           </div>
           <div>
-            <label className="block text-[10px] uppercase text-text-muted mb-1">Tags</label>
+            <label className="text-text-muted mb-1 block text-[10px] uppercase">Tags</label>
             <input
               value={tags}
               onChange={(e) => setTags(e.target.value)}
-              className="glass-input w-full h-9 px-3 rounded-md text-sm"
+              className="glass-input h-9 w-full rounded-md px-3 text-sm"
               placeholder="comma,separated,keywords"
             />
           </div>
-          <div className="flex gap-2 justify-end">
+          <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setEditing(false)}>
               <X size={14} /> Cancel
             </Button>
@@ -132,7 +132,7 @@ export function MemoryDetail({ memory, links, onChange, onSelectLinked }: Props)
           onClick={() => setEditing(true)}
           className="cursor-text rounded-lg border border-white/5 bg-white/[0.02] p-4 hover:border-white/10"
         >
-          <p className="text-sm text-text-primary leading-relaxed">{memory.content}</p>
+          <p className="text-text-primary text-sm leading-relaxed">{memory.content}</p>
         </div>
       )}
 
@@ -145,20 +145,21 @@ export function MemoryDetail({ memory, links, onChange, onSelectLinked }: Props)
 
       {memory.tags && (
         <div className="flex flex-wrap gap-1.5">
-          {memory.tags.split(",").filter(Boolean).map((tag) => (
-            <Badge key={tag} className="lowercase">
-              {tag.trim()}
-            </Badge>
-          ))}
+          {memory.tags
+            .split(",")
+            .filter(Boolean)
+            .map((tag) => (
+              <Badge key={tag} className="lowercase">
+                {tag.trim()}
+              </Badge>
+            ))}
         </div>
       )}
 
       <div>
-        <p className="text-[10px] uppercase text-text-muted mb-2">
-          Linked ({links.length})
-        </p>
+        <p className="text-text-muted mb-2 text-[10px] uppercase">Linked ({links.length})</p>
         {links.length === 0 ? (
-          <p className="text-xs text-text-muted">No links yet.</p>
+          <p className="text-text-muted text-xs">No links yet.</p>
         ) : (
           <ul className="space-y-1">
             {links.map((link) => {
@@ -166,17 +167,17 @@ export function MemoryDetail({ memory, links, onChange, onSelectLinked }: Props)
               return (
                 <li
                   key={link.linkId}
-                  className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-white/5 cursor-pointer text-xs"
+                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-xs hover:bg-white/5"
                   onClick={() => onSelectLinked(link.memory.id)}
                 >
-                  <span className={`shrink-0 h-1.5 w-1.5 rounded-full ${linkMeta.bg.replace("/10", "")}`} />
+                  <span
+                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${linkMeta.bg.replace("/10", "")}`}
+                  />
                   <span className="text-text-muted text-[10px]">
                     {link.direction === "outgoing" ? "→" : "←"}
                   </span>
-                  <span className="flex-1 truncate text-text-secondary">
-                    {link.memory.content}
-                  </span>
-                  <span className="text-[10px] text-text-muted tabular-nums">
+                  <span className="text-text-secondary flex-1 truncate">{link.memory.content}</span>
+                  <span className="text-text-muted text-[10px] tabular-nums">
                     {(link.strength * 100).toFixed(0)}%
                   </span>
                 </li>
@@ -192,7 +193,7 @@ export function MemoryDetail({ memory, links, onChange, onSelectLinked }: Props)
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-md border border-white/5 bg-white/[0.02] px-3 py-2">
-      <div className="text-[10px] uppercase text-text-muted">{label}</div>
+      <div className="text-text-muted text-[10px] uppercase">{label}</div>
       <div className="text-text-primary tabular-nums">{value}</div>
     </div>
   );

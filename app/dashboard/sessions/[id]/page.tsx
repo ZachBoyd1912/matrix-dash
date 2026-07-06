@@ -63,7 +63,7 @@ export default function SessionPage() {
   if (!session || messages === null) {
     return (
       <div className="p-8">
-        <Skeleton className="h-12 w-1/2 mb-4" />
+        <Skeleton className="mb-4 h-12 w-1/2" />
         <Skeleton className="h-32" />
       </div>
     );
@@ -77,11 +77,11 @@ export default function SessionPage() {
   }));
 
   return (
-    <div className="flex flex-col page-h">
-      <div className="px-4 md:px-6 py-3 border-b border-white/5 flex items-center gap-3">
+    <div className="page-h flex flex-col">
+      <div className="flex items-center gap-3 border-b border-white/5 px-4 py-3 md:px-6">
         <Link
           href="/dashboard/sessions"
-          className="text-text-muted hover:text-text-primary p-1 rounded-lg hover:bg-white/5 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+          className="text-text-muted hover:text-text-primary rounded-lg p-1 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-white/5"
           aria-label="Back to sessions"
         >
           <ArrowLeft size={14} />
@@ -89,13 +89,13 @@ export default function SessionPage() {
         <Input
           value={name}
           onChange={(e) => renameSession(e.target.value)}
-          className="flex-1 h-9 text-sm font-semibold border-transparent bg-transparent focus:bg-white/[0.03]"
+          className="h-9 flex-1 border-transparent bg-transparent text-sm font-semibold focus:bg-white/[0.03]"
         />
         <Button size="icon" variant="ghost" onClick={remove} aria-label="Delete">
           <Trash2 size={14} className="text-rose-400" />
         </Button>
       </div>
-      <div className="flex-1 min-h-0">
+      <div className="min-h-0 flex-1">
         <ChatInterface sessionId={sessionId} initialMessages={initialMessages} embedded />
       </div>
     </div>

@@ -15,12 +15,12 @@ const COLUMN_IDS = ["backlog", "planned", "in-progress", "developed", "tested", 
 
 // Catalog colour legend — mirrors the project-badge colours in ProjectCard.
 const BADGE_LEGEND = [
-  { label: "Frontend",   dot: "bg-blue-400" },
-  { label: "Fullstack",  dot: "bg-purple-400" },
-  { label: "Backend",    dot: "bg-orange-400" },
+  { label: "Frontend", dot: "bg-blue-400" },
+  { label: "Fullstack", dot: "bg-purple-400" },
+  { label: "Backend", dot: "bg-orange-400" },
   { label: "Automation", dot: "bg-teal-400" },
-  { label: "Platform",   dot: "bg-amber-400" },
-  { label: "Empty/TBD",  dot: "bg-rose-400" },
+  { label: "Platform", dot: "bg-amber-400" },
+  { label: "Empty/TBD", dot: "bg-rose-400" },
 ];
 
 export default function ProjectsPage() {
@@ -55,7 +55,9 @@ export default function ProjectsPage() {
   // Cross-tab sync
   const notifyTabs = useCrossTabSync(refreshAll);
 
-  useEffect(() => { refreshAll(); }, [refreshAll]);
+  useEffect(() => {
+    refreshAll();
+  }, [refreshAll]);
 
   // ── Handlers ──────────────────────────────────────────────────────
 
@@ -81,8 +83,13 @@ export default function ProjectsPage() {
 
   const handleSaveTask = useCallback(
     async (data: {
-      title: string; notes: string; priority: string; kind: string;
-      dueAt: string | null; projectId: string | null; kanbanStatus: string;
+      title: string;
+      notes: string;
+      priority: string;
+      kind: string;
+      dueAt: string | null;
+      projectId: string | null;
+      kanbanStatus: string;
     }) => {
       if (editingTask) {
         await fetch(`/api/projects/tasks/${editingTask.id}`, {
@@ -130,9 +137,7 @@ export default function ProjectsPage() {
       const newStatus = COLUMN_IDS[newIdx];
 
       // Optimistic update
-      setTasks((prev) =>
-        prev.map((t) => (t.id === id ? { ...t, kanbanStatus: newStatus } : t))
-      );
+      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, kanbanStatus: newStatus } : t)));
 
       await fetch(`/api/projects/tasks/${id}`, {
         method: "PATCH",
@@ -175,8 +180,8 @@ export default function ProjectsPage() {
 
   if (loading && !projects) {
     return (
-      <div ref={ref} className="px-4 md:px-8 py-10 max-w-[1600px] mx-auto">
-        <div className="flex items-center justify-center h-64">
+      <div ref={ref} className="mx-auto max-w-[1600px] px-4 py-10 md:px-8">
+        <div className="flex h-64 items-center justify-center">
           <RefreshCw size={20} className="text-text-muted animate-spin" />
         </div>
       </div>
@@ -186,20 +191,21 @@ export default function ProjectsPage() {
   // ── Render ────────────────────────────────────────────────────────
 
   return (
-    <div ref={ref} className="px-4 md:px-6 py-8 max-w-[1600px] mx-auto space-y-6">
+    <div ref={ref} className="mx-auto max-w-[1600px] space-y-6 px-4 py-8 md:px-6">
       {/* Orbs */}
       <div className="relative">
         <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
-        <div className="orb -top-10 right-16 h-44 w-44 bg-purple-500/15" style={{ animationDelay: "-6s" }} />
+        <div
+          className="orb -top-10 right-16 h-44 w-44 bg-purple-500/15"
+          style={{ animationDelay: "-6s" }}
+        />
         <div className="relative flex items-center justify-between">
           <div>
             <span className="eyebrow">
               <FolderKanban size={11} /> Project Planning
             </span>
-            <h1 className="display text-gradient text-4xl md:text-5xl mt-3">
-              Projects
-            </h1>
-            <p className="text-text-secondary text-sm mt-2">
+            <h1 className="display text-gradient mt-3 text-4xl md:text-5xl">Projects</h1>
+            <p className="text-text-secondary mt-2 text-sm">
               Portfolio catalog + kanban task board across all your projects.
             </p>
           </div>
@@ -210,12 +216,12 @@ export default function ProjectsPage() {
       </div>
 
       {/* ── Zone 1: Project Portfolio Catalog ── */}
-      <section className="space-y-4 max-w-[920px] mx-auto w-full">
+      <section className="mx-auto w-full max-w-[920px] space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-text-primary uppercase tracking-wider">
+          <h2 className="text-text-primary text-sm font-semibold tracking-wider uppercase">
             Portfolio
             {projects && (
-              <span className="text-text-muted font-normal lowercase ml-1">
+              <span className="text-text-muted ml-1 font-normal lowercase">
                 ({projects.length} projects)
               </span>
             )}
@@ -223,10 +229,10 @@ export default function ProjectsPage() {
         </div>
 
         {/* Colour legend (matches catalog badges) */}
-        <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[11px] text-text-muted">
+        <div className="text-text-muted flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[11px]">
           {BADGE_LEGEND.map((l) => (
             <span key={l.label} className="flex items-center gap-1.5">
-              <span className={`w-2 h-2 rounded-full ${l.dot}`} />
+              <span className={`h-2 w-2 rounded-full ${l.dot}`} />
               {l.label}
             </span>
           ))}
@@ -253,21 +259,25 @@ export default function ProjectsPage() {
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h2 className="text-sm font-semibold text-text-primary uppercase tracking-wider">
+            <h2 className="text-text-primary text-sm font-semibold tracking-wider uppercase">
               Task Board
             </h2>
             {activeFilterProject && (
-              <span className="inline-flex items-center gap-1.5 h-6 px-2 rounded-full text-[10px] font-medium bg-emerald-400/10 border border-emerald-400/20 text-emerald-400">
+              <span className="inline-flex h-6 items-center gap-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 text-[10px] font-medium text-emerald-400">
                 <FolderKanban size={10} />
                 {activeFilterProject.name}
-                <button onClick={clearFilter} className="hover:text-emerald-300" aria-label="Clear filter">
+                <button
+                  onClick={clearFilter}
+                  className="hover:text-emerald-300"
+                  aria-label="Clear filter"
+                >
                   <X size={11} />
                 </button>
               </span>
             )}
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-[11px] text-text-muted tabular-nums">
+            <span className="text-text-muted text-[11px] tabular-nums">
               {filteredTasks.length} task{filteredTasks.length !== 1 ? "s" : ""}
             </span>
             <Button variant="primary" size="sm" onClick={() => handleAddTask("backlog")}>

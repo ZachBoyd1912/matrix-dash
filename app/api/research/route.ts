@@ -23,7 +23,10 @@ export async function POST(req: Request) {
       } catch (err) {
         controller.enqueue(
           encoder.encode(
-            JSON.stringify({ type: "error", message: err instanceof Error ? err.message : String(err) }) + "\n"
+            JSON.stringify({
+              type: "error",
+              message: err instanceof Error ? err.message : String(err),
+            }) + "\n"
           )
         );
       } finally {

@@ -11,9 +11,7 @@ const createSchema = z.object({ label: z.string().min(1) });
 export async function GET() {
   // Only show last 8 chars to avoid leaking full tokens after creation.
   const rows = getDb().select().from(apiTokens).orderBy(desc(apiTokens.createdAt)).all();
-  return Response.json(
-    rows.map((r) => ({ ...r, token: `…${r.token.slice(-8)}` }))
-  );
+  return Response.json(rows.map((r) => ({ ...r, token: `…${r.token.slice(-8)}` })));
 }
 
 export async function POST(req: Request) {

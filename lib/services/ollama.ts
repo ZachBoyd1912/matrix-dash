@@ -200,4 +200,3 @@ export async function restartOllama(): Promise<{ ok: boolean; error?: string }> 
   await new Promise((r) => setTimeout(r, 800));
   return startOllama();
 }
-

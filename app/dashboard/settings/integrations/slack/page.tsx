@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { MessageSquare, RefreshCw, Trash2, ExternalLink } from "lucide-react";
+import { MessageSquare, RefreshCw, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,15 +48,17 @@ export default function SlackIntegrationPage() {
   }, [refresh]);
 
   const handleOAuth = () => {
-    window.location.href = "/api/oauth/slack/authorize?redirect_to=" +
-      encodeURIComponent(window.location.pathname);
+    window.location.href =
+      "/api/oauth/slack/authorize?redirect_to=" + encodeURIComponent(window.location.pathname);
   };
 
   const syncChannels = async () => {
     if (workspaces.length === 0) return;
     setSyncing(true);
     try {
-      const res = await fetch(`/api/slack/workspaces/${workspaces[0].id}/channels`, { method: "POST" });
+      const res = await fetch(`/api/slack/workspaces/${workspaces[0].id}/channels`, {
+        method: "POST",
+      });
       const data = await res.json();
       if (data.ok) toast.success("Channels synced", `${data.channelsSynced} channels updated`);
       else toast.error("Sync failed", data.error);
@@ -92,14 +94,18 @@ export default function SlackIntegrationPage() {
     <div ref={ref} className="space-y-8">
       <div className="relative isolate py-10">
         <div className="orb -top-16 left-10 h-52 w-52 bg-violet-500/20" />
-        <div className="orb top-0 left-40 h-40 w-40 bg-pink-500/15" style={{ animationDelay: "-6s" }} />
+        <div
+          className="orb top-0 left-40 h-40 w-40 bg-pink-500/15"
+          style={{ animationDelay: "-6s" }}
+        />
         <div className="relative">
           <span className="eyebrow">
             <MessageSquare size={11} /> Slack
           </span>
-          <h1 className="display text-gradient text-4xl md:text-5xl mt-3">Slack</h1>
-          <p className="text-text-secondary text-sm mt-3 max-w-2xl">
-            Send summaries, search messages, and let the agent communicate through your connected Slack workspace.
+          <h1 className="display text-gradient mt-3 text-4xl md:text-5xl">Slack</h1>
+          <p className="text-text-secondary mt-3 max-w-2xl text-sm">
+            Send summaries, search messages, and let the agent communicate through your connected
+            Slack workspace.
           </p>
         </div>
       </div>
@@ -108,25 +114,38 @@ export default function SlackIntegrationPage() {
         <>
           <Card interactive className="rounded-2xl">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 grid place-items-center shrink-0">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/5">
                   <MessageSquare size={18} className="text-violet-400" />
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-text-primary">{active.teamName}</p>
-                    <Badge className="bg-violet-400/10 border-violet-400/20 text-violet-400">● Connected</Badge>
+                    <p className="text-text-primary text-sm font-medium">{active.teamName}</p>
+                    <Badge className="border-violet-400/20 bg-violet-400/10 text-violet-400">
+                      ● Connected
+                    </Badge>
                   </div>
-                  <p className="text-[11px] text-text-muted mt-0.5">
+                  <p className="text-text-muted mt-0.5 text-[11px]">
                     Workspace ID: {active.teamId} · {channels.length} channels
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <Button size="icon" variant="ghost" onClick={syncChannels} disabled={syncing} aria-label="Sync channels">
+              <div className="flex shrink-0 items-center gap-2">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={syncChannels}
+                  disabled={syncing}
+                  aria-label="Sync channels"
+                >
                   <RefreshCw size={14} className={syncing ? "animate-spin" : ""} />
                 </Button>
-                <Button size="icon" variant="ghost" onClick={() => disconnect(active)} aria-label="Disconnect">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => disconnect(active)}
+                  aria-label="Disconnect"
+                >
                   <Trash2 size={14} className="text-rose-400" />
                 </Button>
               </div>
@@ -135,14 +154,20 @@ export default function SlackIntegrationPage() {
 
           {channels.length > 0 && (
             <>
-              <p className="text-[10px] uppercase tracking-wider text-text-muted">Channels ({channels.length})</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+              <p className="text-text-muted text-[10px] tracking-wider uppercase">
+                Channels ({channels.length})
+              </p>
+              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                 {channels.slice(0, 12).map((ch) => (
-                  <Card key={ch.id} interactive className="flex items-center gap-2 rounded-lg py-2 px-3">
-                    <span className="text-violet-400 font-bold text-xs">#</span>
-                    <span className="text-xs text-text-primary">{ch.name}</span>
+                  <Card
+                    key={ch.id}
+                    interactive
+                    className="flex items-center gap-2 rounded-lg px-3 py-2"
+                  >
+                    <span className="text-xs font-bold text-violet-400">#</span>
+                    <span className="text-text-primary text-xs">{ch.name}</span>
                     {ch.topic && (
-                      <span className="text-[10px] text-text-muted ml-auto truncate max-w-[120px]">
+                      <span className="text-text-muted ml-auto max-w-[120px] truncate text-[10px]">
                         {ch.topic}
                       </span>
                     )}
@@ -152,38 +177,81 @@ export default function SlackIntegrationPage() {
             </>
           )}
 
-          <p className="text-[10px] uppercase tracking-wider text-text-muted mt-6">Agent Tools</p>
-          <Card className="rounded-2xl space-y-1">
-            <ToolToggle label="Slack tools enabled" desc="Allow the agent to send messages and search channels"
-              checked={slEnabled} setChecked={(v) => { setSlEnabled(v); saveToggle("tool_slack", v); }} />
-            <ToolToggle label="sendSlackMessage" desc="Send messages to any public channel"
-              checked={approveSlackMsg} setChecked={(v) => { setApproveSlackMsg(v); saveToggle("approve_sendSlackMessage", v); }} />
-            <ToolToggle label="listSlackChannels" desc="List available channels in the workspace"
-              checked={approveSlackList} setChecked={(v) => { setApproveSlackList(v); saveToggle("approve_listSlackChannels", v); }} />
-            <ToolToggle label="searchSlack" desc="Search messages across channels"
-              checked={approveSlackSearch} setChecked={(v) => { setApproveSlackSearch(v); saveToggle("approve_searchSlack", v); }} />
+          <p className="text-text-muted mt-6 text-[10px] tracking-wider uppercase">Agent Tools</p>
+          <Card className="space-y-1 rounded-2xl">
+            <ToolToggle
+              label="Slack tools enabled"
+              desc="Allow the agent to send messages and search channels"
+              checked={slEnabled}
+              setChecked={(v) => {
+                setSlEnabled(v);
+                saveToggle("tool_slack", v);
+              }}
+            />
+            <ToolToggle
+              label="sendSlackMessage"
+              desc="Send messages to any public channel"
+              checked={approveSlackMsg}
+              setChecked={(v) => {
+                setApproveSlackMsg(v);
+                saveToggle("approve_sendSlackMessage", v);
+              }}
+            />
+            <ToolToggle
+              label="listSlackChannels"
+              desc="List available channels in the workspace"
+              checked={approveSlackList}
+              setChecked={(v) => {
+                setApproveSlackList(v);
+                saveToggle("approve_listSlackChannels", v);
+              }}
+            />
+            <ToolToggle
+              label="searchSlack"
+              desc="Search messages across channels"
+              checked={approveSlackSearch}
+              setChecked={(v) => {
+                setApproveSlackSearch(v);
+                saveToggle("approve_searchSlack", v);
+              }}
+            />
           </Card>
 
-          <p className="text-[10px] uppercase tracking-wider text-text-muted">Auto-Summary</p>
-          <Card className="rounded-2xl space-y-1">
-            <ToolToggle label="Daily agent summary" desc="Post an overnight agent summary to a channel every morning at 08:00"
-              checked={dailySummary} setChecked={(v) => { setDailySummary(v); saveToggle("slack_summary_daily", v); }} />
-            <ToolToggle label="Weekly memory digest" desc="Post a digest of new memories on Monday 09:00"
-              checked={weeklyDigest} setChecked={(v) => { setWeeklyDigest(v); saveToggle("slack_summary_weekly", v); }} />
+          <p className="text-text-muted text-[10px] tracking-wider uppercase">Auto-Summary</p>
+          <Card className="space-y-1 rounded-2xl">
+            <ToolToggle
+              label="Daily agent summary"
+              desc="Post an overnight agent summary to a channel every morning at 08:00"
+              checked={dailySummary}
+              setChecked={(v) => {
+                setDailySummary(v);
+                saveToggle("slack_summary_daily", v);
+              }}
+            />
+            <ToolToggle
+              label="Weekly memory digest"
+              desc="Post a digest of new memories on Monday 09:00"
+              checked={weeklyDigest}
+              setChecked={(v) => {
+                setWeeklyDigest(v);
+                saveToggle("slack_summary_weekly", v);
+              }}
+            />
           </Card>
         </>
       )}
 
       {!active && (
-        <Card className="rounded-2xl text-center py-10">
-          <MessageSquare size={32} className="mx-auto text-text-muted mb-3" />
-          <p className="text-sm text-text-secondary mb-4">
-            No Slack workspace connected. Install the Matrix Dash bot into your workspace to enable messaging and search.
+        <Card className="rounded-2xl py-10 text-center">
+          <MessageSquare size={32} className="text-text-muted mx-auto mb-3" />
+          <p className="text-text-secondary mb-4 text-sm">
+            No Slack workspace connected. Install the Matrix Dash bot into your workspace to enable
+            messaging and search.
           </p>
           <Button variant="primary" onClick={handleOAuth}>
             <MessageSquare size={14} /> Add to Slack
           </Button>
-          <p className="text-[10px] text-text-muted mt-3">
+          <p className="text-text-muted mt-3 text-[10px]">
             You&apos;ll be redirected to Slack to authorize the Matrix Dash bot
           </p>
         </Card>
@@ -206,8 +274,8 @@ function ToolToggle({
   return (
     <div className="flex items-center justify-between py-2">
       <div>
-        <p className="text-xs font-medium text-text-primary">{label}</p>
-        <p className="text-[10px] text-text-muted">{desc}</p>
+        <p className="text-text-primary text-xs font-medium">{label}</p>
+        <p className="text-text-muted text-[10px]">{desc}</p>
       </div>
       <Switch checked={checked} onCheckedChange={setChecked} label={label} />
     </div>

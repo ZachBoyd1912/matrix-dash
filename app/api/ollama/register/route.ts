@@ -21,11 +21,7 @@ export async function POST(req: Request) {
   const db = getDb();
 
   // If a custom provider for Ollama already exists, just update its default model.
-  const existing = db
-    .select()
-    .from(aiProviders)
-    .where(eq(aiProviders.baseUrl, baseUrl))
-    .get();
+  const existing = db.select().from(aiProviders).where(eq(aiProviders.baseUrl, baseUrl)).get();
   if (existing) {
     db.update(aiProviders)
       .set({ defaultModel: body.model })

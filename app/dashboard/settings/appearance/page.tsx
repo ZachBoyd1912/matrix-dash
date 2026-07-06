@@ -2,7 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
-import { Check, Palette, SlidersHorizontal, Wand2, Download, Upload, RotateCcw } from "lucide-react";
+import {
+  Check,
+  Palette,
+  SlidersHorizontal,
+  Wand2,
+  Download,
+  Upload,
+  RotateCcw,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -175,10 +183,8 @@ export default function AppearancePage() {
           <span className="eyebrow">
             <Palette size={11} /> Appearance
           </span>
-          <h2 className="display text-gradient text-4xl md:text-5xl mt-3">
-            Appearance
-          </h2>
-          <p className="text-text-secondary text-sm mt-3 max-w-xl">
+          <h2 className="display text-gradient mt-3 text-4xl md:text-5xl">Appearance</h2>
+          <p className="text-text-secondary mt-3 max-w-xl text-sm">
             16 named themes plus a full custom theme studio.
           </p>
         </div>
@@ -194,32 +200,39 @@ export default function AppearancePage() {
       />
 
       {tab === "themes" ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
           {THEMES.map((t) => {
             const active = (theme ?? DEFAULT_THEME) === t.id;
             return (
               <button
                 key={t.id}
                 onClick={() => applyNamedTheme(t.id)}
-                className="lift text-left rounded-2xl p-3.5 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] border"
+                className="lift rounded-2xl border p-3.5 text-left transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
                 style={{
                   background: t.bg,
                   borderColor: active ? t.accent : "rgba(255,255,255,0.08)",
                   boxShadow: active ? `0 0 0 2px ${t.accent}` : "none",
                 }}
               >
-                <div className="flex items-center justify-between mb-3">
+                <div className="mb-3 flex items-center justify-between">
                   <span className="text-xs font-semibold" style={{ color: t.accent }}>
                     {t.label}
                   </span>
-                  {active && (
-                    <Check size={13} style={{ color: t.accent }} aria-label="Active" />
-                  )}
+                  {active && <Check size={13} style={{ color: t.accent }} aria-label="Active" />}
                 </div>
                 <div className="flex gap-1.5">
-                  <span className="h-6 w-6 rounded-md border border-white/10" style={{ background: t.bg }} />
-                  <span className="h-6 w-6 rounded-md border border-white/10" style={{ background: t.surface }} />
-                  <span className="h-6 w-6 rounded-md border border-white/10" style={{ background: t.accent }} />
+                  <span
+                    className="h-6 w-6 rounded-md border border-white/10"
+                    style={{ background: t.bg }}
+                  />
+                  <span
+                    className="h-6 w-6 rounded-md border border-white/10"
+                    style={{ background: t.surface }}
+                  />
+                  <span
+                    className="h-6 w-6 rounded-md border border-white/10"
+                    style={{ background: t.accent }}
+                  />
                 </div>
               </button>
             );
@@ -229,23 +242,25 @@ export default function AppearancePage() {
         <div className="space-y-5">
           {/* Colors */}
           <Card interactive className="rounded-2xl">
-            <p className="text-sm font-medium mb-3">Colors</p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <p className="mb-3 text-sm font-medium">Colors</p>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
               {COLOR_FIELDS.map((f) => (
                 <div key={f.key}>
-                  <label className="text-[10px] uppercase text-text-muted block mb-1">{f.label}</label>
+                  <label className="text-text-muted mb-1 block text-[10px] uppercase">
+                    {f.label}
+                  </label>
                   <div className="flex items-center gap-1.5">
                     <input
                       type="color"
                       value={custom[f.key]}
                       onChange={(e) => editColor(f.key, e.target.value)}
-                      className="h-8 w-8 shrink-0 rounded cursor-pointer bg-transparent border border-white/10"
+                      className="h-8 w-8 shrink-0 cursor-pointer rounded border border-white/10 bg-transparent"
                       aria-label={f.label}
                     />
                     <Input
                       value={custom[f.key]}
                       onChange={(e) => editColor(f.key, e.target.value)}
-                      className="font-mono text-[11px] px-1.5"
+                      className="px-1.5 font-mono text-[11px]"
                     />
                   </div>
                 </div>
@@ -255,31 +270,35 @@ export default function AppearancePage() {
 
           {/* Color harmony */}
           <Card interactive className="rounded-2xl">
-            <div className="flex items-center gap-2 mb-3">
+            <div className="mb-3 flex items-center gap-2">
               <Wand2 size={14} className="text-violet-300" />
               <p className="text-sm font-medium">Color harmony generator</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+            <div className="grid grid-cols-1 items-end gap-3 md:grid-cols-4">
               <div>
-                <label className="text-[10px] uppercase text-text-muted block mb-1">Accent</label>
+                <label className="text-text-muted mb-1 block text-[10px] uppercase">Accent</label>
                 <div className="flex items-center gap-1.5">
                   <input
                     type="color"
                     value={custom.accent}
                     onChange={(e) => editColor("accent", e.target.value)}
-                    className="h-8 w-8 shrink-0 rounded cursor-pointer bg-transparent border border-white/10"
+                    className="h-8 w-8 shrink-0 cursor-pointer rounded border border-white/10 bg-transparent"
                     aria-label="Harmony accent"
                   />
                   <Input
                     value={custom.accent}
                     onChange={(e) => editColor("accent", e.target.value)}
-                    className="font-mono text-[11px] px-1.5"
+                    className="px-1.5 font-mono text-[11px]"
                   />
                 </div>
               </div>
               <div>
-                <label className="text-[10px] uppercase text-text-muted block mb-1">Harmony</label>
-                <Select value={harmony} onChange={(e) => setHarmony(e.target.value as Harmony)} className="w-full">
+                <label className="text-text-muted mb-1 block text-[10px] uppercase">Harmony</label>
+                <Select
+                  value={harmony}
+                  onChange={(e) => setHarmony(e.target.value as Harmony)}
+                  className="w-full"
+                >
                   <option value="complementary">Complementary</option>
                   <option value="analogous">Analogous</option>
                   <option value="triadic">Triadic</option>
@@ -287,8 +306,12 @@ export default function AppearancePage() {
                 </Select>
               </div>
               <div>
-                <label className="text-[10px] uppercase text-text-muted block mb-1">Mode</label>
-                <Select value={mode} onChange={(e) => setMode(e.target.value as "dark" | "light")} className="w-full">
+                <label className="text-text-muted mb-1 block text-[10px] uppercase">Mode</label>
+                <Select
+                  value={mode}
+                  onChange={(e) => setMode(e.target.value as "dark" | "light")}
+                  className="w-full"
+                >
                   <option value="dark">Dark</option>
                   <option value="light">Light</option>
                 </Select>
@@ -301,29 +324,39 @@ export default function AppearancePage() {
 
           {/* Font & layout */}
           <Card interactive className="rounded-2xl">
-            <p className="text-sm font-medium mb-3">Font &amp; layout</p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <p className="mb-3 text-sm font-medium">Font &amp; layout</p>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
               <div>
-                <label className="text-[10px] uppercase text-text-muted block mb-1">Font</label>
-                <Select value={font} onChange={(e) => changeFont(e.target.value as UiFont)} className="w-full">
+                <label className="text-text-muted mb-1 block text-[10px] uppercase">Font</label>
+                <Select
+                  value={font}
+                  onChange={(e) => changeFont(e.target.value as UiFont)}
+                  className="w-full"
+                >
                   <option value="sans">Geist Sans</option>
                   <option value="mono">Geist Mono</option>
                   <option value="system">System</option>
                 </Select>
               </div>
               <div>
-                <label className="text-[10px] uppercase text-text-muted block mb-1">Density</label>
-                <Select value={density} onChange={(e) => changeDensity(e.target.value as UiDensity)} className="w-full">
+                <label className="text-text-muted mb-1 block text-[10px] uppercase">Density</label>
+                <Select
+                  value={density}
+                  onChange={(e) => changeDensity(e.target.value as UiDensity)}
+                  className="w-full"
+                >
                   <option value="compact">Compact</option>
                   <option value="comfortable">Comfortable</option>
                   <option value="spacious">Spacious</option>
                 </Select>
               </div>
               <div>
-                <label className="text-[10px] uppercase text-text-muted block mb-1">Frosted glass</label>
-                <div className="h-9 flex items-center">
+                <label className="text-text-muted mb-1 block text-[10px] uppercase">
+                  Frosted glass
+                </label>
+                <div className="flex h-9 items-center">
                   <Switch checked={frosted} onCheckedChange={changeFrosted} label="Frosted glass" />
-                  <span className="ml-2 text-xs text-text-secondary">{frosted ? "On" : "Off"}</span>
+                  <span className="text-text-secondary ml-2 text-xs">{frosted ? "On" : "Off"}</span>
                 </div>
               </div>
             </div>
@@ -331,11 +364,17 @@ export default function AppearancePage() {
 
           {/* Save / share */}
           <Card interactive className="rounded-2xl">
-            <p className="text-sm font-medium mb-3">Save &amp; share</p>
+            <p className="mb-3 text-sm font-medium">Save &amp; share</p>
             <div className="flex flex-wrap items-end gap-2">
-              <div className="flex-1 min-w-[180px]">
-                <label className="text-[10px] uppercase text-text-muted block mb-1">Theme name</label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="My theme" />
+              <div className="min-w-[180px] flex-1">
+                <label className="text-text-muted mb-1 block text-[10px] uppercase">
+                  Theme name
+                </label>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="My theme"
+                />
               </div>
               <Button variant="primary" onClick={saveCustom}>
                 <Check size={14} /> Save
@@ -348,8 +387,10 @@ export default function AppearancePage() {
               </Button>
             </div>
             <div className="mt-3 flex flex-wrap items-end gap-2">
-              <div className="flex-1 min-w-[220px]">
-                <label className="text-[10px] uppercase text-text-muted block mb-1">Import JSON</label>
+              <div className="min-w-[220px] flex-1">
+                <label className="text-text-muted mb-1 block text-[10px] uppercase">
+                  Import JSON
+                </label>
                 <Input
                   value={importText}
                   onChange={(e) => setImportText(e.target.value)}

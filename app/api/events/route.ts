@@ -28,7 +28,12 @@ export async function GET(req: Request) {
   const db = getDb();
   const rows =
     from && to
-      ? db.select().from(events).where(and(gte(events.startsAt, from), lte(events.startsAt, to))).orderBy(asc(events.startsAt)).all()
+      ? db
+          .select()
+          .from(events)
+          .where(and(gte(events.startsAt, from), lte(events.startsAt, to)))
+          .orderBy(asc(events.startsAt))
+          .all()
       : db.select().from(events).orderBy(asc(events.startsAt)).all();
   return Response.json(rows.map(toEvent));
 }
@@ -46,10 +51,12 @@ export async function POST(req: Request) {
   const db = getDb();
   let calId = parsed.data.calendarId;
   if (!calId) {
-    let cal = db.select().from(calendars).get();
+    const cal = db.select().from(calendars).get();
     if (!cal) {
       const id = randomUUID();
-      db.insert(calendars).values({ id, name: "Personal", createdAt: new Date().toISOString() }).run();
+      db.insert(calendars)
+        .values({ id, name: "Personal", createdAt: new Date().toISOString() })
+        .run();
       calId = id;
     } else {
       calId = cal.id;

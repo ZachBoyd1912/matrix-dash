@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
-import { sessions, sessionMessages } from "@/lib/db/schema";
+import { sessions } from "@/lib/db/schema";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
     .values({
       id,
       name: parsed.success && parsed.data.name ? parsed.data.name : "New Session",
-      context: JSON.stringify(parsed.success ? parsed.data.context ?? {} : {}),
+      context: JSON.stringify(parsed.success ? (parsed.data.context ?? {}) : {}),
       createdAt: now,
       updatedAt: now,
     })

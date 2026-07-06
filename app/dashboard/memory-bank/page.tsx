@@ -11,13 +11,26 @@ import { MemoryDetail } from "@/components/memory-bank/memory-detail";
 import { MemoryGraph } from "@/components/memory-bank/memory-graph";
 import { NewMemoryDialog } from "@/components/memory-bank/new-memory-dialog";
 import { useDebounce } from "@/lib/hooks/use-debounce";
-import { MEMORY_TYPES, MEMORY_TYPE_META, type LinkedMemory, type Memory, type MemoryType } from "@/types/memory";
+import {
+  MEMORY_TYPES,
+  MEMORY_TYPE_META,
+  type LinkedMemory,
+  type Memory,
+  type MemoryType,
+} from "@/types/memory";
 import { useGsapEntrance } from "@/lib/hooks/use-gsap-entrance";
 import { cn } from "@/lib/utils/cn";
 import { toast } from "@/lib/stores/use-feedback";
 
 interface GraphData {
-  nodes: { id: string; label: string; type: MemoryType; importance: number; usageCount: number; isPinned: boolean }[];
+  nodes: {
+    id: string;
+    label: string;
+    type: MemoryType;
+    importance: number;
+    usageCount: number;
+    isPinned: boolean;
+  }[];
   links: { id: string; source: string; target: string; strength: number }[];
 }
 
@@ -58,7 +71,10 @@ export default function MemoryBankPage() {
 
   useEffect(() => {
     if (view !== "graph") return;
-    fetch("/api/memories/graph").then((r) => r.json()).then(setGraph).catch(() => setGraph(null));
+    fetch("/api/memories/graph")
+      .then((r) => r.json())
+      .then(setGraph)
+      .catch(() => setGraph(null));
   }, [view, memories]);
 
   useEffect(() => {
@@ -66,10 +82,13 @@ export default function MemoryBankPage() {
       setDetail(null);
       return;
     }
-    fetch(`/api/memories/${selectedId}`).then((r) => {
-      if (!r.ok) return null;
-      return r.json();
-    }).then((data) => setDetail(data)).catch(() => setDetail(null));
+    fetch(`/api/memories/${selectedId}`)
+      .then((r) => {
+        if (!r.ok) return null;
+        return r.json();
+      })
+      .then((data) => setDetail(data))
+      .catch(() => setDetail(null));
   }, [selectedId]);
 
   const filtered = useMemo(() => memories ?? [], [memories]);
@@ -88,11 +107,15 @@ export default function MemoryBankPage() {
 
   return (
     <div ref={ref} className="page-h flex flex-col">
-      <div className="relative px-4 md:px-6 py-4 border-b border-white/5 flex flex-wrap items-center gap-3 overflow-hidden">
+      <div className="relative flex flex-wrap items-center gap-3 overflow-hidden border-b border-white/5 px-4 py-4 md:px-6">
         <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" aria-hidden />
-        <div className="orb -top-12 right-24 h-40 w-40 bg-sky-500/15" style={{ animationDelay: "-6s" }} aria-hidden />
-        <div className="relative z-10 flex-1 min-w-[200px] max-w-md">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+        <div
+          className="orb -top-12 right-24 h-40 w-40 bg-sky-500/15"
+          style={{ animationDelay: "-6s" }}
+          aria-hidden
+        />
+        <div className="relative z-10 max-w-md min-w-[200px] flex-1">
+          <Search size={14} className="text-text-muted absolute top-1/2 left-3 -translate-y-1/2" />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -101,15 +124,15 @@ export default function MemoryBankPage() {
           />
         </div>
 
-        <div className="relative z-10 flex items-center gap-1 glass-input rounded-md p-0.5">
+        <div className="glass-input relative z-10 flex items-center gap-1 rounded-md p-0.5">
           {(["all", ...MEMORY_TYPES] as const).map((t) => (
             <button
               key={t}
               onClick={() => setFilter(t)}
               className={cn(
-                "h-7 px-3 rounded-[5px] text-[11px] capitalize transition-colors",
+                "h-7 rounded-[5px] px-3 text-[11px] capitalize transition-colors",
                 filter === t
-                  ? "bg-white/10 text-text-primary"
+                  ? "text-text-primary bg-white/10"
                   : "text-text-muted hover:text-text-secondary"
               )}
             >
@@ -118,12 +141,14 @@ export default function MemoryBankPage() {
           ))}
         </div>
 
-        <div className="relative z-10 flex items-center gap-1 glass-input rounded-md p-0.5">
+        <div className="glass-input relative z-10 flex items-center gap-1 rounded-md p-0.5">
           <button
             onClick={() => setView("list")}
             className={cn(
-              "h-7 px-2 rounded-[5px] transition-colors",
-              view === "list" ? "bg-white/10 text-text-primary" : "text-text-muted hover:text-text-secondary"
+              "h-7 rounded-[5px] px-2 transition-colors",
+              view === "list"
+                ? "text-text-primary bg-white/10"
+                : "text-text-muted hover:text-text-secondary"
             )}
             aria-label="List view"
           >
@@ -132,8 +157,10 @@ export default function MemoryBankPage() {
           <button
             onClick={() => setView("graph")}
             className={cn(
-              "h-7 px-2 rounded-[5px] transition-colors",
-              view === "graph" ? "bg-white/10 text-text-primary" : "text-text-muted hover:text-text-secondary"
+              "h-7 rounded-[5px] px-2 transition-colors",
+              view === "graph"
+                ? "text-text-primary bg-white/10"
+                : "text-text-muted hover:text-text-secondary"
             )}
             aria-label="Graph view"
           >
@@ -141,20 +168,31 @@ export default function MemoryBankPage() {
           </button>
         </div>
 
-        <Button variant="outline" size="sm" onClick={tidy} disabled={tidying} className="relative z-10">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={tidy}
+          disabled={tidying}
+          className="relative z-10"
+        >
           <Wand2 size={13} /> {tidying ? "Tidying…" : "Tidy"}
         </Button>
-        <Button variant="primary" size="sm" onClick={() => setDialogOpen(true)} className="relative z-10">
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={() => setDialogOpen(true)}
+          className="relative z-10"
+        >
           <Plus size={13} /> New
         </Button>
       </div>
 
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[1fr_360px]">
-        <div className="border-r border-white/5 overflow-hidden">
+      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[1fr_360px]">
+        <div className="overflow-hidden border-r border-white/5">
           {view === "list" ? (
             <div className="h-full overflow-y-auto p-4 md:p-6">
               {memories === null ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {Array.from({ length: 6 }).map((_, i) => (
                     <Skeleton key={i} className="h-20" />
                   ))}
@@ -163,10 +201,14 @@ export default function MemoryBankPage() {
                 <EmptyState
                   title="No memories yet"
                   description="Chat with the AI or click New — memories are extracted automatically after every reply."
-                  action={<Button variant="primary" size="sm" onClick={() => setDialogOpen(true)}><Plus size={13} /> New memory</Button>}
+                  action={
+                    <Button variant="primary" size="sm" onClick={() => setDialogOpen(true)}>
+                      <Plus size={13} /> New memory
+                    </Button>
+                  }
                 />
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {filtered.map((m) => (
                     <MemoryCard
                       key={m.id}
@@ -180,18 +222,21 @@ export default function MemoryBankPage() {
             </div>
           ) : (
             <div className="h-full p-4">
-              <div className="glass rounded-2xl h-full overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]">
+              <div className="glass h-full overflow-hidden rounded-2xl transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]">
                 {graph && graph.nodes.length > 0 ? (
                   <MemoryGraph data={graph} onSelect={setSelectedId} />
                 ) : (
-                  <EmptyState title="No graph yet" description="Add memories and links will form automatically." />
+                  <EmptyState
+                    title="No graph yet"
+                    description="Add memories and links will form automatically."
+                  />
                 )}
               </div>
             </div>
           )}
         </div>
 
-        <aside className="overflow-y-auto p-4 md:p-6 bg-white/[0.01]">
+        <aside className="overflow-y-auto bg-white/[0.01] p-4 md:p-6">
           {detail ? (
             <MemoryDetail
               memory={detail.memory}
@@ -200,16 +245,15 @@ export default function MemoryBankPage() {
               onSelectLinked={(id) => setSelectedId(id)}
             />
           ) : (
-            <EmptyState title="No memory selected" description="Click a card to see its details and connections." />
+            <EmptyState
+              title="No memory selected"
+              description="Click a card to see its details and connections."
+            />
           )}
         </aside>
       </div>
 
-      <NewMemoryDialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        onCreated={refresh}
-      />
+      <NewMemoryDialog open={dialogOpen} onClose={() => setDialogOpen(false)} onCreated={refresh} />
     </div>
   );
 }

@@ -22,11 +22,7 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return Response.json({ error: parsed.error.flatten() }, { status: 400 });
   }
-  const ws = getDb()
-    .select()
-    .from(slackWorkspaces)
-    .where(eq(slackWorkspaces.isActive, true))
-    .get();
+  const ws = getDb().select().from(slackWorkspaces).where(eq(slackWorkspaces.isActive, true)).get();
   if (!ws) {
     return Response.json({ error: "No active Slack workspace" }, { status: 400 });
   }

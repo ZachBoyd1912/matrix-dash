@@ -74,7 +74,11 @@ export function readBuilderLogTail(maxBytes = 64 * 1024): { text: string; offset
 
 /** Read bytes appended since `offset`; returns new text + the new end offset.
  *  If the file shrank (truncated/rotated), resets to read from the top. */
-export function readBuilderLogSince(offset: number): { text: string; offset: number; reset: boolean } {
+export function readBuilderLogSince(offset: number): {
+  text: string;
+  offset: number;
+  reset: boolean;
+} {
   const p = builderLogPath();
   let stat: fs.Stats;
   try {
@@ -146,10 +150,9 @@ async function isReachable(): Promise<boolean> {
 /** PID currently listening on the builder port (informational + stop target). */
 async function listenerPid(): Promise<number | undefined> {
   try {
-    const { stdout } = await pexec(
-      `lsof -nP -iTCP:${builderPort()} -sTCP:LISTEN -t`,
-      { timeout: 4000 }
-    );
+    const { stdout } = await pexec(`lsof -nP -iTCP:${builderPort()} -sTCP:LISTEN -t`, {
+      timeout: 4000,
+    });
     const pid = parseInt(stdout.trim().split("\n")[0] ?? "", 10);
     return Number.isNaN(pid) ? undefined : pid;
   } catch {

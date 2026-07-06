@@ -63,7 +63,13 @@ export function requestApproval(
       }
     };
     ctx.signal?.addEventListener("abort", onAbort, { once: true });
-    pending.set(approvalId, { resolve, timer, onAbort, signal: ctx.signal, toolName: args.toolName });
+    pending.set(approvalId, {
+      resolve,
+      timer,
+      onAbort,
+      signal: ctx.signal,
+      toolName: args.toolName,
+    });
   });
 
   ctx.emit({

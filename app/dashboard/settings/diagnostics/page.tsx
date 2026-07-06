@@ -27,36 +27,54 @@ export default function DiagnosticsPage() {
   const [data, setData] = useState<Diag | null>(null);
 
   useEffect(() => {
-    fetch("/api/diagnostics").then((r) => r.json()).then(setData);
+    fetch("/api/diagnostics")
+      .then((r) => r.json())
+      .then(setData);
   }, []);
 
-  if (!data) return <div className="p-4 text-xs text-text-muted">Loading…</div>;
+  if (!data) return <div className="text-text-muted p-4 text-xs">Loading…</div>;
 
   return (
     <div ref={ref} className="space-y-8">
       <div className="relative overflow-hidden py-10">
         <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
-        <div className="orb top-0 left-48 h-40 w-40 bg-sky-500/15" style={{ animationDelay: "-6s" }} />
+        <div
+          className="orb top-0 left-48 h-40 w-40 bg-sky-500/15"
+          style={{ animationDelay: "-6s" }}
+        />
         <div className="relative">
           <span className="eyebrow">
             <Sparkles size={11} /> System health
           </span>
-          <h1 className="display text-gradient text-4xl md:text-5xl mt-3">Diagnostics</h1>
-          <p className="text-text-secondary text-sm mt-2">Health of every subsystem at a glance.</p>
+          <h1 className="display text-gradient mt-3 text-4xl md:text-5xl">Diagnostics</h1>
+          <p className="text-text-secondary mt-2 text-sm">Health of every subsystem at a glance.</p>
         </div>
       </div>
 
       <Card interactive className="rounded-2xl">
-        <p className="text-xs font-semibold text-text-primary mb-3 flex items-center gap-2">
+        <p className="text-text-primary mb-3 flex items-center gap-2 text-xs font-semibold">
           <Activity size={13} /> Subsystems
         </p>
-        <Row label="Active AI provider" value={data.activeProvider ?? "none"} ok={!!data.activeProvider} />
-        <Row label="Embeddings" value={data.embeddings ? "available" : "no provider"} ok={data.embeddings} />
-        <Row label="Ollama" value={data.ollama.ok ? `v${data.ollama.version}` : data.ollama.error ?? "down"} ok={data.ollama.ok} optional />
+        <Row
+          label="Active AI provider"
+          value={data.activeProvider ?? "none"}
+          ok={!!data.activeProvider}
+        />
+        <Row
+          label="Embeddings"
+          value={data.embeddings ? "available" : "no provider"}
+          ok={data.embeddings}
+        />
+        <Row
+          label="Ollama"
+          value={data.ollama.ok ? `v${data.ollama.version}` : (data.ollama.error ?? "down")}
+          ok={data.ollama.ok}
+          optional
+        />
       </Card>
 
       <Card interactive className="rounded-2xl">
-        <p className="text-xs font-semibold text-text-primary mb-3 flex items-center gap-2">
+        <p className="text-text-primary mb-3 flex items-center gap-2 text-xs font-semibold">
           <Database size={13} /> Local data
         </p>
         <Row label="Database size" value={fmtSize(data.dbSize)} ok={true} />
@@ -67,7 +85,7 @@ export default function DiagnosticsPage() {
       </Card>
 
       <Card interactive className="rounded-2xl">
-        <p className="text-xs font-semibold text-text-primary mb-3 flex items-center gap-2">
+        <p className="text-text-primary mb-3 flex items-center gap-2 text-xs font-semibold">
           <Cpu size={13} /> Runtime
         </p>
         <Row label="Node" value={data.nodeVersion} ok={true} mono />
@@ -77,13 +95,31 @@ export default function DiagnosticsPage() {
   );
 }
 
-function Row({ label, value, ok, optional, mono }: { label: string; value: string; ok: boolean; optional?: boolean; mono?: boolean }) {
+function Row({
+  label,
+  value,
+  ok,
+  optional,
+  mono,
+}: {
+  label: string;
+  value: string;
+  ok: boolean;
+  optional?: boolean;
+  mono?: boolean;
+}) {
   return (
     <div className="flex items-center justify-between py-1.5 text-xs">
       <span className="text-text-secondary capitalize">{label}</span>
       <span className="flex items-center gap-1.5">
-        {ok ? <Check size={11} className="text-emerald-400" /> : <AlertCircle size={11} className={optional ? "text-text-muted" : "text-rose-400"} />}
-        <span className={mono ? "font-mono text-text-primary text-[11px]" : "text-text-primary"}>{value}</span>
+        {ok ? (
+          <Check size={11} className="text-emerald-400" />
+        ) : (
+          <AlertCircle size={11} className={optional ? "text-text-muted" : "text-rose-400"} />
+        )}
+        <span className={mono ? "text-text-primary font-mono text-[11px]" : "text-text-primary"}>
+          {value}
+        </span>
       </span>
     </div>
   );

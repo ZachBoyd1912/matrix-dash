@@ -114,7 +114,8 @@ export function buildAgentTools() {
     toolset.searchMemories = tool({
       description: "Search the user's long-term memory for relevant facts.",
       inputSchema: z.object({ query: z.string() }),
-      execute: async ({ query }) => searchMemoriesFts(query, 8).map((m) => ({ content: m.content, type: m.type })),
+      execute: async ({ query }) =>
+        searchMemoriesFts(query, 8).map((m) => ({ content: m.content, type: m.type })),
     });
     toolset.saveMemory = tool({
       description: "Save a new long-term memory the user will want recalled later.",
@@ -124,7 +125,10 @@ export function buildAgentTools() {
       }),
       execute: async ({ content, type }) => {
         const id = randomUUID();
-        getDb().insert(memories).values({ id, content, type, source: "agent", createdAt: now() }).run();
+        getDb()
+          .insert(memories)
+          .values({ id, content, type, source: "agent", createdAt: now() })
+          .run();
         autoLink(id, content);
         return { saved: true, id };
       },
@@ -151,7 +155,11 @@ export function buildAgentTools() {
           .from(skills)
           .where(and(eq(skills.name, name), eq(skills.isEnabled, true)))
           .get();
-        return s ?? { error: `No enabled skill named "${name}". Use findSkills to discover available skills.` };
+        return (
+          s ?? {
+            error: `No enabled skill named "${name}". Use findSkills to discover available skills.`,
+          }
+        );
       },
     });
   }
@@ -160,7 +168,8 @@ export function buildAgentTools() {
     toolset.searchNotes = tool({
       description: "Search the user's notes by keyword.",
       inputSchema: z.object({ query: z.string() }),
-      execute: async ({ query }) => searchNotesFts(query, 8).map((n) => ({ id: n.id, title: n.title })),
+      execute: async ({ query }) =>
+        searchNotesFts(query, 8).map((n) => ({ id: n.id, title: n.title })),
     });
     toolset.readNote = tool({
       description: "Read the full content of a note by id.",
@@ -175,7 +184,10 @@ export function buildAgentTools() {
       inputSchema: z.object({ title: z.string(), content: z.string() }),
       execute: async ({ title, content }) => {
         const id = randomUUID();
-        getDb().insert(notes).values({ id, title, content, createdAt: now(), updatedAt: now() }).run();
+        getDb()
+          .insert(notes)
+          .values({ id, title, content, createdAt: now(), updatedAt: now() })
+          .run();
         return { created: true, id };
       },
     });
@@ -194,7 +206,15 @@ export function buildAgentTools() {
         const id = randomUUID();
         getDb()
           .insert(tasks)
-          .values({ id, title, notes: n ?? "", dueAt: dueAt ?? null, remindAt: remindAt ?? null, createdAt: now(), updatedAt: now() })
+          .values({
+            id,
+            title,
+            notes: n ?? "",
+            dueAt: dueAt ?? null,
+            remindAt: remindAt ?? null,
+            createdAt: now(),
+            updatedAt: now(),
+          })
           .run();
         return { created: true, id };
       },
@@ -203,7 +223,12 @@ export function buildAgentTools() {
       description: "List open (not done) to-do items.",
       inputSchema: z.object({}),
       execute: async () => {
-        const rows = getDb().select().from(tasks).where(eq(tasks.isDone, false)).orderBy(asc(tasks.dueAt)).all();
+        const rows = getDb()
+          .select()
+          .from(tasks)
+          .where(eq(tasks.isDone, false))
+          .orderBy(asc(tasks.dueAt))
+          .all();
         return rows.map((t) => ({ id: t.id, title: t.title, dueAt: t.dueAt }));
       },
     });
@@ -220,7 +245,12 @@ export function buildAgentTools() {
           .where(and(gte(events.startsAt, from), lte(events.startsAt, to)))
           .orderBy(asc(events.startsAt))
           .all();
-        return rows.map((e) => ({ title: e.title, startsAt: e.startsAt, endsAt: e.endsAt, location: e.location }));
+        return rows.map((e) => ({
+          title: e.title,
+          startsAt: e.startsAt,
+          endsAt: e.endsAt,
+          location: e.location,
+        }));
       },
     });
     toolset.createEvent = tool({
@@ -313,7 +343,11 @@ export function buildAgentTools() {
       description: "List files in the in-app IDE workspace.",
       inputSchema: z.object({}),
       execute: async () =>
-        getDb().select({ id: filesTable.id, path: filesTable.path }).from(filesTable).orderBy(asc(filesTable.path)).all(),
+        getDb()
+          .select({ id: filesTable.id, path: filesTable.path })
+          .from(filesTable)
+          .orderBy(asc(filesTable.path))
+          .all(),
     });
     toolset.readFile = tool({
       description: "Read a workspace file's content by id.",
@@ -328,7 +362,11 @@ export function buildAgentTools() {
       inputSchema: z.object({ id: z.string(), content: z.string() }),
       execute: async ({ id, content }) => {
         if (!approved("writeFile")) return blocked("writeFile");
-        getDb().update(filesTable).set({ content, updatedAt: now() }).where(eq(filesTable.id, id)).run();
+        getDb()
+          .update(filesTable)
+          .set({ content, updatedAt: now() })
+          .where(eq(filesTable.id, id))
+          .run();
         return { written: true };
       },
     });
@@ -342,7 +380,16 @@ export function buildAgentTools() {
         const id = randomUUID();
         getDb()
           .insert(emails)
-          .values({ id, folder: "drafts", fromAddr: getSetting("emailFrom") ?? "you@dash.local", toAddr: to, subject, body, isRead: true, createdAt: now() })
+          .values({
+            id,
+            folder: "drafts",
+            fromAddr: getSetting("emailFrom") ?? "you@dash.local",
+            toAddr: to,
+            subject,
+            body,
+            isRead: true,
+            createdAt: now(),
+          })
           .run();
         return { drafted: true, id };
       },
@@ -371,8 +418,11 @@ export function buildAgentTools() {
     toolset.sendGmail = tool({
       description: "Send an email via Gmail. Requires approval.",
       inputSchema: z.object({
-        to: z.string(), subject: z.string(), body: z.string(),
-        cc: z.string().optional(), bcc: z.string().optional(),
+        to: z.string(),
+        subject: z.string(),
+        body: z.string(),
+        cc: z.string().optional(),
+        bcc: z.string().optional(),
       }),
       execute: async (opts) => {
         if (!approved("sendGmail")) return blocked("sendGmail");
@@ -381,7 +431,8 @@ export function buildAgentTools() {
     });
 
     toolset.searchGmail = tool({
-      description: "Search Gmail using Gmail search syntax (e.g. 'from:john subject:report newer_than:7d').",
+      description:
+        "Search Gmail using Gmail search syntax (e.g. 'from:john subject:report newer_than:7d').",
       inputSchema: z.object({
         query: z.string().describe("Gmail search query"),
         limit: z.number().default(20),
@@ -443,19 +494,24 @@ export function buildAgentTools() {
       execute: async () => {
         const rows = getDb().select().from(githubRepos).all();
         return rows.map((r) => ({
-          full_name: r.fullName, stars: r.stars, language: r.language, private: r.isPrivate,
+          full_name: r.fullName,
+          stars: r.stars,
+          language: r.language,
+          private: r.isPrivate,
         }));
       },
     });
 
     toolset.getRepo = tool({
-      description: "Get detailed metadata for a single GitHub repo (stars, forks, topics, license, default branch).",
+      description:
+        "Get detailed metadata for a single GitHub repo (stars, forks, topics, license, default branch).",
       inputSchema: z.object({ repo: z.string().describe("e.g. ZachBoyd1912/matrix-dash") }),
       execute: async ({ repo }) => getRepo(ghConn().id, repo),
     });
 
     toolset.readRepoFile = tool({
-      description: "Read the contents of a file in a GitHub repository. Returns the file content as text.",
+      description:
+        "Read the contents of a file in a GitHub repository. Returns the file content as text.",
       inputSchema: z.object({
         repo: z.string().describe("e.g. ZachBoyd1912/matrix-dash"),
         path: z.string().describe("File path from repo root, e.g. src/app.ts"),
@@ -465,14 +521,14 @@ export function buildAgentTools() {
     });
 
     toolset.readMultipleFiles = tool({
-      description: "Read multiple files from a repo in parallel. Use when you need to understand code across several files.",
+      description:
+        "Read multiple files from a repo in parallel. Use when you need to understand code across several files.",
       inputSchema: z.object({
         repo: z.string(),
         paths: z.array(z.string()).describe("List of file paths"),
         ref: z.string().optional(),
       }),
-      execute: async ({ repo, paths, ref }) =>
-        readMultipleFiles(ghConn().id, repo, paths, ref),
+      execute: async ({ repo, paths, ref }) => readMultipleFiles(ghConn().id, repo, paths, ref),
     });
 
     toolset.listFiles = tool({
@@ -499,7 +555,8 @@ export function buildAgentTools() {
 
     // ── History & Diff ──────────────────────────────
     toolset.listCommits = tool({
-      description: "Get commit history for a repo (optionally filtered by branch, path, or author).",
+      description:
+        "Get commit history for a repo (optionally filtered by branch, path, or author).",
       inputSchema: z.object({
         repo: z.string(),
         branch: z.string().optional(),
@@ -527,8 +584,7 @@ export function buildAgentTools() {
         base: z.string().describe("Base ref (e.g. 'main')"),
         head: z.string().describe("Head ref to compare against base"),
       }),
-      execute: async ({ repo, base, head }) =>
-        compareCommits(ghConn().id, repo, base, head),
+      execute: async ({ repo, base, head }) => compareCommits(ghConn().id, repo, base, head),
     });
 
     toolset.blame = tool({
@@ -559,7 +615,9 @@ export function buildAgentTools() {
       description: "Create a GitHub issue. Requires approval.",
       inputSchema: z.object({
         repo: z.string().describe("e.g. ZachBoyd1912/matrix-dash"),
-        title: z.string(), body: z.string(), labels: z.array(z.string()).optional(),
+        title: z.string(),
+        body: z.string(),
+        labels: z.array(z.string()).optional(),
       }),
       execute: async ({ repo, title, body, labels }) => {
         if (!approved("createIssue")) return blocked("createIssue");
@@ -570,7 +628,9 @@ export function buildAgentTools() {
     toolset.createPR = tool({
       description: "Create a GitHub pull request. Requires approval.",
       inputSchema: z.object({
-        repo: z.string(), title: z.string(), body: z.string(),
+        repo: z.string(),
+        title: z.string(),
+        body: z.string(),
         head: z.string().describe("Branch with changes"),
         base: z.string().default("main"),
       }),
@@ -596,7 +656,8 @@ export function buildAgentTools() {
     });
 
     toolset.getIssue = tool({
-      description: "Get full details of a single GitHub issue including body, labels, assignees, and milestone.",
+      description:
+        "Get full details of a single GitHub issue including body, labels, assignees, and milestone.",
       inputSchema: z.object({
         repo: z.string(),
         number: z.number().describe("Issue number (e.g. 42)"),
@@ -605,7 +666,8 @@ export function buildAgentTools() {
     });
 
     toolset.updateIssue = tool({
-      description: "Update an issue's title, body, state, labels, assignees, or milestone. Requires approval.",
+      description:
+        "Update an issue's title, body, state, labels, assignees, or milestone. Requires approval.",
       inputSchema: z.object({
         repo: z.string(),
         number: z.number(),
@@ -684,7 +746,10 @@ export function buildAgentTools() {
         page: z.number().default(1),
       }),
       execute: async (opts) =>
-        listComments(ghConn().id, opts.repo, opts.number, { perPage: opts.perPage, page: opts.page }),
+        listComments(ghConn().id, opts.repo, opts.number, {
+          perPage: opts.perPage,
+          page: opts.page,
+        }),
     });
 
     toolset.searchIssues = tool({
@@ -705,13 +770,15 @@ export function buildAgentTools() {
         repo: z.string(),
         state: z.enum(["open", "closed", "all"]).default("open"),
         sort: z.enum(["created", "updated", "popularity", "long-running"]).default("updated"),
-        perPage: z.number().default(20), page: z.number().default(1),
+        perPage: z.number().default(20),
+        page: z.number().default(1),
       }),
       execute: async (opts) => listPRs(ghConn().id, opts.repo, opts),
     });
 
     toolset.getPR = tool({
-      description: "Get full details of a single pull request (body, diff stats, review status, mergeability).",
+      description:
+        "Get full details of a single pull request (body, diff stats, review status, mergeability).",
       inputSchema: z.object({ repo: z.string(), number: z.number() }),
       execute: async ({ repo, number }) => getPR(ghConn().id, repo, number),
     });
@@ -719,9 +786,12 @@ export function buildAgentTools() {
     toolset.updatePR = tool({
       description: "Update a PR's title, body, state, or base branch. Requires approval.",
       inputSchema: z.object({
-        repo: z.string(), number: z.number(),
-        title: z.string().optional(), body: z.string().optional(),
-        state: z.enum(["open", "closed"]).optional(), base: z.string().optional(),
+        repo: z.string(),
+        number: z.number(),
+        title: z.string().optional(),
+        body: z.string().optional(),
+        state: z.enum(["open", "closed"]).optional(),
+        base: z.string().optional(),
       }),
       execute: async ({ repo, number, ...updates }) => {
         if (!approved("updatePR")) return blocked("updatePR");
@@ -732,8 +802,10 @@ export function buildAgentTools() {
     toolset.mergePR = tool({
       description: "Merge a pull request. Requires approval.",
       inputSchema: z.object({
-        repo: z.string(), number: z.number(),
-        commitTitle: z.string().optional(), commitMessage: z.string().optional(),
+        repo: z.string(),
+        number: z.number(),
+        commitTitle: z.string().optional(),
+        commitMessage: z.string().optional(),
         mergeMethod: z.enum(["merge", "squash", "rebase"]).default("merge"),
       }),
       execute: async ({ repo, number, ...opts }) => {
@@ -745,7 +817,8 @@ export function buildAgentTools() {
     toolset.requestReview = tool({
       description: "Request specific users to review a PR. Requires approval.",
       inputSchema: z.object({
-        repo: z.string(), number: z.number(),
+        repo: z.string(),
+        number: z.number(),
         reviewers: z.array(z.string()).describe("GitHub usernames"),
       }),
       execute: async ({ repo, number, reviewers }) => {
@@ -756,14 +829,20 @@ export function buildAgentTools() {
 
     toolset.listReviews = tool({
       description: "List all reviews on a pull request.",
-      inputSchema: z.object({ repo: z.string(), number: z.number(), perPage: z.number().default(30) }),
-      execute: async (opts) => listReviews(ghConn().id, opts.repo, opts.number, { perPage: opts.perPage }),
+      inputSchema: z.object({
+        repo: z.string(),
+        number: z.number(),
+        perPage: z.number().default(30),
+      }),
+      execute: async (opts) =>
+        listReviews(ghConn().id, opts.repo, opts.number, { perPage: opts.perPage }),
     });
 
     toolset.reviewPR = tool({
       description: "Submit a PR review (approve, request changes, or comment). Requires approval.",
       inputSchema: z.object({
-        repo: z.string(), number: z.number(),
+        repo: z.string(),
+        number: z.number(),
         event: z.enum(["APPROVE", "REQUEST_CHANGES", "COMMENT"]),
         body: z.string().optional(),
       }),
@@ -775,15 +854,24 @@ export function buildAgentTools() {
 
     toolset.listPRComments = tool({
       description: "List inline review comments on a pull request.",
-      inputSchema: z.object({ repo: z.string(), number: z.number(), perPage: z.number().default(30) }),
-      execute: async (opts) => listPRComments(ghConn().id, opts.repo, opts.number, { perPage: opts.perPage }),
+      inputSchema: z.object({
+        repo: z.string(),
+        number: z.number(),
+        perPage: z.number().default(30),
+      }),
+      execute: async (opts) =>
+        listPRComments(ghConn().id, opts.repo, opts.number, { perPage: opts.perPage }),
     });
 
     toolset.commentOnPR = tool({
-      description: "Add a comment to a PR (general or inline on a specific file/line). Requires approval.",
+      description:
+        "Add a comment to a PR (general or inline on a specific file/line). Requires approval.",
       inputSchema: z.object({
-        repo: z.string(), number: z.number(), body: z.string(),
-        path: z.string().optional(), line: z.number().optional(),
+        repo: z.string(),
+        number: z.number(),
+        body: z.string(),
+        path: z.string().optional(),
+        line: z.number().optional(),
         side: z.enum(["LEFT", "RIGHT"]).optional(),
       }),
       execute: async ({ repo, number, body, path, line, side }) => {
@@ -802,8 +890,10 @@ export function buildAgentTools() {
     toolset.createRepo = tool({
       description: "Create a new GitHub repository. Requires approval.",
       inputSchema: z.object({
-        name: z.string(), description: z.string().optional(),
-        private: z.boolean().default(false), autoInit: z.boolean().default(false),
+        name: z.string(),
+        description: z.string().optional(),
+        private: z.boolean().default(false),
+        autoInit: z.boolean().default(false),
       }),
       execute: async (opts) => {
         if (!approved("createRepo")) return blocked("createRepo");
@@ -821,11 +911,16 @@ export function buildAgentTools() {
     });
 
     toolset.updateRepo = tool({
-      description: "Update repository settings (name, description, visibility, topics). Requires approval.",
+      description:
+        "Update repository settings (name, description, visibility, topics). Requires approval.",
       inputSchema: z.object({
-        repo: z.string(), name: z.string().optional(), description: z.string().optional(),
-        private: z.boolean().optional(), hasIssues: z.boolean().optional(),
-        hasWiki: z.boolean().optional(), topics: z.array(z.string()).optional(),
+        repo: z.string(),
+        name: z.string().optional(),
+        description: z.string().optional(),
+        private: z.boolean().optional(),
+        hasIssues: z.boolean().optional(),
+        hasWiki: z.boolean().optional(),
+        topics: z.array(z.string()).optional(),
       }),
       execute: async ({ repo, ...updates }) => {
         if (!approved("updateRepo")) return blocked("updateRepo");
@@ -836,7 +931,8 @@ export function buildAgentTools() {
     toolset.forkRepo = tool({
       description: "Fork a repository to your account. Requires approval.",
       inputSchema: z.object({
-        repo: z.string(), organization: z.string().optional(),
+        repo: z.string(),
+        organization: z.string().optional(),
       }),
       execute: async ({ repo, organization }) => {
         if (!approved("forkRepo")) return blocked("forkRepo");
@@ -847,7 +943,8 @@ export function buildAgentTools() {
     toolset.createBranch = tool({
       description: "Create a new branch from an existing ref. Requires approval.",
       inputSchema: z.object({
-        repo: z.string(), branch: z.string(),
+        repo: z.string(),
+        branch: z.string(),
         fromRef: z.string().default("main"),
       }),
       execute: async ({ repo, branch, fromRef }) => {
@@ -868,9 +965,12 @@ export function buildAgentTools() {
     toolset.commitFile = tool({
       description: "Create or update a file in a repo with a commit. Requires approval.",
       inputSchema: z.object({
-        repo: z.string(), path: z.string(), content: z.string(),
+        repo: z.string(),
+        path: z.string(),
+        content: z.string(),
         message: z.string().describe("Commit message"),
-        branch: z.string().optional(), sha: z.string().optional().describe("File blob SHA (required for updates)"),
+        branch: z.string().optional(),
+        sha: z.string().optional().describe("File blob SHA (required for updates)"),
       }),
       execute: async ({ repo, path, content, message, branch, sha }) => {
         if (!approved("commitFile")) return blocked("commitFile");
@@ -888,8 +988,10 @@ export function buildAgentTools() {
     toolset.getWorkflowRuns = tool({
       description: "Get recent workflow runs with optional filters.",
       inputSchema: z.object({
-        repo: z.string(), workflowId: z.number().optional(),
-        branch: z.string().optional(), status: z.string().optional(),
+        repo: z.string(),
+        workflowId: z.number().optional(),
+        branch: z.string().optional(),
+        status: z.string().optional(),
         perPage: z.number().default(10),
       }),
       execute: async (opts) => {
@@ -901,7 +1003,8 @@ export function buildAgentTools() {
     toolset.triggerWorkflow = tool({
       description: "Trigger a workflow_dispatch event. Requires approval.",
       inputSchema: z.object({
-        repo: z.string(), workflowId: z.number(),
+        repo: z.string(),
+        workflowId: z.number(),
         ref: z.string().describe("Branch or tag to run on"),
         inputs: z.record(z.string(), z.string()).optional(),
       }),
@@ -966,7 +1069,8 @@ export function buildAgentTools() {
     toolset.listMilestones = tool({
       description: "List milestones for a repository.",
       inputSchema: z.object({
-        repo: z.string(), state: z.enum(["open", "closed", "all"]).default("open"),
+        repo: z.string(),
+        state: z.enum(["open", "closed", "all"]).default("open"),
         perPage: z.number().default(30),
       }),
       execute: async (opts) => listMilestones(ghConn().id, opts.repo, opts),
@@ -975,8 +1079,10 @@ export function buildAgentTools() {
     toolset.createMilestone = tool({
       description: "Create a milestone with optional due date. Requires approval.",
       inputSchema: z.object({
-        repo: z.string(), title: z.string(),
-        description: z.string().optional(), dueOn: z.string().optional(),
+        repo: z.string(),
+        title: z.string(),
+        description: z.string().optional(),
+        dueOn: z.string().optional(),
       }),
       execute: async ({ repo, title, ...opts }) => {
         if (!approved("createMilestone")) return blocked("createMilestone");
@@ -994,7 +1100,8 @@ export function buildAgentTools() {
       description: "Create a gist. Requires approval.",
       inputSchema: z.object({
         files: z.record(z.string(), z.object({ content: z.string() })),
-        description: z.string().optional(), public: z.boolean().default(false),
+        description: z.string().optional(),
+        public: z.boolean().default(false),
       }),
       execute: async ({ files, description, public: isPublic }) => {
         if (!approved("createGist")) return blocked("createGist");
@@ -1005,7 +1112,8 @@ export function buildAgentTools() {
     toolset.listNotifications = tool({
       description: "List your unread GitHub notifications.",
       inputSchema: z.object({
-        all: z.boolean().default(false), perPage: z.number().default(20),
+        all: z.boolean().default(false),
+        perPage: z.number().default(20),
       }),
       execute: async (opts) => listNotifications(ghConn().id, opts),
     });
@@ -1077,8 +1185,26 @@ export function buildAgentTools() {
 }
 
 const SHELL_ALLOW = new Set([
-  "ls", "cat", "pwd", "echo", "date", "whoami", "uname", "df", "du", "ps",
-  "git", "node", "npm", "pnpm", "wc", "head", "tail", "grep", "find", "which",
+  "ls",
+  "cat",
+  "pwd",
+  "echo",
+  "date",
+  "whoami",
+  "uname",
+  "df",
+  "du",
+  "ps",
+  "git",
+  "node",
+  "npm",
+  "pnpm",
+  "wc",
+  "head",
+  "tail",
+  "grep",
+  "find",
+  "which",
 ]);
 
 function runSafeShell(command: string): Promise<{ stdout?: string; error?: string }> {
@@ -1088,9 +1214,14 @@ function runSafeShell(command: string): Promise<{ stdout?: string; error?: strin
     return Promise.resolve({ error: `Binary '${bin}' is not in the allowlist.` });
   }
   return new Promise((resolve) => {
-    execFile(bin, parts.slice(1), { timeout: 10_000, maxBuffer: 256 * 1024 }, (err, stdout, stderr) => {
-      if (err) resolve({ error: stderr || err.message });
-      else resolve({ stdout: stdout.slice(0, 4000) });
-    });
+    execFile(
+      bin,
+      parts.slice(1),
+      { timeout: 10_000, maxBuffer: 256 * 1024 },
+      (err, stdout, stderr) => {
+        if (err) resolve({ error: stderr || err.message });
+        else resolve({ stdout: stdout.slice(0, 4000) });
+      }
+    );
   });
 }

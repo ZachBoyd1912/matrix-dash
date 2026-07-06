@@ -37,7 +37,10 @@ export default function ImagesPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error("Generation failed", typeof data.error === "string" ? data.error : "Check your provider.");
+        toast.error(
+          "Generation failed",
+          typeof data.error === "string" ? data.error : "Check your provider."
+        );
         return;
       }
       toast.success("Image generated");
@@ -63,19 +66,21 @@ export default function ImagesPage() {
   };
 
   return (
-    <div ref={ref} className="px-4 md:px-8 py-10 max-w-5xl mx-auto space-y-8">
+    <div ref={ref} className="mx-auto max-w-5xl space-y-8 px-4 py-10 md:px-8">
       <div className="relative">
         <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
-        <div className="orb -top-10 right-16 h-44 w-44 bg-sky-500/15" style={{ animationDelay: "-6s" }} />
+        <div
+          className="orb -top-10 right-16 h-44 w-44 bg-sky-500/15"
+          style={{ animationDelay: "-6s" }}
+        />
         <div className="relative">
           <span className="eyebrow">
             <Sparkles size={11} /> Image Studio
           </span>
-          <h1 className="display text-gradient text-4xl md:text-5xl mt-3">
-            Image generation
-          </h1>
-          <p className="text-text-secondary text-sm mt-3 max-w-2xl">
-            Uses your OpenAI-compatible provider&apos;s images endpoint. Results saved to your local gallery.
+          <h1 className="display text-gradient mt-3 text-4xl md:text-5xl">Image generation</h1>
+          <p className="text-text-secondary mt-3 max-w-2xl text-sm">
+            Uses your OpenAI-compatible provider&apos;s images endpoint. Results saved to your local
+            gallery.
           </p>
         </div>
       </div>
@@ -96,20 +101,33 @@ export default function ImagesPage() {
       </Card>
 
       {list.length === 0 ? (
-        <EmptyState icon={<ImageIcon size={16} />} title="No images yet" description="Type a prompt above to start." />
+        <EmptyState
+          icon={<ImageIcon size={16} />}
+          title="No images yet"
+          description="Type a prompt above to start."
+        />
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
           {list.map((img) => (
-            <Card key={img.id} interactive className="overflow-hidden p-0 group rounded-2xl">
+            <Card key={img.id} interactive className="group overflow-hidden rounded-2xl p-0">
               <div className="relative">
-                <img src={img.dataUrl} alt={img.prompt} className="w-full aspect-square object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
-                  <p className="text-[11px] text-white line-clamp-2">{img.prompt}</p>
-                  <p className="text-[10px] text-white/70 mt-1">{timeAgo(img.createdAt)}</p>
+                <img
+                  src={img.dataUrl}
+                  alt={img.prompt}
+                  className="aspect-square w-full object-cover"
+                />
+                <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-transparent to-transparent p-3 opacity-0 transition-opacity group-hover:opacity-100">
+                  <p className="line-clamp-2 text-[11px] text-white">{img.prompt}</p>
+                  <p className="mt-1 text-[10px] text-white/70">{timeAgo(img.createdAt)}</p>
                 </div>
               </div>
-              <div className="flex items-center justify-end gap-1 px-2 py-1.5 border-t border-white/5">
-                <Button size="icon" variant="ghost" onClick={() => download(img)} aria-label="Download">
+              <div className="flex items-center justify-end gap-1 border-t border-white/5 px-2 py-1.5">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => download(img)}
+                  aria-label="Download"
+                >
                   <Download size={12} />
                 </Button>
                 <Button size="icon" variant="ghost" onClick={() => remove(img)} aria-label="Delete">

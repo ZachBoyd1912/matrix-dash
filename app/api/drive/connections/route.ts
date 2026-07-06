@@ -5,9 +5,7 @@ import type { DriveConnectionPublic } from "@/types/jarvis";
 
 export const dynamic = "force-dynamic";
 
-function toPublic(
-  row: typeof driveConnections.$inferSelect
-): DriveConnectionPublic {
+function toPublic(row: typeof driveConnections.$inferSelect): DriveConnectionPublic {
   return {
     id: row.id,
     label: row.label,

@@ -1,0 +1,9 @@
+node_modules
+.next
+.netlify
+.agent
+out
+pnpm-lock.yaml
+*.md
+vscode-extension
+deploy

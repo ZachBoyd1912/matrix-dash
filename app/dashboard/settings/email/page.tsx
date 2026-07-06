@@ -24,14 +24,18 @@ export default function EmailSettingsPage() {
   const [signature, setSignature] = useState("");
   const [accounts, setAccounts] = useState<EmailAccountPublic[]>([]);
   const [syncing, setSyncing] = useState<string | null>(null);
-  const [gmailConns, setGmailConns] = useState<Array<{ id: string; googleEmail: string; isActive: boolean | null }>>([]);
+  const [gmailConns, setGmailConns] = useState<
+    Array<{ id: string; googleEmail: string; isActive: boolean | null }>
+  >([]);
   const [oauthError, setOauthError] = useState("");
 
   const refresh = useCallback(async () => {
     const [s, a, g] = await Promise.all([
       fetch("/api/settings").then((r) => r.json()),
       fetch("/api/email-accounts").then((r) => r.json()),
-      fetch("/api/gmail/connections").then((r) => r.json()).catch(() => []),
+      fetch("/api/gmail/connections")
+        .then((r) => r.json())
+        .catch(() => []),
     ]);
     setFrom(s.emailFrom ?? "");
     setSignature(s.emailSignature ?? "");
@@ -48,7 +52,8 @@ export default function EmailSettingsPage() {
         missing_env: msg ? decodeURIComponent(msg) : "GOOGLE_CLIENT_ID not set in .env.local",
         oauth_denied: "Authorization was denied. Check the OAuth consent screen permissions.",
         invalid_state: "Session expired. The OAuth state was invalid or already used — try again.",
-        token_exchange_failed: "Failed to exchange the authorization code for a token. Check your GOOGLE_CLIENT_SECRET.",
+        token_exchange_failed:
+          "Failed to exchange the authorization code for a token. Check your GOOGLE_CLIENT_SECRET.",
       };
       setOauthError(messages[err] || `OAuth error: ${err}`);
     }
@@ -86,7 +91,11 @@ export default function EmailSettingsPage() {
   };
 
   const remove = async (a: EmailAccountPublic) => {
-    const ok = await confirm({ title: `Remove ${a.address}?`, confirmLabel: "Remove", danger: true });
+    const ok = await confirm({
+      title: `Remove ${a.address}?`,
+      confirmLabel: "Remove",
+      danger: true,
+    });
     if (!ok) return;
     await fetch(`/api/email-accounts/${a.id}`, { method: "DELETE" });
     toast.success("Account removed");
@@ -94,11 +103,11 @@ export default function EmailSettingsPage() {
   };
 
   const handleGmailOAuth = () => {
-    window.location.href = "/api/oauth/gmail/authorize?redirect_to=" +
-      encodeURIComponent(window.location.pathname);
+    window.location.href =
+      "/api/oauth/gmail/authorize?redirect_to=" + encodeURIComponent(window.location.pathname);
   };
 
-  const disconnectGmail = async (conn: typeof gmailConns[number]) => {
+  const disconnectGmail = async (conn: (typeof gmailConns)[number]) => {
     const ok = await confirm({
       title: `Disconnect ${conn.googleEmail} from Gmail?`,
       confirmLabel: "Disconnect",
@@ -132,13 +141,16 @@ export default function EmailSettingsPage() {
     <div ref={ref} className="space-y-8">
       <div className="relative isolate py-10">
         <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
-        <div className="orb top-0 left-40 h-40 w-40 bg-sky-500/15" style={{ animationDelay: "-6s" }} />
+        <div
+          className="orb top-0 left-40 h-40 w-40 bg-sky-500/15"
+          style={{ animationDelay: "-6s" }}
+        />
         <div className="relative">
           <span className="eyebrow">
             <Mail size={11} /> Email
           </span>
-          <h1 className="display text-gradient text-4xl md:text-5xl mt-3">Email</h1>
-          <p className="text-text-secondary text-sm mt-3 max-w-2xl">
+          <h1 className="display text-gradient mt-3 text-4xl md:text-5xl">Email</h1>
+          <p className="text-text-secondary mt-3 max-w-2xl text-sm">
             Connect a real IMAP/SMTP account for live sync, sending, and AI triage. Credentials are
             AES-256-GCM encrypted at rest.
           </p>
@@ -147,25 +159,34 @@ export default function EmailSettingsPage() {
 
       {/* Gmail OAuth connection card */}
       {activeGmail ? (
-        <Card interactive className="rounded-2xl mb-4">
+        <Card interactive className="mb-4 rounded-2xl">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 grid place-items-center shrink-0">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/5">
                 <Globe size={18} className="text-red-400" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-text-primary">{activeGmail.googleEmail}</p>
-                  <Badge className="bg-emerald-400/10 border-emerald-400/20 text-emerald-400">● Connected</Badge>
+                  <p className="text-text-primary text-sm font-medium">{activeGmail.googleEmail}</p>
+                  <Badge className="border-emerald-400/20 bg-emerald-400/10 text-emerald-400">
+                    ● Connected
+                  </Badge>
                 </div>
-                <p className="text-[11px] text-text-muted mt-0.5">Gmail OAuth — IMAP/SMTP with token auth</p>
+                <p className="text-text-muted mt-0.5 text-[11px]">
+                  Gmail OAuth — IMAP/SMTP with token auth
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Button size="icon" variant="ghost" onClick={syncGmail} aria-label="Sync Gmail">
                 <RefreshCw size={13} />
               </Button>
-              <Button size="icon" variant="ghost" onClick={() => disconnectGmail(activeGmail)} aria-label="Disconnect">
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => disconnectGmail(activeGmail)}
+                aria-label="Disconnect"
+              >
                 <Trash2 size={13} className="text-rose-400" />
               </Button>
             </div>
@@ -174,34 +195,36 @@ export default function EmailSettingsPage() {
       ) : (
         <>
           {oauthError && (
-            <Card className="rounded-2xl p-4 border-amber-400/20 bg-amber-400/5 space-y-2 mb-4">
+            <Card className="mb-4 space-y-2 rounded-2xl border-amber-400/20 bg-amber-400/5 p-4">
               <div className="flex items-center gap-2">
                 <AlertTriangle size={14} className="text-amber-400" />
                 <p className="text-sm font-semibold text-amber-400">Configuration needed</p>
               </div>
-              <p className="text-xs text-text-secondary">{oauthError}</p>
-              <p className="text-[10px] text-text-muted">
-                Add <code className="bg-white/5 px-1 rounded">GOOGLE_CLIENT_ID</code> and{" "}
-                <code className="bg-white/5 px-1 rounded">GOOGLE_CLIENT_SECRET</code> to{" "}
-                <code className="bg-white/5 px-1 rounded">.env.local</code> and add the redirect URI{" "}
-                <code className="bg-white/5 px-1 rounded ml-1">{getSiteOrigin()}/api/oauth/gmail/callback</code>{" "}
+              <p className="text-text-secondary text-xs">{oauthError}</p>
+              <p className="text-text-muted text-[10px]">
+                Add <code className="rounded bg-white/5 px-1">GOOGLE_CLIENT_ID</code> and{" "}
+                <code className="rounded bg-white/5 px-1">GOOGLE_CLIENT_SECRET</code> to{" "}
+                <code className="rounded bg-white/5 px-1">.env.local</code> and add the redirect URI{" "}
+                <code className="ml-1 rounded bg-white/5 px-1">
+                  {getSiteOrigin()}/api/oauth/gmail/callback
+                </code>{" "}
                 in Google Cloud Console.
               </p>
             </Card>
           )}
-          <Card className="rounded-2xl p-5 space-y-3 mb-4">
+          <Card className="mb-4 space-y-3 rounded-2xl p-5">
             <div className="flex items-center gap-2">
               <Globe size={16} className="text-red-400" />
               <p className="text-sm font-semibold">Gmail OAuth</p>
             </div>
-            <p className="text-xs text-text-secondary">
+            <p className="text-text-secondary text-xs">
               Connect Gmail with one click — no app password needed. Uses OAuth to access your inbox
-              and send mail through Gmail's servers.
+              and send mail through Gmail&apos;s servers.
             </p>
             <Button variant="secondary" onClick={handleGmailOAuth}>
               <Globe size={14} /> Connect Gmail
             </Button>
-            <p className="text-[10px] text-text-muted">
+            <p className="text-text-muted text-[10px]">
               Requests mail.google.com scope. Emails stay local — synced to ~/MatrixDash/matrix.db.
             </p>
           </Card>
@@ -211,23 +234,39 @@ export default function EmailSettingsPage() {
       {accounts.length > 0 && (
         <div className="space-y-2">
           {accounts.map((a) => (
-            <Card key={a.id} interactive className="flex items-center justify-between gap-3 rounded-2xl">
+            <Card
+              key={a.id}
+              interactive
+              className="flex items-center justify-between gap-3 rounded-2xl"
+            >
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <Mail size={14} className="text-emerald-400" />
-                  <p className="text-sm font-medium text-text-primary">{a.address}</p>
+                  <p className="text-text-primary text-sm font-medium">{a.address}</p>
                   {a.triageEnabled && (
-                    <Badge className="bg-emerald-400/10 border-emerald-400/20 text-emerald-400">Triage</Badge>
+                    <Badge className="border-emerald-400/20 bg-emerald-400/10 text-emerald-400">
+                      Triage
+                    </Badge>
                   )}
                 </div>
-                <p className="text-[11px] text-text-muted mt-0.5">
+                <p className="text-text-muted mt-0.5 text-[11px]">
                   {a.imapHost} · {a.lastSyncAt ? `synced ${timeAgo(a.lastSyncAt)}` : "never synced"}
                 </p>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-[10px] text-text-muted">AI triage</span>
-                <Switch checked={!!a.triageEnabled} onCheckedChange={() => toggleTriage(a)} label="Triage" />
-                <Button size="icon" variant="ghost" onClick={() => sync(a.id)} disabled={syncing === a.id} aria-label="Sync">
+              <div className="flex shrink-0 items-center gap-2">
+                <span className="text-text-muted text-[10px]">AI triage</span>
+                <Switch
+                  checked={!!a.triageEnabled}
+                  onCheckedChange={() => toggleTriage(a)}
+                  label="Triage"
+                />
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => sync(a.id)}
+                  disabled={syncing === a.id}
+                  aria-label="Sync"
+                >
                   <RefreshCw size={14} className={syncing === a.id ? "animate-spin" : ""} />
                 </Button>
                 <Button size="icon" variant="ghost" onClick={() => remove(a)} aria-label="Remove">
@@ -242,18 +281,29 @@ export default function EmailSettingsPage() {
       <AccountForm onAdded={refresh} />
 
       <Card interactive className="rounded-2xl">
-        <p className="text-sm font-medium mb-3">Compose defaults</p>
+        <p className="mb-3 text-sm font-medium">Compose defaults</p>
         <div className="space-y-3">
           <div>
-            <label className="block text-[10px] uppercase text-text-muted mb-1">From address</label>
-            <Input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="you@dash.local" />
+            <label className="text-text-muted mb-1 block text-[10px] uppercase">From address</label>
+            <Input
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              placeholder="you@dash.local"
+            />
           </div>
           <div>
-            <label className="block text-[10px] uppercase text-text-muted mb-1">Signature</label>
-            <Textarea value={signature} onChange={(e) => setSignature(e.target.value)} rows={3} placeholder="— Zach" />
+            <label className="text-text-muted mb-1 block text-[10px] uppercase">Signature</label>
+            <Textarea
+              value={signature}
+              onChange={(e) => setSignature(e.target.value)}
+              rows={3}
+              placeholder="— Zach"
+            />
           </div>
           <div className="flex justify-end">
-            <Button variant="primary" onClick={saveDefaults}>Save</Button>
+            <Button variant="primary" onClick={saveDefaults}>
+              Save
+            </Button>
           </div>
         </div>
       </Card>
@@ -276,7 +326,8 @@ function AccountForm({ onAdded }: { onAdded: () => void }) {
     triageEnabled: false,
   });
 
-  const set = (k: keyof typeof f, v: string | number | boolean) => setF((prev) => ({ ...prev, [k]: v }));
+  const set = (k: keyof typeof f, v: string | number | boolean) =>
+    setF((prev) => ({ ...prev, [k]: v }));
 
   const submit = async () => {
     setBusy(true);
@@ -288,12 +339,25 @@ function AccountForm({ onAdded }: { onAdded: () => void }) {
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error("Could not connect", typeof data.error === "string" ? data.error : "Check IMAP settings.");
+        toast.error(
+          "Could not connect",
+          typeof data.error === "string" ? data.error : "Check IMAP settings."
+        );
         return;
       }
       toast.success("Account connected");
       setOpen(false);
-      setF({ label: "", address: "", imapHost: "", imapPort: 993, smtpHost: "", smtpPort: 465, username: "", password: "", triageEnabled: false });
+      setF({
+        label: "",
+        address: "",
+        imapHost: "",
+        imapPort: 993,
+        smtpHost: "",
+        smtpPort: 465,
+        username: "",
+        password: "",
+        triageEnabled: false,
+      });
       onAdded();
     } finally {
       setBusy(false);
@@ -313,26 +377,69 @@ function AccountForm({ onAdded }: { onAdded: () => void }) {
       <p className="text-sm font-medium">Connect account</p>
       <div className="grid grid-cols-2 gap-2">
         <Input placeholder="Label" value={f.label} onChange={(e) => set("label", e.target.value)} />
-        <Input placeholder="you@gmail.com" value={f.address} onChange={(e) => set("address", e.target.value)} />
-        <Input placeholder="imap.gmail.com" value={f.imapHost} onChange={(e) => set("imapHost", e.target.value)} />
-        <Input placeholder="993" type="number" value={f.imapPort} onChange={(e) => set("imapPort", parseInt(e.target.value) || 993)} />
-        <Input placeholder="smtp.gmail.com" value={f.smtpHost} onChange={(e) => set("smtpHost", e.target.value)} />
-        <Input placeholder="465" type="number" value={f.smtpPort} onChange={(e) => set("smtpPort", parseInt(e.target.value) || 465)} />
-        <Input placeholder="Username (optional)" value={f.username} onChange={(e) => set("username", e.target.value)} />
-        <Input placeholder="Password / app password" type="password" value={f.password} onChange={(e) => set("password", e.target.value)} />
+        <Input
+          placeholder="you@gmail.com"
+          value={f.address}
+          onChange={(e) => set("address", e.target.value)}
+        />
+        <Input
+          placeholder="imap.gmail.com"
+          value={f.imapHost}
+          onChange={(e) => set("imapHost", e.target.value)}
+        />
+        <Input
+          placeholder="993"
+          type="number"
+          value={f.imapPort}
+          onChange={(e) => set("imapPort", parseInt(e.target.value) || 993)}
+        />
+        <Input
+          placeholder="smtp.gmail.com"
+          value={f.smtpHost}
+          onChange={(e) => set("smtpHost", e.target.value)}
+        />
+        <Input
+          placeholder="465"
+          type="number"
+          value={f.smtpPort}
+          onChange={(e) => set("smtpPort", parseInt(e.target.value) || 465)}
+        />
+        <Input
+          placeholder="Username (optional)"
+          value={f.username}
+          onChange={(e) => set("username", e.target.value)}
+        />
+        <Input
+          placeholder="Password / app password"
+          type="password"
+          value={f.password}
+          onChange={(e) => set("password", e.target.value)}
+        />
       </div>
-      <label className="flex items-center gap-2 text-xs text-text-secondary">
-        <input type="checkbox" checked={f.triageEnabled} onChange={(e) => set("triageEnabled", e.target.checked)} className="accent-emerald-400" />
+      <label className="text-text-secondary flex items-center gap-2 text-xs">
+        <input
+          type="checkbox"
+          checked={f.triageEnabled}
+          onChange={(e) => set("triageEnabled", e.target.checked)}
+          className="accent-emerald-400"
+        />
         Enable AI triage (auto-tag, summarize, flag urgent)
       </label>
       <div className="flex justify-end gap-2">
-        <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-        <Button variant="primary" onClick={submit} disabled={busy || !f.address || !f.imapHost || !f.password}>
+        <Button variant="ghost" onClick={() => setOpen(false)}>
+          Cancel
+        </Button>
+        <Button
+          variant="primary"
+          onClick={submit}
+          disabled={busy || !f.address || !f.imapHost || !f.password}
+        >
           {busy ? "Testing…" : "Test & connect"}
         </Button>
       </div>
-      <p className="text-[10px] text-text-muted">
-        Gmail/Outlook need an app password with IMAP enabled. The connection is tested before saving.
+      <p className="text-text-muted text-[10px]">
+        Gmail/Outlook need an app password with IMAP enabled. The connection is tested before
+        saving.
       </p>
     </Card>
   );

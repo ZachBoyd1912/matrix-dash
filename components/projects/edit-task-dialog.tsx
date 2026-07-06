@@ -5,7 +5,6 @@ import { X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { cn } from "@/lib/utils/cn";
 import { COLUMNS } from "./kanban-board";
 import type { KanbanTask, Project } from "@/types/jarvis";
 
@@ -27,7 +26,15 @@ interface Props {
   }) => void;
 }
 
-export function EditTaskDialog({ open, onClose, task, defaultStatus, projects, onDelete, onSave }: Props) {
+export function EditTaskDialog({
+  open,
+  onClose,
+  task,
+  defaultStatus,
+  projects,
+  onDelete,
+  onSave,
+}: Props) {
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
   const [priority, setPriority] = useState("normal");
@@ -91,18 +98,18 @@ export function EditTaskDialog({ open, onClose, task, defaultStatus, projects, o
       }}
     >
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-      <div className="relative glass-strong rounded-2xl w-full max-w-lg p-6 animate-[fadeIn_180ms_ease-out]">
+      <div className="glass-strong relative w-full max-w-lg animate-[fadeIn_180ms_ease-out] rounded-2xl p-6">
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 text-text-muted hover:text-text-primary p-1 rounded-md hover:bg-white/5"
+          className="text-text-muted hover:text-text-primary absolute top-3 right-3 rounded-md p-1 hover:bg-white/5"
           aria-label="Close"
         >
           <X size={16} />
         </button>
-        <h2 className="text-lg font-semibold text-text-primary mb-1">
+        <h2 className="text-text-primary mb-1 text-lg font-semibold">
           {task ? "Edit Task" : "New Task"}
         </h2>
-        <p className="text-xs text-text-secondary mb-4">
+        <p className="text-text-secondary mb-4 text-xs">
           {task ? "Update this task's details." : "Add a new task to the board."}
         </p>
 
@@ -122,7 +129,7 @@ export function EditTaskDialog({ open, onClose, task, defaultStatus, projects, o
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] uppercase text-text-muted mb-1">Type</label>
+              <label className="text-text-muted mb-1 block text-[10px] uppercase">Type</label>
               <Select value={kind} onChange={(e) => setKind(e.target.value)}>
                 <option value="task">Task</option>
                 <option value="bug">Bug</option>
@@ -131,7 +138,7 @@ export function EditTaskDialog({ open, onClose, task, defaultStatus, projects, o
               </Select>
             </div>
             <div>
-              <label className="block text-[10px] uppercase text-text-muted mb-1">Priority</label>
+              <label className="text-text-muted mb-1 block text-[10px] uppercase">Priority</label>
               <Select value={priority} onChange={(e) => setPriority(e.target.value)}>
                 <option value="low">Low</option>
                 <option value="normal">Normal</option>
@@ -142,18 +149,18 @@ export function EditTaskDialog({ open, onClose, task, defaultStatus, projects, o
           </div>
 
           <div>
-            <label className="block text-[10px] uppercase text-text-muted mb-1">Due Date</label>
+            <label className="text-text-muted mb-1 block text-[10px] uppercase">Due Date</label>
             <input
               type="datetime-local"
               value={dueAt}
               onChange={(e) => setDueAt(e.target.value)}
-              className="glass-input w-full h-9 px-2 rounded-md text-sm text-text-primary"
+              className="glass-input text-text-primary h-9 w-full rounded-md px-2 text-sm"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] uppercase text-text-muted mb-1">Project</label>
+              <label className="text-text-muted mb-1 block text-[10px] uppercase">Project</label>
               <Select value={projectId} onChange={(e) => setProjectId(e.target.value)}>
                 <option value="">— No project —</option>
                 {projects.map((p) => (
@@ -164,7 +171,7 @@ export function EditTaskDialog({ open, onClose, task, defaultStatus, projects, o
               </Select>
             </div>
             <div>
-              <label className="block text-[10px] uppercase text-text-muted mb-1">Column</label>
+              <label className="text-text-muted mb-1 block text-[10px] uppercase">Column</label>
               <Select value={kanbanStatus} onChange={(e) => setKanbanStatus(e.target.value)}>
                 {COLUMNS.map((col) => (
                   <option key={col.id} value={col.id}>
@@ -180,7 +187,7 @@ export function EditTaskDialog({ open, onClose, task, defaultStatus, projects, o
               <button
                 type="button"
                 onClick={() => onDelete(task.id)}
-                className="inline-flex items-center gap-1 text-[12px] font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-400/10 px-2 py-1.5 rounded-md transition-colors"
+                className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-[12px] font-medium text-rose-400 transition-colors hover:bg-rose-400/10 hover:text-rose-300"
               >
                 <Trash2 size={13} /> Delete
               </button>

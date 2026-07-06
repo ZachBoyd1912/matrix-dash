@@ -44,15 +44,33 @@ const POWER_LEVELS = [
 
 const TOOLS: ToolDef[] = [
   { key: "memory", name: "Memory", description: "Search and save long-term memories." },
-  { key: "skills", name: "Skills", description: "Discover and load relevant capability packs on demand." },
+  {
+    key: "skills",
+    name: "Skills",
+    description: "Discover and load relevant capability packs on demand.",
+  },
   { key: "notes", name: "Notes", description: "Search, read, and create notes." },
   { key: "tasks", name: "Tasks", description: "Create and list to-do items." },
   { key: "calendar", name: "Calendar", description: "List and create calendar events." },
   { key: "web", name: "Web", description: "Search the web and read pages." },
   { key: "email", name: "Email", description: "Draft email and look up contacts." },
-  { key: "files", name: "Workspace files", description: "Read and write IDE files.", gated: "writeFile" },
-  { key: "shell", name: "Shell", description: "Run allowlisted read-only commands.", gated: "runShell" },
-  { key: "coding", name: "Coding tools", description: "Read/write real files, run shell, grep & glob — scoped by the power level above." },
+  {
+    key: "files",
+    name: "Workspace files",
+    description: "Read and write IDE files.",
+    gated: "writeFile",
+  },
+  {
+    key: "shell",
+    name: "Shell",
+    description: "Run allowlisted read-only commands.",
+    gated: "runShell",
+  },
+  {
+    key: "coding",
+    name: "Coding tools",
+    description: "Read/write real files, run shell, grep & glob — scoped by the power level above.",
+  },
   { key: "notify", name: "Notifications", description: "Send you notifications." },
 ];
 
@@ -62,7 +80,9 @@ export default function AgentToolsPage() {
   const [root, setRoot] = useState("");
 
   useEffect(() => {
-    fetch("/api/settings").then((r) => r.json()).then(setSettings);
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then(setSettings);
   }, []);
 
   useEffect(() => {
@@ -88,24 +108,34 @@ export default function AgentToolsPage() {
     <div ref={ref} className="space-y-8">
       <div className="relative overflow-hidden py-10">
         <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
-        <div className="orb top-4 right-16 h-44 w-44 bg-sky-500/15" style={{ animationDelay: "-6s" }} />
+        <div
+          className="orb top-4 right-16 h-44 w-44 bg-sky-500/15"
+          style={{ animationDelay: "-6s" }}
+        />
         <div className="relative">
-          <span className="eyebrow"><Wrench size={11} /> Agent capabilities</span>
-          <h2 className="display text-gradient text-4xl md:text-5xl mt-3">Agent tools</h2>
-          <p className="text-text-secondary text-sm mt-3 max-w-2xl">
-            Capabilities the agent may use in <span className="text-emerald-400">Agent</span> mode. Build reusable
-            instruction packs on the <Link href="/dashboard/skills" className="text-emerald-400 hover:underline">Skills</Link> page.
+          <span className="eyebrow">
+            <Wrench size={11} /> Agent capabilities
+          </span>
+          <h2 className="display text-gradient mt-3 text-4xl md:text-5xl">Agent tools</h2>
+          <p className="text-text-secondary mt-3 max-w-2xl text-sm">
+            Capabilities the agent may use in <span className="text-emerald-400">Agent</span> mode.
+            Build reusable instruction packs on the{" "}
+            <Link href="/dashboard/skills" className="text-emerald-400 hover:underline">
+              Skills
+            </Link>{" "}
+            page.
           </p>
         </div>
       </div>
       <Card className="space-y-4 rounded-2xl">
         <div>
-          <p className="text-sm font-semibold text-text-primary">Coding power level</p>
-          <p className="text-xs text-text-secondary mt-0.5">
-            How much the agent&apos;s coding tools (read/write files, run shell) can do on your machine.
+          <p className="text-text-primary text-sm font-semibold">Coding power level</p>
+          <p className="text-text-secondary mt-0.5 text-xs">
+            How much the agent&apos;s coding tools (read/write files, run shell) can do on your
+            machine.
           </p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           {POWER_LEVELS.map((lvl) => {
             const active = power === lvl.value;
             const Icon = lvl.Icon;
@@ -115,10 +145,16 @@ export default function AgentToolsPage() {
                 type="button"
                 onClick={() => update("agent_power_level", lvl.value)}
                 className={cn(
-                  "text-left rounded-xl border p-3 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.99]",
-                  active && lvl.accent === "emerald" && "border-emerald-400/40 bg-emerald-400/10 shadow-[0_0_22px_-8px_rgba(52,211,153,0.7)]",
-                  active && lvl.accent === "amber" && "border-amber-400/40 bg-amber-400/10 shadow-[0_0_22px_-8px_rgba(251,191,36,0.7)]",
-                  active && lvl.accent === "rose" && "border-rose-400/40 bg-rose-400/10 shadow-[0_0_22px_-8px_rgba(244,63,94,0.7)]",
+                  "rounded-xl border p-3 text-left transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.99]",
+                  active &&
+                    lvl.accent === "emerald" &&
+                    "border-emerald-400/40 bg-emerald-400/10 shadow-[0_0_22px_-8px_rgba(52,211,153,0.7)]",
+                  active &&
+                    lvl.accent === "amber" &&
+                    "border-amber-400/40 bg-amber-400/10 shadow-[0_0_22px_-8px_rgba(251,191,36,0.7)]",
+                  active &&
+                    lvl.accent === "rose" &&
+                    "border-rose-400/40 bg-rose-400/10 shadow-[0_0_22px_-8px_rgba(244,63,94,0.7)]",
                   !active && "border-white/5 bg-white/[0.02] hover:border-white/10"
                 )}
               >
@@ -132,26 +168,28 @@ export default function AgentToolsPage() {
                       active && lvl.accent === "rose" && "text-rose-300"
                     )}
                   />
-                  <span className="text-sm font-medium text-text-primary">{lvl.name}</span>
+                  <span className="text-text-primary text-sm font-medium">{lvl.name}</span>
                 </div>
-                <p className="text-[11px] text-text-secondary mt-1.5 leading-relaxed">{lvl.desc}</p>
+                <p className="text-text-secondary mt-1.5 text-[11px] leading-relaxed">{lvl.desc}</p>
               </button>
             );
           })}
         </div>
         <div>
-          <label className="text-[10px] uppercase text-text-muted block mb-1">Workspace root</label>
+          <label className="text-text-muted mb-1 block text-[10px] uppercase">Workspace root</label>
           <Input
             value={root}
             onChange={(e) => setRoot(e.target.value)}
             onBlur={() => {
-              if (root !== (settings.agent_workspace_root ?? "")) update("agent_workspace_root", root);
+              if (root !== (settings.agent_workspace_root ?? ""))
+                update("agent_workspace_root", root);
             }}
             placeholder="~/MatrixDash (default)"
             className="font-mono text-xs"
           />
-          <p className="text-[10px] text-text-muted mt-1">
-            The folder the agent can read, edit, and run commands in. Paths are confined to this root.
+          <p className="text-text-muted mt-1 text-[10px]">
+            The folder the agent can read, edit, and run commands in. Paths are confined to this
+            root.
           </p>
         </div>
       </Card>
@@ -161,19 +199,26 @@ export default function AgentToolsPage() {
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-text-primary">{tool.name}</p>
+                  <p className="text-text-primary text-sm font-medium">{tool.name}</p>
                   {tool.gated && (
-                    <Badge className="bg-rose-400/10 border-rose-400/20 text-rose-300">Needs approval</Badge>
+                    <Badge className="border-rose-400/20 bg-rose-400/10 text-rose-300">
+                      Needs approval
+                    </Badge>
                   )}
                 </div>
-                <p className="text-xs text-text-secondary mt-0.5">{tool.description}</p>
+                <p className="text-text-secondary mt-0.5 text-xs">{tool.description}</p>
               </div>
-              <Switch checked={toolOn(tool.key)} onCheckedChange={(v) => update(`tool_${tool.key}`, v)} label={tool.name} />
+              <Switch
+                checked={toolOn(tool.key)}
+                onCheckedChange={(v) => update(`tool_${tool.key}`, v)}
+                label={tool.name}
+              />
             </div>
             {tool.gated && toolOn(tool.key) && (
-              <div className="flex items-center justify-between gap-4 pl-3 border-l-2 border-rose-400/20">
-                <p className="text-xs text-text-secondary">
-                  Auto-approve <span className="font-mono text-text-primary">{tool.gated}</span> without asking
+              <div className="flex items-center justify-between gap-4 border-l-2 border-rose-400/20 pl-3">
+                <p className="text-text-secondary text-xs">
+                  Auto-approve <span className="text-text-primary font-mono">{tool.gated}</span>{" "}
+                  without asking
                 </p>
                 <Switch
                   checked={approveOn(tool.gated)}

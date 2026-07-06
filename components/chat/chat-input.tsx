@@ -27,16 +27,21 @@ export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeh
   const setUseClaudeCode = useAppStore((s) => s.setUseClaudeCode);
   const autoSpeak = useAppStore((s) => s.autoSpeak);
   const setAutoSpeak = useAppStore((s) => s.setAutoSpeak);
-  const { listening, supported: micSupported, toggle: toggleMic } = useSpeechInput((text) =>
-    setValue((v) => (v ? `${v} ${text}` : text))
-  );
+  const {
+    listening,
+    supported: micSupported,
+    toggle: toggleMic,
+  } = useSpeechInput((text) => setValue((v) => (v ? `${v} ${text}` : text)));
 
   // Slash-command menu: opens while the input is a bare "/command" (no space yet).
   const [slashOpen, setSlashOpen] = useState(false);
   const [slashIndex, setSlashIndex] = useState(0);
   const slashQuery =
-    value.startsWith("/") && !value.includes(" ") && !value.includes("\n") ? value.slice(1).toLowerCase() : null;
-  const slashMatches = slashQuery !== null ? SLASH_COMMANDS.filter((c) => c.name.startsWith(slashQuery)) : [];
+    value.startsWith("/") && !value.includes(" ") && !value.includes("\n")
+      ? value.slice(1).toLowerCase()
+      : null;
+  const slashMatches =
+    slashQuery !== null ? SLASH_COMMANDS.filter((c) => c.name.startsWith(slashQuery)) : [];
   const showSlash = slashOpen && slashMatches.length > 0;
 
   useEffect(() => {
@@ -101,9 +106,9 @@ export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeh
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto px-4 relative">
+    <div className="relative mx-auto w-full max-w-3xl px-4">
       {showSlash && (
-        <div className="absolute bottom-full left-4 right-4 mb-2 z-50 rounded-xl border border-white/10 bg-[#0f0f0f]/95 backdrop-blur-md shadow-[0_24px_64px_-16px_rgba(0,0,0,0.7)] overflow-hidden py-1">
+        <div className="absolute right-4 bottom-full left-4 z-50 mb-2 overflow-hidden rounded-xl border border-white/10 bg-[#0f0f0f]/95 py-1 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.7)] backdrop-blur-md">
           {slashMatches.map((c, i) => (
             <button
               key={c.name}
@@ -111,17 +116,19 @@ export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeh
               onMouseEnter={() => setSlashIndex(i)}
               onClick={() => selectSlash(c.name)}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-1.5 text-left transition-colors duration-150",
-                i === Math.min(slashIndex, slashMatches.length - 1) ? "bg-emerald-400/10" : "hover:bg-white/5"
+                "flex w-full items-center gap-3 px-3 py-1.5 text-left transition-colors duration-150",
+                i === Math.min(slashIndex, slashMatches.length - 1)
+                  ? "bg-emerald-400/10"
+                  : "hover:bg-white/5"
               )}
             >
               <span className="font-mono text-[12px] text-emerald-300">/{c.name}</span>
-              <span className="text-[11px] text-text-muted truncate">{c.description}</span>
+              <span className="text-text-muted truncate text-[11px]">{c.description}</span>
             </button>
           ))}
         </div>
       )}
-      <div className="group glass-input rounded-2xl p-3 border border-white/10 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.6)] transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] focus-within:border-emerald-400/30 focus-within:shadow-[0_24px_64px_-16px_rgba(0,0,0,0.6),0_0_24px_-8px_rgba(52,211,153,0.5)]">
+      <div className="group glass-input rounded-2xl border border-white/10 p-3 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.6)] transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] focus-within:border-emerald-400/30 focus-within:shadow-[0_24px_64px_-16px_rgba(0,0,0,0.6),0_0_24px_-8px_rgba(52,211,153,0.5)]">
         <textarea
           ref={ref}
           value={value}
@@ -130,15 +137,15 @@ export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeh
           placeholder={placeholder ?? "Message Matrix Dash…  (/ for commands)"}
           disabled={disabled}
           rows={1}
-          className="w-full bg-transparent resize-none text-sm leading-relaxed text-text-primary placeholder:text-text-muted focus:outline-none px-2 py-2 min-h-[40px] max-h-[200px] disabled:opacity-50"
+          className="text-text-primary placeholder:text-text-muted max-h-[200px] min-h-[40px] w-full resize-none bg-transparent px-2 py-2 text-sm leading-relaxed focus:outline-none disabled:opacity-50"
         />
-        <div className="flex items-center justify-between mt-2 px-1">
+        <div className="mt-2 flex items-center justify-between px-1">
           <div className="flex items-center gap-1">
             {onAttach && (
               <button
                 type="button"
                 onClick={onAttach}
-                className="h-7 w-7 grid place-items-center rounded-md text-text-muted hover:text-text-primary hover:bg-white/5 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98]"
+                className="text-text-muted hover:text-text-primary grid h-7 w-7 place-items-center rounded-md transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-white/5 active:scale-[0.98]"
                 aria-label="Attach file"
               >
                 <Paperclip size={14} />
@@ -149,9 +156,9 @@ export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeh
                 type="button"
                 onClick={toggleMic}
                 className={cn(
-                  "h-7 w-7 grid place-items-center rounded-md transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98]",
+                  "grid h-7 w-7 place-items-center rounded-md transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98]",
                   listening
-                    ? "text-rose-400 bg-rose-400/10 animate-pulse"
+                    ? "animate-pulse bg-rose-400/10 text-rose-400"
                     : "text-text-muted hover:text-text-primary hover:bg-white/5"
                 )}
                 aria-label={listening ? "Stop listening" : "Speak"}
@@ -163,9 +170,9 @@ export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeh
               type="button"
               onClick={() => setAutoSpeak(!autoSpeak)}
               className={cn(
-                "h-7 w-7 grid place-items-center rounded-md transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98]",
+                "grid h-7 w-7 place-items-center rounded-md transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98]",
                 autoSpeak
-                  ? "text-emerald-300 bg-emerald-400/10 border border-emerald-400/30 shadow-[0_0_18px_-6px_rgba(52,211,153,0.6)]"
+                  ? "border border-emerald-400/30 bg-emerald-400/10 text-emerald-300 shadow-[0_0_18px_-6px_rgba(52,211,153,0.6)]"
                   : "text-text-muted hover:text-text-primary hover:bg-white/5"
               )}
               aria-label={autoSpeak ? "Mute replies" : "Speak replies"}
@@ -179,10 +186,10 @@ export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeh
               type="button"
               onClick={() => setUseClaudeCode(!useClaudeCode)}
               className={cn(
-                "hidden sm:inline-flex items-center h-6 px-2.5 rounded-full text-[10px] border transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98]",
+                "hidden h-6 items-center rounded-full border px-2.5 text-[10px] transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98] sm:inline-flex",
                 useClaudeCode
-                  ? "bg-amber-400/15 text-amber-300 border-amber-400/30 shadow-[0_0_18px_-6px_rgba(251,191,36,0.6)]"
-                  : "text-text-muted border-white/5 hover:text-text-secondary"
+                  ? "border-amber-400/30 bg-amber-400/15 text-amber-300 shadow-[0_0_18px_-6px_rgba(251,191,36,0.6)]"
+                  : "text-text-muted hover:text-text-secondary border-white/5"
               )}
               title="Run the chat through the OpenClaude coding-agent engine on your active Matrix model"
             >
@@ -193,7 +200,7 @@ export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeh
                 <select
                   value={activeId ?? ""}
                   onChange={(e) => setActive(e.target.value || null)}
-                  className="glass-input text-xs h-7 px-2 rounded-md text-text-secondary border border-white/5 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-white/10 focus:outline-none focus:border-emerald-400/30 focus:shadow-[0_0_18px_-6px_rgba(52,211,153,0.6)]"
+                  className="glass-input text-text-secondary h-7 rounded-md border border-white/5 px-2 text-xs transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-white/10 focus:border-emerald-400/30 focus:shadow-[0_0_18px_-6px_rgba(52,211,153,0.6)] focus:outline-none"
                   aria-label="Provider"
                 >
                   {providers.map((p) => (
@@ -205,12 +212,12 @@ export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeh
                 <ModelSelector />
               </>
             ) : (
-              <span className="text-[11px] text-text-muted">No provider configured</span>
+              <span className="text-text-muted text-[11px]">No provider configured</span>
             )}
             {busy ? (
               <button
                 onClick={onCancel}
-                className="h-8 w-8 grid place-items-center rounded-full bg-white/10 hover:bg-white/15 text-text-primary border border-white/5 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98]"
+                className="text-text-primary grid h-8 w-8 place-items-center rounded-full border border-white/5 bg-white/10 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-white/15 active:scale-[0.98]"
                 aria-label="Stop"
               >
                 <Square size={12} fill="currentColor" />
@@ -220,10 +227,10 @@ export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeh
                 onClick={send}
                 disabled={disabled || !value.trim()}
                 className={cn(
-                  "h-8 w-8 grid place-items-center rounded-full transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98]",
+                  "grid h-8 w-8 place-items-center rounded-full transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98]",
                   value.trim()
                     ? "bg-emerald-400 text-black shadow-[0_0_22px_-4px_rgba(52,211,153,0.7)] hover:bg-emerald-300"
-                    : "bg-white/10 text-text-muted border border-white/5 cursor-not-allowed"
+                    : "text-text-muted cursor-not-allowed border border-white/5 bg-white/10"
                 )}
                 aria-label="Send"
               >
@@ -233,7 +240,7 @@ export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeh
           </div>
         </div>
       </div>
-      <p className="text-center text-[10px] text-text-muted mt-2">
+      <p className="text-text-muted mt-2 text-center text-[10px]">
         Matrix Dash extracts memories silently after every reply.
       </p>
     </div>

@@ -16,7 +16,9 @@ const generateSchema = z.object({
 });
 
 export async function GET() {
-  return Response.json(getDb().select().from(images).orderBy(desc(images.createdAt)).limit(60).all());
+  return Response.json(
+    getDb().select().from(images).orderBy(desc(images.createdAt)).limit(60).all()
+  );
 }
 
 /** Generate via OpenAI Images API (works with OpenAI + OpenAI-compatible providers). */
@@ -35,8 +37,9 @@ export async function POST(req: Request) {
     ? db.select().from(aiProviders).where(eq(aiProviders.id, parsed.data.providerId)).get()
     : undefined;
   if (!provider) {
-    provider = db.select().from(aiProviders).where(eq(aiProviders.provider, "openai")).get()
-      ?? db.select().from(aiProviders).where(eq(aiProviders.provider, "custom")).get();
+    provider =
+      db.select().from(aiProviders).where(eq(aiProviders.provider, "openai")).get() ??
+      db.select().from(aiProviders).where(eq(aiProviders.provider, "custom")).get();
   }
   if (!provider) {
     return Response.json({ error: "No OpenAI-compatible provider configured." }, { status: 404 });
@@ -76,7 +79,13 @@ export async function POST(req: Request) {
 
   const id = randomUUID();
   db.insert(images)
-    .values({ id, prompt: parsed.data.prompt, dataUrl, provider: provider.name, createdAt: new Date().toISOString() })
+    .values({
+      id,
+      prompt: parsed.data.prompt,
+      dataUrl,
+      provider: provider.name,
+      createdAt: new Date().toISOString(),
+    })
     .run();
   return Response.json({ id, dataUrl });
 }

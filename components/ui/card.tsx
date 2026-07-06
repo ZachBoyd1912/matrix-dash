@@ -22,11 +22,14 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
 Card.displayName = "Card";
 
 export const CardHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("flex items-start justify-between gap-3 mb-3", className)} {...props} />
+  <div className={cn("mb-3 flex items-start justify-between gap-3", className)} {...props} />
 );
 export const CardTitle = ({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-  <h3 className={cn("text-sm font-semibold text-text-primary", className)} {...props} />
+  <h3 className={cn("text-text-primary text-sm font-semibold", className)} {...props} />
 );
-export const CardDescription = ({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
-  <p className={cn("text-xs text-text-secondary", className)} {...props} />
+export const CardDescription = ({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLParagraphElement>) => (
+  <p className={cn("text-text-secondary text-xs", className)} {...props} />
 );

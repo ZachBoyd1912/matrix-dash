@@ -64,8 +64,7 @@ export async function sendThreadReply(
 
 export async function searchMessages(workspaceId: string, query: string) {
   const r = await slackApi(workspaceId)("search.messages", { query });
-  return (r.messages?.matches ||
-    []) as Array<{
+  return (r.messages?.matches || []) as Array<{
     channel: { id: string; name: string };
     text: string;
     username: string;

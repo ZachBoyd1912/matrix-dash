@@ -26,8 +26,7 @@ const POLL_INTERVAL_MS = 1500;
 // ~2 min: the builder's Vite/Remix dev server can be slow to boot on first start.
 const POLL_MAX_TRIES = 80;
 
-const FALLBACK_URL =
-  process.env.NEXT_PUBLIC_MATRIX_BUILDER_URL ?? "http://localhost:5001";
+const FALLBACK_URL = process.env.NEXT_PUBLIC_MATRIX_BUILDER_URL ?? "http://localhost:5001";
 
 function LaunchLink({ url, primary }: { url: string; primary?: boolean }) {
   return (
@@ -37,8 +36,8 @@ function LaunchLink({ url, primary }: { url: string; primary?: boolean }) {
       rel="noopener noreferrer"
       className={
         primary
-          ? "inline-flex items-center gap-2 px-4 h-10 rounded-full bg-emerald-400 text-black text-sm font-semibold hover:bg-emerald-300 transition-colors"
-          : "inline-flex items-center gap-1.5 px-3 h-9 rounded-full glass-input text-xs text-text-secondary hover:text-emerald-400 hover:border-white/15 transition-colors"
+          ? "inline-flex h-10 items-center gap-2 rounded-full bg-emerald-400 px-4 text-sm font-semibold text-black transition-colors hover:bg-emerald-300"
+          : "glass-input text-text-secondary inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-xs transition-colors hover:border-white/15 hover:text-emerald-400"
       }
     >
       <ExternalLink size={primary ? 15 : 14} /> Open Matrix Builder
@@ -101,7 +100,9 @@ export default function MatrixBuilderGate() {
           return;
         }
         if (tries + 1 >= POLL_MAX_TRIES) {
-          setErrorMsg("Matrix Builder did not come up in time. You can still try opening it directly.");
+          setErrorMsg(
+            "Matrix Builder did not come up in time. You can still try opening it directly."
+          );
           setPhase("error");
           return;
         }
@@ -172,13 +173,13 @@ export default function MatrixBuilderGate() {
   if (phase === "ready" && status) {
     return (
       <div className="page-h grid place-items-center p-6">
-        <div className="w-full max-w-md text-center space-y-5">
-          <div className="inline-grid place-items-center h-14 w-14 rounded-2xl bg-emerald-400/10 border border-emerald-400/30 shadow-[0_0_24px_-6px_rgba(52,211,153,0.6)]">
+        <div className="w-full max-w-md space-y-5 text-center">
+          <div className="inline-grid h-14 w-14 place-items-center rounded-2xl border border-emerald-400/30 bg-emerald-400/10 shadow-[0_0_24px_-6px_rgba(52,211,153,0.6)]">
             <BuilderMark size={28} />
           </div>
           <div>
             <h2 className="text-lg font-bold tracking-tight">Matrix Builder is running</h2>
-            <p className="text-text-secondary text-sm mt-1">
+            <p className="text-text-secondary mt-1 text-sm">
               It opens in a new tab — Cloudflare Access protects it separately from the dashboard.
             </p>
           </div>
@@ -193,17 +194,19 @@ export default function MatrixBuilderGate() {
   if (phase === "error") {
     return (
       <div className="page-h grid place-items-center p-6">
-        <div className="w-full max-w-md text-center space-y-5">
-          <div className="inline-grid place-items-center h-14 w-14 rounded-2xl bg-amber-400/10 border border-amber-400/30 shadow-[0_0_24px_-6px_rgba(251,191,36,0.5)]">
+        <div className="w-full max-w-md space-y-5 text-center">
+          <div className="inline-grid h-14 w-14 place-items-center rounded-2xl border border-amber-400/30 bg-amber-400/10 shadow-[0_0_24px_-6px_rgba(251,191,36,0.5)]">
             <AlertTriangle size={24} className="text-amber-300" />
           </div>
           <div>
-            <h2 className="text-lg font-bold tracking-tight">Couldn&apos;t confirm Matrix Builder locally</h2>
-            <p className="text-text-secondary text-sm mt-1">
+            <h2 className="text-lg font-bold tracking-tight">
+              Couldn&apos;t confirm Matrix Builder locally
+            </h2>
+            <p className="text-text-secondary mt-1 text-sm">
               {errorMsg ?? "The Matrix Builder server could not be reached."}
             </p>
             {status?.dir && (
-              <p className="text-[10px] text-text-muted font-mono mt-2 break-all">{status.dir}</p>
+              <p className="text-text-muted mt-2 font-mono text-[10px] break-all">{status.dir}</p>
             )}
           </div>
           <div className="flex items-center justify-center gap-2">
@@ -222,15 +225,15 @@ export default function MatrixBuilderGate() {
   // be the only way to reach the builder.
   return (
     <div className="page-h grid place-items-center p-6">
-      <div className="flex flex-col items-center text-center gap-4">
-        <span className="relative grid place-items-center h-14 w-14 rounded-2xl bg-emerald-400/10 border border-emerald-400/30 shadow-[0_0_24px_-6px_rgba(52,211,153,0.6)]">
+      <div className="flex flex-col items-center gap-4 text-center">
+        <span className="relative grid h-14 w-14 place-items-center rounded-2xl border border-emerald-400/30 bg-emerald-400/10 shadow-[0_0_24px_-6px_rgba(52,211,153,0.6)]">
           <BuilderMark size={28} />
         </span>
-        <div className="glass rounded-full px-4 py-2.5 flex items-center gap-2.5 text-sm border border-white/5">
+        <div className="glass flex items-center gap-2.5 rounded-full border border-white/5 px-4 py-2.5 text-sm">
           <Loader2 size={16} className="animate-spin text-emerald-400" />
           {phase === "starting" ? "Starting Matrix Builder…" : "Checking Matrix Builder…"}
         </div>
-        <p className="eyebrow inline-flex items-center gap-1.5 text-text-muted">
+        <p className="eyebrow text-text-muted inline-flex items-center gap-1.5">
           <Sparkles size={11} className="text-emerald-300" /> First boot can take a moment
         </p>
         <LaunchLink url={launchUrl} />

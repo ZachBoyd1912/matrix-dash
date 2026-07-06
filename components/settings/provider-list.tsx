@@ -99,25 +99,31 @@ export function ProviderList({ providers, onChange }: Props) {
         <Card key={p.id} className="flex items-center justify-between gap-3 py-3">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-text-primary truncate">{p.name}</span>
-              {p.isActive && <Badge className="bg-emerald-400/10 border-emerald-400/20 text-emerald-400">Active</Badge>}
+              <span className="text-text-primary truncate text-sm font-medium">{p.name}</span>
+              {p.isActive && (
+                <Badge className="border-emerald-400/20 bg-emerald-400/10 text-emerald-400">
+                  Active
+                </Badge>
+              )}
             </div>
-            <div className="flex items-center gap-2 mt-1 text-[11px] text-text-muted">
+            <div className="text-text-muted mt-1 flex items-center gap-2 text-[11px]">
               <span className="capitalize">{p.provider}</span>
               <span>·</span>
               {editingId === p.id ? (
                 loadingModels ? (
-                  <span className="text-[11px] text-text-muted">Loading models…</span>
+                  <span className="text-text-muted text-[11px]">Loading models…</span>
                 ) : models.length > 0 ? (
                   <Select
                     value={model}
                     onChange={(e) => updateModel(p.id, e.target.value)}
                     onBlur={() => setEditingId(null)}
-                    className="h-6 text-[11px] w-56 py-0"
+                    className="h-6 w-56 py-0 text-[11px]"
                     autoFocus
                   >
                     {/* Keep the current value selectable even if the API omits it. */}
-                    {model && !models.some((m) => m.id === model) && <option value={model}>{model}</option>}
+                    {model && !models.some((m) => m.id === model) && (
+                      <option value={model}>{model}</option>
+                    )}
                     {models.map((m) => (
                       <option key={m.id} value={m.id}>
                         {m.label || m.id}
@@ -134,7 +140,7 @@ export function ProviderList({ providers, onChange }: Props) {
                       if (e.key === "Enter") updateModel(p.id, model);
                       if (e.key === "Escape") setEditingId(null);
                     }}
-                    className="h-6 text-[11px] w-48"
+                    className="h-6 w-48 text-[11px]"
                     autoFocus
                   />
                 )
@@ -146,12 +152,7 @@ export function ProviderList({ providers, onChange }: Props) {
             </div>
           </div>
           <div className="flex items-center gap-1">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => test(p)}
-              disabled={testingId === p.id}
-            >
+            <Button size="sm" variant="ghost" onClick={() => test(p)} disabled={testingId === p.id}>
               <FlaskConical size={12} /> {testingId === p.id ? "Testing…" : "Test"}
             </Button>
             {!p.isActive && (

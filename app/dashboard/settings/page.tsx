@@ -36,10 +36,8 @@ export default function ProvidersPage() {
           <span className="eyebrow">
             <Plug size={11} /> AI Providers
           </span>
-          <h1 className="display text-gradient text-4xl md:text-5xl mt-3">
-            AI Providers
-          </h1>
-          <p className="text-text-secondary text-sm mt-3 max-w-xl">
+          <h1 className="display text-gradient mt-3 text-4xl md:text-5xl">AI Providers</h1>
+          <p className="text-text-secondary mt-3 max-w-xl text-sm">
             Plug in any Anthropic, OpenAI, Google, or OpenAI-compatible endpoint.
           </p>
         </div>

@@ -18,7 +18,7 @@ interface Props {
 
 export function EditorTabs({ files, activeId, dirty, onSelect, onClose }: Props) {
   return (
-    <div className="flex items-stretch border-b border-white/5 overflow-x-auto">
+    <div className="flex items-stretch overflow-x-auto border-b border-white/5">
       {files.map((file) => {
         const isActive = file.id === activeId;
         const isDirty = dirty.has(file.id);
@@ -26,24 +26,22 @@ export function EditorTabs({ files, activeId, dirty, onSelect, onClose }: Props)
           <div
             key={file.id}
             className={cn(
-              "group relative flex items-center gap-2 px-3 h-9 border-r border-white/5 text-xs cursor-pointer transition-colors min-w-0",
+              "group relative flex h-9 min-w-0 cursor-pointer items-center gap-2 border-r border-white/5 px-3 text-xs transition-colors",
               isActive
-                ? "bg-white/[0.05] text-text-primary"
+                ? "text-text-primary bg-white/[0.05]"
                 : "text-text-secondary hover:bg-white/[0.03]"
             )}
             onClick={() => onSelect(file.id)}
           >
-            {isActive && (
-              <span className="absolute top-0 left-0 right-0 h-px bg-emerald-400" />
-            )}
-            <span className="truncate max-w-[160px]">{file.name}</span>
+            {isActive && <span className="absolute top-0 right-0 left-0 h-px bg-emerald-400" />}
+            <span className="max-w-[160px] truncate">{file.name}</span>
             {isDirty && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />}
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onClose(file.id);
               }}
-              className="text-text-muted hover:text-text-primary p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+              className="text-text-muted hover:text-text-primary rounded p-0.5 opacity-0 transition-opacity group-hover:opacity-100"
               aria-label="Close tab"
             >
               <X size={11} />

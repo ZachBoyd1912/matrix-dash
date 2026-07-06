@@ -1,8 +1,4 @@
-import {
-  snapshotServerLogs,
-  subscribeServerLogs,
-  clearServerLogs,
-} from "@/lib/services/log-bus";
+import { snapshotServerLogs, subscribeServerLogs, clearServerLogs } from "@/lib/services/log-bus";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";

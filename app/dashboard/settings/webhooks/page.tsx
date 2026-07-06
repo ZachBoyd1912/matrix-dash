@@ -59,7 +59,11 @@ export default function WebhooksPage() {
   };
 
   const remove = async (w: WebhookT) => {
-    const ok = await confirm({ title: `Delete "${w.label}"?`, confirmLabel: "Delete", danger: true });
+    const ok = await confirm({
+      title: `Delete "${w.label}"?`,
+      confirmLabel: "Delete",
+      danger: true,
+    });
     if (!ok) return;
     await fetch(`/api/webhooks?id=${w.id}`, { method: "DELETE" });
     refresh();
@@ -69,11 +73,16 @@ export default function WebhooksPage() {
     <div ref={ref} className="space-y-6">
       <div className="relative overflow-hidden py-10">
         <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
-        <div className="orb top-0 right-16 h-44 w-44 bg-sky-500/15" style={{ animationDelay: "-6s" }} />
+        <div
+          className="orb top-0 right-16 h-44 w-44 bg-sky-500/15"
+          style={{ animationDelay: "-6s" }}
+        />
         <div className="relative">
-          <span className="eyebrow"><Webhook size={11} /> Integrations</span>
-          <h1 className="display text-gradient text-4xl md:text-5xl mt-3">Webhooks</h1>
-          <p className="text-text-secondary text-sm mt-3 max-w-xl">
+          <span className="eyebrow">
+            <Webhook size={11} /> Integrations
+          </span>
+          <h1 className="display text-gradient mt-3 text-4xl md:text-5xl">Webhooks</h1>
+          <p className="text-text-secondary mt-3 max-w-xl text-sm">
             Outbound HTTP callbacks fired on events. Useful for Discord, Slack, IFTTT, n8n.
           </p>
           <div className="mt-6">
@@ -85,29 +94,40 @@ export default function WebhooksPage() {
       </div>
 
       {list.length === 0 && (
-        <Card className="rounded-2xl p-5 space-y-3">
+        <Card className="space-y-3 rounded-2xl p-5">
           <p className="text-sm font-semibold">Getting started</p>
-          <p className="text-xs text-text-secondary">
-            Webhooks let Matrix Dash POST JSON to any URL when certain events fire. Each webhook has a label, a target URL, and an optional event filter (<code className="bg-white/5 px-1 rounded">*</code> matches everything).
+          <p className="text-text-secondary text-xs">
+            Webhooks let Matrix Dash POST JSON to any URL when certain events fire. Each webhook has
+            a label, a target URL, and an optional event filter (
+            <code className="rounded bg-white/5 px-1">*</code> matches everything).
           </p>
           <div className="space-y-2">
-            <p className="text-[10px] uppercase tracking-wider text-text-muted">Examples</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <div className="rounded-lg bg-white/[0.02] border border-white/5 p-3">
-                <p className="text-[10px] font-semibold text-text-primary">Discord</p>
-                <p className="text-[10px] text-text-muted mt-1">Create a webhook in Discord channel settings, paste the URL here</p>
+            <p className="text-text-muted text-[10px] tracking-wider uppercase">Examples</p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <div className="rounded-lg border border-white/5 bg-white/[0.02] p-3">
+                <p className="text-text-primary text-[10px] font-semibold">Discord</p>
+                <p className="text-text-muted mt-1 text-[10px]">
+                  Create a webhook in Discord channel settings, paste the URL here
+                </p>
               </div>
-              <div className="rounded-lg bg-white/[0.02] border border-white/5 p-3">
-                <p className="text-[10px] font-semibold text-text-primary">Slack</p>
-                <p className="text-[10px] text-text-muted mt-1">Use a Slack Incoming Webhook <code className="bg-white/5 px-1 rounded">hooks.slack.com/services/…</code> URL</p>
+              <div className="rounded-lg border border-white/5 bg-white/[0.02] p-3">
+                <p className="text-text-primary text-[10px] font-semibold">Slack</p>
+                <p className="text-text-muted mt-1 text-[10px]">
+                  Use a Slack Incoming Webhook{" "}
+                  <code className="rounded bg-white/5 px-1">hooks.slack.com/services/…</code> URL
+                </p>
               </div>
-              <div className="rounded-lg bg-white/[0.02] border border-white/5 p-3">
-                <p className="text-[10px] font-semibold text-text-primary">n8n / IFTTT</p>
-                <p className="text-[10px] text-text-muted mt-1">Point to a webhook trigger URL in your automation platform</p>
+              <div className="rounded-lg border border-white/5 bg-white/[0.02] p-3">
+                <p className="text-text-primary text-[10px] font-semibold">n8n / IFTTT</p>
+                <p className="text-text-muted mt-1 text-[10px]">
+                  Point to a webhook trigger URL in your automation platform
+                </p>
               </div>
-              <div className="rounded-lg bg-white/[0.02] border border-white/5 p-3">
-                <p className="text-[10px] font-semibold text-text-primary">Custom API</p>
-                <p className="text-[10px] text-text-muted mt-1">Your own server — Matrix Dash sends a JSON POST with event, title, body</p>
+              <div className="rounded-lg border border-white/5 bg-white/[0.02] p-3">
+                <p className="text-text-primary text-[10px] font-semibold">Custom API</p>
+                <p className="text-text-muted mt-1 text-[10px]">
+                  Your own server — Matrix Dash sends a JSON POST with event, title, body
+                </p>
               </div>
             </div>
           </div>
@@ -123,13 +143,17 @@ export default function WebhooksPage() {
       ) : (
         <div className="space-y-3">
           {list.map((w) => (
-            <Card key={w.id} interactive className="flex items-center justify-between gap-3 rounded-2xl">
+            <Card
+              key={w.id}
+              interactive
+              className="flex items-center justify-between gap-3 rounded-2xl"
+            >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-text-primary">{w.label}</p>
+                  <p className="text-text-primary text-sm font-medium">{w.label}</p>
                   <Badge>{w.event}</Badge>
                 </div>
-                <p className="text-[11px] text-text-muted mt-0.5 truncate font-mono">{w.url}</p>
+                <p className="text-text-muted mt-0.5 truncate font-mono text-[11px]">{w.url}</p>
               </div>
               <Switch checked={!!w.isEnabled} onCheckedChange={() => toggle(w)} label="Enabled" />
               <Button size="icon" variant="ghost" onClick={() => remove(w)} aria-label="Delete">
@@ -142,17 +166,40 @@ export default function WebhooksPage() {
 
       <Dialog open={open} onClose={() => setOpen(false)} title="New webhook">
         <div className="space-y-3">
-          <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Label (e.g. Discord channel)" autoFocus />
-          <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://discord.com/api/webhooks/…" />
+          <Input
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="Label (e.g. Discord channel)"
+            autoFocus
+          />
+          <Input
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://discord.com/api/webhooks/…"
+          />
           <div>
-            <label className="block text-[10px] uppercase text-text-muted mb-1">Trigger event</label>
-            <select value={event} onChange={(e) => setEvent(e.target.value)} className="glass-input h-9 px-2 rounded-md text-sm w-full">
-              {EVENTS.map((e) => (<option key={e} value={e}>{e}</option>))}
+            <label className="text-text-muted mb-1 block text-[10px] uppercase">
+              Trigger event
+            </label>
+            <select
+              value={event}
+              onChange={(e) => setEvent(e.target.value)}
+              className="glass-input h-9 w-full rounded-md px-2 text-sm"
+            >
+              {EVENTS.map((e) => (
+                <option key={e} value={e}>
+                  {e}
+                </option>
+              ))}
             </select>
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button variant="primary" onClick={create} disabled={!label.trim() || !url.trim()}>Create</Button>
+            <Button variant="ghost" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={create} disabled={!label.trim() || !url.trim()}>
+              Create
+            </Button>
           </div>
         </div>
       </Dialog>

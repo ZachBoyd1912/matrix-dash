@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb, getSqlite } from "@/lib/db/client";
-import { memories, memoryLinks } from "@/lib/db/schema";
+import { memories } from "@/lib/db/schema";
 import { MEMORY_TYPES, type Memory, type LinkedMemory } from "@/types/memory";
 
 export const dynamic = "force-dynamic";
@@ -35,7 +35,13 @@ export async function GET(_req: Request, ctx: Ctx) {
        FROM memory_links ml JOIN memories m ON ml.target_memory_id = m.id
        WHERE ml.source_memory_id = ?`
     )
-    .all(id) as Array<{ linkId: string; strength: number; id: string; content: string; type: Memory["type"] }>;
+    .all(id) as Array<{
+    linkId: string;
+    strength: number;
+    id: string;
+    content: string;
+    type: Memory["type"];
+  }>;
 
   const incoming = getSqlite()
     .prepare(
@@ -44,7 +50,13 @@ export async function GET(_req: Request, ctx: Ctx) {
        FROM memory_links ml JOIN memories m ON ml.source_memory_id = m.id
        WHERE ml.target_memory_id = ?`
     )
-    .all(id) as Array<{ linkId: string; strength: number; id: string; content: string; type: Memory["type"] }>;
+    .all(id) as Array<{
+    linkId: string;
+    strength: number;
+    id: string;
+    content: string;
+    type: Memory["type"];
+  }>;
 
   const links: LinkedMemory[] = [
     ...outgoing.map((l) => ({

@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Brain } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -35,7 +34,7 @@ export default function MemorySettingsPage() {
     <div ref={ref} className="space-y-6">
       <div>
         <h2 className="text-xl font-bold tracking-tight">Memory & extraction</h2>
-        <p className="text-text-secondary text-sm mt-1">
+        <p className="text-text-secondary mt-1 text-sm">
           Tune what the autonomous memory system does in the background.
         </p>
       </div>
@@ -81,15 +80,15 @@ export default function MemorySettingsPage() {
       </Card>
 
       <Card>
-        <p className="text-sm font-medium mb-1">System prompt</p>
-        <p className="text-xs text-text-secondary mb-3">
+        <p className="mb-1 text-sm font-medium">System prompt</p>
+        <p className="text-text-secondary mb-3 text-xs">
           Prepended to every conversation, after auto-injected memories.
         </p>
         <textarea
           value={settings.systemPrompt ?? ""}
           onChange={(e) => update({ systemPrompt: e.target.value })}
           rows={4}
-          className="glass-input w-full rounded-md p-3 text-sm resize-y"
+          className="glass-input w-full resize-y rounded-md p-3 text-sm"
           placeholder="You are a helpful AI assistant…"
         />
       </Card>
@@ -106,7 +105,10 @@ export default function MemorySettingsPage() {
               onClick={async () => {
                 const res = await fetch("/api/memories/tidy", { method: "POST" });
                 const data = await res.json();
-                toast.success("Tidy complete", `${data.tidy.merged} merged, ${data.tidy.deleted} removed.`);
+                toast.success(
+                  "Tidy complete",
+                  `${data.tidy.merged} merged, ${data.tidy.deleted} removed.`
+                );
               }}
             >
               Tidy now
@@ -117,7 +119,10 @@ export default function MemorySettingsPage() {
               onClick={async () => {
                 const res = await fetch("/api/memories/tidy?decay=1", { method: "POST" });
                 const data = await res.json();
-                toast.success("Decay complete", `${data.decay.adjusted} adjusted, ${data.decay.pruned} pruned.`);
+                toast.success(
+                  "Decay complete",
+                  `${data.decay.adjusted} adjusted, ${data.decay.pruned} pruned.`
+                );
               }}
             >
               Run decay
@@ -141,8 +146,8 @@ function Row({
   return (
     <div className="flex items-center justify-between gap-4">
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-text-primary">{title}</p>
-        <p className="text-xs text-text-secondary mt-0.5">{description}</p>
+        <p className="text-text-primary text-sm font-medium">{title}</p>
+        <p className="text-text-secondary mt-0.5 text-xs">{description}</p>
       </div>
       <div className="shrink-0">{children}</div>
     </div>

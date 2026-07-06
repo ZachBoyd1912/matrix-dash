@@ -1,4 +1,3 @@
-import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { notifications } from "@/lib/db/schema";
 import { listNotifications } from "@/lib/services/notify";

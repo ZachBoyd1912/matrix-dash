@@ -214,10 +214,15 @@ export default function CodeServerGate() {
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ action: "start", folder: rec.path }),
         });
-        const startData = (await startRes.json().catch(() => ({ ok: false }))) as ServerActionResponse;
+        const startData = (await startRes
+          .json()
+          .catch(() => ({ ok: false }))) as ServerActionResponse;
         if (!startRes.ok || !startData.ok) {
           if (mounted.current) {
-            toast.error("Could not start VS Code", startData.error ?? "The server failed to start.");
+            toast.error(
+              "Could not start VS Code",
+              startData.error ?? "The server failed to start."
+            );
             setLaunching(false);
             setPhase("picker");
           }
@@ -315,8 +320,9 @@ export default function CodeServerGate() {
   if (phase === "loading") {
     return (
       <div className="page-h grid place-items-center p-6">
-        <div className="glass rounded-full px-4 py-2.5 flex items-center gap-2.5 text-text-muted text-sm border border-white/5 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]">
-          <Loader2 size={16} className="animate-spin text-text-secondary" /> Checking VS Code server…
+        <div className="glass text-text-muted flex items-center gap-2.5 rounded-full border border-white/5 px-4 py-2.5 text-sm transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]">
+          <Loader2 size={16} className="text-text-secondary animate-spin" /> Checking VS Code
+          server…
         </div>
       </div>
     );
@@ -324,7 +330,7 @@ export default function CodeServerGate() {
 
   if (phase === "running" && status?.running) {
     return (
-      <div className="page-h flex flex-col min-h-0">
+      <div className="page-h flex min-h-0 flex-col">
         <CodeServerEmbed
           url={status.url}
           folder={folder}
@@ -340,7 +346,7 @@ export default function CodeServerGate() {
   if (phase === "starting") {
     return (
       <div className="page-h grid place-items-center p-6">
-        <div className="glass rounded-full px-4 py-2.5 flex items-center gap-2.5 text-emerald-300 text-sm border border-emerald-400/30 bg-emerald-400/10 shadow-[0_0_18px_-6px_rgba(52,211,153,0.6)] transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]">
+        <div className="glass flex items-center gap-2.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2.5 text-sm text-emerald-300 shadow-[0_0_18px_-6px_rgba(52,211,153,0.6)] transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]">
           <Loader2 size={16} className="animate-spin text-emerald-400" /> Starting VS Code…
         </div>
       </div>
@@ -352,15 +358,15 @@ export default function CodeServerGate() {
     <div className="page-h grid place-items-center p-6">
       <div className="w-full max-w-xl space-y-6">
         <div className="flex flex-col items-center text-center">
-          <div className="inline-grid place-items-center h-14 w-14 rounded-2xl bg-emerald-400/10 border border-emerald-400/30 mb-4 shadow-[0_0_24px_-6px_rgba(52,211,153,0.6)]">
+          <div className="mb-4 inline-grid h-14 w-14 place-items-center rounded-2xl border border-emerald-400/30 bg-emerald-400/10 shadow-[0_0_24px_-6px_rgba(52,211,153,0.6)]">
             <ServerCog size={24} className="text-emerald-300" />
           </div>
-          <span className="eyebrow inline-flex items-center gap-1.5 mb-3">
+          <span className="eyebrow mb-3 inline-flex items-center gap-1.5">
             <Sparkles size={11} className="text-emerald-300" />
             Embedded editor
           </span>
           <h2 className="text-xl font-bold tracking-tight">Real VS Code in Matrix</h2>
-          <p className="text-text-secondary text-sm mt-1">
+          <p className="text-text-secondary mt-1 text-sm">
             Launch a full code-server workspace and use it right inside this tab.
           </p>
         </div>
@@ -374,7 +380,7 @@ export default function CodeServerGate() {
         ) : (
           <>
             <div className="bezel sheen rounded-2xl p-1.5">
-              <div className="bezel-core rounded-[calc(1.5rem-6px)] p-4 space-y-3">
+              <div className="bezel-core space-y-3 rounded-[calc(1.5rem-6px)] p-4">
                 <label className="eyebrow block w-fit">Folder path</label>
                 <div className="flex gap-2">
                   <Input
@@ -391,12 +397,12 @@ export default function CodeServerGate() {
                     variant="primary"
                     onClick={() => launch(pathInput)}
                     disabled={launching || !pathInput.trim()}
-                    className="rounded-full active:scale-[0.98] transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                    className="rounded-full transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98]"
                   >
                     <Play size={14} /> {launching ? "Launching…" : "Launch in workspace"}
                   </Button>
                 </div>
-                <p className="text-[10px] text-text-muted">
+                <p className="text-text-muted text-[10px]">
                   Paste an absolute path. VS Code opens this folder as its workspace root.
                 </p>
               </div>
@@ -411,20 +417,23 @@ export default function CodeServerGate() {
                   {recents.map((r) => (
                     <div
                       key={r.id}
-                      className="group flex items-center gap-3 px-3 py-2.5 rounded-xl glass-input border border-white/5 cursor-pointer hover:border-emerald-400/30 hover:bg-emerald-400/10 hover:shadow-[0_0_18px_-8px_rgba(52,211,153,0.6)] active:scale-[0.98] transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                      className="group glass-input flex cursor-pointer items-center gap-3 rounded-xl border border-white/5 px-3 py-2.5 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-emerald-400/30 hover:bg-emerald-400/10 hover:shadow-[0_0_18px_-8px_rgba(52,211,153,0.6)] active:scale-[0.98]"
                       onClick={() => launch(r.path)}
                     >
-                      <HardDrive size={15} className="text-text-muted shrink-0 group-hover:text-emerald-300 transition-colors duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]" />
+                      <HardDrive
+                        size={15}
+                        className="text-text-muted shrink-0 transition-colors duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:text-emerald-300"
+                      />
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-text-primary truncate">{r.name}</p>
-                        <p className="text-[10px] text-text-muted font-mono truncate">{r.path}</p>
+                        <p className="text-text-primary truncate text-sm font-medium">{r.name}</p>
+                        <p className="text-text-muted truncate font-mono text-[10px]">{r.path}</p>
                       </div>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           removeRecent(r.id);
                         }}
-                        className="text-text-muted hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.9] p-1"
+                        className="text-text-muted p-1 opacity-0 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:opacity-100 hover:text-rose-400 active:scale-[0.9]"
                         aria-label="Remove from recents"
                       >
                         <X size={13} />

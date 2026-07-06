@@ -46,7 +46,10 @@ export async function* runResearch(question: string): AsyncGenerator<ResearchEve
     try {
       results = await webSearch(sq);
     } catch (err) {
-      yield { type: "status", message: `Search failed: ${err instanceof Error ? err.message : String(err)}` };
+      yield {
+        type: "status",
+        message: `Search failed: ${err instanceof Error ? err.message : String(err)}`,
+      };
       continue;
     }
 

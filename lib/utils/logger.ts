@@ -55,7 +55,9 @@ export const logger = {
   req(method: string, path: string, status: number, ms: number) {
     const m = `${methodColor(method)}${method.padEnd(6)}${C.reset}`;
     const s = `${statusColor(status)}${status}${C.reset}`;
-    console.log(`${stamp()} ${m} ${C.white}${path}${C.reset} ${C.gray}→${C.reset} ${s} ${fmtMs(ms)}`);
+    console.log(
+      `${stamp()} ${m} ${C.white}${path}${C.reset} ${C.gray}→${C.reset} ${s} ${fmtMs(ms)}`
+    );
   },
   info(msg: string) {
     console.log(`${stamp()} ${C.blue}info${C.reset}  ${msg}`);
@@ -68,7 +70,9 @@ export const logger = {
   },
   error(msg: string, err?: unknown) {
     const detail = err instanceof Error ? `${err.message}` : err ? String(err) : "";
-    console.error(`${stamp()} ${C.red}error${C.reset} ${msg}${detail ? ` ${C.dim}${detail}${C.reset}` : ""}`);
+    console.error(
+      `${stamp()} ${C.red}error${C.reset} ${msg}${detail ? ` ${C.dim}${detail}${C.reset}` : ""}`
+    );
   },
 };
 

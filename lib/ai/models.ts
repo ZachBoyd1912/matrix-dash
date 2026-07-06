@@ -66,7 +66,10 @@ function bearerBase(kind: string, baseUrl?: string | null): string {
   return baseUrl || spec?.baseUrl || "https://api.openai.com/v1";
 }
 
-async function fetchModels(opts: ListModelsOpts, signal: AbortSignal): Promise<{ id: string; label?: string }[]> {
+async function fetchModels(
+  opts: ListModelsOpts,
+  signal: AbortSignal
+): Promise<{ id: string; label?: string }[]> {
   const { kind, apiKey, baseUrl } = opts;
   const sdk = providerSpec(kind)?.sdk ?? "openai-compat";
 
@@ -129,8 +132,16 @@ export async function listModels(opts: ListModelsOpts): Promise<ListModelsResult
 
 // ── Reasoning → provider options ─────────────────────────────────────────────
 
-const ANTHROPIC_BUDGET: Record<Exclude<ReasoningEffort, "off">, number> = { low: 4000, medium: 8000, high: 16000 };
-const GOOGLE_BUDGET: Record<Exclude<ReasoningEffort, "off">, number> = { low: 2048, medium: 8192, high: 24576 };
+const ANTHROPIC_BUDGET: Record<Exclude<ReasoningEffort, "off">, number> = {
+  low: 4000,
+  medium: 8000,
+  high: 16000,
+};
+const GOOGLE_BUDGET: Record<Exclude<ReasoningEffort, "off">, number> = {
+  low: 2048,
+  medium: 8192,
+  high: 24576,
+};
 
 /**
  * Translate a per-request reasoning effort into AI SDK `providerOptions`, scoped
@@ -156,7 +167,9 @@ export function buildProviderOptions(
 
   switch (sdk) {
     case "anthropic":
-      return { anthropic: { thinking: { type: "enabled", budgetTokens: ANTHROPIC_BUDGET[level] } } };
+      return {
+        anthropic: { thinking: { type: "enabled", budgetTokens: ANTHROPIC_BUDGET[level] } },
+      };
     case "google":
       return { google: { thinkingConfig: { thinkingBudget: GOOGLE_BUDGET[level] } } };
     case "xai":

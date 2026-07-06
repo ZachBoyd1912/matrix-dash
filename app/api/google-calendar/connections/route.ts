@@ -22,9 +22,6 @@ export async function DELETE(req: Request) {
   const url = new URL(req.url);
   const id = url.searchParams.get("id");
   if (!id) return Response.json({ error: "id required" }, { status: 400 });
-  getDb()
-    .delete(googleCalendarConnections)
-    .where(eq(googleCalendarConnections.id, id))
-    .run();
+  getDb().delete(googleCalendarConnections).where(eq(googleCalendarConnections.id, id)).run();
   return Response.json({ ok: true });
 }

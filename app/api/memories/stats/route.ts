@@ -6,8 +6,16 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const db = getDb();
-  const total = db.select({ c: sql<number>`count(*)` }).from(memories).get()?.c ?? 0;
-  const links = db.select({ c: sql<number>`count(*)` }).from(memoryLinks).get()?.c ?? 0;
+  const total =
+    db
+      .select({ c: sql<number>`count(*)` })
+      .from(memories)
+      .get()?.c ?? 0;
+  const links =
+    db
+      .select({ c: sql<number>`count(*)` })
+      .from(memoryLinks)
+      .get()?.c ?? 0;
   const byType = db
     .select({ type: memories.type, c: sql<number>`count(*)` })
     .from(memories)

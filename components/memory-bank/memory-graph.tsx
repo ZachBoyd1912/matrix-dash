@@ -103,9 +103,7 @@ export function MemoryGraph({ data, onSelect }: Props) {
       .attr("stroke-opacity", 0.9)
       .attr("stroke-width", (d) => (d.isPinned ? 2 : 0.8));
 
-    node
-      .append("title")
-      .text((d) => `${d.label}\n(${d.type} · used ${d.usageCount}×)`);
+    node.append("title").text((d) => `${d.label}\n(${d.type} · used ${d.usageCount}×)`);
 
     node
       .append("text")
@@ -168,7 +166,7 @@ export function MemoryGraph({ data, onSelect }: Props) {
       <svg ref={ref} className="absolute inset-0 h-full w-full" />
       <div className="absolute top-3 left-3 flex flex-col gap-1 text-[10px]">
         {(Object.keys(TYPE_COLOR) as MemoryType[]).map((t) => (
-          <div key={t} className="flex items-center gap-1.5 text-text-muted">
+          <div key={t} className="text-text-muted flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full" style={{ background: TYPE_COLOR[t] }} />
             {MEMORY_TYPE_META[t].label}
           </div>

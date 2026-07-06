@@ -11,8 +11,22 @@ import { requestApproval, type AgentRequestContext } from "@/lib/ai/approvals";
 
 /** Directories never searched/listed — heavy, generated, or VCS internals. */
 const IGNORED = new Set([
-  "node_modules", ".git", ".next", ".turbo", ".cache", "dist", "build", "out",
-  "coverage", "__pycache__", ".pytest_cache", ".venv", "venv", ".idea", "target", ".DS_Store",
+  "node_modules",
+  ".git",
+  ".next",
+  ".turbo",
+  ".cache",
+  "dist",
+  "build",
+  "out",
+  "coverage",
+  "__pycache__",
+  ".pytest_cache",
+  ".venv",
+  "venv",
+  ".idea",
+  "target",
+  ".DS_Store",
 ]);
 
 const WALK_MAX_FILES = 4000;
@@ -46,9 +60,17 @@ async function gate(
   if (getSetting(`approve_${toolName}`) === "1") return null; // remembered "allow always"
   const ctx = options.experimental_context as AgentRequestContext | undefined;
   if (!ctx?.emit) {
-    return { blocked: true, reason: `'${toolName}' requires approval but no interactive session is available.` };
+    return {
+      blocked: true,
+      reason: `'${toolName}' requires approval but no interactive session is available.`,
+    };
   }
-  const decision = await requestApproval(ctx, { toolCallId: options.toolCallId, toolName, input, summary });
+  const decision = await requestApproval(ctx, {
+    toolCallId: options.toolCallId,
+    toolName,
+    input,
+    summary,
+  });
   if (decision === "deny") return { blocked: true, reason: "Denied by the user." };
   return null;
 }
@@ -242,8 +264,12 @@ export function buildCodingTools(level: PowerLevel, root: string): ToolSet {
           const count = countOccurrences(before, oldString);
           if (count === 0) return { error: `oldString not found in ${relToRoot(root, abs)}` };
           if (count > 1 && !replaceAll)
-            return { error: `oldString is not unique (${count} matches). Add context or pass replaceAll.` };
-          const after = replaceAll ? before.split(oldString).join(newString) : before.replace(oldString, newString);
+            return {
+              error: `oldString is not unique (${count} matches). Add context or pass replaceAll.`,
+            };
+          const after = replaceAll
+            ? before.split(oldString).join(newString)
+            : before.replace(oldString, newString);
           writeFileContent(abs, after);
           return { edited: true, path: relToRoot(root, abs), replacements: replaceAll ? count : 1 };
         } catch (e) {
@@ -253,15 +279,26 @@ export function buildCodingTools(level: PowerLevel, root: string): ToolSet {
     });
 
     toolset.multiEdit = tool({
-      description: "Apply several exact-string edits to one file atomically (in order). Each oldString must match.",
+      description:
+        "Apply several exact-string edits to one file atomically (in order). Each oldString must match.",
       inputSchema: z.object({
         path: z.string(),
         edits: z.array(
-          z.object({ oldString: z.string(), newString: z.string(), replaceAll: z.boolean().optional() })
+          z.object({
+            oldString: z.string(),
+            newString: z.string(),
+            replaceAll: z.boolean().optional(),
+          })
         ),
       }),
       execute: async ({ path: p, edits }, options) => {
-        const guard = await gate("multiEdit", `Edit ${p} (${edits.length} changes)`, { path: p }, level, options);
+        const guard = await gate(
+          "multiEdit",
+          `Edit ${p} (${edits.length} changes)`,
+          { path: p },
+          level,
+          options
+        );
         if (guard) return guard;
         try {
           const abs = resolveInRoot(root, p);
@@ -269,9 +306,13 @@ export function buildCodingTools(level: PowerLevel, root: string): ToolSet {
           let total = 0;
           for (const e of edits) {
             const count = countOccurrences(content, e.oldString);
-            if (count === 0) return { error: `oldString not found: "${e.oldString.slice(0, 50)}…"` };
-            if (count > 1 && !e.replaceAll) return { error: `oldString not unique (${count}): "${e.oldString.slice(0, 50)}…"` };
-            content = e.replaceAll ? content.split(e.oldString).join(e.newString) : content.replace(e.oldString, e.newString);
+            if (count === 0)
+              return { error: `oldString not found: "${e.oldString.slice(0, 50)}…"` };
+            if (count > 1 && !e.replaceAll)
+              return { error: `oldString not unique (${count}): "${e.oldString.slice(0, 50)}…"` };
+            content = e.replaceAll
+              ? content.split(e.oldString).join(e.newString)
+              : content.replace(e.oldString, e.newString);
             total += e.replaceAll ? count : 1;
           }
           writeFileContent(abs, content);

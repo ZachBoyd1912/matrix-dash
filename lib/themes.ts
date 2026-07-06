@@ -33,8 +33,22 @@ export const THEMES: ThemeMeta[] = [
   { id: "lavender", label: "Lavender", bg: "#1a1528", surface: "#241d38", accent: "#a78bfa" },
   { id: "cute", label: "Cute", bg: "#1f0a1f", surface: "#2c0f2c", accent: "#f472b6" },
   { id: "gpt", label: "GPT", bg: "#0d0d0d", surface: "#161616", accent: "#9ca3af" },
-  { id: "paper", label: "Paper Signal", bg: "#f4ecdd", surface: "#faf5ea", accent: "#a8461f", light: true },
-  { id: "light", label: "Light", bg: "#f8f8f8", surface: "#ffffff", accent: "#34d399", light: true },
+  {
+    id: "paper",
+    label: "Paper Signal",
+    bg: "#f4ecdd",
+    surface: "#faf5ea",
+    accent: "#a8461f",
+    light: true,
+  },
+  {
+    id: "light",
+    label: "Light",
+    bg: "#f8f8f8",
+    surface: "#ffffff",
+    accent: "#34d399",
+    light: true,
+  },
 ];
 
 export const THEME_IDS = THEMES.map((t) => t.id);
@@ -86,7 +100,11 @@ export function customThemeToCss(c: CustomTheme): string {
 
 function hexToHsl(hex: string): [number, number, number] {
   let h = hex.replace("#", "");
-  if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+  if (h.length === 3)
+    h = h
+      .split("")
+      .map((c) => c + c)
+      .join("");
   const r = parseInt(h.slice(0, 2), 16) / 255;
   const g = parseInt(h.slice(2, 4), 16) / 255;
   const b = parseInt(h.slice(4, 6), 16) / 255;
@@ -113,7 +131,9 @@ function hslToHex(hh: number, ss: number, ll: number): string {
   const c = (1 - Math.abs(2 * l - 1)) * s;
   const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
   const m = l - c / 2;
-  let r = 0, g = 0, b = 0;
+  let r = 0,
+    g = 0,
+    b = 0;
   if (h < 60) [r, g, b] = [c, x, 0];
   else if (h < 120) [r, g, b] = [x, c, 0];
   else if (h < 180) [r, g, b] = [0, c, x];
@@ -130,11 +150,21 @@ function hslToHex(hh: number, ss: number, ll: number): string {
 export type Harmony = "complementary" | "analogous" | "triadic" | "split";
 
 /** Generate a full token set from an accent + harmony rule + light/dark mode. */
-export function generateHarmony(accent: string, harmony: Harmony, mode: "dark" | "light"): CustomTheme {
+export function generateHarmony(
+  accent: string,
+  harmony: Harmony,
+  mode: "dark" | "light"
+): CustomTheme {
   const [h, s] = hexToHsl(accent);
   // Secondary hue depends on the harmony rule (used to tint the surfaces).
   const shift =
-    harmony === "complementary" ? 180 : harmony === "triadic" ? 120 : harmony === "split" ? 150 : 30;
+    harmony === "complementary"
+      ? 180
+      : harmony === "triadic"
+        ? 120
+        : harmony === "split"
+          ? 150
+          : 30;
   const baseHue = (h + shift) % 360;
   const sat = Math.min(0.5, Math.max(0.12, s * 0.4));
 

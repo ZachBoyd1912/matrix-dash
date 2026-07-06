@@ -19,7 +19,9 @@ export default function CalendarSettingsPage() {
   const ref = useGsapEntrance();
   const searchParams = useSearchParams();
   const [list, setList] = useState<CalT[]>([]);
-  const [googleConns, setGoogleConns] = useState<Array<{ id: string; googleEmail: string; isActive: boolean | null }>>([]);
+  const [googleConns, setGoogleConns] = useState<
+    Array<{ id: string; googleEmail: string; isActive: boolean | null }>
+  >([]);
   const [open, setOpen] = useState(false);
   const [provider, setProvider] = useState<ProviderType>("local");
   const [name, setName] = useState("");
@@ -36,7 +38,8 @@ export default function CalendarSettingsPage() {
         missing_env: msg ? decodeURIComponent(msg) : "GOOGLE_CLIENT_ID not set in .env.local",
         oauth_denied: "Authorization was denied. Check the OAuth consent screen permissions.",
         invalid_state: "Session expired. The OAuth state was invalid or already used — try again.",
-        token_exchange_failed: "Failed to exchange the authorization code for a token. Check your GOOGLE_CLIENT_SECRET.",
+        token_exchange_failed:
+          "Failed to exchange the authorization code for a token. Check your GOOGLE_CLIENT_SECRET.",
       };
       setOauthError(messages[err] || `OAuth error: ${err}`);
     }
@@ -45,13 +48,17 @@ export default function CalendarSettingsPage() {
   const refresh = useCallback(async () => {
     const [cals, gc] = await Promise.all([
       fetch("/api/calendars").then((r) => r.json()),
-      fetch("/api/google-calendar/connections").then((r) => r.json()).catch(() => []),
+      fetch("/api/google-calendar/connections")
+        .then((r) => r.json())
+        .catch(() => []),
     ]);
     setList(Array.isArray(cals) ? cals : []);
     setGoogleConns(Array.isArray(gc) ? gc : []);
   }, []);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
   const create = async () => {
     if (!name.trim()) return;
@@ -66,22 +73,33 @@ export default function CalendarSettingsPage() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
     });
-    if (!res.ok) { toast.error("Failed to create calendar"); return; }
+    if (!res.ok) {
+      toast.error("Failed to create calendar");
+      return;
+    }
     toast.success("Calendar created");
-    setName(""); setCaldavUrl(""); setCaldavUser(""); setCaldavPass(""); setProvider("local");
+    setName("");
+    setCaldavUrl("");
+    setCaldavUser("");
+    setCaldavPass("");
+    setProvider("local");
     setOpen(false);
     refresh();
   };
 
   const remove = async (cal: CalT) => {
-    const ok = await confirm({ title: `Delete "${cal.name}"?`, confirmLabel: "Delete", danger: true });
+    const ok = await confirm({
+      title: `Delete "${cal.name}"?`,
+      confirmLabel: "Delete",
+      danger: true,
+    });
     if (!ok) return;
     await fetch(`/api/calendars/${cal.id}`, { method: "DELETE" });
     toast.success("Calendar removed");
     refresh();
   };
 
-  const disconnectGoogle = async (conn: typeof googleConns[number]) => {
+  const disconnectGoogle = async (conn: (typeof googleConns)[number]) => {
     const ok = await confirm({
       title: `Disconnect ${conn.googleEmail} from Google Calendar?`,
       confirmLabel: "Disconnect",
@@ -94,7 +112,8 @@ export default function CalendarSettingsPage() {
   };
 
   const handleGoogleOAuth = () => {
-    window.location.href = "/api/oauth/google-calendar/authorize?redirect_to=" +
+    window.location.href =
+      "/api/oauth/google-calendar/authorize?redirect_to=" +
       encodeURIComponent(window.location.pathname);
   };
 
@@ -104,11 +123,16 @@ export default function CalendarSettingsPage() {
     <div ref={ref} className="space-y-6">
       <div className="relative isolate py-10">
         <div className="orb -top-16 left-10 h-52 w-52 bg-pink-500/20" />
-        <div className="orb top-0 left-40 h-40 w-40 bg-rose-500/15" style={{ animationDelay: "-6s" }} />
+        <div
+          className="orb top-0 left-40 h-40 w-40 bg-rose-500/15"
+          style={{ animationDelay: "-6s" }}
+        />
         <div className="relative">
-          <span className="eyebrow"><Calendar size={11} /> Calendar</span>
-          <h1 className="display text-gradient text-4xl md:text-5xl mt-3">Calendar</h1>
-          <p className="text-text-secondary text-sm mt-3 max-w-xl">
+          <span className="eyebrow">
+            <Calendar size={11} /> Calendar
+          </span>
+          <h1 className="display text-gradient mt-3 text-4xl md:text-5xl">Calendar</h1>
+          <p className="text-text-secondary mt-3 max-w-xl text-sm">
             Manage personal calendars — local, CalDAV, or Google Calendar.
           </p>
           <Button variant="primary" className="mt-6" onClick={() => setOpen(true)}>
@@ -119,21 +143,30 @@ export default function CalendarSettingsPage() {
 
       {/* Google Calendar connection card */}
       {activeGoogle && (
-        <Card interactive className="rounded-2xl mb-4">
+        <Card interactive className="mb-4 rounded-2xl">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 grid place-items-center shrink-0">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/5">
                 <Globe size={18} className="text-blue-400" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-text-primary">{activeGoogle.googleEmail}</p>
-                  <Badge className="bg-emerald-400/10 border-emerald-400/20 text-emerald-400">● Connected</Badge>
+                  <p className="text-text-primary text-sm font-medium">
+                    {activeGoogle.googleEmail}
+                  </p>
+                  <Badge className="border-emerald-400/20 bg-emerald-400/10 text-emerald-400">
+                    ● Connected
+                  </Badge>
                 </div>
-                <p className="text-[11px] text-text-muted mt-0.5">Google Calendar</p>
+                <p className="text-text-muted mt-0.5 text-[11px]">Google Calendar</p>
               </div>
             </div>
-            <Button size="icon" variant="ghost" onClick={() => disconnectGoogle(activeGoogle)} aria-label="Disconnect">
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => disconnectGoogle(activeGoogle)}
+              aria-label="Disconnect"
+            >
               <Trash2 size={13} className="text-rose-400" />
             </Button>
           </div>
@@ -144,35 +177,36 @@ export default function CalendarSettingsPage() {
       {!activeGoogle && (
         <>
           {oauthError && (
-            <Card className="rounded-2xl p-4 border-amber-400/20 bg-amber-400/5 space-y-2">
+            <Card className="space-y-2 rounded-2xl border-amber-400/20 bg-amber-400/5 p-4">
               <div className="flex items-center gap-2">
                 <AlertTriangle size={14} className="text-amber-400" />
                 <p className="text-sm font-semibold text-amber-400">Configuration needed</p>
               </div>
-              <p className="text-xs text-text-secondary">{oauthError}</p>
-              <p className="text-[10px] text-text-muted">
-                Add <code className="bg-white/5 px-1 rounded">GOOGLE_CLIENT_ID</code> and{" "}
-                <code className="bg-white/5 px-1 rounded">GOOGLE_CLIENT_SECRET</code> to{" "}
-                <code className="bg-white/5 px-1 rounded">.env.local</code> from your Google Cloud Console project
-                with the Calendar API enabled.
+              <p className="text-text-secondary text-xs">{oauthError}</p>
+              <p className="text-text-muted text-[10px]">
+                Add <code className="rounded bg-white/5 px-1">GOOGLE_CLIENT_ID</code> and{" "}
+                <code className="rounded bg-white/5 px-1">GOOGLE_CLIENT_SECRET</code> to{" "}
+                <code className="rounded bg-white/5 px-1">.env.local</code> from your Google Cloud
+                Console project with the Calendar API enabled.
               </p>
             </Card>
           )}
-          <Card className="rounded-2xl p-5 space-y-3">
-          <div className="flex items-center gap-2">
-            <Globe size={16} className="text-blue-400" />
-            <p className="text-sm font-semibold">Google Calendar</p>
-          </div>
-          <p className="text-xs text-text-secondary">
-            Connect your Google account to sync calendars — meetings, reminders, and shared events from Gmail.
-          </p>
-          <Button variant="secondary" onClick={handleGoogleOAuth}>
-            <Globe size={14} /> Connect Google Calendar
-          </Button>
-          <p className="text-[10px] text-text-muted">
-            Requests calendar.readonly scope. Your events stay private to your machine.
-          </p>
-        </Card>
+          <Card className="space-y-3 rounded-2xl p-5">
+            <div className="flex items-center gap-2">
+              <Globe size={16} className="text-blue-400" />
+              <p className="text-sm font-semibold">Google Calendar</p>
+            </div>
+            <p className="text-text-secondary text-xs">
+              Connect your Google account to sync calendars — meetings, reminders, and shared events
+              from Gmail.
+            </p>
+            <Button variant="secondary" onClick={handleGoogleOAuth}>
+              <Globe size={14} /> Connect Google Calendar
+            </Button>
+            <p className="text-text-muted text-[10px]">
+              Requests calendar.readonly scope. Your events stay private to your machine.
+            </p>
+          </Card>
         </>
       )}
 
@@ -186,12 +220,21 @@ export default function CalendarSettingsPage() {
       ) : (
         <div className="space-y-2">
           {list.map((cal) => (
-            <Card key={cal.id} interactive className="flex items-center justify-between rounded-2xl gap-3">
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: cal.color }} />
-                <span className="text-sm font-medium text-text-primary">{cal.name}</span>
+            <Card
+              key={cal.id}
+              interactive
+              className="flex items-center justify-between gap-3 rounded-2xl"
+            >
+              <div className="flex min-w-0 items-center gap-2">
+                <div
+                  className="h-3 w-3 shrink-0 rounded-full"
+                  style={{ backgroundColor: cal.color }}
+                />
+                <span className="text-text-primary text-sm font-medium">{cal.name}</span>
                 {cal.caldavUrl && (
-                  <Badge className="text-[10px] bg-white/5 border-white/10 text-text-muted">CalDAV</Badge>
+                  <Badge className="text-text-muted border-white/10 bg-white/5 text-[10px]">
+                    CalDAV
+                  </Badge>
                 )}
               </div>
               <Button size="icon" variant="ghost" onClick={() => remove(cal)} aria-label="Delete">
@@ -205,11 +248,11 @@ export default function CalendarSettingsPage() {
       <Dialog open={open} onClose={() => setOpen(false)} title="Add calendar">
         <div className="space-y-3">
           <div>
-            <label className="block text-[10px] uppercase text-text-muted mb-1">Provider</label>
+            <label className="text-text-muted mb-1 block text-[10px] uppercase">Provider</label>
             <select
               value={provider}
               onChange={(e) => setProvider(e.target.value as ProviderType)}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-text-primary"
+              className="text-text-primary w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm"
             >
               <option value="local">Local (CalDAV / ICS)</option>
               <option value="google">Google Calendar</option>
@@ -218,33 +261,64 @@ export default function CalendarSettingsPage() {
 
           {provider === "local" && (
             <>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Calendar name" autoFocus />
-              <p className="text-[10px] uppercase tracking-wider text-text-muted">CalDAV (optional)</p>
-              <Input value={caldavUrl} onChange={(e) => setCaldavUrl(e.target.value)} placeholder="https://caldav.example.com/dav" />
-              <Input value={caldavUser} onChange={(e) => setCaldavUser(e.target.value)} placeholder="Username" />
-              <Input value={caldavPass} onChange={(e) => setCaldavPass(e.target.value)} type="password" placeholder="Password / app password" />
-              <p className="text-[10px] text-text-muted">Leave blank to create a local-only calendar.</p>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Calendar name"
+                autoFocus
+              />
+              <p className="text-text-muted text-[10px] tracking-wider uppercase">
+                CalDAV (optional)
+              </p>
+              <Input
+                value={caldavUrl}
+                onChange={(e) => setCaldavUrl(e.target.value)}
+                placeholder="https://caldav.example.com/dav"
+              />
+              <Input
+                value={caldavUser}
+                onChange={(e) => setCaldavUser(e.target.value)}
+                placeholder="Username"
+              />
+              <Input
+                value={caldavPass}
+                onChange={(e) => setCaldavPass(e.target.value)}
+                type="password"
+                placeholder="Password / app password"
+              />
+              <p className="text-text-muted text-[10px]">
+                Leave blank to create a local-only calendar.
+              </p>
               <div className="flex justify-end gap-2">
-                <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-                <Button variant="primary" onClick={create} disabled={!name.trim()}>Create</Button>
+                <Button variant="ghost" onClick={() => setOpen(false)}>
+                  Cancel
+                </Button>
+                <Button variant="primary" onClick={create} disabled={!name.trim()}>
+                  Create
+                </Button>
               </div>
             </>
           )}
 
           {provider === "google" && (
             <div className="space-y-3 py-2">
-              <p className="text-xs text-text-secondary">
-                Google Calendar connects via OAuth — once authorized, your Google calendars appear here and sync automatically.
+              <p className="text-text-secondary text-xs">
+                Google Calendar connects via OAuth — once authorized, your Google calendars appear
+                here and sync automatically.
               </p>
               {activeGoogle ? (
-                <p className="text-xs text-emerald-400">✅ Already connected as {activeGoogle.googleEmail}</p>
+                <p className="text-xs text-emerald-400">
+                  ✅ Already connected as {activeGoogle.googleEmail}
+                </p>
               ) : (
                 <Button variant="primary" onClick={handleGoogleOAuth}>
                   <Globe size={14} /> Connect with Google
                 </Button>
               )}
               <div className="flex justify-end">
-                <Button variant="ghost" onClick={() => setOpen(false)}>Close</Button>
+                <Button variant="ghost" onClick={() => setOpen(false)}>
+                  Close
+                </Button>
               </div>
             </div>
           )}

@@ -67,7 +67,13 @@ export function detectClaude(): Promise<ClaudeStatus> {
   return new Promise((resolve) => {
     execFile(bin, ["--version"], { timeout: 8000 }, (err, stdout) => {
       if (err) resolve({ installed: false, bin: null, version: null, baseUrl: null });
-      else resolve({ installed: true, bin, version: String(stdout).trim().slice(0, 80), baseUrl: null });
+      else
+        resolve({
+          installed: true,
+          bin,
+          version: String(stdout).trim().slice(0, 80),
+          baseUrl: null,
+        });
     });
   });
 }
@@ -95,7 +101,8 @@ interface CCEvent {
 function mapEvent(ev: CCEvent, emit: (e: StreamEvent) => void, matrixSessionId?: string) {
   if (!ev || typeof ev !== "object") return;
   if (ev.type === "system" && ev.subtype === "init") {
-    if (matrixSessionId && typeof ev.session_id === "string") ccSessions.set(matrixSessionId, ev.session_id);
+    if (matrixSessionId && typeof ev.session_id === "string")
+      ccSessions.set(matrixSessionId, ev.session_id);
     return;
   }
   if (ev.type === "assistant" && ev.message?.content) {
@@ -110,13 +117,19 @@ function mapEvent(ev: CCEvent, emit: (e: StreamEvent) => void, matrixSessionId?:
     for (const c of ev.message.content) {
       if (c.type === "tool_result") {
         const text = typeof c.content === "string" ? c.content : JSON.stringify(c.content);
-        emit({ type: "tool_result", id: String(c.tool_use_id), result: text, error: c.is_error ? text : undefined });
+        emit({
+          type: "tool_result",
+          id: String(c.tool_use_id),
+          result: text,
+          error: c.is_error ? text : undefined,
+        });
       }
     }
     return;
   }
   if (ev.type === "result") {
-    if (matrixSessionId && typeof ev.session_id === "string") ccSessions.set(matrixSessionId, ev.session_id);
+    if (matrixSessionId && typeof ev.session_id === "string")
+      ccSessions.set(matrixSessionId, ev.session_id);
     if (ev.is_error && ev.result) emit({ type: "error", value: String(ev.result) });
   }
 }
@@ -138,7 +151,14 @@ export function runClaudeTurn(opts: {
 
   // We deliberately DON'T pass --model: Claude Code always sends its own Claude model
   // id to the proxy, which Matrix ignores in favour of the active provider/model.
-  const args = ["-p", prompt, "--output-format", "stream-json", "--verbose", ...permissionArgs(getPowerLevel())];
+  const args = [
+    "-p",
+    prompt,
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    ...permissionArgs(getPowerLevel()),
+  ];
   if (resume) args.push("--resume", resume);
 
   const env = { ...process.env, ...creds.env };
@@ -148,7 +168,10 @@ export function runClaudeTurn(opts: {
     try {
       child = spawn(bin, args, { cwd: root, env });
     } catch (e) {
-      emit({ type: "error", value: `Failed to start Claude Code: ${e instanceof Error ? e.message : String(e)}` });
+      emit({
+        type: "error",
+        value: `Failed to start Claude Code: ${e instanceof Error ? e.message : String(e)}`,
+      });
       return resolve({ ok: false, error: "spawn failed" });
     }
     const onAbort = () => {

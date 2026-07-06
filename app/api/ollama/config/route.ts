@@ -24,7 +24,10 @@ export async function PATCH(req: Request) {
   }
   const parsed = Patch.safeParse(raw);
   if (!parsed.success) {
-    return Response.json({ error: parsed.error.issues[0]?.message ?? "Invalid config" }, { status: 400 });
+    return Response.json(
+      { error: parsed.error.issues[0]?.message ?? "Invalid config" },
+      { status: 400 }
+    );
   }
   const config = setOllamaConfig(parsed.data);
   return Response.json({ config });

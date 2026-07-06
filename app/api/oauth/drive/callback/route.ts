@@ -16,12 +16,16 @@ export async function GET(req: Request) {
     const error = url.searchParams.get("error");
 
     if (error || !code || !state) {
-      return Response.redirect(new URL("/dashboard/settings/integrations/drive?error=oauth_denied", base));
+      return Response.redirect(
+        new URL("/dashboard/settings/integrations/drive?error=oauth_denied", base)
+      );
     }
 
     const redirectTo = verifyOAuthState(state, "google");
     if (!redirectTo) {
-      return Response.redirect(new URL("/dashboard/settings/integrations/drive?error=invalid_state", base));
+      return Response.redirect(
+        new URL("/dashboard/settings/integrations/drive?error=invalid_state", base)
+      );
     }
 
     const body = new URLSearchParams({
@@ -76,6 +80,8 @@ export async function GET(req: Request) {
     );
   } catch (e) {
     console.error("[drive/callback]", e);
-    return Response.redirect(new URL("/dashboard/settings/integrations/drive?error=token_exchange_failed", base));
+    return Response.redirect(
+      new URL("/dashboard/settings/integrations/drive?error=token_exchange_failed", base)
+    );
   }
 }

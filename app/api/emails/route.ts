@@ -26,7 +26,12 @@ export async function GET(req: Request) {
 
   const db = getDb();
   const rows = starred
-    ? db.select().from(emails).where(eq(emails.isStarred, true)).orderBy(desc(emails.createdAt)).all()
+    ? db
+        .select()
+        .from(emails)
+        .where(eq(emails.isStarred, true))
+        .orderBy(desc(emails.createdAt))
+        .all()
     : db
         .select()
         .from(emails)

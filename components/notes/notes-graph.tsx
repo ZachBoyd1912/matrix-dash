@@ -112,7 +112,10 @@ export function NotesGraph({ data, onSelect }: Props) {
       )
       .force("charge", forceManyBody<Node>().strength(-200))
       .force("center", forceCenter(width / 2, height / 2))
-      .force("collide", forceCollide<Node>().radius((d) => 12 + d.size * 8))
+      .force(
+        "collide",
+        forceCollide<Node>().radius((d) => 12 + d.size * 8)
+      )
       .on("tick", () => {
         link
           .attr("x1", (d) => (d.source as Node).x ?? 0)

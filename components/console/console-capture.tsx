@@ -6,8 +6,9 @@ import { makeLogId, type LogLevel, type LogSource } from "@/lib/console/types";
 
 // Origin (scheme+host+port, no path) of the embedded builder — postMessage
 // events report exactly this as event.origin.
-const BUILDER_ORIGIN = (process.env.NEXT_PUBLIC_MATRIX_BUILDER_URL ?? "http://localhost:5001")
-  .replace(/\/+$/, "");
+const BUILDER_ORIGIN = (
+  process.env.NEXT_PUBLIC_MATRIX_BUILDER_URL ?? "http://localhost:5001"
+).replace(/\/+$/, "");
 
 function stringify(v: unknown): string {
   if (typeof v === "string") return v;

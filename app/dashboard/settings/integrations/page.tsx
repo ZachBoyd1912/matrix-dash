@@ -28,12 +28,48 @@ interface Integration {
 }
 
 const ALL_INTEGRATIONS: Omit<Integration, "status" | "meta">[] = [
-  { name: "GitHub", icon: Github, href: "/dashboard/settings/integrations/github", color: "emerald", key: "github" },
-  { name: "Slack", icon: MessageSquare, href: "/dashboard/settings/integrations/slack", color: "violet", key: "slack" },
-  { name: "Web Search", icon: Globe, href: "/dashboard/settings/search", color: "sky", key: "websearch" },
-  { name: "Google Drive", icon: HardDrive, href: "/dashboard/settings/integrations/drive", color: "amber", key: "drive" },
-  { name: "Calendar", icon: Calendar, href: "/dashboard/settings/calendar", color: "pink", key: "calendar" },
-  { name: "Webhooks", icon: Webhook, href: "/dashboard/settings/webhooks", color: "slate", key: "webhooks" },
+  {
+    name: "GitHub",
+    icon: Github,
+    href: "/dashboard/settings/integrations/github",
+    color: "emerald",
+    key: "github",
+  },
+  {
+    name: "Slack",
+    icon: MessageSquare,
+    href: "/dashboard/settings/integrations/slack",
+    color: "violet",
+    key: "slack",
+  },
+  {
+    name: "Web Search",
+    icon: Globe,
+    href: "/dashboard/settings/search",
+    color: "sky",
+    key: "websearch",
+  },
+  {
+    name: "Google Drive",
+    icon: HardDrive,
+    href: "/dashboard/settings/integrations/drive",
+    color: "amber",
+    key: "drive",
+  },
+  {
+    name: "Calendar",
+    icon: Calendar,
+    href: "/dashboard/settings/calendar",
+    color: "pink",
+    key: "calendar",
+  },
+  {
+    name: "Webhooks",
+    icon: Webhook,
+    href: "/dashboard/settings/webhooks",
+    color: "slate",
+    key: "webhooks",
+  },
 ];
 
 const COMING_SOON: Omit<Integration, "status" | "meta">[] = [
@@ -73,27 +109,27 @@ function IntegrationCard({
       href={disabled ? "#" : integration.href}
       className={`block rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 transition-all duration-150 ${
         disabled
-          ? "opacity-50 cursor-default"
-          : "hover:border-white/[0.12] hover:bg-white/[0.04] cursor-pointer"
+          ? "cursor-default opacity-50"
+          : "cursor-pointer hover:border-white/[0.12] hover:bg-white/[0.04]"
       }`}
       onClick={(e) => disabled && e.preventDefault()}
     >
       <div className="flex items-start gap-2.5">
         <div
-          className={`h-9 w-9 rounded-lg grid place-items-center shrink-0 ${COLOR_MAP[integration.color]}`}
+          className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${COLOR_MAP[integration.color]}`}
         >
           <Icon size={18} />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-text-primary">{integration.name}</span>
+            <span className="text-text-primary text-sm font-semibold">{integration.name}</span>
             <span
-              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wide ${
+              className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold tracking-wide uppercase ${
                 status === "connected"
-                  ? "bg-emerald-400/10 text-emerald-400 border border-emerald-400/20"
+                  ? "border border-emerald-400/20 bg-emerald-400/10 text-emerald-400"
                   : status === "available"
-                    ? "bg-white/10 text-text-secondary border border-white/10"
-                    : "bg-amber-400/10 text-amber-400 border border-amber-400/20"
+                    ? "text-text-secondary border border-white/10 bg-white/10"
+                    : "border border-amber-400/20 bg-amber-400/10 text-amber-400"
               }`}
             >
               {status === "connected" && "● Connected"}
@@ -101,9 +137,7 @@ function IntegrationCard({
               {status === "soon" && "Soon"}
             </span>
           </div>
-          {meta && (
-            <p className="text-[11px] text-text-muted mt-0.5 leading-relaxed">{meta}</p>
-          )}
+          {meta && <p className="text-text-muted mt-0.5 text-[11px] leading-relaxed">{meta}</p>}
         </div>
       </div>
     </Link>
@@ -116,13 +150,27 @@ export default function IntegrationsPage() {
 
   const refresh = useCallback(async () => {
     const [gh, sl, dr, wh, cal, gc, settingsRes] = await Promise.all([
-      fetch("/api/github/connections").then((r) => r.json()).catch(() => []),
-      fetch("/api/slack/workspaces").then((r) => r.json()).catch(() => []),
-      fetch("/api/drive/connections").then((r) => r.json()).catch(() => []),
-      fetch("/api/webhooks").then((r) => r.json()).catch(() => []),
-      fetch("/api/calendars").then((r) => r.json()).catch(() => []),
-      fetch("/api/google-calendar/connections").then((r) => r.json()).catch(() => []),
-      fetch("/api/settings").then((r) => r.json()).catch(() => ({})),
+      fetch("/api/github/connections")
+        .then((r) => r.json())
+        .catch(() => []),
+      fetch("/api/slack/workspaces")
+        .then((r) => r.json())
+        .catch(() => []),
+      fetch("/api/drive/connections")
+        .then((r) => r.json())
+        .catch(() => []),
+      fetch("/api/webhooks")
+        .then((r) => r.json())
+        .catch(() => []),
+      fetch("/api/calendars")
+        .then((r) => r.json())
+        .catch(() => []),
+      fetch("/api/google-calendar/connections")
+        .then((r) => r.json())
+        .catch(() => []),
+      fetch("/api/settings")
+        .then((r) => r.json())
+        .catch(() => ({})),
     ]);
 
     const ghConns = Array.isArray(gh) ? gh : [];
@@ -185,9 +233,10 @@ export default function IntegrationsPage() {
     const activeWh = whList.filter((w: any) => w.isEnabled).length;
     snap.webhooks = {
       connected: whList.length > 0,
-      meta: whList.length > 0
-        ? `${whList.length} webhook${whList.length > 1 ? "s" : ""}${activeWh > 0 ? ` · ${activeWh} active` : " · all inactive"}`
-        : "No webhooks configured · Create one to trigger HTTP callbacks on events",
+      meta:
+        whList.length > 0
+          ? `${whList.length} webhook${whList.length > 1 ? "s" : ""}${activeWh > 0 ? ` · ${activeWh} active` : " · all inactive"}`
+          : "No webhooks configured · Create one to trigger HTTP callbacks on events",
     };
 
     setSnap(snap);
@@ -197,26 +246,23 @@ export default function IntegrationsPage() {
     refresh();
   }, [refresh]);
 
-  const connected = snap
-    ? ALL_INTEGRATIONS.filter((i) => snap[i.key]?.connected)
-    : [];
-  const available = snap
-    ? ALL_INTEGRATIONS.filter((i) => !snap[i.key]?.connected)
-    : [];
+  const connected = snap ? ALL_INTEGRATIONS.filter((i) => snap[i.key]?.connected) : [];
+  const available = snap ? ALL_INTEGRATIONS.filter((i) => !snap[i.key]?.connected) : [];
 
   return (
     <div ref={ref} className="space-y-8">
       <div className="relative isolate py-10">
         <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
-        <div className="orb top-0 right-16 h-44 w-44 bg-violet-500/15" style={{ animationDelay: "-6s" }} />
+        <div
+          className="orb top-0 right-16 h-44 w-44 bg-violet-500/15"
+          style={{ animationDelay: "-6s" }}
+        />
         <div className="relative">
           <span className="eyebrow">
             <Plug size={11} /> Integrations
           </span>
-          <h1 className="display text-gradient text-4xl md:text-5xl mt-3">
-            Integrations
-          </h1>
-          <p className="text-text-secondary text-sm mt-3 max-w-xl">
+          <h1 className="display text-gradient mt-3 text-4xl md:text-5xl">Integrations</h1>
+          <p className="text-text-secondary mt-3 max-w-xl text-sm">
             Matrix Dash is local-first — integrations are opt-in bridges to the outside world.
             Connect services to give the agent real context.
           </p>
@@ -227,8 +273,8 @@ export default function IntegrationsPage() {
         <>
           {connected.length > 0 && (
             <>
-              <p className="text-[10px] uppercase tracking-wider text-text-muted">Connected</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <p className="text-text-muted text-[10px] tracking-wider uppercase">Connected</p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {connected.map((i) => (
                   <IntegrationCard key={i.key} integration={i} snap={snap[i.key]} />
                 ))}
@@ -238,8 +284,8 @@ export default function IntegrationsPage() {
 
           {available.length > 0 && (
             <>
-              <p className="text-[10px] uppercase tracking-wider text-text-muted">Available</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <p className="text-text-muted text-[10px] tracking-wider uppercase">Available</p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {available.map((i) => (
                   <IntegrationCard key={i.key} integration={i} snap={snap[i.key]} />
                 ))}
@@ -250,15 +296,15 @@ export default function IntegrationsPage() {
       )}
 
       {!snap && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {ALL_INTEGRATIONS.map((i) => (
             <IntegrationCard key={i.key} integration={i} />
           ))}
         </div>
       )}
 
-      <p className="text-[10px] uppercase tracking-wider text-text-muted">Coming Soon</p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <p className="text-text-muted text-[10px] tracking-wider uppercase">Coming Soon</p>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {COMING_SOON.map((i) => (
           <IntegrationCard key={i.key} integration={i} />
         ))}

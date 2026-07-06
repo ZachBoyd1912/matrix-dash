@@ -51,8 +51,8 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
   const pathname = usePathname();
   return (
     <div className="grid grid-cols-1 md:grid-cols-[220px_1fr]">
-      <aside className="border-r border-white/5 p-4 bg-white/[0.01] min-h-[calc(100vh-3.5rem)]">
-        <p className="text-[10px] uppercase tracking-wider text-text-muted mb-3 px-2">Settings</p>
+      <aside className="min-h-[calc(100vh-3.5rem)] border-r border-white/5 bg-white/[0.01] p-4">
+        <p className="text-text-muted mb-3 px-2 text-[10px] tracking-wider uppercase">Settings</p>
         <nav className="space-y-1">
           {SECTIONS.map((section) => {
             const Icon = section.icon;
@@ -64,10 +64,10 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
                 key={section.href}
                 href={section.href}
                 className={cn(
-                  "flex items-center gap-2 px-3 h-8 rounded-md text-xs transition-colors",
+                  "flex h-8 items-center gap-2 rounded-md px-3 text-xs transition-colors",
                   active
-                    ? "bg-white/[0.06] text-text-primary"
-                    : "text-text-secondary hover:bg-white/[0.04] hover:text-text-primary"
+                    ? "text-text-primary bg-white/[0.06]"
+                    : "text-text-secondary hover:text-text-primary hover:bg-white/[0.04]"
                 )}
               >
                 <Icon size={13} className={active ? "text-emerald-400" : ""} />
@@ -77,7 +77,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
           })}
         </nav>
       </aside>
-      <section className="p-4 md:p-8 max-w-3xl">{children}</section>
+      <section className="max-w-3xl p-4 md:p-8">{children}</section>
     </div>
   );
 }

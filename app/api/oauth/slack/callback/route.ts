@@ -15,16 +15,12 @@ export async function GET(req: Request) {
     const error = url.searchParams.get("error");
 
     if (error || !code || !state) {
-      return Response.redirect(
-        "/dashboard/settings/integrations/slack?error=oauth_denied"
-      );
+      return Response.redirect("/dashboard/settings/integrations/slack?error=oauth_denied");
     }
 
     const redirectTo = verifyOAuthState(state, "slack");
     if (!redirectTo) {
-      return Response.redirect(
-        "/dashboard/settings/integrations/slack?error=invalid_state"
-      );
+      return Response.redirect("/dashboard/settings/integrations/slack?error=invalid_state");
     }
 
     const tokenRes = await fetch("https://slack.com/api/oauth.v2.access", {
@@ -57,13 +53,9 @@ export async function GET(req: Request) {
       })
       .run();
 
-    return Response.redirect(
-      `${redirectTo}?connected=slack&team=${data.team.name}`
-    );
+    return Response.redirect(`${redirectTo}?connected=slack&team=${data.team.name}`);
   } catch (e) {
     console.error("[slack/callback]", e);
-    return Response.redirect(
-      "/dashboard/settings/integrations/slack?error=token_exchange_failed"
-    );
+    return Response.redirect("/dashboard/settings/integrations/slack?error=token_exchange_failed");
   }
 }

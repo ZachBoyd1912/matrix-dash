@@ -85,7 +85,7 @@ function parseSkillMd(raw: string, fallbackName: string): ParsedSkill {
 async function mapPool<T, R>(
   items: T[],
   limit: number,
-  fn: (item: T, index: number) => Promise<R>,
+  fn: (item: T, index: number) => Promise<R>
 ): Promise<R[]> {
   const results = new Array<R>(items.length);
   let cursor = 0;
@@ -95,9 +95,7 @@ async function mapPool<T, R>(
       results[i] = await fn(items[i], i);
     }
   };
-  await Promise.all(
-    Array.from({ length: Math.min(limit, items.length) }, () => worker()),
-  );
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, () => worker()));
   return results;
 }
 
@@ -115,7 +113,10 @@ export const POST = withLog(async (req) => {
 
   const repo = parseRepo(parsed.data.repoUrl);
   if (!repo) {
-    return Response.json({ error: "That doesn't look like a github.com repo URL" }, { status: 400 });
+    return Response.json(
+      { error: "That doesn't look like a github.com repo URL" },
+      { status: 400 }
+    );
   }
 
   try {
@@ -129,7 +130,7 @@ export const POST = withLog(async (req) => {
     if (metaRes.status === 403) {
       return Response.json(
         { error: "GitHub rate limit reached — try again in a few minutes." },
-        { status: 429 },
+        { status: 429 }
       );
     }
     if (!metaRes.ok) {
@@ -141,10 +142,13 @@ export const POST = withLog(async (req) => {
     // 2. Flat recursive tree of the whole repo.
     const treeRes = await fetch(
       `https://api.github.com/repos/${repo.owner}/${repo.repo}/git/trees/${branch}?recursive=1`,
-      { headers: GH_HEADERS },
+      { headers: GH_HEADERS }
     );
     if (!treeRes.ok) {
-      return Response.json({ error: `Could not read repo tree (${treeRes.status})` }, { status: 502 });
+      return Response.json(
+        { error: `Could not read repo tree (${treeRes.status})` },
+        { status: 502 }
+      );
     }
     const tree = (await treeRes.json()) as {
       tree?: { path: string; type: string }[];
@@ -177,7 +181,7 @@ export const POST = withLog(async (req) => {
     if (found === 0) {
       return Response.json(
         { imported: 0, skipped: 0, found: 0, error: "No SKILL.md files found in that repo." },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
@@ -190,7 +194,7 @@ export const POST = withLog(async (req) => {
         .select({ name: skills.name })
         .from(skills)
         .all()
-        .map((r) => r.name.toLowerCase()),
+        .map((r) => r.name.toLowerCase())
     );
 
     // 4. Fetch every SKILL.md in parallel (bounded) and parse it.
@@ -199,7 +203,7 @@ export const POST = withLog(async (req) => {
       try {
         const rawRes = await fetch(
           `https://raw.githubusercontent.com/${repo.owner}/${repo.repo}/${branch}/${path}`,
-          { headers: { "User-Agent": "matrix-dash" } },
+          { headers: { "User-Agent": "matrix-dash" } }
         );
         if (!rawRes.ok) {
           fetchFailures++;
@@ -248,7 +252,7 @@ export const POST = withLog(async (req) => {
     const skipped = duplicates + fetchFailures;
     logger.ok(
       `Imported ${imported} skill(s) from ${repo.owner}/${repo.repo} ` +
-        `(${found} found, ${duplicates} dup, ${fetchFailures} fetch-fail)`,
+        `(${found} found, ${duplicates} dup, ${fetchFailures} fetch-fail)`
     );
     return Response.json({
       imported,
@@ -259,6 +263,9 @@ export const POST = withLog(async (req) => {
     });
   } catch (err) {
     logger.error("Skill import failed", err);
-    return Response.json({ error: "Import failed — check the URL and your connection." }, { status: 500 });
+    return Response.json(
+      { error: "Import failed — check the URL and your connection." },
+      { status: 500 }
+    );
   }
 });

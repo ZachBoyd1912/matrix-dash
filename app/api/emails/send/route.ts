@@ -28,13 +28,19 @@ export async function POST(req: Request) {
     : getDb().select().from(emailAccounts).where(eq(emailAccounts.isActive, true)).get();
 
   if (!account) {
-    return Response.json({ error: "No email account connected. Add one in Settings → Email." }, { status: 404 });
+    return Response.json(
+      { error: "No email account connected. Add one in Settings → Email." },
+      { status: 404 }
+    );
   }
 
   try {
     await sendEmail(account, parsed.data.to, parsed.data.subject, parsed.data.body);
     return Response.json({ ok: true });
   } catch (err) {
-    return Response.json({ ok: false, error: err instanceof Error ? err.message : String(err) }, { status: 500 });
+    return Response.json(
+      { ok: false, error: err instanceof Error ? err.message : String(err) },
+      { status: 500 }
+    );
   }
 }

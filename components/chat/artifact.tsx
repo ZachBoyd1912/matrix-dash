@@ -86,20 +86,26 @@ export function ArtifactPanel({ artifact, title, height = 440 }: Props) {
   return (
     <div className="bezel mt-3">
       <div className="bezel-core overflow-hidden">
-        <div className="flex items-center justify-between gap-2 px-3 h-10 border-b border-white/5">
-          <div className="flex items-center gap-1.5 text-[11px] min-w-0">
+        <div className="flex h-10 items-center justify-between gap-2 border-b border-white/5 px-3">
+          <div className="flex min-w-0 items-center gap-1.5 text-[11px]">
             <span className="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
-            <span className="text-text-secondary font-medium truncate">{title || "Live artifact"}</span>
+            <span className="text-text-secondary truncate font-medium">
+              {title || "Live artifact"}
+            </span>
             <span className="text-text-muted shrink-0">· {artifact.lang || "html"}</span>
           </div>
-          <div className="flex items-center gap-1 shrink-0">
-            <Seg active={tab === "preview"} onClick={() => setTab("preview")} icon={<Eye size={12} />}>
+          <div className="flex shrink-0 items-center gap-1">
+            <Seg
+              active={tab === "preview"}
+              onClick={() => setTab("preview")}
+              icon={<Eye size={12} />}
+            >
               Preview
             </Seg>
             <Seg active={tab === "code"} onClick={() => setTab("code")} icon={<Code2 size={12} />}>
               Code
             </Seg>
-            <span className="w-px h-4 bg-white/10 mx-1" />
+            <span className="mx-1 h-4 w-px bg-white/10" />
             <IconBtn onClick={copy} label="Copy code">
               {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
             </IconBtn>
@@ -117,12 +123,14 @@ export function ArtifactPanel({ artifact, title, height = 440 }: Props) {
             title="artifact preview"
             srcDoc={srcDoc}
             sandbox="allow-scripts allow-popups allow-forms allow-modals"
-            className="w-full block bg-white"
+            className="block w-full bg-white"
             style={{ height }}
           />
         ) : (
           <div className="overflow-auto p-3" style={{ maxHeight: height }}>
-            <Markdown content={"```" + (artifact.lang || "html") + "\n" + artifact.code + "\n```"} />
+            <Markdown
+              content={"```" + (artifact.lang || "html") + "\n" + artifact.code + "\n```"}
+            />
           </div>
         )}
       </div>
@@ -145,8 +153,10 @@ function Seg({
     <button
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-1 h-7 px-2.5 rounded-md text-[11px] font-medium transition-all duration-200",
-        active ? "bg-emerald-400/15 text-emerald-300" : "text-text-muted hover:text-text-primary hover:bg-white/5"
+        "inline-flex h-7 items-center gap-1 rounded-md px-2.5 text-[11px] font-medium transition-all duration-200",
+        active
+          ? "bg-emerald-400/15 text-emerald-300"
+          : "text-text-muted hover:text-text-primary hover:bg-white/5"
       )}
     >
       {icon}
@@ -169,7 +179,7 @@ function IconBtn({
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="h-7 w-7 grid place-items-center rounded-md text-text-muted hover:text-text-primary hover:bg-white/5 transition-colors"
+      className="text-text-muted hover:text-text-primary grid h-7 w-7 place-items-center rounded-md transition-colors hover:bg-white/5"
     >
       {children}
     </button>

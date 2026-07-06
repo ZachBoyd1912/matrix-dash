@@ -45,7 +45,12 @@ export function NewMemoryDialog({ open, onClose, onCreated }: Props) {
   };
 
   return (
-    <Dialog open={open} onClose={onClose} title="New memory" description="Capture a fact worth remembering.">
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title="New memory"
+      description="Capture a fact worth remembering."
+    >
       <div className="space-y-3">
         <Textarea
           autoFocus
@@ -56,8 +61,12 @@ export function NewMemoryDialog({ open, onClose, onCreated }: Props) {
         />
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="block text-[10px] uppercase text-text-muted mb-1">Type</label>
-            <Select value={type} onChange={(e) => setType(e.target.value as MemoryType)} className="w-full">
+            <label className="text-text-muted mb-1 block text-[10px] uppercase">Type</label>
+            <Select
+              value={type}
+              onChange={(e) => setType(e.target.value as MemoryType)}
+              className="w-full"
+            >
               {MEMORY_TYPES.map((t) => (
                 <option key={t} value={t}>
                   {MEMORY_TYPE_META[t].label}
@@ -66,7 +75,7 @@ export function NewMemoryDialog({ open, onClose, onCreated }: Props) {
             </Select>
           </div>
           <div>
-            <label className="block text-[10px] uppercase text-text-muted mb-1">
+            <label className="text-text-muted mb-1 block text-[10px] uppercase">
               Importance · {importance.toFixed(2)}
             </label>
             <input
@@ -81,7 +90,7 @@ export function NewMemoryDialog({ open, onClose, onCreated }: Props) {
           </div>
         </div>
         <div>
-          <label className="block text-[10px] uppercase text-text-muted mb-1">Tags</label>
+          <label className="text-text-muted mb-1 block text-[10px] uppercase">Tags</label>
           <Input
             value={tags}
             onChange={(e) => setTags(e.target.value)}
@@ -89,7 +98,9 @@ export function NewMemoryDialog({ open, onClose, onCreated }: Props) {
           />
         </div>
         <div className="flex justify-end gap-2 pt-2">
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
           <Button variant="primary" onClick={submit} disabled={!content.trim() || submitting}>
             {submitting ? "Saving…" : "Save memory"}
           </Button>

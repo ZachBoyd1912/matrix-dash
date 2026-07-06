@@ -70,7 +70,14 @@ interface LoadedModel {
   expiresAt?: string;
 }
 interface ServeData {
-  status: { running: boolean; pid?: number; memMb?: number; cpu?: number; startedAt?: string; version?: string };
+  status: {
+    running: boolean;
+    pid?: number;
+    memMb?: number;
+    cpu?: number;
+    startedAt?: string;
+    version?: string;
+  };
   loaded: LoadedModel[];
 }
 
@@ -214,11 +221,10 @@ export default function CookbookPage() {
           <span className="eyebrow">
             <Sparkles size={11} /> Local LLM Cookbook
           </span>
-          <h1 className="display text-gradient text-4xl md:text-5xl mt-3">
-            Cookbook
-          </h1>
-          <p className="text-text-secondary text-sm mt-3 max-w-2xl">
-            Hardware-aware model downloads, server control, and dependencies for local LLMs via Ollama.
+          <h1 className="display text-gradient mt-3 text-4xl md:text-5xl">Cookbook</h1>
+          <p className="text-text-secondary mt-3 max-w-2xl text-sm">
+            Hardware-aware model downloads, server control, and dependencies for local LLMs via
+            Ollama.
           </p>
         </div>
       </div>
@@ -252,15 +258,21 @@ function HardwareBanner({ data, onRescan }: { data: CookbookData | null; onResca
     <Card interactive>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-semibold text-text-primary mb-2 flex items-center gap-2">
+          <p className="text-text-primary mb-2 flex items-center gap-2 text-xs font-semibold">
             <Cpu size={13} /> Detected hardware
           </p>
           {hw ? (
             <div className="flex flex-wrap items-center gap-2 text-[11px]">
-              <Badge className="bg-violet-400/10 border-violet-400/20 text-violet-300">{CHIP_LABEL[hw.chip]}</Badge>
-              <span className="text-text-secondary">{hw.cpu ?? "Unknown CPU"} · {hw.cores ?? "?"} cores</span>
+              <Badge className="border-violet-400/20 bg-violet-400/10 text-violet-300">
+                {CHIP_LABEL[hw.chip]}
+              </Badge>
+              <span className="text-text-secondary">
+                {hw.cpu ?? "Unknown CPU"} · {hw.cores ?? "?"} cores
+              </span>
               <span className="text-text-muted">·</span>
-              <span className="text-text-secondary">{hw.totalRamGb ?? "?"} GB RAM ({hw.freeRamGb ?? "?"} free)</span>
+              <span className="text-text-secondary">
+                {hw.totalRamGb ?? "?"} GB RAM ({hw.freeRamGb ?? "?"} free)
+              </span>
               {hw.gpu && (
                 <>
                   <span className="text-text-muted">·</span>
@@ -268,12 +280,13 @@ function HardwareBanner({ data, onRescan }: { data: CookbookData | null; onResca
                 </>
               )}
               <span className="text-text-muted">·</span>
-              <Badge className="bg-emerald-400/10 border-emerald-400/20 text-emerald-300">
-                <HardDrive size={10} /> {hw.usableVramGb} GB usable {hw.unified ? "(unified)" : "VRAM"}
+              <Badge className="border-emerald-400/20 bg-emerald-400/10 text-emerald-300">
+                <HardDrive size={10} /> {hw.usableVramGb} GB usable{" "}
+                {hw.unified ? "(unified)" : "VRAM"}
               </Badge>
             </div>
           ) : (
-            <p className="text-xs text-text-muted">Scanning…</p>
+            <p className="text-text-muted text-xs">Scanning…</p>
           )}
         </div>
         <Button size="sm" variant="ghost" onClick={onRescan} className="shrink-0">
@@ -281,9 +294,15 @@ function HardwareBanner({ data, onRescan }: { data: CookbookData | null; onResca
         </Button>
       </div>
       {data && !data.status.ok && (
-        <p className="text-[11px] text-rose-400 flex items-center gap-1 mt-3">
-          <AlertCircle size={11} /> Ollama not reachable{data.status.error && ` · ${data.status.error}`}
-          <a href="https://ollama.com" target="_blank" rel="noreferrer" className="text-sky-400 ml-1 hover:underline">
+        <p className="mt-3 flex items-center gap-1 text-[11px] text-rose-400">
+          <AlertCircle size={11} /> Ollama not reachable
+          {data.status.error && ` · ${data.status.error}`}
+          <a
+            href="https://ollama.com"
+            target="_blank"
+            rel="noreferrer"
+            className="ml-1 text-sky-400 hover:underline"
+          >
             Install Ollama
           </a>
         </p>
@@ -294,7 +313,14 @@ function HardwareBanner({ data, onRescan }: { data: CookbookData | null; onResca
 
 /* ------------------------------ Download tab ------------------------------ */
 
-const TAG_OPTIONS: (ModelTag | "all")[] = ["all", "general", "coding", "reasoning", "vision", "embed"];
+const TAG_OPTIONS: (ModelTag | "all")[] = [
+  "all",
+  "general",
+  "coding",
+  "reasoning",
+  "vision",
+  "embed",
+];
 
 type SortKey = "fit" | "label" | "param" | "vram" | "ctx" | "speed" | "score";
 type SortDir = "asc" | "desc";
@@ -334,7 +360,7 @@ function SortTh({
       <button
         type="button"
         onClick={() => onSort(sortKey)}
-        className={`inline-flex items-center gap-0.5 uppercase tracking-wider transition-colors hover:text-text-secondary ${
+        className={`hover:text-text-secondary inline-flex items-center gap-0.5 tracking-wider uppercase transition-colors ${
           active ? "text-text-secondary" : ""
         }`}
         title={`Sort by ${label}`}
@@ -393,7 +419,7 @@ function DownloadTab({
       .filter(({ m, s }) => {
         if (tag !== "all" && !m.tags.includes(tag)) return false;
         if (!showAll && s.fit === "NO") return false;
-        if (q && !(`${m.label} ${m.name}`.toLowerCase().includes(q))) return false;
+        if (q && !`${m.label} ${m.name}`.toLowerCase().includes(q)) return false;
         return true;
       })
       .sort((a, b) => {
@@ -435,23 +461,33 @@ function DownloadTab({
       {/* Installed models */}
       {data?.models?.length ? (
         <Card>
-          <p className="text-xs font-semibold text-text-primary mb-3">Installed ({data.models.length})</p>
+          <p className="text-text-primary mb-3 text-xs font-semibold">
+            Installed ({data.models.length})
+          </p>
           <div className="space-y-2">
             {data.models.map((m) => (
-              <div key={m.name} className="lift flex items-center justify-between gap-3 px-3 py-2 rounded-xl bg-white/[0.02] border border-white/5">
+              <div
+                key={m.name}
+                className="lift flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2"
+              >
                 <div className="min-w-0">
-                  <p className="text-xs font-medium text-text-primary truncate">{m.name}</p>
-                  <p className="text-[10px] text-text-muted">
+                  <p className="text-text-primary truncate text-xs font-medium">{m.name}</p>
+                  <p className="text-text-muted text-[10px]">
                     {fmtBytes(m.size)}
                     {m.details?.parameter_size && ` · ${m.details.parameter_size}`}
                     {m.details?.quantization_level && ` · ${m.details.quantization_level}`}
                   </p>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
+                <div className="flex shrink-0 items-center gap-1">
                   <Button size="sm" variant="ghost" onClick={() => onRegister(m.name)}>
                     <Plus size={11} /> Register
                   </Button>
-                  <Button size="icon" variant="ghost" onClick={() => onRemove(m.name)} aria-label="Remove">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => onRemove(m.name)}
+                    aria-label="Remove"
+                  >
                     <Trash2 size={12} className="text-rose-400" />
                   </Button>
                 </div>
@@ -464,9 +500,17 @@ function DownloadTab({
       {/* Filters */}
       <Card>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative flex-1 min-w-[160px]">
-            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search models…" className="pl-8" />
+          <div className="relative min-w-[160px] flex-1">
+            <Search
+              size={13}
+              className="text-text-muted absolute top-1/2 left-2.5 -translate-y-1/2"
+            />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search models…"
+              className="pl-8"
+            />
           </div>
           <Select value={tag} onChange={(e) => setTag(e.target.value as ModelTag | "all")}>
             {TAG_OPTIONS.map((t) => (
@@ -482,16 +526,20 @@ function DownloadTab({
               </option>
             ))}
           </Select>
-          <Button size="sm" variant={showAll ? "secondary" : "ghost"} onClick={() => setShowAll((v) => !v)}>
+          <Button
+            size="sm"
+            variant={showAll ? "secondary" : "ghost"}
+            onClick={() => setShowAll((v) => !v)}
+          >
             {showAll ? "All models" : "Fits this machine"}
           </Button>
         </div>
 
         {/* Model table */}
         <div className="mt-3 overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full border-collapse text-left">
             <thead>
-              <tr className="text-[10px] uppercase tracking-wider text-text-muted">
+              <tr className="text-text-muted text-[10px] tracking-wider uppercase">
                 <SortTh label="Fit" sortKey="fit" sort={sort} onSort={onSort} />
                 <SortTh label="Model" sortKey="label" sort={sort} onSort={onSort} />
                 <SortTh label="Param" sortKey="param" sort={sort} onSort={onSort} />
@@ -500,7 +548,7 @@ function DownloadTab({
                 <SortTh label="Ctx" sortKey="ctx" sort={sort} onSort={onSort} />
                 <SortTh label="t/s" sortKey="speed" sort={sort} onSort={onSort} />
                 <SortTh label="Score" sortKey="score" sort={sort} onSort={onSort} />
-                <th className="py-2 pr-2 font-medium text-right">Action</th>
+                <th className="py-2 pr-2 text-right font-medium">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -514,24 +562,36 @@ function DownloadTab({
                     </td>
                     <td className="py-2 pr-2">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-medium text-text-primary">{m.label}</span>
+                        <span className="text-text-primary text-xs font-medium">{m.label}</span>
                         {m.tags.map((t) => (
                           <span key={t} className={`text-[9px] uppercase ${TAG_META[t].cls}`}>
                             {TAG_META[t].label}
                           </span>
                         ))}
                       </div>
-                      <span className="text-[10px] font-mono text-text-muted">{m.name}</span>
+                      <span className="text-text-muted font-mono text-[10px]">{m.name}</span>
                     </td>
-                    <td className="py-2 pr-2 text-[11px] text-text-secondary whitespace-nowrap">{m.paramLabel}</td>
-                    <td className="py-2 pr-2 text-[11px] text-text-secondary whitespace-nowrap">{quant}</td>
-                    <td className="py-2 pr-2 text-[11px] text-text-secondary whitespace-nowrap">{s.vramGb} GB</td>
-                    <td className="py-2 pr-2 text-[11px] text-text-secondary whitespace-nowrap">{fmtCtx(m.ctx)}</td>
-                    <td className="py-2 pr-2 text-[11px] text-text-secondary whitespace-nowrap">~{s.speed}</td>
-                    <td className="py-2 pr-2 text-[11px] font-semibold text-text-primary whitespace-nowrap">{s.score}</td>
+                    <td className="text-text-secondary py-2 pr-2 text-[11px] whitespace-nowrap">
+                      {m.paramLabel}
+                    </td>
+                    <td className="text-text-secondary py-2 pr-2 text-[11px] whitespace-nowrap">
+                      {quant}
+                    </td>
+                    <td className="text-text-secondary py-2 pr-2 text-[11px] whitespace-nowrap">
+                      {s.vramGb} GB
+                    </td>
+                    <td className="text-text-secondary py-2 pr-2 text-[11px] whitespace-nowrap">
+                      {fmtCtx(m.ctx)}
+                    </td>
+                    <td className="text-text-secondary py-2 pr-2 text-[11px] whitespace-nowrap">
+                      ~{s.speed}
+                    </td>
+                    <td className="text-text-primary py-2 pr-2 text-[11px] font-semibold whitespace-nowrap">
+                      {s.score}
+                    </td>
                     <td className="py-2 pr-0 text-right">
                       {installed ? (
-                        <Badge className="bg-emerald-400/10 border-emerald-400/20 text-emerald-400">
+                        <Badge className="border-emerald-400/20 bg-emerald-400/10 text-emerald-400">
                           <Check size={10} /> Installed
                         </Badge>
                       ) : (
@@ -540,11 +600,11 @@ function DownloadTab({
                           variant={s.fit === "NO" ? "ghost" : "primary"}
                           onClick={() => onPull(m.name)}
                           disabled={pulling !== null || !data?.status?.ok}
-                          className="min-w-[92px] max-w-[124px] whitespace-nowrap tabular-nums"
+                          className="max-w-[124px] min-w-[92px] whitespace-nowrap tabular-nums"
                         >
                           {busy ? (
                             <>
-                              <Loader2 size={11} className="animate-spin shrink-0" />
+                              <Loader2 size={11} className="shrink-0 animate-spin" />
                               <span className="truncate">{progress || "Pulling…"}</span>
                             </>
                           ) : (
@@ -560,7 +620,7 @@ function DownloadTab({
               })}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="py-6 text-center text-xs text-text-muted">
+                  <td colSpan={9} className="text-text-muted py-6 text-center text-xs">
                     No models match. Try “All models”.
                   </td>
                 </tr>
@@ -631,51 +691,92 @@ function ServeTab({ connected }: { connected: boolean }) {
   return (
     <div className="space-y-4">
       <Card>
-        <div className="flex items-center justify-between gap-3 mb-3">
-          <p className="text-xs font-semibold text-text-primary flex items-center gap-2">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <p className="text-text-primary flex items-center gap-2 text-xs font-semibold">
             <ServerCog size={13} /> Server status
           </p>
           {st?.running ? (
-            <Badge className="bg-emerald-400/10 border-emerald-400/20 text-emerald-400">
+            <Badge className="border-emerald-400/20 bg-emerald-400/10 text-emerald-400">
               <Check size={10} /> Running{st.version && ` · v${st.version}`}
             </Badge>
           ) : (
-            <Badge className="bg-rose-500/10 border-rose-500/20 text-rose-300">Stopped</Badge>
+            <Badge className="border-rose-500/20 bg-rose-500/10 text-rose-300">Stopped</Badge>
           )}
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-[11px] text-text-secondary mb-3">
-          <div>PID: <span className="text-text-primary">{st?.pid ?? "—"}</span></div>
-          <div>Memory: <span className="text-text-primary">{st?.memMb ? `${st.memMb} MB` : "—"}</span></div>
-          <div>CPU: <span className="text-text-primary">{st?.cpu != null ? `${st.cpu}%` : "—"}</span></div>
-          {st?.startedAt && <div className="col-span-2 md:col-span-3">Started: <span className="text-text-primary">{st.startedAt}</span></div>}
+        <div className="text-text-secondary mb-3 grid grid-cols-2 gap-2 text-[11px] md:grid-cols-3">
+          <div>
+            PID: <span className="text-text-primary">{st?.pid ?? "—"}</span>
+          </div>
+          <div>
+            Memory: <span className="text-text-primary">{st?.memMb ? `${st.memMb} MB` : "—"}</span>
+          </div>
+          <div>
+            CPU: <span className="text-text-primary">{st?.cpu != null ? `${st.cpu}%` : "—"}</span>
+          </div>
+          {st?.startedAt && (
+            <div className="col-span-2 md:col-span-3">
+              Started: <span className="text-text-primary">{st.startedAt}</span>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="primary" onClick={() => act("start")} disabled={busy !== null || st?.running}>
-            {busy === "start" ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />} Start
+          <Button
+            size="sm"
+            variant="primary"
+            onClick={() => act("start")}
+            disabled={busy !== null || st?.running}
+          >
+            {busy === "start" ? <Loader2 size={12} className="animate-spin" /> : <Play size={12} />}{" "}
+            Start
           </Button>
-          <Button size="sm" variant="danger" onClick={() => act("stop")} disabled={busy !== null || !st?.running}>
-            {busy === "stop" ? <Loader2 size={12} className="animate-spin" /> : <Square size={12} />} Stop
+          <Button
+            size="sm"
+            variant="danger"
+            onClick={() => act("stop")}
+            disabled={busy !== null || !st?.running}
+          >
+            {busy === "stop" ? (
+              <Loader2 size={12} className="animate-spin" />
+            ) : (
+              <Square size={12} />
+            )}{" "}
+            Stop
           </Button>
-          <Button size="sm" variant="secondary" onClick={() => act("restart")} disabled={busy !== null}>
-            {busy === "restart" ? <Loader2 size={12} className="animate-spin" /> : <RotateCw size={12} />} Restart
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => act("restart")}
+            disabled={busy !== null}
+          >
+            {busy === "restart" ? (
+              <Loader2 size={12} className="animate-spin" />
+            ) : (
+              <RotateCw size={12} />
+            )}{" "}
+            Restart
           </Button>
           <Button size="sm" variant="ghost" onClick={load} className="ml-auto">
             <RefreshCw size={12} /> Refresh
           </Button>
         </div>
         {!connected && (
-          <p className="text-[10px] text-amber-400 mt-2">Start may require Ollama installed on PATH.</p>
+          <p className="mt-2 text-[10px] text-amber-400">
+            Start may require Ollama installed on PATH.
+          </p>
         )}
       </Card>
 
       <Card>
-        <p className="text-xs font-semibold text-text-primary mb-2 flex items-center gap-2">
+        <p className="text-text-primary mb-2 flex items-center gap-2 text-xs font-semibold">
           <Boxes size={13} /> Loaded in memory
         </p>
         {serve?.loaded?.length ? (
           <div className="space-y-1.5">
             {serve.loaded.map((m) => (
-              <div key={m.name} className="flex items-center justify-between text-[11px] px-2 py-1.5 rounded bg-white/[0.02]">
+              <div
+                key={m.name}
+                className="flex items-center justify-between rounded bg-white/[0.02] px-2 py-1.5 text-[11px]"
+              >
                 <span className="text-text-primary font-medium">{m.name}</span>
                 <span className="text-text-muted">
                   {fmtBytes(m.size)}
@@ -686,15 +787,22 @@ function ServeTab({ connected }: { connected: boolean }) {
             ))}
           </div>
         ) : (
-          <p className="text-xs text-text-muted">No models currently loaded.</p>
+          <p className="text-text-muted text-xs">No models currently loaded.</p>
         )}
       </Card>
 
       <Card>
-        <p className="text-xs font-semibold text-text-primary mb-2">Ollama URL</p>
+        <p className="text-text-primary mb-2 text-xs font-semibold">Ollama URL</p>
         <div className="flex items-center gap-2">
-          <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="http://localhost:11434" className="font-mono text-xs" />
-          <Button size="sm" variant="secondary" onClick={saveUrl}>Save</Button>
+          <Input
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="http://localhost:11434"
+            className="font-mono text-xs"
+          />
+          <Button size="sm" variant="secondary" onClick={saveUrl}>
+            Save
+          </Button>
         </div>
       </Card>
     </div>
@@ -766,25 +874,28 @@ function DepsTab() {
       </div>
       {groups.map((g) => (
         <Card key={g.key}>
-          <p className="text-xs font-semibold text-text-primary mb-3">{g.label}</p>
+          <p className="text-text-primary mb-3 text-xs font-semibold">{g.label}</p>
           {!deps ? (
-            <p className="text-xs text-text-muted">Probing…</p>
+            <p className="text-text-muted text-xs">Probing…</p>
           ) : (
             <div className="space-y-2">
               {deps
                 .filter((d) => d.group === g.key)
                 .map((d) => (
-                  <div key={d.name} className="lift flex items-center justify-between gap-3 px-3 py-2 rounded-xl bg-white/[0.02] border border-white/5">
+                  <div
+                    key={d.name}
+                    className="lift flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2"
+                  >
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-text-primary">{d.name}</span>
+                        <span className="text-text-primary text-xs font-medium">{d.name}</span>
                         <Badge className={typeCls[d.type] ?? ""}>{d.type}</Badge>
-                        <span className="text-[9px] uppercase text-text-muted">{d.kind}</span>
+                        <span className="text-text-muted text-[9px] uppercase">{d.kind}</span>
                       </div>
-                      <p className="text-[10px] text-text-muted">{d.description}</p>
+                      <p className="text-text-muted text-[10px]">{d.description}</p>
                     </div>
                     {d.installed ? (
-                      <Badge className="bg-emerald-400/10 border-emerald-400/20 text-emerald-400 shrink-0">
+                      <Badge className="shrink-0 border-emerald-400/20 bg-emerald-400/10 text-emerald-400">
                         <Check size={10} /> Installed
                       </Badge>
                     ) : (
@@ -845,48 +956,81 @@ function SettingsTab() {
     }
   };
 
-  if (!cfg) return <Card><p className="text-xs text-text-muted">Loading…</p></Card>;
+  if (!cfg)
+    return (
+      <Card>
+        <p className="text-text-muted text-xs">Loading…</p>
+      </Card>
+    );
 
   const num = (k: keyof OllamaConfig) => cfg[k] as number;
-  const setNum = (k: keyof OllamaConfig, v: string) => setCfg({ ...cfg, [k]: parseInt(v, 10) || 0 });
+  const setNum = (k: keyof OllamaConfig, v: string) =>
+    setCfg({ ...cfg, [k]: parseInt(v, 10) || 0 });
 
   return (
     <Card>
-      <p className="text-xs font-semibold text-text-primary mb-3 flex items-center gap-2">
+      <p className="text-text-primary mb-3 flex items-center gap-2 text-xs font-semibold">
         <Gauge size={13} /> Runtime configuration
       </p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Field label="Context window (num_ctx)" hint="Tokens held in the model's context">
-          <Input type="number" value={num("numCtx")} onChange={(e) => setNum("numCtx", e.target.value)} />
+          <Input
+            type="number"
+            value={num("numCtx")}
+            onChange={(e) => setNum("numCtx", e.target.value)}
+          />
         </Field>
         <Field label="GPU layers (num_gpu)" hint="999 = offload all layers to GPU">
-          <Input type="number" value={num("numGpu")} onChange={(e) => setNum("numGpu", e.target.value)} />
+          <Input
+            type="number"
+            value={num("numGpu")}
+            onChange={(e) => setNum("numGpu", e.target.value)}
+          />
         </Field>
-        <Field label="Keep alive" hint="How long an idle model stays loaded (e.g. 5m, 1h, -1 = forever)">
-          <Input value={cfg.keepAlive} onChange={(e) => setCfg({ ...cfg, keepAlive: e.target.value })} />
+        <Field
+          label="Keep alive"
+          hint="How long an idle model stays loaded (e.g. 5m, 1h, -1 = forever)"
+        >
+          <Input
+            value={cfg.keepAlive}
+            onChange={(e) => setCfg({ ...cfg, keepAlive: e.target.value })}
+          />
         </Field>
         <Field label="Threads (num_thread)" hint="0 = auto-detect CPU threads">
-          <Input type="number" value={num("numThread")} onChange={(e) => setNum("numThread", e.target.value)} />
+          <Input
+            type="number"
+            value={num("numThread")}
+            onChange={(e) => setNum("numThread", e.target.value)}
+          />
         </Field>
       </div>
       <div className="mt-4 flex items-center gap-2">
         <Button size="sm" variant="primary" onClick={save} disabled={saving}>
           {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />} Save config
         </Button>
-        <p className="text-[10px] text-text-muted">
-          num_ctx &amp; keep_alive are injected as env vars (OLLAMA_CONTEXT_LENGTH / OLLAMA_KEEP_ALIVE) on next start.
+        <p className="text-text-muted text-[10px]">
+          num_ctx &amp; keep_alive are injected as env vars (OLLAMA_CONTEXT_LENGTH /
+          OLLAMA_KEEP_ALIVE) on next start.
         </p>
       </div>
     </Card>
   );
 }
 
-function Field({ label, hint, children }: { label: string; hint: string; children: React.ReactNode }) {
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint: string;
+  children: React.ReactNode;
+}) {
   return (
     <div>
-      <label className="text-[11px] font-medium text-text-secondary block mb-1">{label}</label>
+      <label className="text-text-secondary mb-1 block text-[11px] font-medium">{label}</label>
       {children}
-      <p className="text-[10px] text-text-muted mt-1">{hint}</p>
+      <p className="text-text-muted mt-1 text-[10px]">{hint}</p>
     </div>
   );
 }

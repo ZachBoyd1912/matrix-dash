@@ -59,9 +59,9 @@ export function CodeServerInstallPanel({ installed, version, onInstalled }: Prop
   };
 
   return (
-    <div className="bezel lift sheen rounded-2xl p-5 space-y-5">
+    <div className="bezel lift sheen space-y-5 rounded-2xl p-5">
       <div className="flex items-start gap-3">
-        <div className="inline-grid place-items-center h-11 w-11 rounded-xl bg-emerald-400/10 border border-emerald-400/30 shrink-0 shadow-[0_0_18px_-6px_rgba(52,211,153,0.6)]">
+        <div className="inline-grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-emerald-400/30 bg-emerald-400/10 shadow-[0_0_18px_-6px_rgba(52,211,153,0.6)]">
           <ServerCog size={18} className="text-emerald-300" />
         </div>
         <div className="min-w-0 space-y-1.5">
@@ -69,17 +69,17 @@ export function CodeServerInstallPanel({ installed, version, onInstalled }: Prop
             <Sparkles size={11} className="text-emerald-300" />
             Embedded editor
           </span>
-          <h3 className="text-sm font-semibold text-text-primary">VS Code server</h3>
-          <p className="text-xs text-text-secondary leading-relaxed">
-            Runs real VS Code (code-server) directly on your machine and embeds it here, so
-            you get the full editor — extensions, terminal, and all — inside Matrix.
+          <h3 className="text-text-primary text-sm font-semibold">VS Code server</h3>
+          <p className="text-text-secondary text-xs leading-relaxed">
+            Runs real VS Code (code-server) directly on your machine and embeds it here, so you get
+            the full editor — extensions, terminal, and all — inside Matrix.
           </p>
         </div>
       </div>
 
       {installed ? (
-        <div className="glass rounded-xl px-3.5 py-2.5 flex items-center gap-2.5 border border-emerald-400/30 bg-emerald-400/10 shadow-[0_0_18px_-6px_rgba(52,211,153,0.6)]">
-          <CheckCircle2 size={15} className="text-emerald-300 shrink-0" />
+        <div className="glass flex items-center gap-2.5 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-3.5 py-2.5 shadow-[0_0_18px_-6px_rgba(52,211,153,0.6)]">
+          <CheckCircle2 size={15} className="shrink-0 text-emerald-300" />
           <p className="text-xs font-medium text-emerald-300">
             Installed{version ? ` — v${version}` : ""}.
           </p>
@@ -91,7 +91,7 @@ export function CodeServerInstallPanel({ installed, version, onInstalled }: Prop
             size="sm"
             onClick={install}
             disabled={installing}
-            className="w-full justify-center rounded-full active:scale-[0.98] transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            className="w-full justify-center rounded-full transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98]"
           >
             {installing ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
             {installing ? "Installing…" : "Install automatically"}
@@ -99,10 +99,10 @@ export function CodeServerInstallPanel({ installed, version, onInstalled }: Prop
 
           <div className="glass-input rounded-xl px-3.5 py-2.5">
             <p className="eyebrow mb-1.5">Manual install</p>
-            <code className="text-xs font-mono text-text-primary">brew install code-server</code>
+            <code className="text-text-primary font-mono text-xs">brew install code-server</code>
           </div>
 
-          <p className="text-[10px] text-text-muted leading-relaxed">
+          <p className="text-text-muted text-[10px] leading-relaxed">
             Installing downloads a few hundred MB and the running server uses extra RAM. The
             automatic install can take a few minutes — leave this tab open while it works.
           </p>

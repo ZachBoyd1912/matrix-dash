@@ -1,5 +1,14 @@
 import { getDb } from "@/lib/db/client";
-import { memories, memoryLinks, notes, noteLinks, sessions, sessionMessages, files, settings } from "@/lib/db/schema";
+import {
+  memories,
+  memoryLinks,
+  notes,
+  noteLinks,
+  sessions,
+  sessionMessages,
+  files,
+  settings,
+} from "@/lib/db/schema";
 
 export const dynamic = "force-dynamic";
 

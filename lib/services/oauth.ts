@@ -26,17 +26,11 @@ export function verifyOAuthState(state: string, provider: string): string | null
     .where(and(eq(oauthStates.state, state), eq(oauthStates.provider, provider)))
     .get();
   if (!row) return null;
-  getDb()
-    .delete(oauthStates)
-    .where(eq(oauthStates.id, row.id))
-    .run();
+  getDb().delete(oauthStates).where(eq(oauthStates.id, row.id)).run();
   if (new Date(row.expiresAt) < new Date()) return null;
   return row.redirectTo;
 }
 
 export function purgeExpiredOAuthStates(): void {
-  getDb()
-    .delete(oauthStates)
-    .where(lte(oauthStates.expiresAt, new Date().toISOString()))
-    .run();
+  getDb().delete(oauthStates).where(lte(oauthStates.expiresAt, new Date().toISOString())).run();
 }

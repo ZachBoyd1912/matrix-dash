@@ -29,7 +29,7 @@ export default function MemoryDetailPage() {
   }, [load]);
 
   return (
-    <div className="px-4 md:px-8 py-10 max-w-2xl mx-auto space-y-8">
+    <div className="mx-auto max-w-2xl space-y-8 px-4 py-10 md:px-8">
       <div className="relative">
         <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
         <div
@@ -39,20 +39,21 @@ export default function MemoryDetailPage() {
         <div className="relative space-y-4">
           <Link
             href="/dashboard/memory-bank"
-            className="group inline-flex items-center gap-2 text-xs text-text-muted hover:text-text-primary transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            className="group text-text-muted hover:text-text-primary inline-flex items-center gap-2 text-xs transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
           >
             <ArrowLeft size={13} className="island-icon" /> Memory Bank
           </Link>
           <span className="eyebrow">
             <Brain size={11} /> Memory Detail
           </span>
-          <h1 className="display text-gradient text-4xl md:text-5xl ">
-            Memory
-          </h1>
+          <h1 className="display text-gradient text-4xl md:text-5xl">Memory</h1>
         </div>
       </div>
       {missing ? (
-        <EmptyState title="Memory not found" description="It may have been deleted or merged by Tidy." />
+        <EmptyState
+          title="Memory not found"
+          description="It may have been deleted or merged by Tidy."
+        />
       ) : detail ? (
         <MemoryDetail
           memory={detail.memory}

@@ -55,7 +55,7 @@ export const useAppStore = create<AppState>((set) => ({
   activeProviderId: null,
   setProviders: (providers) => {
     const active = providers.find((p) => p.isActive);
-    set({ providers, activeProviderId: active ? active.id : providers[0]?.id ?? null });
+    set({ providers, activeProviderId: active ? active.id : (providers[0]?.id ?? null) });
   },
   // Switching provider clears the model override — a model id is provider-specific.
   setActiveProviderId: (id) => set({ activeProviderId: id, modelOverride: null }),

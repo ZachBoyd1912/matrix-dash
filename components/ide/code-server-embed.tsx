@@ -24,20 +24,20 @@ export function CodeServerEmbed({ url, folder, name, onStop, onRestart, busy }: 
   const iframeSrc = `${url}/?folder=${encodeURIComponent(folder)}`;
 
   return (
-    <div className="flex flex-col min-h-0 h-full">
-      <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-white/5 bg-white/[0.01] shrink-0">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <FolderOpen size={13} className="text-emerald-400 shrink-0" />
-          <span className="text-xs font-semibold text-emerald-400 truncate" title={folder}>
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/5 bg-white/[0.01] px-3 py-2">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <FolderOpen size={13} className="shrink-0 text-emerald-400" />
+          <span className="truncate text-xs font-semibold text-emerald-400" title={folder}>
             {name}
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex shrink-0 items-center gap-1.5">
           <button
             onClick={onRestart}
             disabled={busy}
-            className="inline-flex items-center gap-1.5 px-2 h-7 rounded-md text-[11px] text-text-secondary hover:text-text-primary hover:bg-white/5 transition-colors disabled:opacity-50 disabled:pointer-events-none"
+            className="text-text-secondary hover:text-text-primary inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[11px] transition-colors hover:bg-white/5 disabled:pointer-events-none disabled:opacity-50"
             title="Restart VS Code server"
           >
             <RotateCw size={12} /> Restart
@@ -45,7 +45,7 @@ export function CodeServerEmbed({ url, folder, name, onStop, onRestart, busy }: 
           <button
             onClick={onStop}
             disabled={busy}
-            className="inline-flex items-center gap-1.5 px-2 h-7 rounded-md text-[11px] text-text-secondary hover:text-rose-400 hover:bg-white/5 transition-colors disabled:opacity-50 disabled:pointer-events-none"
+            className="text-text-secondary inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[11px] transition-colors hover:bg-white/5 hover:text-rose-400 disabled:pointer-events-none disabled:opacity-50"
             title="Stop VS Code server"
           >
             <Power size={12} /> Stop
@@ -54,7 +54,7 @@ export function CodeServerEmbed({ url, folder, name, onStop, onRestart, busy }: 
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-2 h-7 rounded-md text-[11px] text-text-secondary hover:text-emerald-400 hover:bg-white/5 transition-colors"
+            className="text-text-secondary inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[11px] transition-colors hover:bg-white/5 hover:text-emerald-400"
             title="Open VS Code in a new browser tab"
           >
             <ExternalLink size={12} /> Open in new tab
@@ -67,7 +67,7 @@ export function CodeServerEmbed({ url, folder, name, onStop, onRestart, busy }: 
         src={iframeSrc}
         title="Matrix Dash IDE"
         allow="clipboard-read; clipboard-write"
-        className="w-full h-full border-0 bg-[#0a0a0a] flex-1"
+        className="h-full w-full flex-1 border-0 bg-[#0a0a0a]"
       />
     </div>
   );

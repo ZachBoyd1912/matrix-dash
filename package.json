@@ -8,14 +8,26 @@
   },
   "homepage": "https://matrix.zbautomations.ie",
   "author": "ZachBoyd1912",
-  "keywords": ["ai", "dashboard", "local-first", "self-hosted", "nextjs", "matrix"],
+  "keywords": [
+    "ai",
+    "dashboard",
+    "local-first",
+    "self-hosted",
+    "nextjs",
+    "matrix"
+  ],
   "private": true,
   "scripts": {
     "predev": "rm -rf .next",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.0",
@@ -66,6 +78,7 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.5",
     "@tailwindcss/postcss": "^4.0.0",
     "@types/better-sqlite3": "^7.6.12",
     "@types/d3-drag": "^3.0.7",
@@ -80,8 +93,23 @@
     "@types/react-dom": "^19.0.0",
     "@types/web-push": "^3.6.4",
     "drizzle-kit": "^0.31.0",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "^15.5.20",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.8",
     "postcss": "^8.5.1",
+    "prettier": "^3.9.4",
+    "prettier-plugin-tailwindcss": "^0.8.0",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.7.3"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,mjs}": [
+      "eslint --fix"
+    ],
+    "*.{ts,tsx,js,mjs,json,css}": [
+      "prettier --write"
+    ]
   }
 }
