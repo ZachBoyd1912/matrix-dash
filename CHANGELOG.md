@@ -2,6 +2,17 @@
 
 # Changelog
 
+## 06/07/2026 @ 01:12:59 IST — "Claude Sonnet 5"
+
+**Goal:** Mark `TODO.md`'s Plan 5 as complete now that its verification passed, keeping the tracking document in sync with reality (per its own existing convention for Plans 1 & 2).
+
+**Changed:**
+- `TODO.md` — Plan 5's card marked `completed`, its 7 tasks checked with brief notes on the two deviations from the original spec (double quotes not single, `no-explicit-any` deferred to warn), and the same detail added to the raw-markdown fallback section. Hero stats bumped 2→3 completed.
+
+**Verification:** N/A — documentation-only change, no code affected.
+
+**Files Touched:** `TODO.md`, `CHANGELOG.md`.
+
 ## 06/07/2026 @ 01:10:22 IST — "Claude Sonnet 5"
 
 **Goal:** Execute Plan 5 (dev tooling) from `TODO.md`, the first step of a 19-plan roadmap sequencing all remaining TODO items by actual file-level dependency (planned this session, approved by the user, saved at `~/.claude/plans/yes-velvet-matsumoto.md`).
