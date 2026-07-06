@@ -2,6 +2,21 @@
 
 # Changelog
 
+## 06/07/2026 @ 01:20:30 IST — "Claude Sonnet 5"
+
+**Goal:** Execute Plan 6 (error boundaries) from `TODO.md` — Phase A.2 of the 19-plan roadmap. Zero `ErrorBoundary` existed anywhere; any unhandled render error whitescreened the whole app.
+
+**Added:**
+- `components/ui/error-fallback.tsx` — presentational fallback (icon, title, description, raw error message, "Try again" + "Back to overview" actions), styled to match existing `EmptyState`/`Card` glassmorphism conventions.
+- `components/layout/error-boundary.tsx` — `GlobalErrorBoundary`, a class component (`getDerivedStateFromError`/`componentDidCatch`) wrapping root layout's `{children}`. Defense-in-depth: Next's file-based `error.tsx` boundaries don't catch errors thrown by the root layout itself, only `page.tsx` and below.
+- `app/dashboard/error.tsx`, `app/dashboard/chat/error.tsx`, `app/dashboard/settings/error.tsx` — per-segment Next.js error boundaries with contextual copy, each wired to `reset()`.
+- `lib/utils/api-error.ts` — `getErrorMessage()`/`apiError()` normalizing the `err instanceof Error ? err.message : String(err)` pattern already hand-duplicated 23 times across `app/api/**` routes. Not retrofitted into existing routes this pass (that's a separate sweep) — available for new/touched routes going forward.
+- `app/layout.tsx` — wrapped `{children}` in `<GlobalErrorBoundary>`.
+
+**Verification:** Ran the actual app (`pnpm dev`) rather than trusting typecheck alone. Added a temporary route that unconditionally throws, navigated to it via the Chrome extension, and confirmed: the `app/dashboard/error.tsx` fallback renders with the thrown message, the sidebar/topbar shell stays fully intact (only the page content area is replaced), "Try again" re-invokes `reset()` (correctly re-throws since the test page always throws), and "Back to overview" navigates to `/dashboard` cleanly. Deleted the temporary route afterward. `pnpm typecheck` (0 errors — after clearing a stale `.next/types` reference to the deleted test route), `pnpm lint` (exit 0), `pnpm format:check` (clean).
+
+**Files Touched:** `components/ui/error-fallback.tsx` (new), `components/layout/error-boundary.tsx` (new), `app/dashboard/error.tsx` (new), `app/dashboard/chat/error.tsx` (new), `app/dashboard/settings/error.tsx` (new), `lib/utils/api-error.ts` (new), `app/layout.tsx`.
+
 ## 06/07/2026 @ 01:12:59 IST — "Claude Sonnet 5"
 
 **Goal:** Mark `TODO.md`'s Plan 5 as complete now that its verification passed, keeping the tracking document in sync with reality (per its own existing convention for Plans 1 & 2).

@@ -3,6 +3,7 @@ import { GeistMono } from "geist/font/mono";
 import { Instrument_Serif, Work_Sans, Fragment_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { THEME_IDS, DEFAULT_THEME } from "@/lib/themes";
+import { GlobalErrorBoundary } from "@/components/layout/error-boundary";
 import "./globals.css";
 
 const instrumentSerif = Instrument_Serif({
@@ -69,7 +70,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           enableSystem={false}
           disableTransitionOnChange
         >
-          {children}
+          <GlobalErrorBoundary>{children}</GlobalErrorBoundary>
         </ThemeProvider>
       </body>
     </html>

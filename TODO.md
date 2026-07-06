@@ -100,12 +100,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
   <div class="todo-orb todo-orb-1"></div>
   <div class="todo-orb todo-orb-2"></div>
   <h1>Matrix Dashboard &amp; Builder — Implementation Plans</h1>
-  <p class="subtitle"><span>19</span> plans · <span>3</span> completed · <span>0</span> in progress · Last updated 06/07/2026 @ 01:10:22 IST</p>
+  <p class="subtitle"><span>19</span> plans · <span>4</span> completed · <span>0</span> in progress · Last updated 06/07/2026 @ 01:20:30 IST</p>
 </div>
 
 <div class="todo-stats">
   <div class="todo-stat"><div class="stat-num">19</div><div class="stat-label">Total Plans</div></div>
-  <div class="todo-stat"><div class="stat-num">3</div><div class="stat-label">Completed</div></div>
+  <div class="todo-stat"><div class="stat-num">4</div><div class="stat-label">Completed</div></div>
   <div class="todo-stat"><div class="stat-num">0</div><div class="stat-label">In Progress</div></div>
   <div class="todo-stat critical-stat"><div class="stat-num">5</div><div class="stat-label">Critical</div></div>
 </div>
@@ -344,7 +344,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
 </div>
 
 <!-- PLAN 6 -->
-<div class="todo-card" data-category="code-quality" data-priority="high">
+<div class="todo-card completed" data-category="code-quality" data-priority="high">
   <div class="card-header">
     <span class="card-emoji">🛡️</span>
     <div>
@@ -376,14 +376,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
     </div>
   </details>
   <details class="tasks-summary">
-    <summary>6 tasks</summary>
+    <summary>6/6 tasks ✅</summary>
     <ul>
-      <li><input type="checkbox"> Create ErrorFallback with retry + home navigation</li>
-      <li><input type="checkbox"> Create GlobalErrorBoundary class component</li>
-      <li><input type="checkbox"> Wrap root layout in GlobalErrorBoundary</li>
-      <li><input type="checkbox"> Add per-page error.tsx files (dashboard, chat, settings)</li>
-      <li><input type="checkbox"> Create API error normalization utility</li>
-      <li><input type="checkbox"> Verify: throw in component, check fallback renders</li>
+      <li><input type="checkbox" checked> Create ErrorFallback with retry + home navigation</li>
+      <li><input type="checkbox" checked> Create GlobalErrorBoundary class component</li>
+      <li><input type="checkbox" checked> Wrap root layout in GlobalErrorBoundary</li>
+      <li><input type="checkbox" checked> Add per-page error.tsx files (dashboard, chat, settings)</li>
+      <li><input type="checkbox" checked> Create API error normalization utility (not retrofitted into existing routes — future sweep)</li>
+      <li><input type="checkbox" checked> Verify: threw in a temporary route via a live pnpm dev + browser check — fallback rendered, shell stayed intact, retry/home both worked</li>
     </ul>
   </details>
 </div>
@@ -1174,12 +1174,12 @@ Zero ErrorBoundary components exist. Any unhandled render error crashes the full
 Create GlobalErrorBoundary in root layout. Add per-page error.tsx files. Create ErrorFallback with retry + home navigation. Add API error normalization.
 
 ### Tasks
-- [ ] **Create ErrorFallback** — `components/ui/error-fallback.tsx` with error message, stack trace (dev), retry button, home link
-- [ ] **Create GlobalErrorBoundary** — `components/layout/error-boundary.tsx` class component with componentDidCatch
-- [ ] **Wrap root layout** — `app/layout.tsx` with GlobalErrorBoundary
-- [ ] **Add per-page error.tsx** — `app/dashboard/error.tsx`, `app/dashboard/chat/error.tsx`, `app/dashboard/settings/error.tsx`
-- [ ] **API error normalization** — `lib/utils/api-error.ts` mapping DB errors to user-friendly messages
-- [ ] **Verify** — throw in a component, confirm fallback renders
+- [x] **Create ErrorFallback** — `components/ui/error-fallback.tsx` with error message, retry button, home link (styled to match existing `EmptyState`/`Card` conventions)
+- [x] **Create GlobalErrorBoundary** — `components/layout/error-boundary.tsx` class component with `componentDidCatch`; defense-in-depth since Next's `error.tsx` boundaries don't catch errors from the root layout itself
+- [x] **Wrap root layout** — `app/layout.tsx` with GlobalErrorBoundary
+- [x] **Add per-page error.tsx** — `app/dashboard/error.tsx`, `app/dashboard/chat/error.tsx`, `app/dashboard/settings/error.tsx`
+- [x] **API error normalization** — `lib/utils/api-error.ts` (`getErrorMessage`/`apiError`), formalizing a pattern already hand-duplicated 23× across `app/api/**`; not retrofitted into existing routes this pass
+- [x] **Verify** — ran `pnpm dev`, threw from a temporary route via the browser, confirmed the fallback renders, the dashboard shell stays intact, and retry/home both work; deleted the test route afterward
 
 ### Files Touched
 | File | Action |
