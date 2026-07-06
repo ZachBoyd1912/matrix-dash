@@ -4,7 +4,7 @@ import { settleApproval } from "@/lib/ai/approvals";
 export const dynamic = "force-dynamic";
 
 const schema = z.object({
-  approvalId: z.string().min(1),
+  approvalId: z.string().min(1).max(200),
   decision: z.enum(["allow", "allow_always", "deny"]),
 });
 

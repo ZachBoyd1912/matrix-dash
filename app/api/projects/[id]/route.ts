@@ -6,15 +6,15 @@ import { projects } from "@/lib/db/schema";
 export const dynamic = "force-dynamic";
 
 const updateSchema = z.object({
-  name: z.string().optional(),
-  description: z.string().optional(),
-  purpose: z.string().optional(),
-  frontend: z.string().nullable().optional(),
-  backend: z.string().nullable().optional(),
-  database: z.string().nullable().optional(),
-  badge: z.string().optional(),
-  path: z.string().nullable().optional(),
-  status: z.string().optional(),
+  name: z.string().max(500).optional(),
+  description: z.string().max(50000).optional(),
+  purpose: z.string().max(50000).optional(),
+  frontend: z.string().max(500).nullable().optional(),
+  backend: z.string().max(500).nullable().optional(),
+  database: z.string().max(500).nullable().optional(),
+  badge: z.string().max(200).optional(),
+  path: z.string().max(500).nullable().optional(),
+  status: z.string().max(200).optional(),
 });
 
 interface Ctx {

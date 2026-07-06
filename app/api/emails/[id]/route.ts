@@ -12,10 +12,10 @@ function toEmail(row: typeof emails.$inferSelect): Email {
 
 const updateSchema = z.object({
   folder: z.enum(["inbox", "sent", "drafts", "trash"]).optional(),
-  fromAddr: z.string().optional(),
-  toAddr: z.string().optional(),
-  subject: z.string().optional(),
-  body: z.string().optional(),
+  fromAddr: z.string().max(320).optional(),
+  toAddr: z.string().max(320).optional(),
+  subject: z.string().max(500).optional(),
+  body: z.string().max(50000).optional(),
   isRead: z.boolean().optional(),
   isStarred: z.boolean().optional(),
 });

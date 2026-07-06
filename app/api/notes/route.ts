@@ -14,10 +14,10 @@ function toNote(row: typeof notes.$inferSelect): Note {
 }
 
 const createSchema = z.object({
-  title: z.string().default(""),
-  content: z.string().default(""),
-  tags: z.union([z.string(), z.array(z.string())]).optional(),
-  folderId: z.string().nullable().optional(),
+  title: z.string().max(500).default(""),
+  content: z.string().max(50000).default(""),
+  tags: z.union([z.string().max(500), z.array(z.string().max(500))]).optional(),
+  folderId: z.string().max(200).nullable().optional(),
 });
 
 export async function GET(req: Request) {

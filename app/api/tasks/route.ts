@@ -12,10 +12,10 @@ function toTask(row: typeof tasks.$inferSelect): Task {
 }
 
 const createSchema = z.object({
-  title: z.string().min(1),
-  notes: z.string().optional(),
-  dueAt: z.string().nullable().optional(),
-  remindAt: z.string().nullable().optional(),
+  title: z.string().min(1).max(500),
+  notes: z.string().max(50000).optional(),
+  dueAt: z.string().max(200).nullable().optional(),
+  remindAt: z.string().max(200).nullable().optional(),
   priority: z.enum(["low", "normal", "high"]).optional(),
 });
 

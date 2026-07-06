@@ -6,7 +6,7 @@ import { apiTokens } from "@/lib/db/schema";
 
 export const dynamic = "force-dynamic";
 
-const createSchema = z.object({ label: z.string().min(1) });
+const createSchema = z.object({ label: z.string().min(1).max(500) });
 
 export async function GET() {
   // Only show last 8 chars to avoid leaking full tokens after creation.

@@ -8,11 +8,11 @@ import { languageFromPath } from "@/lib/utils/language";
 export const dynamic = "force-dynamic";
 
 const createSchema = z.object({
-  name: z.string().min(1),
-  path: z.string().min(1),
-  content: z.string().optional(),
-  language: z.string().optional(),
-  sessionId: z.string().nullable().optional(),
+  name: z.string().min(1).max(500),
+  path: z.string().min(1).max(500),
+  content: z.string().max(100000).optional(),
+  language: z.string().max(200).optional(),
+  sessionId: z.string().max(200).nullable().optional(),
 });
 
 export async function GET() {

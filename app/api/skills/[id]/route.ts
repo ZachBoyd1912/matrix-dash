@@ -6,9 +6,9 @@ import { skills } from "@/lib/db/schema";
 export const dynamic = "force-dynamic";
 
 const updateSchema = z.object({
-  name: z.string().optional(),
-  description: z.string().optional(),
-  instructions: z.string().optional(),
+  name: z.string().max(500).optional(),
+  description: z.string().max(50000).optional(),
+  instructions: z.string().max(100000).optional(),
   isEnabled: z.boolean().optional(),
 });
 

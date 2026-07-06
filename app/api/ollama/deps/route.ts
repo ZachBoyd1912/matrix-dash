@@ -173,7 +173,7 @@ export async function GET() {
   return Response.json({ deps: results });
 }
 
-const Body = z.object({ name: z.string().min(1) });
+const Body = z.object({ name: z.string().min(1).max(200) });
 
 /** Best-effort install for python packages; system tools return manual instructions. */
 export async function POST(req: Request) {

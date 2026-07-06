@@ -15,7 +15,7 @@ export async function GET() {
 
 const Body = z.object({
   action: z.enum(["start", "stop", "restart"]),
-  folder: z.string().optional(),
+  folder: z.string().max(500).optional(),
 });
 
 export async function POST(req: Request) {

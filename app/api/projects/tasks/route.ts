@@ -17,12 +17,12 @@ function toKanban(row: typeof tasks.$inferSelect): KanbanTask {
 }
 
 const createSchema = z.object({
-  title: z.string().min(1),
-  notes: z.string().optional(),
-  dueAt: z.string().nullable().optional(),
+  title: z.string().min(1).max(500),
+  notes: z.string().max(50000).optional(),
+  dueAt: z.string().max(200).nullable().optional(),
   priority: z.enum(["low", "normal", "high", "urgent"]).optional(),
   kind: z.enum(["task", "bug", "error", "feature"]).optional(),
-  projectId: z.string().nullable().optional(),
+  projectId: z.string().max(200).nullable().optional(),
   kanbanStatus: z
     .enum(["backlog", "planned", "in-progress", "developed", "tested", "completed"])
     .optional(),

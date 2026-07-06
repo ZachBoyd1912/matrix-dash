@@ -12,12 +12,12 @@ function toEvent(row: typeof events.$inferSelect): CalendarEvent {
 }
 
 const createSchema = z.object({
-  calendarId: z.string().optional(),
-  title: z.string().min(1),
-  description: z.string().optional(),
-  location: z.string().optional(),
-  startsAt: z.string(),
-  endsAt: z.string(),
+  calendarId: z.string().max(200).optional(),
+  title: z.string().min(1).max(500),
+  description: z.string().max(50000).optional(),
+  location: z.string().max(500).optional(),
+  startsAt: z.string().max(200),
+  endsAt: z.string().max(200),
   allDay: z.boolean().optional(),
 });
 

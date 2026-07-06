@@ -7,7 +7,10 @@ import { encrypt, decrypt } from "@/lib/utils/crypto";
 
 export const dynamic = "force-dynamic";
 
-const createSchema = z.object({ label: z.string().min(1), value: z.string().min(1) });
+const createSchema = z.object({
+  label: z.string().min(1).max(500),
+  value: z.string().min(1).max(50000),
+});
 
 export async function GET(req: Request) {
   const url = new URL(req.url);

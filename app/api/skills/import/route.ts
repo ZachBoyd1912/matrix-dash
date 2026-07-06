@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 // Importing a large skill catalog fans out to many raw.githubusercontent fetches.
 export const maxDuration = 300;
 
-const schema = z.object({ repoUrl: z.string().min(1) });
+const schema = z.object({ repoUrl: z.string().min(1).max(2048) });
 
 const GH_HEADERS = {
   // GitHub rejects unauthenticated API calls that omit a User-Agent.

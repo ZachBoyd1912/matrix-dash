@@ -8,10 +8,10 @@ import { toPublic } from "@/lib/ai/registry";
 export const dynamic = "force-dynamic";
 
 const updateSchema = z.object({
-  name: z.string().optional(),
-  apiKey: z.string().optional(),
-  baseUrl: z.string().nullable().optional(),
-  defaultModel: z.string().nullable().optional(),
+  name: z.string().max(500).optional(),
+  apiKey: z.string().max(200).optional(),
+  baseUrl: z.string().max(2048).nullable().optional(),
+  defaultModel: z.string().max(200).nullable().optional(),
   isActive: z.boolean().optional(),
 });
 

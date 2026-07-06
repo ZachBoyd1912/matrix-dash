@@ -7,9 +7,9 @@ import { contacts } from "@/lib/db/schema";
 export const dynamic = "force-dynamic";
 
 const createSchema = z.object({
-  name: z.string().min(1),
-  email: z.string().optional(),
-  notes: z.string().optional(),
+  name: z.string().min(1).max(500),
+  email: z.string().max(320).optional(),
+  notes: z.string().max(50000).optional(),
 });
 
 export async function GET() {

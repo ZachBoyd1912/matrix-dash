@@ -11,9 +11,9 @@ function toMemory(row: typeof memories.$inferSelect): Memory {
 }
 
 const updateSchema = z.object({
-  content: z.string().min(1).optional(),
+  content: z.string().min(1).max(50000).optional(),
   type: z.enum(MEMORY_TYPES as [string, ...string[]]).optional(),
-  tags: z.union([z.string(), z.array(z.string())]).optional(),
+  tags: z.union([z.string().max(200), z.array(z.string().max(200))]).optional(),
   importance: z.number().min(0).max(1).optional(),
   isPinned: z.boolean().optional(),
 });

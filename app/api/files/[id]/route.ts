@@ -7,10 +7,10 @@ import { languageFromPath } from "@/lib/utils/language";
 export const dynamic = "force-dynamic";
 
 const updateSchema = z.object({
-  name: z.string().optional(),
-  path: z.string().optional(),
-  content: z.string().optional(),
-  language: z.string().optional(),
+  name: z.string().max(500).optional(),
+  path: z.string().max(500).optional(),
+  content: z.string().max(100000).optional(),
+  language: z.string().max(200).optional(),
 });
 
 interface Ctx {

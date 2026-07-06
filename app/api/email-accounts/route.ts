@@ -28,14 +28,14 @@ function toPublic(row: typeof emailAccounts.$inferSelect): EmailAccountPublic {
 }
 
 const createSchema = z.object({
-  label: z.string().min(1),
-  address: z.string().email(),
-  imapHost: z.string().min(1),
+  label: z.string().min(1).max(500),
+  address: z.string().email().max(320),
+  imapHost: z.string().min(1).max(200),
   imapPort: z.number().int().default(993),
-  smtpHost: z.string().min(1),
+  smtpHost: z.string().min(1).max(200),
   smtpPort: z.number().int().default(465),
-  username: z.string().min(1),
-  password: z.string().min(1),
+  username: z.string().min(1).max(200),
+  password: z.string().min(1).max(200),
   useTls: z.boolean().optional(),
   triageEnabled: z.boolean().optional(),
   test: z.boolean().optional(),

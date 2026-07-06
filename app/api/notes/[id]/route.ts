@@ -13,10 +13,10 @@ function toNote(row: typeof notes.$inferSelect): Note {
 }
 
 const updateSchema = z.object({
-  title: z.string().optional(),
-  content: z.string().optional(),
-  tags: z.union([z.string(), z.array(z.string())]).optional(),
-  folderId: z.string().nullable().optional(),
+  title: z.string().max(500).optional(),
+  content: z.string().max(50000).optional(),
+  tags: z.union([z.string().max(500), z.array(z.string().max(500))]).optional(),
+  folderId: z.string().max(200).nullable().optional(),
   isFavorite: z.boolean().optional(),
 });
 

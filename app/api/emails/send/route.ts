@@ -7,10 +7,10 @@ import { sendEmail } from "@/lib/services/email";
 export const dynamic = "force-dynamic";
 
 const schema = z.object({
-  accountId: z.string().optional(),
-  to: z.string().min(1),
-  subject: z.string().default(""),
-  body: z.string().default(""),
+  accountId: z.string().max(200).optional(),
+  to: z.string().min(1).max(500),
+  subject: z.string().max(500).default(""),
+  body: z.string().max(50000).default(""),
 });
 
 export async function POST(req: Request) {

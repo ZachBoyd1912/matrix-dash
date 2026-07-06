@@ -9,7 +9,7 @@ export const GET = withLog(async () => {
   return Response.json(listWorkspaces());
 });
 
-const registerSchema = z.object({ path: z.string().min(1) });
+const registerSchema = z.object({ path: z.string().min(1).max(500) });
 
 export const POST = withLog(async (req) => {
   let payload: unknown;

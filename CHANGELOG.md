@@ -2,6 +2,27 @@
 
 # Changelog
 
+## 07/07/2026 @ 00:26:24 IST — "Claude Sonnet 5"
+
+**Goal:** Execute Plan 7 (security hardening) from `TODO.md` — Phase C of the 19-plan roadmap. Recon (an Explore agent) found: zero request-level auth anywhere (genuinely local-first, trust-the-machine — the one narrow exception is `/api/hooks/[token]`, an inbound webhook meant for external non-browser callers, authenticated by the token in its URL); zero rate limiting; zero CSRF protection; 128 client-side mutation `fetch()` call sites across 46 files (ruling out per-call CSRF-token plumbing); and no `dangerouslySetInnerHTML`/`rehype-raw` sink anywhere (react-markdown renders safely by default), so the "sanitization" gap is really about the Zod string-length gap below, not an XSS sink.
+
+**Added:**
+- `middleware.ts` — three concerns on every `/api/*` request, verified live against a running dev server (not just typechecked):
+  - **Rate limiting**: in-memory sliding window keyed by IP, 100 req/60s default, 20 req/60s for `/api/hooks/*` (externally-reachable, triggers agent execution). `runtime: "nodejs"` so the module-scope `Map` persists across requests in this self-hosted single-process app (confirmed live: a 105-request burst against an IP that had already spent 5 requests in earlier tests returned exactly 95×200 + 10×429).
+  - **CSRF**: blocks a mutating request (POST/PUT/PATCH/DELETE) only when `Origin`/`Referer` is present AND doesn't match the request's own origin — the same lenient same-origin check most frameworks use instead of per-request tokens, chosen specifically because there's no shared fetch wrapper to inject a header into across 128 call sites. `/api/hooks/*` is explicitly exempted (its callers are non-browser and won't send a matching Origin). Verified live: same-origin PATCH → 200, forged `Origin: evil.example.com` → 403, webhook with the same forged Origin → reaches the route (401 invalid-token, not blocked).
+  - **Body size**: 1MB default, 10MB for `/api/ai/chat`, `/api/images`, `/api/uploads`, `/api/workspace/file`. (Next's `experimental.serverActions.bodySizeLimit` doesn't apply here — this app mutates via Route Handlers, not Server Actions — hence a manual `Content-Length` check.) Verified live: 1.6MB body → 413, small body → 200.
+- `lib/utils/sanitize.ts` — `isomorphic-dompurify` wrapper (`stripHtml`/`sanitizeHtml`). Not wired into anything yet since there's no current raw-HTML render path — available for the next feature that accepts externally-sourced HTML.
+
+**Fixed (Zod schema audit, 48 of 54 candidate files):** Ran a background Workflow — one agent per file added `.max()` bounds to unbounded free-text string fields (most already had `.min(1)` for presence but no upper bound), then one aggregate agent reviewed the full combined diff against the real `git diff` rather than trusting the 48 self-reported summaries. 6 files needed no changes (enums/booleans/already-bounded strings only — spot-checked, confirmed genuine). The review caught 3 real cross-file bugs where a `PATCH`/update schema had a *tighter* max than its sibling `POST`/create schema for the same field — since these routes do genuine partial updates (`getDb().update(...).set(parsed.data)`), resending a value valid at creation would fail validation on update:
+  - `app/api/jobs/[id]/route.ts` — `prompt` update cap raised 50000→100000 to match create.
+  - `app/api/projects/[id]/route.ts` — `frontend`/`backend`/`database` update caps raised 200→500 to match create.
+  - `app/api/workspace/mkdir/route.ts` — `path` cap raised 200→500 to match every sibling workspace route (`workspace/route.ts`, `workspace/file/route.ts`, `workspace/rename/route.ts`), which all already tolerated 500 for the same kind of field.
+  - `app/api/notes/route.ts` — `tags` array-element cap raised 200→500 to match `notes/[id]/route.ts`'s update schema (this one was the safe direction already — fixed for consistency, not because it could reject valid data).
+
+**Verification:** `pnpm typecheck` (0 errors — itself proof no `.max()` was chained in a way that broke a `.optional()`/`.nullable()`/`.default()` type), `pnpm lint` (exit 0, 60 pre-existing warnings unchanged), `pnpm test` (20/20), `pnpm format:check` (clean). Live dev-server verification of all three middleware concerns (above) plus a fresh end-to-end check on one just-audited route (`POST /api/projects` with a 600-char name correctly 400s with "String must contain at most 500 character(s)"; a valid payload correctly creates). Deleted the test project created during that check afterward.
+
+**Not done (explicitly deferred, not silently skipped):** Body-size limiting only checks `Content-Length` — a request that lies about its length or streams without one would bypass it; a hard byte-counting read-stream guard would be more robust but adds complexity disproportionate to this app's actual exposure (single self-hosted instance behind Cloudflare Access). CSRF's Origin/Referer check has the same limitation as every framework using this pattern: a request with neither header present passes through (by design — blocking it would break legitimate direct API/CLI use, which this app explicitly supports via `/api/hooks`).
+
 ## 07/07/2026 @ 00:01:51 IST — "Claude Sonnet 5"
 
 **Goal:** Execute Plan 4 (test infrastructure) from `TODO.md` — Phase A.3 of the 19-plan roadmap, the last Phase A item before moving to Phase C (security hardening; Phase B is deferred — its Plan 3 Claude Design deliverable doesn't exist yet).

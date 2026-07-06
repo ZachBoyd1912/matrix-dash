@@ -6,11 +6,11 @@ import { events } from "@/lib/db/schema";
 export const dynamic = "force-dynamic";
 
 const updateSchema = z.object({
-  title: z.string().optional(),
-  description: z.string().optional(),
-  location: z.string().optional(),
-  startsAt: z.string().optional(),
-  endsAt: z.string().optional(),
+  title: z.string().max(500).optional(),
+  description: z.string().max(50000).optional(),
+  location: z.string().max(500).optional(),
+  startsAt: z.string().max(200).optional(),
+  endsAt: z.string().max(200).optional(),
   allDay: z.boolean().optional(),
 });
 

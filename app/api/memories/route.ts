@@ -14,12 +14,12 @@ function toMemory(row: typeof memories.$inferSelect): Memory {
 }
 
 const createSchema = z.object({
-  content: z.string().min(1),
+  content: z.string().min(1).max(50000),
   type: z.enum(MEMORY_TYPES as [string, ...string[]]),
-  tags: z.union([z.string(), z.array(z.string())]).optional(),
+  tags: z.union([z.string().max(200), z.array(z.string().max(200))]).optional(),
   importance: z.number().min(0).max(1).optional(),
   isPinned: z.boolean().optional(),
-  source: z.string().optional(),
+  source: z.string().max(200).optional(),
 });
 
 export async function GET(req: Request) {

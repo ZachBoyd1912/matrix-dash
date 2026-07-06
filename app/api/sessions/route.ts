@@ -7,7 +7,7 @@ import { sessions } from "@/lib/db/schema";
 export const dynamic = "force-dynamic";
 
 const createSchema = z.object({
-  name: z.string().optional(),
+  name: z.string().max(500).optional(),
   context: z.record(z.string(), z.unknown()).optional(),
 });
 

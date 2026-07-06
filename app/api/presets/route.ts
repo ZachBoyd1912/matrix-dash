@@ -7,8 +7,8 @@ import { presets } from "@/lib/db/schema";
 export const dynamic = "force-dynamic";
 
 const createSchema = z.object({
-  name: z.string().min(1),
-  systemPrompt: z.string().default(""),
+  name: z.string().min(1).max(500),
+  systemPrompt: z.string().max(100000).default(""),
 });
 
 export async function GET() {

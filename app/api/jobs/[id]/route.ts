@@ -8,9 +8,9 @@ import { syncScheduledJobs, triggerJobNow } from "@/lib/services/daemon";
 export const dynamic = "force-dynamic";
 
 const updateSchema = z.object({
-  name: z.string().optional(),
-  prompt: z.string().optional(),
-  cron: z.string().optional(),
+  name: z.string().max(500).optional(),
+  prompt: z.string().max(100000).optional(),
+  cron: z.string().max(200).optional(),
   isEnabled: z.boolean().optional(),
 });
 

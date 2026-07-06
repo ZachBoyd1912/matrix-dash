@@ -6,8 +6,8 @@ import { sessions } from "@/lib/db/schema";
 export const dynamic = "force-dynamic";
 
 const updateSchema = z.object({
-  name: z.string().optional(),
-  context: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
+  name: z.string().max(500).optional(),
+  context: z.union([z.string().max(100000), z.record(z.string(), z.unknown())]).optional(),
 });
 
 interface Ctx {

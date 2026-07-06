@@ -7,8 +7,8 @@ import { sendMessage } from "@/lib/services/slack";
 export const dynamic = "force-dynamic";
 
 const sendSchema = z.object({
-  channel: z.string(),
-  text: z.string(),
+  channel: z.string().max(200),
+  text: z.string().max(50000),
 });
 
 export async function POST(req: Request) {

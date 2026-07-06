@@ -19,11 +19,11 @@ function toPublic(row: typeof calendars.$inferSelect): Calendar {
 }
 
 const createSchema = z.object({
-  name: z.string().min(1),
-  color: z.string().optional(),
-  caldavUrl: z.string().nullable().optional(),
-  caldavUser: z.string().nullable().optional(),
-  caldavPass: z.string().nullable().optional(),
+  name: z.string().min(1).max(500),
+  color: z.string().max(200).optional(),
+  caldavUrl: z.string().max(2048).nullable().optional(),
+  caldavUser: z.string().max(200).nullable().optional(),
+  caldavPass: z.string().max(200).nullable().optional(),
 });
 
 export async function GET() {

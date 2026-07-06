@@ -6,12 +6,12 @@ import { tasks } from "@/lib/db/schema";
 export const dynamic = "force-dynamic";
 
 const updateSchema = z.object({
-  title: z.string().optional(),
-  notes: z.string().optional(),
-  dueAt: z.string().nullable().optional(),
+  title: z.string().max(500).optional(),
+  notes: z.string().max(50000).optional(),
+  dueAt: z.string().max(200).nullable().optional(),
   priority: z.enum(["low", "normal", "high", "urgent"]).optional(),
   kind: z.enum(["task", "bug", "error", "feature"]).optional(),
-  projectId: z.string().nullable().optional(),
+  projectId: z.string().max(200).nullable().optional(),
   kanbanStatus: z
     .enum(["backlog", "planned", "in-progress", "developed", "tested", "completed"])
     .optional(),

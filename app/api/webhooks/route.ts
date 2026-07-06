@@ -7,9 +7,9 @@ import { webhooks } from "@/lib/db/schema";
 export const dynamic = "force-dynamic";
 
 const createSchema = z.object({
-  label: z.string().min(1),
-  url: z.string().url(),
-  event: z.string().default("*"),
+  label: z.string().min(1).max(500),
+  url: z.string().url().max(2048),
+  event: z.string().max(200).default("*"),
   isEnabled: z.boolean().optional(),
 });
 

@@ -100,12 +100,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
   <div class="todo-orb todo-orb-1"></div>
   <div class="todo-orb todo-orb-2"></div>
   <h1>Matrix Dashboard &amp; Builder — Implementation Plans</h1>
-  <p class="subtitle"><span>19</span> plans · <span>5</span> completed · <span>0</span> in progress · Last updated 07/07/2026 @ 00:01:51 IST</p>
+  <p class="subtitle"><span>19</span> plans · <span>6</span> completed · <span>0</span> in progress · Last updated 07/07/2026 @ 00:26:24 IST</p>
 </div>
 
 <div class="todo-stats">
   <div class="todo-stat"><div class="stat-num">19</div><div class="stat-label">Total Plans</div></div>
-  <div class="todo-stat"><div class="stat-num">5</div><div class="stat-label">Completed</div></div>
+  <div class="todo-stat"><div class="stat-num">6</div><div class="stat-label">Completed</div></div>
   <div class="todo-stat"><div class="stat-num">0</div><div class="stat-label">In Progress</div></div>
   <div class="todo-stat critical-stat"><div class="stat-num">5</div><div class="stat-label">Critical</div></div>
 </div>
@@ -389,7 +389,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
 </div>
 
 <!-- PLAN 7 -->
-<div class="todo-card" data-category="security" data-priority="critical">
+<div class="todo-card completed" data-category="security" data-priority="critical">
   <div class="card-header">
     <span class="card-emoji">🔒</span>
     <div>
@@ -422,14 +422,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
     </div>
   </details>
   <details class="tasks-summary">
-    <summary>6 tasks</summary>
+    <summary>6/6 tasks ✅</summary>
     <ul>
-      <li><input type="checkbox"> Create middleware.ts: IP sliding window, 100 req/60s API, 20 req/60s auth</li>
-      <li><input type="checkbox"> Add CSRF token generation + validation on POST/PUT/DELETE</li>
-      <li><input type="checkbox"> Install DOMPurify, create sanitize.ts wrapper</li>
-      <li><input type="checkbox"> Audit 30+ Zod schemas: add .max(), .regex(), .min()</li>
-      <li><input type="checkbox"> Configure body size limits (1MB default, 10MB chat)</li>
-      <li><input type="checkbox"> Verify: rapid requests are rate-limited, CSRF blocks unauthenticated mutations</li>
+      <li><input type="checkbox" checked> Create middleware.ts: IP sliding window, 100 req/60s API, 20 req/60s for /api/hooks (this app has no "auth" routes at all — genuinely local-first/trust-the-machine, so the stricter tier targets the one externally-reachable webhook endpoint instead)</li>
+      <li><input type="checkbox" checked> CSRF via Origin/Referer same-origin check (not per-request tokens — 128 mutation fetch() call sites across 46 files made per-call header injection impractical, per this session's own roadmap decision); /api/hooks/[token] exempted (external, token-authed callers)</li>
+      <li><input type="checkbox" checked> Install isomorphic-dompurify, create sanitize.ts wrapper (stripHtml/sanitizeHtml) — not wired anywhere yet, no dangerouslySetInnerHTML/rehype-raw sink exists in this app today</li>
+      <li><input type="checkbox" checked> Audited 54 Zod-schema route files (found via `grep -rl "z.object("`, more than the "30+" estimate): 48 got .max() added, 6 needed no changes (verified genuinely bound-free-string-free). A workflow review pass caught and fixed 4 cross-file create/update max-value mismatches</li>
+      <li><input type="checkbox" checked> Body size limits: 1MB default, 10MB for /api/ai/chat + /api/images + /api/uploads + /api/workspace/file (via middleware Content-Length check — Next's serverActions.bodySizeLimit doesn't apply since this app uses Route Handlers, not Server Actions)</li>
+      <li><input type="checkbox" checked> Verify: live dev-server testing (not just typecheck) — rate limiting (105-request burst → exactly 100 allowed/5 blocked accounting for prior test traffic), CSRF (same-origin 200, forged Origin 403, webhook exemption confirmed), body size (1.6MB → 413), and a fresh audited-route validation round-trip (400 on oversized field, 200 on valid payload)</li>
     </ul>
   </details>
 </div>
@@ -1209,22 +1209,19 @@ Zero rate limiting, no CSRF, no input sanitization (XSS risk), Zod schemas lack 
 Create Next.js middleware for rate limiting + CSRF. Add DOMPurify sanitization. Audit 30+ Zod schemas with .max() constraints. Configure body size limits.
 
 ### Tasks
-- [ ] **Create middleware.ts** — IP sliding window (100 req/60s API, 20 req/60s auth), CSRF validation on POST/PUT/DELETE
-- [ ] **CSRF token generation** — `lib/services/web.ts` + Zustand store + custom fetch header
-- [ ] **Install DOMPurify** — create `lib/utils/sanitize.ts`, apply to memories/notes/tasks/emails
-- [ ] **Harden Zod schemas** — audit 30+ routes: add .max() (titles: 500, content: 50000), .regex(), .min(1)
-- [ ] **Body size limits** — `next.config.ts`: 1MB default, 10MB chat
-- [ ] **Verify** — rapid requests blocked, CSRF rejects unauthenticated mutations
+- [x] **Create middleware.ts** — IP sliding window (100 req/60s general, 20 req/60s for `/api/hooks/*`); this app has no "auth" routes to target since it's genuinely unauthenticated/local-first, so the stricter tier applies to the one externally-reachable webhook endpoint instead. CSRF validated on POST/PUT/PATCH/DELETE
+- [x] **CSRF** — deviated from the spec's per-request-token design (`lib/services/web.ts` + Zustand + custom fetch header): recon found 128 mutation `fetch()` call sites across 46 files with no shared wrapper, making per-call header injection impractical. Used an Origin/Referer same-origin check in `middleware.ts` instead — zero call-site changes needed. `/api/hooks/[token]` exempted (external, token-in-URL-authed callers won't send a matching Origin)
+- [x] **Install DOMPurify** — `isomorphic-dompurify` + `lib/utils/sanitize.ts` (`stripHtml`/`sanitizeHtml`); not applied to memories/notes/tasks/emails as the spec suggested — recon found zero `dangerouslySetInnerHTML`/`rehype-raw` anywhere, content renders via `react-markdown` (safe by default), so there's no current XSS sink to sanitize into. Available for the next feature that needs it
+- [x] **Harden Zod schemas** — audited 54 route files (found via `grep -rl "z.object("` — more than the "30+" estimate), 48 changed, 6 confirmed already fine. A workflow review pass caught 4 cross-file create/update max mismatches that would have rejected previously-valid data on PATCH; fixed all 4
+- [x] **Body size limits** — implemented in `middleware.ts` (not `next.config.ts` — Next's `serverActions.bodySizeLimit` only governs Server Actions, and this app mutates exclusively via Route Handlers): 1MB default, 10MB for chat/images/uploads/workspace-file
+- [x] **Verify** — live dev-server testing: rate-limit burst (429 after budget exhausted), CSRF (403 on forged Origin, 200 on same-origin, webhook exemption confirmed), body size (413 on 1.6MB payload), and a fresh audited route's validation round-trip (400/200)
 
 ### Files Touched
 | File | Action |
 |------|--------|
-| `middleware.ts` | **NEW** |
+| `middleware.ts` | **NEW** — rate limiting + CSRF + body-size gate, all three concerns (spec split CSRF into `lib/services/web.ts`/Zustand — not needed with the Origin-check approach) |
 | `lib/utils/sanitize.ts` | **NEW** |
-| `lib/services/web.ts` | Edit |
-| `lib/stores/use-app-store.ts` | Edit |
-| `next.config.ts` | Edit |
-| 30+ API route files | Edit — sanitization + Zod hardening |
+| 48 API route files | Edit — Zod `.max()` hardening |
 
 ### 🧠 Skills
 `@api-security-best-practices` `@backend-security-coder` `@cc-skill-security-review` `@cso`

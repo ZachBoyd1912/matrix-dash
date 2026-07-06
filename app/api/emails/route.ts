@@ -13,10 +13,10 @@ function toEmail(row: typeof emails.$inferSelect): Email {
 
 const createSchema = z.object({
   folder: z.enum(["inbox", "sent", "drafts", "trash"]).default("drafts"),
-  fromAddr: z.string().default(""),
-  toAddr: z.string().default(""),
-  subject: z.string().default(""),
-  body: z.string().default(""),
+  fromAddr: z.string().max(320).default(""),
+  toAddr: z.string().max(320).default(""),
+  subject: z.string().max(500).default(""),
+  body: z.string().max(50000).default(""),
 });
 
 export async function GET(req: Request) {

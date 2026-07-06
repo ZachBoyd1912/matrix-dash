@@ -5,7 +5,7 @@ import { withLog } from "@/lib/utils/logger";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const schema = z.object({ from: z.string().min(1), to: z.string().min(1) });
+const schema = z.object({ from: z.string().min(1).max(500), to: z.string().min(1).max(500) });
 
 export const POST = withLog(async (req) => {
   let payload: unknown;

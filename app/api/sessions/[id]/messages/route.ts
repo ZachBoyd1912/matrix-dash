@@ -8,9 +8,9 @@ export const dynamic = "force-dynamic";
 
 const createSchema = z.object({
   role: z.enum(["user", "assistant", "system"]),
-  content: z.string().min(1),
-  providerId: z.string().nullable().optional(),
-  modelName: z.string().nullable().optional(),
+  content: z.string().min(1).max(50000),
+  providerId: z.string().max(200).nullable().optional(),
+  modelName: z.string().max(500).nullable().optional(),
 });
 
 interface Ctx {

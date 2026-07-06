@@ -58,6 +58,7 @@
     "highlight.js": "^11.11.1",
     "ical.js": "^2.2.1",
     "imapflow": "^1.4.0",
+    "isomorphic-dompurify": "^3.18.0",
     "lucide-react": "^0.460.0",
     "mailparser": "^3.9.9",
     "next": "^15.3.0",

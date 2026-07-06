@@ -9,10 +9,10 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
 const generateSchema = z.object({
-  prompt: z.string().min(1),
-  providerId: z.string().optional(),
-  model: z.string().optional(),
-  size: z.string().optional(),
+  prompt: z.string().min(1).max(50000),
+  providerId: z.string().max(200).optional(),
+  model: z.string().max(200).optional(),
+  size: z.string().max(200).optional(),
 });
 
 export async function GET() {

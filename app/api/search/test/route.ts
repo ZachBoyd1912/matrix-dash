@@ -5,9 +5,9 @@ import { setSetting } from "@/lib/db/settings";
 export const dynamic = "force-dynamic";
 
 const testSchema = z.object({
-  query: z.string().min(1),
-  tavilyKey: z.string().optional(),
-  searxngUrl: z.string().optional(),
+  query: z.string().min(1).max(500),
+  tavilyKey: z.string().max(200).optional(),
+  searxngUrl: z.string().max(2048).optional(),
 });
 
 export async function POST(req: Request) {

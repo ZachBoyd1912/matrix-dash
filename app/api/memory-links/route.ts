@@ -7,8 +7,8 @@ import { linkMemories } from "@/lib/ai/consolidation";
 export const dynamic = "force-dynamic";
 
 const createSchema = z.object({
-  sourceMemoryId: z.string().min(1),
-  targetMemoryId: z.string().min(1),
+  sourceMemoryId: z.string().min(1).max(200),
+  targetMemoryId: z.string().min(1).max(200),
   strength: z.number().min(0).max(1).optional(),
 });
 

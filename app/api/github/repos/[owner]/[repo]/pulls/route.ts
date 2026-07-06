@@ -11,10 +11,10 @@ interface Ctx {
 }
 
 const createSchema = z.object({
-  title: z.string().min(1),
-  body: z.string().optional(),
-  head: z.string(),
-  base: z.string().default("main"),
+  title: z.string().min(1).max(500),
+  body: z.string().max(50000).optional(),
+  head: z.string().max(200),
+  base: z.string().max(200).default("main"),
 });
 
 export async function POST(req: Request, ctx: Ctx) {

@@ -11,14 +11,14 @@ import { requiresApiKey, LOCAL_API_KEY } from "@/types/ai-provider";
 export const dynamic = "force-dynamic";
 
 const createSchema = z.object({
-  name: z.string().min(1),
+  name: z.string().min(1).max(500),
   // Any catalog kind — validated as a non-empty string so new kinds need no code change here.
-  provider: z.string().min(1),
+  provider: z.string().min(1).max(200),
   // Optional: local providers (Ollama, LM Studio) need no key. Required cloud
   // providers are enforced below against the catalog.
-  apiKey: z.string().optional(),
-  baseUrl: z.string().nullable().optional(),
-  defaultModel: z.string().nullable().optional(),
+  apiKey: z.string().max(200).optional(),
+  baseUrl: z.string().max(2048).nullable().optional(),
+  defaultModel: z.string().max(200).nullable().optional(),
   isActive: z.boolean().optional(),
 });
 

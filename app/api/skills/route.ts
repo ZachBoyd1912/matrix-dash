@@ -7,20 +7,20 @@ import { skills } from "@/lib/db/schema";
 export const dynamic = "force-dynamic";
 
 const createSchema = z.object({
-  name: z.string().min(1),
-  description: z.string().optional(),
-  instructions: z.string().optional(),
+  name: z.string().min(1).max(500),
+  description: z.string().max(50000).optional(),
+  instructions: z.string().max(100000).optional(),
   isEnabled: z.boolean().optional(),
 });
 
 // Bulk enable/disable. Omit `ids` to apply to every skill ("enable/disable all").
 const bulkSchema = z.object({
   isEnabled: z.boolean(),
-  ids: z.array(z.string()).optional(),
+  ids: z.array(z.string().max(200)).optional(),
 });
 
 // Bulk delete. Omit `ids` (or send no body) to delete EVERY skill ("delete all").
-const deleteSchema = z.object({ ids: z.array(z.string()).optional() }).optional();
+const deleteSchema = z.object({ ids: z.array(z.string().max(200)).optional() }).optional();
 
 export async function GET() {
   const rows = getDb().select().from(skills).orderBy(desc(skills.updatedAt)).all();

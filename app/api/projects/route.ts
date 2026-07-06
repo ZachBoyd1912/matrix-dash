@@ -7,14 +7,14 @@ import type { Project } from "@/types/jarvis";
 export const dynamic = "force-dynamic";
 
 const createSchema = z.object({
-  name: z.string().min(1),
-  description: z.string().min(1),
-  purpose: z.string().min(1),
-  frontend: z.string().nullable().optional(),
-  backend: z.string().nullable().optional(),
-  database: z.string().nullable().optional(),
-  badge: z.string().min(1),
-  path: z.string().nullable().optional(),
+  name: z.string().min(1).max(500),
+  description: z.string().min(1).max(50000),
+  purpose: z.string().min(1).max(50000),
+  frontend: z.string().max(500).nullable().optional(),
+  backend: z.string().max(500).nullable().optional(),
+  database: z.string().max(500).nullable().optional(),
+  badge: z.string().min(1).max(200),
+  path: z.string().max(500).nullable().optional(),
 });
 
 export async function GET() {

@@ -29,8 +29,8 @@ export const GET = withLog(async (req) => {
 });
 
 const writeSchema = z.object({
-  path: z.string().min(1),
-  content: z.string().optional(),
+  path: z.string().min(1).max(500),
+  content: z.string().max(100000).optional(),
   /** When true, fail if the file already exists (used by "new file"). */
   create: z.boolean().optional(),
 });

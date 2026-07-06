@@ -5,10 +5,10 @@ import { LOCAL_API_KEY } from "@/types/ai-provider";
 export const dynamic = "force-dynamic";
 
 const schema = z.object({
-  provider: z.string().min(1),
+  provider: z.string().min(1).max(200),
   // Optional: local providers list models from an unauthenticated local endpoint.
-  apiKey: z.string().optional(),
-  baseUrl: z.string().nullable().optional(),
+  apiKey: z.string().max(200).optional(),
+  baseUrl: z.string().max(2048).nullable().optional(),
 });
 
 /**
