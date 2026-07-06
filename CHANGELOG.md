@@ -2,6 +2,25 @@
 
 # Changelog
 
+## 07/07/2026 @ 00:01:51 IST — "Claude Sonnet 5"
+
+**Goal:** Execute Plan 4 (test infrastructure) from `TODO.md` — Phase A.3 of the 19-plan roadmap, the last Phase A item before moving to Phase C (security hardening; Phase B is deferred — its Plan 3 Claude Design deliverable doesn't exist yet).
+
+**Added:**
+- `vitest.config.ts` — jsdom environment, `@vitejs/plugin-react`, `@/*` alias matching `tsconfig.json`.
+- `vitest.setup.ts` — `@testing-library/jest-dom` matchers; mocks `@/lib/utils/db-path` to a fresh `os.tmpdir()` directory per test file so `lib/db/client.ts` and `lib/utils/crypto.ts` never touch the real `~/MatrixDash` (confirmed: `~/MatrixDash/.key` timestamp unchanged after the full suite ran); polyfills `window.matchMedia` (jsdom doesn't implement it — `next-themes` reads it on mount).
+- `lib/test-utils.tsx` — `render()` wrapper pre-wrapped in `ThemeProvider` (matches `app/layout.tsx`'s provider tree) so component tests don't need to set that up per-file.
+- `lib/test-db.ts` — re-exports the real `getDb()`/`getSqlite()` (so tests exercise the actual `INIT_SQL` schema/migrations, not a duplicated one) + a `resetTables()` helper for isolation between test cases in one file.
+- `__tests__/lib/crypto.test.ts` — AES-256-GCM round-trip (plain, empty, unicode/long, tamper-detection, IV randomness).
+- `__tests__/lib/wiki.test.ts` — `extractWikiLinks()` edge cases (no links, aliasing, whitespace, dedup, empty brackets). TODO.md's task list named a "slug" test target, but no `slug.ts` exists in this repo (that utility belongs to Plan 1's `bolt.new-custom/app/utils/slug.ts`, a separate repo) — substituted `wiki.ts` as the equivalent lib-level edge-case target.
+- `__tests__/components/button.test.tsx` — render, click, disabled, variant classes.
+- `__tests__/api/notifications.test.ts` — GET/PATCH/DELETE against the isolated test DB, imported and called directly as functions (no server needed).
+- `package.json` — `test`, `test:watch`, `test:coverage` scripts.
+
+**Verification:** `pnpm test` — 20/20 passing across 4 files. `pnpm typecheck` (0 errors), `pnpm lint` (exit 0), `pnpm format:check` (clean). Confirmed test isolation by checking `~/MatrixDash/.key`'s mtime was untouched and that `/var/folders/.../T/matrix-dash-test-*` temp dirs were created instead.
+
+**Files Touched:** `vitest.config.ts` (new), `vitest.setup.ts` (new), `lib/test-utils.tsx` (new), `lib/test-db.ts` (new), `__tests__/lib/crypto.test.ts` (new), `__tests__/lib/wiki.test.ts` (new), `__tests__/components/button.test.tsx` (new), `__tests__/api/notifications.test.ts` (new), `package.json`.
+
 ## 06/07/2026 @ 01:20:30 IST — "Claude Sonnet 5"
 
 **Goal:** Execute Plan 6 (error boundaries) from `TODO.md` — Phase A.2 of the 19-plan roadmap. Zero `ErrorBoundary` existed anywhere; any unhandled render error whitescreened the whole app.

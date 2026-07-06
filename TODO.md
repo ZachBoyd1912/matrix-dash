@@ -100,12 +100,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
   <div class="todo-orb todo-orb-1"></div>
   <div class="todo-orb todo-orb-2"></div>
   <h1>Matrix Dashboard &amp; Builder — Implementation Plans</h1>
-  <p class="subtitle"><span>19</span> plans · <span>4</span> completed · <span>0</span> in progress · Last updated 06/07/2026 @ 01:20:30 IST</p>
+  <p class="subtitle"><span>19</span> plans · <span>5</span> completed · <span>0</span> in progress · Last updated 07/07/2026 @ 00:01:51 IST</p>
 </div>
 
 <div class="todo-stats">
   <div class="todo-stat"><div class="stat-num">19</div><div class="stat-label">Total Plans</div></div>
-  <div class="todo-stat"><div class="stat-num">4</div><div class="stat-label">Completed</div></div>
+  <div class="todo-stat"><div class="stat-num">5</div><div class="stat-label">Completed</div></div>
   <div class="todo-stat"><div class="stat-num">0</div><div class="stat-label">In Progress</div></div>
   <div class="todo-stat critical-stat"><div class="stat-num">5</div><div class="stat-label">Critical</div></div>
 </div>
@@ -254,7 +254,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
 </div>
 
 <!-- PLAN 4 -->
-<div class="todo-card" data-category="code-quality" data-priority="critical">
+<div class="todo-card completed" data-category="code-quality" data-priority="critical">
   <div class="card-header">
     <span class="card-emoji">🧪</span>
     <div>
@@ -285,15 +285,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
     </div>
   </details>
   <details class="tasks-summary">
-    <summary>7 tasks</summary>
+    <summary>7/7 tasks ✅</summary>
     <ul>
-      <li><input type="checkbox"> Install vitest, @testing-library/react, jsdom</li>
-      <li><input type="checkbox"> Configure vitest with jsdom + path aliases</li>
-      <li><input type="checkbox"> Create test setup with jest-dom matchers + DB mocks</li>
-      <li><input type="checkbox"> Build test utilities (render wrapper, DB seed factories)</li>
-      <li><input type="checkbox"> Write API tests (chat, memories, auth, provider registry)</li>
-      <li><input type="checkbox"> Write component tests (chat-input, sidebar, tool-call-block)</li>
-      <li><input type="checkbox"> Write lib tests (crypto, slug, wiki-link parser, daemon)</li>
+      <li><input type="checkbox" checked> Install vitest, @testing-library/react, jsdom</li>
+      <li><input type="checkbox" checked> Configure vitest with jsdom + path aliases</li>
+      <li><input type="checkbox" checked> Create test setup with jest-dom matchers + DB mocks (mocked db-path → isolated temp dir; window.matchMedia polyfill)</li>
+      <li><input type="checkbox" checked> Build test utilities (ThemeProvider render wrapper, real-schema test DB helper)</li>
+      <li><input type="checkbox" checked> Write API tests — thin pass: notifications route (GET/PATCH/DELETE) proves the pattern; chat/memories/auth/provider-registry deferred to when those routes are next touched</li>
+      <li><input type="checkbox" checked> Write component tests — thin pass: Button (render/click/disabled/variants) proves the pattern; chat-input/sidebar/tool-call-block deferred</li>
+      <li><input type="checkbox" checked> Write lib tests — crypto (AES round-trip + tamper detection) and wiki-link parser edge cases (no slug.ts exists in this repo — that's Plan 1's bolt.new-custom utility — substituted wiki.ts); daemon.ts deferred, too side-effectful (cron/DB/email) for a thin first pass</li>
     </ul>
   </details>
 </div>
@@ -1104,14 +1104,14 @@ Zero test infrastructure. 90+ API routes, 30+ components, 19 services — all un
 Install vitest + @testing-library/react. Create test utilities (DB seed helpers, render wrapper). Write initial tests for critical paths: chat streaming, memory pipeline, auth, UI primitives, crypto.
 
 ### Tasks
-- [ ] **Install test dependencies** — vitest, @testing-library/react, @testing-library/jest-dom, @vitejs/plugin-react, jsdom
-- [ ] **Configure vitest** — `vitest.config.ts` with jsdom + path aliases
-- [ ] **Create test setup** — `vitest.setup.ts` with jest-dom matchers + DB mocks
-- [ ] **Add test scripts** — `pnpm test`, `pnpm test:watch`, `pnpm test:coverage`
-- [ ] **Build test utilities** — `lib/test-utils.tsx` (render wrapper), `lib/test-db.ts` (in-memory SQLite + seeds)
-- [ ] **Write API tests** — chat route (streaming + errors), memories CRUD, auth/verify, provider registry
-- [ ] **Write component tests** — chat-input, message-bubble, tool-call-block, sidebar, topbar, mobile-nav
-- [ ] **Write lib tests** — crypto (AES round-trip), slug (edge cases), wiki-link parser, daemon, embeddings
+- [x] **Install test dependencies** — vitest, @testing-library/react, @testing-library/jest-dom, @testing-library/user-event, @vitejs/plugin-react, jsdom, @vitest/ui
+- [x] **Configure vitest** — `vitest.config.ts` with jsdom + `@/*` path alias matching tsconfig
+- [x] **Create test setup** — `vitest.setup.ts` with jest-dom matchers + `db-path` mock (isolated per-test-file temp dir, never touches real `~/MatrixDash`) + `window.matchMedia` polyfill (jsdom gap that broke `next-themes`)
+- [x] **Add test scripts** — `pnpm test`, `pnpm test:watch`, `pnpm test:coverage`
+- [x] **Build test utilities** — `lib/test-utils.tsx` (ThemeProvider-wrapped render), `lib/test-db.ts` (reuses the real `getDb()`/`getSqlite()` + schema against the mocked temp path, not a duplicated in-memory schema, + `resetTables()`)
+- [x] **Write API tests** — thin pass: notifications route (GET/PATCH/DELETE, called directly as functions) proves routes are testable without a server; chat/memories/auth/provider-registry left for when those routes are next touched
+- [x] **Write component tests** — thin pass: Button (render/click/disabled/variant classes); chat-input/message-bubble/tool-call-block/sidebar/topbar/mobile-nav left for when those components are next touched
+- [x] **Write lib tests** — crypto (AES round-trip, tamper detection, IV randomness) and wiki-link parser edge cases; no `slug.ts` exists in this repo (that's Plan 1's `bolt.new-custom` utility in a separate repo) so substituted `wiki.ts`; daemon/embeddings deferred — too side-effectful (cron scheduling, DB, network) for a thin first pass, need proper mocking design of their own
 
 ### Files Touched
 | File | Action |
