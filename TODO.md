@@ -100,12 +100,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
   <div class="todo-orb todo-orb-1"></div>
   <div class="todo-orb todo-orb-2"></div>
   <h1>Matrix Dashboard &amp; Builder — Implementation Plans</h1>
-  <p class="subtitle"><span>19</span> plans · <span>7</span> completed · <span>0</span> in progress · Last updated 07/07/2026 @ 00:56:00 IST</p>
+  <p class="subtitle"><span>19</span> plans · <span>8</span> completed · <span>0</span> in progress · Last updated 07/07/2026 @ 05:18:14 IST</p>
 </div>
 
 <div class="todo-stats">
   <div class="todo-stat"><div class="stat-num">19</div><div class="stat-label">Total Plans</div></div>
-  <div class="todo-stat"><div class="stat-num">7</div><div class="stat-label">Completed</div></div>
+  <div class="todo-stat"><div class="stat-num">8</div><div class="stat-label">Completed</div></div>
   <div class="todo-stat"><div class="stat-num">0</div><div class="stat-label">In Progress</div></div>
   <div class="todo-stat critical-stat"><div class="stat-num">5</div><div class="stat-label">Critical</div></div>
 </div>
@@ -435,12 +435,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
 </div>
 
 <!-- PLAN 8 -->
-<div class="todo-card" data-category="ai" data-priority="critical">
+<div class="todo-card completed" data-category="ai" data-priority="critical">
   <div class="card-header">
     <span class="card-emoji">📊</span>
     <div>
       <div class="card-title">Plan 8: AI Cost &amp; Token Tracking</div>
-      <div class="card-subtitle">ideated by deepseek v4 pro · 7 files · medium complexity</div>
+      <div class="card-subtitle">ideated by deepseek v4 pro · 8 files · medium complexity</div>
     </div>
   </div>
   <div class="card-badges">
@@ -457,24 +457,24 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
     <span class="skill-tag">@backend-dev-guidelines</span>
   </div>
   <details class="card-files">
-    <summary>7 files</summary>
+    <summary>8 files</summary>
     <div class="file-list">
       <div><span class="file-new">+ new</span> lib/ai/pricing.ts, lib/ai/cost.ts</div>
       <div><span class="file-new">+ new</span> app/api/usage/route.ts, app/api/usage/session/[id]/route.ts</div>
-      <div><span class="file-edit">~ edit</span> lib/db/schema.ts, app/api/ai/chat/route.ts</div>
+      <div><span class="file-edit">~ edit</span> lib/db/schema.ts, lib/db/client.ts, app/api/ai/chat/route.ts</div>
       <div><span class="file-edit">~ edit</span> app/dashboard/settings/diagnostics/page.tsx</div>
     </div>
   </details>
   <details class="tasks-summary">
-    <summary>7 tasks</summary>
+    <summary>7/7 tasks ✅</summary>
     <ul>
-      <li><input type="checkbox"> Capture usage from onFinish callback, persist to sessionMessages</li>
-      <li><input type="checkbox"> Add inputTokens/outputTokens columns to DB schema</li>
-      <li><input type="checkbox"> Create per-model pricing table (20+ providers)</li>
-      <li><input type="checkbox"> Build cost calculator (estimateCost, getSessionCost, getLifetimeCost)</li>
-      <li><input type="checkbox"> Add usage API endpoints (lifetime, per-session)</li>
-      <li><input type="checkbox"> Build cost dashboard in Diagnostics page</li>
-      <li><input type="checkbox"> Verify token counts and costs match provider dashboards</li>
+      <li><input type="checkbox" checked> Capture usage — not via <code>onFinish</code> (Plan 10's fallback cascade calls <code>streamText()</code> once per candidate, so an <code>onFinish</code> registered at call-time is ambiguous about which attempt it belongs to). Instead awaits <code>attempt.result.totalUsage</code> — the documented Promise accessor on <code>StreamTextResult</code> — inside the stream's <code>finally</code>, after the winning candidate's stream has fully drained</li>
+      <li><input type="checkbox" checked> Add DB columns — <code>inputTokens</code>, <code>outputTokens</code>, and (deviation from spec) <code>providerKind</code> denormalized onto each row at write time, so lifetime/per-provider cost survives a provider later being deleted rather than silently vanishing via a join</li>
+      <li><input type="checkbox" checked> Create pricing table — <code>lib/ai/pricing.ts</code>: curated per-model USD/1M-token rates matched by regex against a normalized model ID (strips OpenRouter-style vendor prefixes and trailing date suffixes, since real IDs are rarely the bare catalog default), falling back to a per-provider-kind rate for the other ~20 provider kinds. Figures are estimates, not billing-accurate, and said so in the UI</li>
+      <li><input type="checkbox" checked> Build cost calculator — <code>lib/ai/cost.ts</code>: <code>estimateCost</code>, <code>getSessionCost</code>, <code>getCostSince</code>, <code>getLifetimeCost</code>, <code>getTopSessions</code>. Returns <code>cost: null</code> (not <code>0</code>) when nothing could be priced, so the UI can show "unknown" instead of a misleading "$0.00"</li>
+      <li><input type="checkbox" checked> Add usage APIs — <code>GET /api/usage</code> (lifetime + this-month + today + per-provider + top 10 sessions), <code>GET /api/usage/session/[id]</code></li>
+      <li><input type="checkbox" checked> Build cost dashboard — new "AI usage &amp; cost" card on the existing Diagnostics page (today/month/lifetime stat row, per-provider breakdown, top 5 sessions), matching its existing Card/Row visual pattern rather than a separate page</li>
+      <li><input type="checkbox" checked> Verify — live dev-server + real DB: confirmed DeepSeek's streaming response does report usage (853 input / 2 output tokens for a test turn), and the persisted row's cost matched the hand-computed rate exactly (853×0.27/1M + 2×1.1/1M = $0.00023251). Verified lifetime/month/today/per-provider/top-sessions all correctly reflected the one test row, then cleaned up (deleted the test session, which cascade-deleted its message; restored <code>autoExtract</code>). No browser extension available in this session to visually confirm the new dashboard card's layout — confirmed only that the page route responds 200 with no server-error markers, not a substitute for an actual visual check</li>
     </ul>
   </details>
 </div>
@@ -1230,7 +1230,7 @@ Create Next.js middleware for rate limiting + CSRF. Add DOMPurify sanitization. 
 
 
 
-## 📊 Plan 8: AI Cost & Token Tracking (ideated by deepseek v4 pro)
+## ✅ Plan 8: AI Cost & Token Tracking (ideated by deepseek v4 pro) — COMPLETED
 
 ### Goal
 Track token usage per request, session, provider, and lifetime. Display cost dashboard in Settings > Diagnostics.
@@ -1242,13 +1242,13 @@ Usage event type defined but never emitted. Zero visibility into AI spend across
 Capture usage from AI SDK onFinish. Store in sessionMessages. Build pricing table + cost calculator. Add usage API + dashboard UI.
 
 ### Tasks
-- [ ] **Emit usage events** — extract event.usage from onFinish, persist inputTokens/outputTokens to sessionMessages
-- [ ] **Add DB columns** — inputTokens, outputTokens to sessionMessages table (Drizzle migration)
-- [ ] **Create pricing table** — `lib/ai/pricing.ts` with per-model rates for all 20+ providers
-- [ ] **Create cost calculator** — `lib/ai/cost.ts` with estimateCost, getSessionCost, getLifetimeCost
-- [ ] **Add usage APIs** — `app/api/usage/route.ts` (lifetime + monthly), `app/api/usage/session/[id]/route.ts`
-- [ ] **Build usage dashboard** — Diagnostics page: lifetime/month/today cost, per-provider breakdown, top-10 sessions
-- [ ] **Verify** — run chat sessions, confirm accurate token counts and costs
+- [x] **Emit usage events** — not via `onFinish` (ambiguous per-candidate now that Plan 10's fallback cascade calls `streamText()` once per attempted provider). Awaits `attempt.result.totalUsage` — the documented Promise accessor on `StreamTextResult` — in the stream's `finally`, once the winning candidate's stream has fully drained
+- [x] **Add DB columns** — `input_tokens`, `output_tokens`, and (deviation) `provider_kind` denormalized onto each row at write time via `ensureColumn`, so cost history survives a provider being deleted rather than depending on a join that would lose it
+- [x] **Create pricing table** — `lib/ai/pricing.ts`: regex-matched per-model rates against a normalized ID (strips OpenRouter vendor prefixes / trailing dates) + per-provider-kind fallback for the rest of the ~20-kind catalog. Labeled as estimates, not billing-accurate
+- [x] **Create cost calculator** — `lib/ai/cost.ts`: `estimateCost`, `getSessionCost`, `getCostSince`, `getLifetimeCost`, `getTopSessions`. `cost` is `null` (not `0`) when nothing priced, so "unknown" and "$0.00" stay distinguishable
+- [x] **Add usage APIs** — `GET /api/usage` (lifetime + month + today + per-provider + top 10), `GET /api/usage/session/[id]`
+- [x] **Build usage dashboard** — new card on the existing Diagnostics page (not a separate page): today/month/lifetime stats, per-provider breakdown, top 5 sessions
+- [x] **Verify** — live dev-server + real DB: confirmed DeepSeek's streaming response does report usage (853/2 tokens for a test turn) and the persisted cost matched the hand-computed rate exactly ($0.00023251). Confirmed lifetime/month/today/per-provider/top-sessions all reflected it correctly, then cleaned up (deleted test session + cascade-deleted message, restored `autoExtract`). No browser extension available this session to visually confirm the dashboard card's layout — only confirmed the route responds 200 with no server-error markers
 
 ### Files Touched
 | File | Action |
@@ -1258,6 +1258,7 @@ Capture usage from AI SDK onFinish. Store in sessionMessages. Build pricing tabl
 | `app/api/usage/route.ts` | **NEW** |
 | `app/api/usage/session/[id]/route.ts` | **NEW** |
 | `lib/db/schema.ts` | Edit |
+| `lib/db/client.ts` | Edit |
 | `app/api/ai/chat/route.ts` | Edit |
 | `app/dashboard/settings/diagnostics/page.tsx` | Edit |
 

@@ -618,6 +618,9 @@ function runColumnMigrations(sqlite: Database.Database) {
   ensureColumn("emails", "tags", "tags TEXT NOT NULL DEFAULT ''");
   ensureColumn("emails", "summary", "summary TEXT");
   ensureColumn("session_messages", "blocks", "blocks TEXT");
+  ensureColumn("session_messages", "provider_kind", "provider_kind TEXT");
+  ensureColumn("session_messages", "input_tokens", "input_tokens INTEGER");
+  ensureColumn("session_messages", "output_tokens", "output_tokens INTEGER");
   // Kanban columns on tasks table
   ensureColumn("tasks", "kanban_status", "kanban_status TEXT NOT NULL DEFAULT 'backlog'");
   ensureColumn("tasks", "project_id", "project_id TEXT REFERENCES projects(id) ON DELETE SET NULL");

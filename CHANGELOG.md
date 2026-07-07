@@ -2,6 +2,27 @@
 
 # Changelog
 
+## 07/07/2026 @ 05:18:33 IST — "Claude Sonnet 5"
+
+**Goal:** Execute Plan 8 (AI cost & token tracking) from `TODO.md` — Phase D.2 of the 19-plan roadmap, second of the bundled AI-infrastructure cluster. Reuses Plan 10's fallback-cascade call site rather than the `onFinish` shape TODO.md's spec assumed, since that shape no longer exists after Plan 10 restructured the chat route.
+
+**Added:**
+- `lib/ai/pricing.ts` — `estimateCost(providerKind, modelId, inputTokens, outputTokens)`: curated per-model USD/1M-token rates (Anthropic, OpenAI, Google, DeepSeek, xAI, Mistral, Groq-Llama, Cohere, Perplexity), matched by regex against a normalized model ID (strips OpenRouter-style `vendor/` prefixes and trailing `-YYYYMMDD`/`-YYYY-MM-DD` date suffixes — real IDs are rarely the bare catalog default), falling back to a per-provider-kind rate for the remaining ~20 provider kinds (local Ollama/LM Studio priced at $0). Returns `null`, not `0`, when there's genuinely nothing to price from.
+- `lib/ai/cost.ts` — `estimateCost` consumers over raw SQL against `session_messages` (via `getSqlite()`, not the Drizzle query builder — simpler for the aggregate/join queries here): `getLifetimeCost()` (+ per-provider breakdown), `getCostSince(isoStart)`, `getSessionCost(id)`, `getTopSessions(limit)`.
+- `app/api/usage/route.ts` — lifetime + this-month + today + per-provider + top-10-sessions, in one response.
+- `app/api/usage/session/[id]/route.ts` — per-session breakdown.
+- `sessionMessages.inputTokens` / `.outputTokens` / `.providerKind` (`lib/db/schema.ts` + `ensureColumn` migrations in `lib/db/client.ts`). `providerKind` is a deliberate deviation from TODO.md's literal "2 columns" spec: it's denormalized from `ai_providers.provider` at write time rather than joined at query time, so a session's historical cost stays attributable after the provider that served it is deleted — a real scenario in an app built around swapping experimental providers, not a hypothetical.
+- New "AI usage & cost" card on the existing Diagnostics page (`app/dashboard/settings/diagnostics/page.tsx`) — today/month/lifetime stat row, per-provider breakdown, top 5 sessions. Explicitly labeled as an estimate, not billing-accurate, with token totals called out as cumulative-across-requests (each turn re-sends the prior transcript, which is real spend, not a double-counting bug to "fix").
+
+**Changed:**
+- `app/api/ai/chat/route.ts` — usage capture attaches via `await attempt.result.totalUsage` inside the stream's `finally`, after Plan 10's committed candidate has fully drained, rather than an `onFinish` callback. `onFinish` is registered per `streamText()` call, and Plan 10 already made this route call `streamText()` once per fallback candidate — reusing that shape here would raise the same "which attempt does this belong to" ambiguity Plan 10's own memory-extraction fix sidestepped, so this follows the same pattern for consistency rather than introducing a second one.
+
+**Verification:** `pnpm typecheck`/`pnpm lint`/`pnpm test` (20/20)/`pnpm format:check` all clean. Live dev-server + real DB: created a temporary session, sent one real chat turn through the real `Deepseek` provider, and confirmed (a) DeepSeek's streaming response does report usage — 853 input / 2 output tokens — resolving the open question of whether openai-compat streaming responses report tokens at all; (b) the persisted row's estimated cost matched the hand-computed rate exactly (853×0.27/1M + 2×1.1/1M = $0.00023251); (c) `/api/usage` lifetime/month/today/per-provider and `/api/usage/session/[id]` all correctly reflected that one row. Cleaned up afterward: deleted the test session (cascade-deleted its message), restored `autoExtract` (temporarily disabled during testing to avoid a real extraction call against synthetic test content), and confirmed `/api/usage` and `/api/sessions` both returned to their exact pre-test baseline.
+
+**Not done (explicitly deferred, not silently skipped):** No visual/browser confirmation of the new dashboard card — this session had no Chrome extension connection available, so verification stopped at "the route responds 200 with no server-error markers," which is not the same as confirming the layout actually looks right. Flagging so a future session (or the user) does a quick visual pass before trusting the card's appearance. `getTopSessions` loads every assistant row with usage in one query rather than a `GROUP BY` aggregate — fine at this app's scale (single user, one process) but would need revisiting if the message table ever got large enough for that to matter.
+
+**Files touched:** `lib/ai/pricing.ts` (new), `lib/ai/cost.ts` (new), `app/api/usage/route.ts` (new), `app/api/usage/session/[id]/route.ts` (new), `lib/db/schema.ts`, `lib/db/client.ts`, `app/api/ai/chat/route.ts`, `app/dashboard/settings/diagnostics/page.tsx`.
+
 ## 07/07/2026 @ 00:56:19 IST — "Claude Sonnet 5"
 
 **Goal:** Execute Plan 10 (AI provider fallback/retry/circuit-breaker) from `TODO.md` — Phase D.1 of the 19-plan roadmap, first of the bundled AI-infrastructure cluster (ordered 10→8→9→11 since it's the only one that restructures control flow around `resolveModel()`+`streamText()`).

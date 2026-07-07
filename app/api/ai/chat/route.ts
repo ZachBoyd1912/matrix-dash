@@ -342,6 +342,22 @@ export async function POST(req: Request) {
         emit({ type: "error", value: msg });
       } finally {
         const replyText = blocksToText(serverBlocks);
+
+        // `totalUsage` is the documented Promise accessor on StreamTextResult — it
+        // resolves once the full generation (all steps) completes, and rejects if
+        // the stream errored, which it can have by this point. Not every openai-compat
+        // endpoint reports usage on a streaming response, so a missing value stays
+        // `null` (unknown) rather than becoming a misleading "0 tokens" / "$0.00".
+        let inputTokens: number | null = null;
+        let outputTokens: number | null = null;
+        try {
+          const usage = await attempt.result.totalUsage;
+          inputTokens = usage.inputTokens ?? null;
+          outputTokens = usage.outputTokens ?? null;
+        } catch {
+          /* stream errored before usage was ever reported */
+        }
+
         // Persist the assistant turn with its structured block transcript. `content`
         // stays the concatenated text so extraction/search/export keep working.
         if (sessionId && serverBlocks.length) {
@@ -355,7 +371,10 @@ export async function POST(req: Request) {
                 content: replyText,
                 blocks: serializeBlocksForStorage(serverBlocks),
                 providerId: capturedProvider.id,
+                providerKind: capturedProvider.provider,
                 modelName: attempt.candidate.modelOverride || capturedProvider.defaultModel || null,
+                inputTokens,
+                outputTokens,
                 createdAt: new Date().toISOString(),
               })
               .run();

@@ -74,6 +74,12 @@ export const sessionMessages = sqliteTable("session_messages", {
   blocks: text("blocks"),
   providerId: text("provider_id"),
   modelName: text("model_name"),
+  // Denormalized from ai_providers.provider at write time (not just providerId) so
+  // lifetime/per-provider cost stays attributable after a provider is deleted —
+  // a real scenario in an app built around swapping experimental providers.
+  providerKind: text("provider_kind"),
+  inputTokens: integer("input_tokens"),
+  outputTokens: integer("output_tokens"),
   createdAt: text("created_at").notNull(),
 });
 
