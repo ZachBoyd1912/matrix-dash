@@ -12,6 +12,13 @@ export async function register() {
     } catch (err) {
       console.error("[instrumentation] daemon failed to start:", err);
     }
+
+    const { initWatcher } = await import("@/lib/services/obsidian-sync");
+    try {
+      initWatcher();
+    } catch (err) {
+      console.error("[instrumentation] obsidian watcher failed to start:", err);
+    }
   }
 }
 

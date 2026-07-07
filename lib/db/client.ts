@@ -636,6 +636,11 @@ function runColumnMigrations(sqlite: Database.Database) {
   ensureColumn("tasks", "kanban_order", "kanban_order INTEGER NOT NULL DEFAULT 0");
   ensureColumn("tasks", "kind", "kind TEXT NOT NULL DEFAULT 'task'");
 
+  ensureColumn("notes", "vault_rel_path", "vault_rel_path TEXT");
+  ensureColumn("notes", "vault_synced_at", "vault_synced_at TEXT");
+  ensureColumn("memories", "vault_rel_path", "vault_rel_path TEXT");
+  ensureColumn("memories", "vault_synced_at", "vault_synced_at TEXT");
+
   // Remap old kanban column names to new ones
   const remap: [string, string][] = [
     ["todo", "planned"],

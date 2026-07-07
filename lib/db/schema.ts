@@ -13,6 +13,8 @@ export const memories = sqliteTable("memories", {
   isPinned: integer("is_pinned", { mode: "boolean" }).default(false),
   createdAt: text("created_at").notNull(),
   lastUsedAt: text("last_used_at"),
+  vaultRelPath: text("vault_rel_path"),
+  vaultSyncedAt: text("vault_synced_at"),
 });
 
 // ─── MEMORY LINKS (auto-generated wiki-links) ─────────────
@@ -38,6 +40,8 @@ export const notes = sqliteTable("notes", {
   isFavorite: integer("is_favorite", { mode: "boolean" }).default(false),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
+  vaultRelPath: text("vault_rel_path"),
+  vaultSyncedAt: text("vault_synced_at"),
 });
 
 // ─── NOTE LINKS (manual wiki-links) ──────────────────────

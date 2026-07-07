@@ -5,6 +5,7 @@ import { getDb } from "@/lib/db/client";
 import { notes, noteLinks } from "@/lib/db/schema";
 import { searchNotesFts } from "@/lib/db/fts";
 import { extractWikiLinks } from "@/lib/utils/wiki";
+import { syncNoteToVault } from "@/lib/services/obsidian-sync";
 import type { Note } from "@/types/note";
 
 export const dynamic = "force-dynamic";
@@ -88,6 +89,19 @@ export async function POST(req: Request) {
     .run();
 
   syncNoteLinks(id, parsed.data.content);
-  const row = getDb().select().from(notes).where(eq(notes.id, id)).get();
+  let row = getDb().select().from(notes).where(eq(notes.id, id)).get();
+
+  // Skip syncing a completely empty just-created note. Guard on the raw input,
+  // not the post-insert row: an empty title is coerced to "Untitled" above, so
+  // checking row.title would always be truthy and defeat this check.
+  if (row && (parsed.data.title.trim() || parsed.data.content.trim())) {
+    try {
+      syncNoteToVault(row);
+      row = getDb().select().from(notes).where(eq(notes.id, id)).get() ?? row;
+    } catch (err) {
+      console.error("[notes] syncNoteToVault failed:", err);
+    }
+  }
+
   return Response.json(row ? toNote(row) : { id });
 }

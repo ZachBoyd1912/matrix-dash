@@ -45,4 +45,10 @@ export const SETTING_DEFAULTS: Record<string, string> = {
   claude_code_bin: "",
   /** ANTHROPIC_BASE_URL for Claude Code — point at claude-code-router to use any provider. */
   claude_code_base_url: "",
+  /** Absolute path to an Obsidian vault on disk (empty → sync disabled). */
+  obsidianVaultPath: "",
+  /** Enable two-way sync between notes/memories and the Obsidian vault ("1" on / "0" off). */
+  obsidianSyncEnabled: "0",
+  /** Sync direction: "bidirectional" | "to-vault" | "from-vault". */
+  obsidianSyncDirection: "bidirectional",
 };

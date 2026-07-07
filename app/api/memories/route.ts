@@ -5,6 +5,7 @@ import { getDb } from "@/lib/db/client";
 import { memories } from "@/lib/db/schema";
 import { searchMemoriesFts } from "@/lib/db/fts";
 import { autoLink } from "@/lib/ai/extraction";
+import { syncMemoryToVault } from "@/lib/services/obsidian-sync";
 import { MEMORY_TYPES, type Memory } from "@/types/memory";
 
 export const dynamic = "force-dynamic";
@@ -85,6 +86,16 @@ export async function POST(req: Request) {
 
   autoLink(id, data.content);
 
-  const created = getDb().select().from(memories).where(eq(memories.id, id)).get();
+  let created = getDb().select().from(memories).where(eq(memories.id, id)).get();
+
+  if (created && created.content.trim()) {
+    try {
+      syncMemoryToVault(created);
+      created = getDb().select().from(memories).where(eq(memories.id, id)).get() ?? created;
+    } catch (err) {
+      console.error("[memories] syncMemoryToVault failed:", err);
+    }
+  }
+
   return Response.json(created ? toMemory(created) : { id });
 }

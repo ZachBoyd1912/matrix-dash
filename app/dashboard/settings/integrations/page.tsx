@@ -13,6 +13,7 @@ import {
   FileText,
   Gamepad2,
   Home,
+  BookOpen,
 } from "lucide-react";
 import Link from "next/link";
 import { useGsapEntrance } from "@/lib/hooks/use-gsap-entrance";
@@ -69,6 +70,13 @@ const ALL_INTEGRATIONS: Omit<Integration, "status" | "meta">[] = [
     href: "/dashboard/settings/webhooks",
     color: "slate",
     key: "webhooks",
+  },
+  {
+    name: "Obsidian",
+    icon: BookOpen,
+    href: "/dashboard/settings/integrations/obsidian",
+    color: "indigo",
+    key: "obsidian",
   },
 ];
 
@@ -149,7 +157,7 @@ export default function IntegrationsPage() {
   const [snap, setSnap] = useState<Snap | null>(null);
 
   const refresh = useCallback(async () => {
-    const [gh, sl, dr, wh, cal, gc, settingsRes] = await Promise.all([
+    const [gh, sl, dr, wh, cal, gc, settingsRes, obsidianStatus] = await Promise.all([
       fetch("/api/github/connections")
         .then((r) => r.json())
         .catch(() => []),
@@ -169,6 +177,9 @@ export default function IntegrationsPage() {
         .then((r) => r.json())
         .catch(() => []),
       fetch("/api/settings")
+        .then((r) => r.json())
+        .catch(() => ({})),
+      fetch("/api/notes/sync/status")
         .then((r) => r.json())
         .catch(() => ({})),
     ]);
@@ -237,6 +248,19 @@ export default function IntegrationsPage() {
         whList.length > 0
           ? `${whList.length} webhook${whList.length > 1 ? "s" : ""}${activeWh > 0 ? ` · ${activeWh} active` : " · all inactive"}`
           : "No webhooks configured · Create one to trigger HTTP callbacks on events",
+    };
+
+    // Obsidian — fetch sync status, show enabled state + synced item count
+    const obs = obsidianStatus as {
+      enabled?: boolean;
+      syncedNoteCount?: number;
+      syncedMemoryCount?: number;
+    };
+    snap.obsidian = {
+      connected: obs.enabled === true,
+      meta: obs.enabled
+        ? `${(obs.syncedNoteCount ?? 0) + (obs.syncedMemoryCount ?? 0)} items synced`
+        : "Not configured",
     };
 
     setSnap(snap);

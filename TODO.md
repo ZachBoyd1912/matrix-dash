@@ -100,12 +100,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
   <div class="todo-orb todo-orb-1"></div>
   <div class="todo-orb todo-orb-2"></div>
   <h1>Matrix Dashboard &amp; Builder — Implementation Plans</h1>
-  <p class="subtitle"><span>19</span> plans · <span>13</span> completed · <span>0</span> in progress · Last updated 07/07/2026 @ 07:04:17 IST</p>
+  <p class="subtitle"><span>19</span> plans · <span>14</span> completed · <span>0</span> in progress · Last updated 07/07/2026 @ 16:38:37 IST</p>
 </div>
 
 <div class="todo-stats">
   <div class="todo-stat"><div class="stat-num">19</div><div class="stat-label">Total Plans</div></div>
-  <div class="todo-stat"><div class="stat-num">13</div><div class="stat-label">Completed</div></div>
+  <div class="todo-stat"><div class="stat-num">14</div><div class="stat-label">Completed</div></div>
   <div class="todo-stat"><div class="stat-num">0</div><div class="stat-label">In Progress</div></div>
   <div class="todo-stat critical-stat"><div class="stat-num">5</div><div class="stat-label">Critical</div></div>
 </div>
@@ -851,12 +851,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
 </div>
 
 <!-- PLAN 17 -->
-<div class="todo-card" data-category="feature" data-priority="medium">
+<div class="todo-card completed" data-category="feature" data-priority="medium">
   <div class="card-header">
     <span class="card-emoji">🔗</span>
     <div>
       <div class="card-title">Plan 17: Obsidian Vault Two-Way Sync</div>
-      <div class="card-subtitle">ideated by deepseek v4 pro · 6 files · medium complexity</div>
+      <div class="card-subtitle">ideated by deepseek v4 pro · 15 files · medium complexity</div>
     </div>
   </div>
   <div class="card-badges">
@@ -873,23 +873,33 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
     <span class="skill-tag">@typescript-expert</span>
   </div>
   <details class="card-files">
-    <summary>6 files</summary>
+    <summary>15 files</summary>
     <div class="file-list">
       <div><span class="file-new">+ new</span> lib/services/obsidian-sync.ts</div>
       <div><span class="file-new">+ new</span> app/api/notes/sync/route.ts, app/api/notes/sync/status/route.ts</div>
-      <div><span class="file-edit">~ edit</span> types/settings.ts, app/api/notes/route.ts</div>
-      <div><span class="file-edit">~ edit</span> app/dashboard/settings/integrations/page.tsx</div>
+      <div><span class="file-new">+ new</span> app/dashboard/settings/integrations/obsidian/page.tsx</div>
+      <div><span class="file-edit">~ edit</span> lib/db/schema.ts, lib/db/client.ts, types/settings.ts, instrumentation.ts</div>
+      <div><span class="file-edit">~ edit</span> app/api/notes/route.ts, app/api/notes/[id]/route.ts, app/api/memories/route.ts, app/api/memories/[id]/route.ts</div>
+      <div><span class="file-edit">~ edit</span> app/api/settings/route.ts, app/dashboard/settings/integrations/page.tsx, package.json</div>
     </div>
   </details>
   <details class="tasks-summary">
-    <summary>6 tasks</summary>
+    <summary>6/6 tasks ✅</summary>
     <ul>
-      <li><input type="checkbox"> Add vault path + sync settings (enabled, bidirectional/import/export)</li>
-      <li><input type="checkbox"> Install chokidar, create obsidian-sync service (watch + read/write)</li>
-      <li><input type="checkbox"> Implement syncToVault (Dashboard → .md file) and syncFromVault (.md → Dashboard)</li>
-      <li><input type="checkbox"> Add full reconciliation with conflict detection (last-write-wins)</li>
-      <li><input type="checkbox"> Add sync API endpoints + UI (picker, toggle, Sync Now button, log)</li>
-      <li><input type="checkbox"> Handle edge cases: invalid filename chars, folders, large vaults</li>
+      <li><input type="checkbox" checked> Vault path + sync settings — <code>obsidianVaultPath</code>/<code>obsidianSyncEnabled</code>/<code>obsidianSyncDirection</code> in the existing generic key/value settings table (no dedicated settings route needed, the generic <code>GET/PATCH /api/settings</code> already covers it). Scope expanded at the user's explicit request beyond the original Notes-only spec: syncs both Notes <strong>and</strong> Memory Bank</li>
+      <li><input type="checkbox" checked> chokidar installed + <code>lib/services/obsidian-sync.ts</code> built (watch + read/write) — chokidar 5 is pure-ESM with named exports, singleton watcher cached on <code>globalThis</code> (distinct key from the existing daemon's own cache) so HMR never spawns a duplicate</li>
+      <li><input type="checkbox" checked> <code>syncNoteToVault</code>/<code>syncMemoryToVault</code> (DB → <code>.md</code>) and <code>syncNoteFromVault</code>/<code>syncMemoryFromVault</code> (<code>.md</code> → DB) implemented, with hand-rolled frontmatter (no new parser dependency — both sides of the round-trip are ours)</li>
+      <li><input type="checkbox" checked> Full reconciliation (<code>reconcileAll()</code>) with last-write-wins conflict detection (file mtime vs. <code>vaultSyncedAt</code>)</li>
+      <li><input type="checkbox" checked> Sync API endpoints (<code>POST /api/notes/sync</code>, <code>GET /api/notes/sync/status</code>) + settings UI (vault path picker, enabled toggle, direction selector, "Sync Now" button with live counts) + hub card wired into the existing connection-status pattern</li>
+      <li><input type="checkbox" checked> Edge cases handled — invalid filename chars stripped, recursive folder walk, loop-avoidance via a content-hash map (so a to-vault write doesn't bounce back through the watcher as a false from-vault edit)</li>
+    </ul>
+  </details>
+  <details class="tasks-summary">
+    <summary>Built via Workflow + live-verified against the real vault</summary>
+    <ul>
+      <li><input type="checkbox" checked> Built via a 2-phase Workflow (core engine → 3 parallel consumers: API routes, settings UI, boot hook), given real complexity (new dependency, file watching, dual-table sync) and ultracode active this session</li>
+      <li><input type="checkbox" checked> Found and fixed 2 real gaps in my own original spec before considering this done: the "sync enabled" toggle didn't actually gate the CRUD-hook push-on-write path (only <code>reconcileAll()</code>/<code>initWatcher()</code> checked it — fixed), and enabling sync via the settings UI wouldn't start the watcher until a server restart (fixed by wiring watcher restart into the settings PATCH route)</li>
+      <li><input type="checkbox" checked> Verify — live dev-server against the <strong>real</strong> vault at <code>~/Desktop/Obsidian Vault</code> (per this project's established discipline against fabricated test targets): created a test note, confirmed the exact file + frontmatter landed in <code>Matrix Notes/</code>; edited that file directly on disk and confirmed the watcher flowed the edit back into the dashboard within ~1.5s; created a test memory, confirmed it landed in <code>Memory Bank/</code> with full metadata frontmatter; ran a full reconcile and confirmed all 21 pre-existing real memories from this session correctly bulk-synced with zero duplication (22 DB rows = 22 vault files); deleted both test items and confirmed their vault files were removed too. Final state: 0 test notes, 21 real memories synced and left in place — the actual point of the feature, not a rollback target</li>
     </ul>
   </details>
 </div>
@@ -1588,7 +1598,7 @@ Add parentSessionId + forkedFromMessageId to DB. Add Regenerate button on assist
 
 
 
-## 🔗 Plan 17: Obsidian Vault Two-Way Sync (ideated by deepseek v4 pro)
+## ✅ Plan 17: Obsidian Vault Two-Way Sync (ideated by deepseek v4 pro) — COMPLETED
 
 ### Goal
 Two-way sync Dashboard Notes ↔ local Obsidian vault with chokidar file watcher and conflict resolution.
@@ -1599,14 +1609,18 @@ Notes support [[wikilinks]] but no sync with actual Obsidian vault. Manual copy 
 ### Solution Overview
 Add vault path setting. Install chokidar for file watching. Build sync service (to vault / from vault). Full reconciliation on startup. Add sync API + settings UI.
 
+**Scope note:** expanded beyond this original spec at the user's explicit request — syncs both Notes **and** Memory Bank, not just Notes. They installed Obsidian fresh and set up a real vault (`~/Desktop/Obsidian Vault`, with `Matrix Notes/`/`Memory Bank/` subfolders) specifically to unblock this, after initially being blocked pending a real vault path (no fabricated test directory — see project memory on why that would've produced a false-green result).
+
 ### Tasks
-- [ ] **Vault settings** — obsidianVaultPath, syncEnabled, syncDirection (bidirectional/import/export)
-- [ ] **Install chokidar** — file watcher for vault directory changes
-- [ ] **Build sync service** — `lib/services/obsidian-sync.ts`: initWatcher, syncToVault, syncFromVault, reconcileAll
-- [ ] **Integrate into notes API** — trigger syncToVault on CRUD, add sync/status endpoints
-- [ ] **Add sync UI** — vault path picker, toggle, direction selector, Sync Now button, sync log
-- [ ] **Edge cases** — sanitize filenames (:, /, \), mirror folders, batch sync for large vaults
-- [ ] **Verify** — create note in Dashboard, appears in Obsidian; edit in Obsidian, reflected in Dashboard
+- [x] **Vault settings** — `obsidianVaultPath`/`obsidianSyncEnabled`/`obsidianSyncDirection` in the existing generic key/value settings table; no dedicated route needed, the existing generic `GET/PATCH /api/settings` already covers arbitrary keys
+- [x] **chokidar installed** — v5 (pure-ESM, named exports) — file watcher for vault directory changes, singleton on `globalThis` (distinct key from the daemon's own cache) so HMR never duplicates it
+- [x] **Sync service built** — `lib/services/obsidian-sync.ts`: `initWatcher`/`stopWatcher`, `syncNoteToVault`/`syncMemoryToVault`, `syncNoteFromVault`/`syncMemoryFromVault`, `reconcileAll`. Hand-rolled frontmatter parser (no new dependency — both sides of the round-trip are ours)
+- [x] **Integrated into Notes AND Memory Bank APIs** — `syncNoteToVault`/`syncMemoryToVault` fire on CRUD (best-effort, never blocks the response), vault file deleted on note/memory delete; `POST /api/notes/sync` + `GET /api/notes/sync/status` added
+- [x] **Sync UI added** — `app/dashboard/settings/integrations/obsidian/page.tsx`: vault path picker, enabled toggle, direction selector, "Sync Now" button with live result counts, status card; wired into the integrations hub's existing connection-status pattern
+- [x] **Edge cases handled** — filename sanitization (strips `: / \ * ? " < > |`), recursive folder walk for reconcile, loop-avoidance via a content-hash map (so a to-vault write's own echo through the watcher doesn't get treated as a real edit)
+- [x] **Verify** — live dev-server against the **real** vault (not a fabricated one): created a test note, confirmed the file + frontmatter landed correctly in `Matrix Notes/`; edited that file directly on disk, confirmed the watcher flowed the edit back into the dashboard (content/tags/favorite all updated) within ~1.5s; created a test memory, confirmed it landed in `Memory Bank/` with full type/importance/usageCount/pinned/tags frontmatter; ran a full reconcile and confirmed all 21 pre-existing real memories from this session correctly bulk-synced with zero duplication (22 DB rows = 22 vault files, exact match); deleted both test items and confirmed their vault files were removed too. Final state: 0 test notes, 21 real memories synced and intentionally left in place
+
+**Built via Workflow, given real complexity (new dependency, file watching, dual-table sync, real-vault risk) with ultracode active this session: a 2-phase script — one agent for the core engine, then 3 parallel agents (API routes, settings UI, boot hook) once the engine's exports were fixed. Found and fixed 2 real gaps in my own original spec before considering this done (not agent mistakes — incomplete instructions I gave them): the "sync enabled" toggle didn't actually gate the CRUD-hook push-on-write path (only `reconcileAll()`/`initWatcher()` checked it), and enabling sync via the UI wouldn't start the watcher until a server restart (fixed by wiring watcher restart into the settings PATCH route as a side effect).**
 
 ### Files Touched
 | File | Action |
@@ -1614,9 +1628,12 @@ Add vault path setting. Install chokidar for file watching. Build sync service (
 | `lib/services/obsidian-sync.ts` | **NEW** |
 | `app/api/notes/sync/route.ts` | **NEW** |
 | `app/api/notes/sync/status/route.ts` | **NEW** |
-| `types/settings.ts` | Edit |
-| `app/api/notes/route.ts` | Edit |
-| `app/dashboard/settings/integrations/page.tsx` | Edit |
+| `app/dashboard/settings/integrations/obsidian/page.tsx` | **NEW** |
+| `lib/db/schema.ts`, `lib/db/client.ts` | Edit |
+| `types/settings.ts`, `instrumentation.ts`, `package.json` | Edit |
+| `app/api/notes/route.ts`, `app/api/notes/[id]/route.ts` | Edit |
+| `app/api/memories/route.ts`, `app/api/memories/[id]/route.ts` | Edit |
+| `app/api/settings/route.ts`, `app/dashboard/settings/integrations/page.tsx` | Edit |
 
 ### 🧠 Skills
 `@backend-dev-guidelines` `@nodejs-best-practices` `@typescript-expert`

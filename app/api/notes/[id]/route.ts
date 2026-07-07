@@ -1,9 +1,13 @@
+import fs from "fs";
+import path from "path";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { randomUUID } from "crypto";
 import { getDb } from "@/lib/db/client";
 import { notes, noteLinks } from "@/lib/db/schema";
 import { extractWikiLinks } from "@/lib/utils/wiki";
+import { syncNoteToVault, NOTES_SUBDIR } from "@/lib/services/obsidian-sync";
+import { getSetting } from "@/lib/db/settings";
 import type { Note, NoteBacklinks } from "@/types/note";
 
 export const dynamic = "force-dynamic";
@@ -110,13 +114,36 @@ export async function PATCH(req: Request, ctx: Ctx) {
 
   if (parsed.data.content !== undefined) rebuildLinks(id, parsed.data.content);
 
-  const row = getDb().select().from(notes).where(eq(notes.id, id)).get();
+  let row = getDb().select().from(notes).where(eq(notes.id, id)).get();
   if (!row) return Response.json({ error: "not found" }, { status: 404 });
+
+  if (row.title.trim() || row.content.trim()) {
+    try {
+      syncNoteToVault(row);
+      row = getDb().select().from(notes).where(eq(notes.id, id)).get() ?? row;
+    } catch (err) {
+      console.error("[notes] syncNoteToVault failed:", err);
+    }
+  }
+
   return Response.json(toNote(row));
 }
 
 export async function DELETE(_req: Request, ctx: Ctx) {
   const { id } = await ctx.params;
+  const existing = getDb().select().from(notes).where(eq(notes.id, id)).get();
   getDb().delete(notes).where(eq(notes.id, id)).run();
+
+  if (existing?.vaultRelPath) {
+    try {
+      const vaultPath = getSetting("obsidianVaultPath");
+      if (vaultPath) {
+        fs.rmSync(path.join(vaultPath, NOTES_SUBDIR, existing.vaultRelPath), { force: true });
+      }
+    } catch (err) {
+      console.error("[notes] failed to delete vault file:", err);
+    }
+  }
+
   return Response.json({ ok: true });
 }

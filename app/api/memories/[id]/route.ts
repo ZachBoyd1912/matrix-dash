@@ -1,7 +1,11 @@
+import fs from "fs";
+import path from "path";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb, getSqlite } from "@/lib/db/client";
 import { memories } from "@/lib/db/schema";
+import { syncMemoryToVault, MEMORIES_SUBDIR } from "@/lib/services/obsidian-sync";
+import { getSetting } from "@/lib/db/settings";
 import { MEMORY_TYPES, type Memory, type LinkedMemory } from "@/types/memory";
 
 export const dynamic = "force-dynamic";
@@ -102,13 +106,36 @@ export async function PATCH(req: Request, ctx: Ctx) {
   }
 
   getDb().update(memories).set(updates).where(eq(memories.id, id)).run();
-  const row = getDb().select().from(memories).where(eq(memories.id, id)).get();
+  let row = getDb().select().from(memories).where(eq(memories.id, id)).get();
   if (!row) return Response.json({ error: "not found" }, { status: 404 });
+
+  if (row.content.trim()) {
+    try {
+      syncMemoryToVault(row);
+      row = getDb().select().from(memories).where(eq(memories.id, id)).get() ?? row;
+    } catch (err) {
+      console.error("[memories] syncMemoryToVault failed:", err);
+    }
+  }
+
   return Response.json(toMemory(row));
 }
 
 export async function DELETE(_req: Request, ctx: Ctx) {
   const { id } = await ctx.params;
+  const existing = getDb().select().from(memories).where(eq(memories.id, id)).get();
   getDb().delete(memories).where(eq(memories.id, id)).run();
+
+  if (existing?.vaultRelPath) {
+    try {
+      const vaultPath = getSetting("obsidianVaultPath");
+      if (vaultPath) {
+        fs.rmSync(path.join(vaultPath, MEMORIES_SUBDIR, existing.vaultRelPath), { force: true });
+      }
+    } catch (err) {
+      console.error("[memories] failed to delete vault file:", err);
+    }
+  }
+
   return Response.json({ ok: true });
 }
