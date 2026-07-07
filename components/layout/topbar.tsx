@@ -1,8 +1,9 @@
 "use client";
 
-import { Search, Sparkles, Menu } from "lucide-react";
+import { Search, Sparkles, Menu, WifiOff, Download } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useAppStore } from "@/lib/stores/use-app-store";
+import { useOnlineStatus } from "@/lib/hooks/use-online-status";
 import { ThemeToggle } from "./theme-toggle";
 import { NotificationBell } from "./notification-bell";
 
@@ -24,6 +25,16 @@ export function Topbar() {
   const setCommandOpen = useAppStore((s) => s.setCommandOpen);
   const setMobileNavOpen = useAppStore((s) => s.setMobileNavOpen);
   const mobileNavOpen = useAppStore((s) => s.mobileNavOpen);
+  const online = useOnlineStatus();
+  const installPromptEvent = useAppStore((s) => s.installPromptEvent);
+  const setInstallPromptEvent = useAppStore((s) => s.setInstallPromptEvent);
+
+  const install = async () => {
+    if (!installPromptEvent) return;
+    await installPromptEvent.prompt();
+    await installPromptEvent.userChoice;
+    setInstallPromptEvent(null);
+  };
 
   const title =
     TITLES[pathname] ||
@@ -51,6 +62,24 @@ export function Topbar() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {!online && (
+            <div
+              className="flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-1 text-[11px] text-amber-200"
+              role="status"
+            >
+              <WifiOff size={11} /> Offline
+            </div>
+          )}
+          {installPromptEvent && (
+            <button
+              onClick={install}
+              className="text-text-muted hover:text-text-primary grid h-8 w-8 place-items-center rounded-md transition-colors hover:bg-white/5"
+              aria-label="Install Matrix Dash"
+              title="Install Matrix Dash"
+            >
+              <Download size={14} />
+            </button>
+          )}
           <ThemeToggle />
           <button
             onClick={() => setCommandOpen(true)}

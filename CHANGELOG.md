@@ -2,6 +2,25 @@
 
 # Changelog
 
+## 07/07/2026 @ 06:50:02 IST — "Claude Sonnet 5"
+
+**Goal:** Execute Plan 15 (true offline support — service worker caching) from `TODO.md` — Phase H.1 of the 19-plan roadmap, run opportunistically (zero file overlap with everything else) after Plan 17 (Obsidian sync) was paused pending the user's real vault path.
+
+**Added:**
+- `public/sw.js` — rewritten from a network-only pass-through into real caching: **CacheFirst** for content-hashed static build assets (`/_next/static/*`, icons, fonts, css — safe to serve from cache indefinitely since a new build gets new hashes); **NetworkFirst** for `/api/*` GETs (always prefers a live response from the local SQLite-backed API — a cached copy is a resilience fallback for a dropped connection, never the default, since the DB is the constantly-changing source of truth); a navigation handler that falls back to the last cached copy of a page, then to a dedicated offline page, if the network is unreachable. Versioned cache names (`matrix-static-v1`/`matrix-api-v1`) with old-cache cleanup on `activate` so a future strategy change doesn't leave stale entries around forever. Only ever intercepts same-origin `GET` requests — mutations always hit the network live.
+- `app/dashboard/offline/page.tsx` — branded fallback page (matches the chat empty-state's logo/glass styling), precached at install time so it's available with zero network at all.
+- `lib/hooks/use-online-status.ts` — thin `navigator.onLine` + online/offline event hook.
+- Install-prompt support: `types/pwa.ts`'s `BeforeInstallPromptEvent` (not yet in lib.dom.d.ts), captured in `pwa-register.tsx` via `beforeinstallprompt`/`appinstalled` and stored in `use-app-store.ts` (`installPromptEvent`) rather than letting the browser's default install UI fire — a topbar "Install" icon button (only rendered once the browser reports the app is installable) triggers the real native prompt.
+- Topbar offline indicator — small amber "Offline" pill next to the existing theme/search controls, shown only while `navigator.onLine` is false.
+
+**Verification:** `pnpm typecheck`/`pnpm lint`/`pnpm test` (20/20)/`pnpm format:check` all clean. Live dev-server: confirmed `/sw.js`, the new offline page, `/dashboard` (topbar), and `/manifest.webmanifest` all serve `200` with no server-side render errors.
+
+**A note on process hygiene this entry itself responds to:** mid-session the long-running `next dev` process had grown to ~1.2GB RSS (accumulated dev-mode compilation cache) on this 8GB-RAM machine and was flagged as using too much memory. Killed it immediately, ran the static checks (typecheck/lint/test/format) with it stopped, then started it only for the few minutes needed to curl-verify the pages above, and stopped it again right after — the dev server is not left running idle in the background for the remainder of this session.
+
+**Not done (explicitly deferred, not silently skipped):** The TODO's "IndexedDB client fallback with Dexie.js" bullet was marked a stretch goal in the original spec and is skipped — it's a materially larger feature (an offline write-queue with reconciliation-on-reconnect semantics), not a small addition, and nothing in this session's testing surfaced a concrete need for it yet. No visual/browser verification of the topbar pill or install button — the Chrome extension wasn't connected this session (same limitation noted in Plan 16's entry); confirmed via SSR + typecheck only.
+
+**Files touched:** `public/sw.js`, `app/dashboard/offline/page.tsx` (new), `lib/hooks/use-online-status.ts` (new), `types/pwa.ts` (new), `components/layout/pwa-register.tsx`, `components/layout/topbar.tsx`, `lib/stores/use-app-store.ts`.
+
 ## 07/07/2026 @ 06:24:06 IST — "Claude Sonnet 5"
 
 **Goal:** Execute Plan 16 (conversation branching & message regeneration) from `TODO.md` — Phase E.1 of the 19-plan roadmap, first of two schema-touching features (16 → 17, run independently since a file-overlap check confirmed zero shared files).

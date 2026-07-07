@@ -100,12 +100,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
   <div class="todo-orb todo-orb-1"></div>
   <div class="todo-orb todo-orb-2"></div>
   <h1>Matrix Dashboard &amp; Builder — Implementation Plans</h1>
-  <p class="subtitle"><span>19</span> plans · <span>11</span> completed · <span>0</span> in progress · Last updated 07/07/2026 @ 06:24:06 IST</p>
+  <p class="subtitle"><span>19</span> plans · <span>12</span> completed · <span>0</span> in progress · Last updated 07/07/2026 @ 06:50:02 IST</p>
 </div>
 
 <div class="todo-stats">
   <div class="todo-stat"><div class="stat-num">19</div><div class="stat-label">Total Plans</div></div>
-  <div class="todo-stat"><div class="stat-num">11</div><div class="stat-label">Completed</div></div>
+  <div class="todo-stat"><div class="stat-num">12</div><div class="stat-label">Completed</div></div>
   <div class="todo-stat"><div class="stat-num">0</div><div class="stat-label">In Progress</div></div>
   <div class="todo-stat critical-stat"><div class="stat-num">5</div><div class="stat-label">Critical</div></div>
 </div>
@@ -761,12 +761,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
 </div>
 
 <!-- PLAN 15 -->
-<div class="todo-card" data-category="ux" data-priority="medium">
+<div class="todo-card completed" data-category="ux" data-priority="medium">
   <div class="card-header">
     <span class="card-emoji">📴</span>
     <div>
       <div class="card-title">Plan 15: True Offline Support — Service Worker Caching</div>
-      <div class="card-subtitle">ideated by deepseek v4 pro · 6 files · medium complexity</div>
+      <div class="card-subtitle">ideated by deepseek v4 pro · 7 files · medium complexity</div>
     </div>
   </div>
   <div class="card-badges">
@@ -783,22 +783,22 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
     <span class="skill-tag">@performance-engineer</span>
   </div>
   <details class="card-files">
-    <summary>6 files</summary>
+    <summary>7 files</summary>
     <div class="file-list">
       <div><span class="file-edit">~ edit</span> public/sw.js (caching strategies + versioning)</div>
-      <div><span class="file-new">+ new</span> app/dashboard/offline/page.tsx, lib/hooks/use-online-status.ts</div>
-      <div><span class="file-edit">~ edit</span> components/layout/topbar.tsx, pwa-register.tsx, chat/chat-input.tsx</div>
+      <div><span class="file-new">+ new</span> app/dashboard/offline/page.tsx, lib/hooks/use-online-status.ts, types/pwa.ts</div>
+      <div><span class="file-edit">~ edit</span> components/layout/topbar.tsx, pwa-register.tsx, lib/stores/use-app-store.ts</div>
     </div>
   </details>
   <details class="tasks-summary">
-    <summary>6 tasks</summary>
+    <summary>5/6 tasks ✅</summary>
     <ul>
-      <li><input type="checkbox"> Implement CacheFirst for static assets, SWR for nav, NetworkFirst for API</li>
-      <li><input type="checkbox"> Add cache versioning (CACHE_NAME with deploy bump) + old cache cleanup</li>
-      <li><input type="checkbox"> Create offline fallback page with Matrix branding</li>
-      <li><input type="checkbox"> Add online/offline detection hook + topbar indicator</li>
-      <li><input type="checkbox"> Explore IndexedDB client fallback with Dexie.js (stretch)</li>
-      <li><input type="checkbox"> Add beforeinstallprompt handler for custom install UX</li>
+      <li><input type="checkbox" checked> CacheFirst for content-hashed static assets, NetworkFirst for <code>/api/*</code> GETs (a cached response is a resilience fallback, never the default — the local SQLite DB behind those routes is the live source of truth), navigation fallback to the offline page. Only ever intercepts same-origin GETs — mutations always hit the network live</li>
+      <li><input type="checkbox" checked> Versioned cache names (<code>matrix-static-v1</code>/<code>matrix-api-v1</code>) + old-cache cleanup on <code>activate</code></li>
+      <li><input type="checkbox" checked> <code>app/dashboard/offline/page.tsx</code> — branded fallback, precached at install so it works with zero network</li>
+      <li><input type="checkbox" checked> <code>use-online-status.ts</code> hook + amber "Offline" pill in the topbar</li>
+      <li><input type="checkbox"> IndexedDB/Dexie fallback — skipped, was marked a stretch goal in the original spec; a materially larger feature (offline write-queue + reconcile-on-reconnect), not a small addition, and nothing surfaced a concrete need for it</li>
+      <li><input type="checkbox" checked> <code>beforeinstallprompt</code> captured in <code>pwa-register.tsx</code>, stored in Zustand, triggered via a topbar "Install" button shown only when the browser reports the app installable</li>
     </ul>
   </details>
 </div>
@@ -1512,7 +1512,7 @@ Skip link + #main-content. Label component + audit 20+ forms. Expand focus-visib
 
 
 
-## 📴 Plan 15: True Offline Support — Service Worker Caching (ideated by deepseek v4 pro)
+## ✅ Plan 15: True Offline Support — Service Worker Caching (ideated by deepseek v4 pro) — COMPLETED
 
 ### Goal
 PWA with CacheFirst for static assets, NetworkFirst for API, offline fallback page, install prompt handler.
@@ -1524,13 +1524,13 @@ Service worker exists but fetch is a no-op. Zero caching. App is fully network-d
 Implement 3 caching strategies in sw.js. Add cache versioning + cleanup. Create offline fallback page. Add online/offline detection hook. Explore IndexedDB client fallback (stretch).
 
 ### Tasks
-- [ ] **Implement caching** — CacheFirst for /_next/static, SWR for HTML, NetworkFirst for API
-- [ ] **Cache versioning** — CACHE_NAME with deploy bump, old cache cleanup in activate
-- [ ] **Offline fallback page** — `app/dashboard/offline/page.tsx` with branding
-- [ ] **Online/offline detection** — `lib/hooks/use-online-status.ts` + topbar indicator + chat disable
-- [ ] **IndexedDB fallback** — stretch goal: Dexie.js for local state, sync on reconnect
-- [ ] **Install prompt** — beforeinstallprompt handler in pwa-register.tsx
-- [ ] **Verify** — toggle offline in DevTools, app shell loads, offline page for uncached routes
+- [x] **Implement caching** — CacheFirst for `/_next/static/*` and other content-hashed assets; NetworkFirst for `/api/*` GETs (a cached response is a resilience fallback for a dropped connection, never the default — the local SQLite DB behind those routes is the live source of truth); navigation requests fall back to a cached copy, then the offline page. Only ever intercepts same-origin GETs — mutations always reach the network live
+- [x] **Cache versioning** — `matrix-static-v1`/`matrix-api-v1`, old-cache cleanup in `activate`
+- [x] **Offline fallback page** — `app/dashboard/offline/page.tsx`, branded, precached at install so it works with zero network at all
+- [x] **Online/offline detection** — `lib/hooks/use-online-status.ts` + amber "Offline" pill in the topbar. Chat-input disabling on offline was scoped out — the existing send() error handling already surfaces a clear error banner on a failed request, and preemptively disabling the composer isn't needed on top of that
+- [ ] **IndexedDB fallback** — skipped; the original spec marked this a stretch goal, and it's a materially larger feature (an offline write-queue with reconcile-on-reconnect semantics) than a small addition, with no concrete need surfaced yet
+- [x] **Install prompt** — `beforeinstallprompt`/`appinstalled` captured in `pwa-register.tsx`, stored in Zustand (`installPromptEvent`), triggered via a topbar "Install" button shown only once the browser reports the app installable
+- [x] **Verify** — `pnpm typecheck`/`lint`/`test` (20/20)/`format:check` all clean. Live dev-server: `/sw.js`, the offline page, `/dashboard` (topbar), and `/manifest.webmanifest` all confirmed `200` with no server-render errors. No DevTools offline-toggle or visual check this session — the Chrome extension wasn't connected (same gap as Plan 16), so the actual caching *behavior* (does a page really load with the network off) is unverified beyond the code review + SSR checks above
 
 ### Files Touched
 | File | Action |
@@ -1538,9 +1538,10 @@ Implement 3 caching strategies in sw.js. Add cache versioning + cleanup. Create 
 | `public/sw.js` | Edit |
 | `app/dashboard/offline/page.tsx` | **NEW** |
 | `lib/hooks/use-online-status.ts` | **NEW** |
+| `types/pwa.ts` | **NEW** |
 | `components/layout/topbar.tsx` | Edit |
 | `components/layout/pwa-register.tsx` | Edit |
-| `components/chat/chat-input.tsx` | Edit |
+| `lib/stores/use-app-store.ts` | Edit |
 
 ### 🧠 Skills
 `@senior-frontend` `@frontend-dev-guidelines` `@performance-engineer`

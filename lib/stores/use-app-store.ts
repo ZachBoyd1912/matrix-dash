@@ -4,6 +4,7 @@ import { create } from "zustand";
 import type { AiProviderPublic } from "@/types/ai-provider";
 import type { ReasoningEffort } from "@/lib/ai/models";
 import type { GenerationParams } from "@/types/settings";
+import type { BeforeInstallPromptEvent } from "@/types/pwa";
 
 interface AppState {
   sidebarCollapsed: boolean;
@@ -39,6 +40,11 @@ interface AppState {
    *  metadata; resets on reload. */
   generationParams: GenerationParams;
   setGenerationParams: (params: GenerationParams) => void;
+
+  /** Captured `beforeinstallprompt` event — non-null only while the browser
+   *  considers the app installable and hasn't been asked yet. */
+  installPromptEvent: BeforeInstallPromptEvent | null;
+  setInstallPromptEvent: (event: BeforeInstallPromptEvent | null) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -72,4 +78,7 @@ export const useAppStore = create<AppState>((set) => ({
   setReasoningEffort: (reasoningEffort) => set({ reasoningEffort }),
   generationParams: {},
   setGenerationParams: (generationParams) => set({ generationParams }),
+
+  installPromptEvent: null,
+  setInstallPromptEvent: (installPromptEvent) => set({ installPromptEvent }),
 }));
