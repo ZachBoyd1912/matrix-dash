@@ -2,6 +2,23 @@
 
 # Changelog
 
+## 07/07/2026 @ 08:00:09 IST — "Claude Sonnet 5"
+
+**Goal:** Full production rebuild + restart of the `matrix.zbautomations.ie` Next.js dashboard app, per the user's explicit go-ahead ("get matrix dashboard and everything live now") after Plan 19's deploy had deliberately left this app on its old build (see the prior entry's scope note). This brings every plan from this session (4, 5, 6, 7, 8, 9, 10, 11, 15, 16, 19) live in production for the first time.
+
+**Fixed:**
+- **`package.json`'s `"prepare": "husky"` script broke every production-mode pnpm install** — a real, generically-recurring deploy bug, not specific to today. pnpm's automatic pre-script lockfile-sync check runs in production mode (skipping devDependencies, including husky itself) before executing any script, so every `pnpm build`/`pnpm install --prod` invocation failed at "husky: not found" before the actual build ever started — reproduced identically on a clean retry even right after a full non-production install had just succeeded (pnpm re-runs this check per script invocation, not once per session). Fixed permanently: `"prepare": "husky || exit 0"`.
+
+**Deployed:**
+- `pnpm build` on the production VM (e2-micro, ~955MB RAM + 2GB swap) — took 24 minutes to compile, ~36 minutes wall-clock total (static generation + trace collection). Confirmed via the build's own route manifest that every new route from this session is present: `/api/sessions/[id]/fork`, `/api/sessions/[id]/messages/[messageId]`, `/api/usage`, `/api/usage/session/[id]`, `/dashboard/offline`, `/manifest.webmanifest`, `/api/ai/compact`, etc.
+- Standalone output assembled (static assets, `public/`, `.env.production` copied in; `pnpm install --frozen-lockfile --prod` in the standalone dir — correctly reported "Already up to date" since no new production dependencies were added this session, only devDependencies for testing/linting tooling) and `systemctl restart matrix-dash`.
+
+**Verification:** Live, via SSH + curl to `localhost:3000` on the VM (bypassing Cloudflare Access, which fronts every external route including APIs): confirmed the Plan 16 schema migration applied cleanly against the real production DB (`GET /api/sessions` → `200 []`, not a 500 — the new columns exist and the query succeeds). Ran one real end-to-end smoke test against the live, actively-configured DeepSeek provider — the only test this session that touched genuinely live production infrastructure with a real API key: created a session, sent a message (exercising the fallback cascade, generation params, and message-persistence event plumbing), regenerated it (exercising the variant system), forked it, confirmed the cost ledger correctly attributed the real usage (~$0.0000087, negligible), then deleted both test sessions and confirmed `/api/usage`/`/api/sessions` returned to the exact pre-test empty baseline. Production had zero real session data at deploy time, so this carried no risk to user data. All three subdomains (`matrix.`, `zbautomations.ie`, `builder.`) confirmed healthy afterward via external HTTPS.
+
+**A production incident, self-inflicted and self-resolved:** copying build output (`rm -rf`/`cp -r`) directly into the live standalone directory while the *old* process was still running against those same files triggered a `MODULE_NOT_FOUND` crash — systemd's `Restart=always` (5s backoff) recovered it automatically, but this repeated across the ~33-minute deploy window (362 restart-cycles logged, confirmed via `journalctl` to have started exactly when today's deploy began and stopped the moment the final clean restart landed — not a pre-existing issue). Each individual outage window was brief (~14s), but the cumulative flicker during the deploy window was avoidable. Documented in memory for next time: stop the service first, or build to a fresh directory and swap atomically, rather than mutating the live standalone directory's files in place.
+
+**Files touched:** `package.json` (husky prepare-script fix, committed separately as `bc3908b` before this deploy). No other repo changes — this entry documents infrastructure deployment of already-committed code, not new code changes.
+
 ## 07/07/2026 @ 07:04:17 IST — "Claude Sonnet 5"
 
 **Goal:** Execute Plan 19 (SEO/GEO — zbautomations.ie landing page) from `TODO.md` — Phase H.2 of the 19-plan roadmap, closing the remaining gap from ~62/100 toward the honest ceiling. Built and deployed with the user's explicit authorization for autonomous production deployment (Caddyfile + live VM), given after flagging that this plan (unlike the others this session) involves editing and redeploying live infrastructure.
