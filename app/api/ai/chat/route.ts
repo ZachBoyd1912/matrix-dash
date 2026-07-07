@@ -16,9 +16,16 @@ import { streamWithFallback } from "@/lib/ai/fallback";
 import { buildMemoryContext } from "@/lib/ai/injection";
 import { extractMemories } from "@/lib/ai/extraction";
 import { getAppSettings } from "@/lib/db/settings";
+import {
+  estimateTokens,
+  estimateMessagesTokens,
+  getModelContextLimit,
+  getContextUsagePercent,
+} from "@/lib/ai/tokens";
+import { summarizeOlderMessages } from "@/lib/ai/summarizer";
 import { buildAgentTools } from "@/lib/ai/tools";
 import { buildProviderOptions, type ReasoningEffort } from "@/lib/ai/models";
-import { providerSpec } from "@/types/ai-provider";
+import { shouldFoldSystemPrompt } from "@/types/ai-provider";
 import {
   appendEvent,
   blocksToText,
@@ -158,27 +165,91 @@ export async function POST(req: Request) {
 
   const systemContent = systemBits.join("\n\n");
 
-  // @ai-sdk/openai sends the system message as role "developer" for any model id
-  // that isn't gpt-3 / gpt-4 / chatgpt-4o / gpt-5-chat. First-party OpenAI accepts
-  // that, but third-party openai-compat endpoints (deepseek, opencode, openrouter…)
-  // reject the "developer" role. For those, fold the system text into the first
-  // user turn so no "system"/"developer" message is ever sent.
-  //
-  // This depends on which provider's *kind* is actually serving the request, so
-  // it's computed per fallback candidate rather than once for the originally
-  // requested provider — a fallback provider can need different message shaping
-  // than the primary one.
-  function finalMessagesFor(providerKind: string): ModelMessage[] {
-    if (!systemContent) return messages;
-    const spec = providerSpec(providerKind);
-    const foldSystem =
-      (spec?.sdk ?? "openai-compat") === "openai-compat" && providerKind !== "openai";
-    if (!foldSystem) return [{ role: "system", content: systemContent }, ...messages];
+  // Context management: estimated against the primary/requested provider, not
+  // each fallback candidate — a smaller fallback window just errors normally
+  // (an acceptable, non-regressing edge case, not a special-cased path). 70%
+  // (not the more common 80%) is deliberately conservative: the char/4 estimate
+  // below is approximate, so leaving headroom before the soft trigger matters
+  // more than matching a round number.
+  const CONTEXT_SOFT_TRIGGER_PERCENT = 70;
+  const CONTEXT_HARD_CEILING_PERCENT = 95;
+  const CONTEXT_TRUNCATE_TARGET_PERCENT = 85;
 
-    const i = messages.findIndex((m) => m.role === "user" && typeof m.content === "string");
+  const contextLimit = getModelContextLimit(
+    provider.provider,
+    modelOverride || provider.defaultModel
+  );
+  let workingMessages: ModelMessage[] = messages;
+  let contextCompacted: { summarizedCount: number; summary: string } | null = null;
+
+  // Includes systemContent's own size (presets/memory/agent-preamble/host-context) —
+  // live-testing this against Plan 8's real reported inputTokens turned up a case
+  // where the raw-messages-only estimate was ~24 tokens against a real 651, almost
+  // entirely the system prompt this omitted. Still an approximation (provider
+  // request overhead, tool schemas in agent mode, etc. aren't counted either), but
+  // this closes the single largest gap found.
+  const estimatedContextTokens = () =>
+    estimateMessagesTokens(workingMessages) + estimateTokens(systemContent);
+
+  if (
+    getContextUsagePercent(estimatedContextTokens(), contextLimit) >= CONTEXT_SOFT_TRIGGER_PERCENT
+  ) {
+    // Best-effort quality improvement over truncation — makes its own provider
+    // call, which can fail. Truncation below is the actual guarantee and runs
+    // independently of whether this succeeds.
+    const summarized = await summarizeOlderMessages(workingMessages, provider, modelOverride);
+    if (summarized) {
+      const keptTail = workingMessages.slice(summarized.summarizedCount);
+      // "user" role, not "system" — this gets sent as-is by every fallback
+      // candidate finalMessagesFor() might pick, and several openai-compat
+      // providers (deepseek, opencode, openrouter…) reject a "system" message
+      // outright (the same constraint shouldFoldSystemPrompt exists for). A
+      // plainly-labeled user turn is universally accepted.
+      workingMessages = [
+        {
+          role: "user",
+          content: `[Earlier conversation summary — background context, not something I just said]: ${summarized.summary}`,
+        },
+        ...keptTail,
+      ];
+      contextCompacted = {
+        summarizedCount: summarized.summarizedCount,
+        summary: summarized.summary,
+      };
+    }
+  }
+
+  if (
+    getContextUsagePercent(estimatedContextTokens(), contextLimit) > CONTEXT_HARD_CEILING_PERCENT
+  ) {
+    // Drop the oldest messages (never the synthetic summary, if one was just
+    // added) until back under the target — regardless of whether summarization
+    // ran above; the estimate is approximate and the summarizer can fail.
+    while (
+      workingMessages.length > 1 &&
+      getContextUsagePercent(estimatedContextTokens(), contextLimit) >
+        CONTEXT_TRUNCATE_TARGET_PERCENT
+    ) {
+      const dropIndex = contextCompacted ? 1 : 0;
+      if (dropIndex >= workingMessages.length) break;
+      workingMessages.splice(dropIndex, 1);
+    }
+  }
+
+  // Fold-vs-prepend depends on which provider's *kind* is actually serving the
+  // request (see shouldFoldSystemPrompt), so it's computed per fallback
+  // candidate rather than once for the originally requested provider — a
+  // fallback provider can need different message shaping than the primary one.
+  function finalMessagesFor(providerKind: string): ModelMessage[] {
+    if (!systemContent) return workingMessages;
+    if (!shouldFoldSystemPrompt(providerKind)) {
+      return [{ role: "system", content: systemContent }, ...workingMessages];
+    }
+
+    const i = workingMessages.findIndex((m) => m.role === "user" && typeof m.content === "string");
     return i === -1
-      ? [{ role: "user", content: systemContent } as ModelMessage, ...messages]
-      : messages.map((m, idx) =>
+      ? [{ role: "user", content: systemContent } as ModelMessage, ...workingMessages]
+      : workingMessages.map((m, idx) =>
           idx === i
             ? ({
                 ...m,
@@ -275,6 +346,17 @@ export async function POST(req: Request) {
       // Bind the per-request context so tools can emit approval requests into this
       // same stream (tools run during the fullStream loop below, after this point).
       reqCtx.emit = emit;
+
+      // Tell the client to fold its own working history the same way, so the
+      // *next* request is smaller too — otherwise it would re-send the full
+      // history, re-cross the threshold, and re-summarize from scratch every turn.
+      if (contextCompacted) {
+        emit({
+          type: "context_compacted",
+          summarizedCount: contextCompacted.summarizedCount,
+          summary: contextCompacted.summary,
+        });
+      }
 
       // Try each provider in the fallback chain. A candidate only "wins" once its
       // first real part arrives off fullStream — we can't swap providers after

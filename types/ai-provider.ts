@@ -211,5 +211,17 @@ export function requiresApiKey(kind: string): boolean {
   return !providerSpec(kind)?.local;
 }
 
+/**
+ * @ai-sdk/openai sends the system message as role "developer" for any model id
+ * that isn't gpt-3 / gpt-4 / chatgpt-4o / gpt-5-chat. First-party OpenAI accepts
+ * that, but third-party openai-compat endpoints (deepseek, opencode, openrouter…)
+ * reject the "developer" role outright. Any call site building a message array
+ * for one of these providers must fold a system-role instruction into a user
+ * turn instead of sending it as its own "system" message.
+ */
+export function shouldFoldSystemPrompt(kind: string): boolean {
+  return (providerSpec(kind)?.sdk ?? "openai-compat") === "openai-compat" && kind !== "openai";
+}
+
 /** Placeholder key stored for local providers, which authenticate no requests. */
 export const LOCAL_API_KEY = "local";

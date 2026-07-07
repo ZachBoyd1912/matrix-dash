@@ -100,12 +100,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
   <div class="todo-orb todo-orb-1"></div>
   <div class="todo-orb todo-orb-2"></div>
   <h1>Matrix Dashboard &amp; Builder — Implementation Plans</h1>
-  <p class="subtitle"><span>19</span> plans · <span>8</span> completed · <span>0</span> in progress · Last updated 07/07/2026 @ 05:18:14 IST</p>
+  <p class="subtitle"><span>19</span> plans · <span>9</span> completed · <span>0</span> in progress · Last updated 07/07/2026 @ 05:40:47 IST</p>
 </div>
 
 <div class="todo-stats">
   <div class="todo-stat"><div class="stat-num">19</div><div class="stat-label">Total Plans</div></div>
-  <div class="todo-stat"><div class="stat-num">8</div><div class="stat-label">Completed</div></div>
+  <div class="todo-stat"><div class="stat-num">9</div><div class="stat-label">Completed</div></div>
   <div class="todo-stat"><div class="stat-num">0</div><div class="stat-label">In Progress</div></div>
   <div class="todo-stat critical-stat"><div class="stat-num">5</div><div class="stat-label">Critical</div></div>
 </div>
@@ -480,12 +480,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
 </div>
 
 <!-- PLAN 9 -->
-<div class="todo-card" data-category="ai" data-priority="critical">
+<div class="todo-card completed" data-category="ai" data-priority="critical">
   <div class="card-header">
     <span class="card-emoji">🪟</span>
     <div>
       <div class="card-title">Plan 9: Context Window Management</div>
-      <div class="card-subtitle">ideated by deepseek v4 pro · 6 files · high complexity</div>
+      <div class="card-subtitle">ideated by deepseek v4 pro · 8 files · high complexity</div>
     </div>
   </div>
   <div class="card-badges">
@@ -502,24 +502,24 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
     <span class="skill-tag">@performance-engineer</span>
   </div>
   <details class="card-files">
-    <summary>6 files</summary>
+    <summary>8 files</summary>
     <div class="file-list">
-      <div><span class="file-new">+ new</span> lib/ai/tokens.ts, lib/ai/summarizer.ts</div>
-      <div><span class="file-edit">~ edit</span> lib/ai/models.ts, app/api/ai/chat/route.ts</div>
-      <div><span class="file-edit">~ edit</span> components/chat/chat-interface.tsx, lib/chat/slash-commands.ts</div>
+      <div><span class="file-new">+ new</span> lib/ai/tokens.ts, lib/ai/summarizer.ts, app/api/ai/compact/route.ts</div>
+      <div><span class="file-edit">~ edit</span> types/ai-provider.ts, app/api/ai/chat/route.ts</div>
+      <div><span class="file-edit">~ edit</span> components/chat/chat-interface.tsx</div>
     </div>
   </details>
   <details class="tasks-summary">
-    <summary>8 tasks</summary>
+    <summary>8/8 tasks ✅</summary>
     <ul>
-      <li><input type="checkbox"> Install tiktoken or use AI SDK countTokens()</li>
-      <li><input type="checkbox"> Build token counter with model-aware context limits</li>
-      <li><input type="checkbox"> Add contextWindow field to all model entries</li>
-      <li><input type="checkbox"> Create auto-summarizer (trigger at 80% context usage)</li>
-      <li><input type="checkbox"> Integrate into chat route: count before building messages</li>
-      <li><input type="checkbox"> Add context progress bar to chat UI (green→yellow→red)</li>
-      <li><input type="checkbox"> Implement /compact slash command server-side</li>
-      <li><input type="checkbox"> Verify: long conversation triggers summarization, bar updates</li>
+      <li><input type="checkbox" checked> No tiktoken/countTokens — neither exists usably here: the AI SDK has no countTokens export, and tiktoken is OpenAI-specific across a ~20-provider-kind catalog with no shared tokenizer. Used a char/4 heuristic instead, deliberately isomorphic (same estimator server- and client-side) — the exact tradeoff a real per-provider tokenizer can't offer</li>
+      <li><input type="checkbox" checked> Token counter — <code>lib/ai/tokens.ts</code>: <code>estimateTokens</code>, <code>estimateMessagesTokens</code>, <code>getModelContextLimit</code>, <code>getContextUsagePercent</code></li>
+      <li><input type="checkbox" checked> Context windows — regex-matched per-model limits (same pattern as Plan 8's pricing.ts) + per-provider-kind fallback across the ~20-kind catalog, not literally "all 20+ models" (models are live-fetched per provider, not a fixed enumerable list)</li>
+      <li><input type="checkbox" checked> Auto-summarizer — <code>lib/ai/summarizer.ts</code>, triggers at 70% (not 80% — deliberately more conservative than spec since the char/4 estimate is approximate), keeps the 6 most recent messages verbatim. Best-effort only: makes its own provider call, returns null on any failure, and callers must have independent truncation — confirmed live by forcing it to fail against a broken provider and watching truncation + Plan 10's fallback cascade still deliver a reply</li>
+      <li><input type="checkbox" checked> Integrated into chat route — estimated against the primary/requested provider only (not each fallback candidate; a smaller fallback window just errors normally). Live-testing this against Plan 8's real reported inputTokens caught a real bug: the estimate omitted the app's own system prompt (presets/memory/agent-preamble), undercounting by ~27x on a small request (24 vs. real 651 tokens) — fixed by including it, closing the gap to ~16%</li>
+      <li><input type="checkbox" checked> Context bar in chat UI — thin progress bar (green/amber/rose at 70%/90%), shown once usage passes 50%, with a tooltip; warning toast once at 90% (not repeated every render)</li>
+      <li><input type="checkbox" checked> <code>/compact</code> implemented server-side — previously fell through to being sent as raw prompt text to whichever engine was active, doing nothing against Matrix's native chat route. New dedicated <code>POST /api/ai/compact</code> forces a summarization pass immediately, reusing the same summarizer as the automatic path. <code>/context</code> also upgraded from static provider/model text to real token/percent numbers</li>
+      <li><input type="checkbox" checked> Verify — live dev-server + real DB: (1) <code>/api/ai/compact</code> correctly summarized 4 older messages of a 10-message conversation while preserving facts from the kept-recent tail; (2) a 71-message/~200K-char conversation against the real Deepseek provider correctly triggered auto-compaction (<code>context_compacted</code>, summarizedCount 65) and the model's reply confirmed it still remembered the user's name from the summary; (3) forcing the summarizer to fail (broken primary provider) confirmed truncation + Plan 10's fallback cascade still completed the request successfully; (4) found and fixed two real bugs along the way — the synthetic summary message used a raw "system" role that non-OpenAI openai-compat providers reject (same class of bug as Plan 10's stale-fold issue; fixed by extracting a shared <code>shouldFoldSystemPrompt()</code> helper and using "user" role for the synthetic message), and the estimate's ~27x undercount on small requests (fixed above). All test providers/sessions cleaned up afterward, <code>autoExtract</code> restored</li>
     </ul>
   </details>
 </div>
@@ -1267,7 +1267,7 @@ Capture usage from AI SDK onFinish. Store in sessionMessages. Build pricing tabl
 
 
 
-## 🪟 Plan 9: Context Window Management (ideated by deepseek v4 pro)
+## ✅ Plan 9: Context Window Management (ideated by deepseek v4 pro) — COMPLETED
 
 ### Goal
 Token-aware context: counting, per-model limits, auto-summarization at 80%, context bar in chat UI.
@@ -1279,24 +1279,24 @@ Zero token counting. 500-msg sessions send entire history — silently fail at c
 Install tiktoken / use AI SDK countTokens. Add contextWindow to model registry. Build auto-summarizer. Add context bar (green→yellow→red). Implement /compact command.
 
 ### Tasks
-- [ ] **Install tokenizer** — tiktoken or AI SDK countTokens()
-- [ ] **Create token counter** — `lib/ai/tokens.ts`: countTokens, countMessages, getModelContextLimit, getContextUsagePercent
-- [ ] **Add contextWindow to models** — real values for all 20+ models
-- [ ] **Create summarizer** — `lib/ai/summarizer.ts`: trigger at 80%, use lightweight model, fallback to truncation
-- [ ] **Integrate into chat route** — count before building messages, trigger summarization, emit usage via onChunk
-- [ ] **Add context bar** — progress bar with tooltip, warning toast at 90%
-- [ ] **Implement /compact** — server-side summarization trigger
-- [ ] **Verify** — long conversation triggers summarization, bar updates
+- [x] **No tokenizer installed** — neither option in the spec exists usably: the AI SDK has no `countTokens` export, and tiktoken is OpenAI-specific across a ~20-provider-kind catalog with no shared tokenizer. Used a char/4 heuristic instead, deliberately isomorphic (identical estimator server- and client-side) — a real tokenizer library couldn't offer that
+- [x] **Token counter** — `lib/ai/tokens.ts`: `estimateTokens`, `estimateMessagesTokens`, `getModelContextLimit`, `getContextUsagePercent`
+- [x] **Context windows** — regex-matched per-model limits (same approach as Plan 8's pricing.ts) + per-provider-kind fallback; not "all 20+ models" literally since models are live-fetched per provider, not a fixed list
+- [x] **Summarizer** — `lib/ai/summarizer.ts`, triggers at 70% (deliberately more conservative than 80% — the estimate is approximate), keeps the 6 most recent messages verbatim, returns `null` on any failure so truncation is the real guarantee
+- [x] **Integrated into chat route** — estimated against the primary/requested provider only, not each fallback candidate. No `onChunk`-based usage emission (that's Plan 8's `totalUsage` accessor, already wired) — folding that in here would have duplicated Plan 8's mechanism for no benefit
+- [x] **Context bar** — thin bar (green/amber/rose at 70%/90%), tooltip, warning toast once at 90% (not re-fired every render)
+- [x] **`/compact` implemented server-side** — previously fell through to raw prompt text sent to whichever engine was active, doing nothing against Matrix's native route. New `POST /api/ai/compact` forces the same summarizer immediately. `/context` also upgraded to real token/percent numbers instead of static provider/model text
+- [x] **Verify** — live dev-server + real DB: `/api/ai/compact` correctly summarized older messages while preserving kept-recent facts; a real ~200K-char/71-message conversation against Deepseek correctly auto-compacted (summarizedCount 65) and the model still recalled the user's name from the summary afterward; forcing the summarizer to fail (broken primary) confirmed truncation + Plan 10's fallback cascade still completed the request. Found and fixed two real bugs: the synthetic summary message used a raw "system" role that non-OpenAI openai-compat providers reject (extracted a shared `shouldFoldSystemPrompt()` helper, used "user" role instead), and the token estimate omitted the app's own system prompt, undercounting by ~27x on a small request (24 vs. real 651, per Plan 8's own ledger) — fixed by including it, closing the gap to ~16%
 
 ### Files Touched
 | File | Action |
 |------|--------|
 | `lib/ai/tokens.ts` | **NEW** |
 | `lib/ai/summarizer.ts` | **NEW** |
-| `lib/ai/models.ts` | Edit |
+| `app/api/ai/compact/route.ts` | **NEW** |
+| `types/ai-provider.ts` | Edit |
 | `app/api/ai/chat/route.ts` | Edit |
 | `components/chat/chat-interface.tsx` | Edit |
-| `lib/chat/slash-commands.ts` | Edit |
 
 ### 🧠 Skills
 `@ai-engineer` `@llm-ops` `@performance-engineer` `@frontend-dev-guidelines`

@@ -60,7 +60,10 @@ export type StreamEvent =
       value: { inputTokens?: number; outputTokens?: number; totalTokens?: number };
     }
   /** Which provider actually served this turn, once the fallback cascade committed to one. */
-  | { type: "provider_used"; id: string; name: string; fellBack: boolean };
+  | { type: "provider_used"; id: string; name: string; fellBack: boolean }
+  /** Older turns were folded into a summary to fit the context window — the
+   *  client should replace its working history with the summary + recent tail. */
+  | { type: "context_compacted"; summarizedCount: number; summary: string };
 
 /**
  * Fold one stream event into the block list in arrival order. Mutates `blocks` and

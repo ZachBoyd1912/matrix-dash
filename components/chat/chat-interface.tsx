@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const uid = (): string =>
   typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
@@ -15,6 +15,11 @@ import { useAppStore } from "@/lib/stores/use-app-store";
 import { toast } from "@/lib/stores/use-feedback";
 import { speak } from "@/lib/hooks/use-voice";
 import { SLASH_COMMANDS } from "@/lib/chat/slash-commands";
+import {
+  estimateMessagesTokens,
+  getModelContextLimit,
+  getContextUsagePercent,
+} from "@/lib/ai/tokens";
 import { useRouter } from "next/navigation";
 import {
   appendEvent,
@@ -143,6 +148,51 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
     setStreaming(false);
   }, []);
 
+  // Shared by both compaction paths: the automatic one (server folds older
+  // turns mid-stream and reports back via a `context_compacted` event) and the
+  // manual `/compact` command. Both identify "how many of the oldest messages
+  // this summary replaces" as a plain prefix count, so replacing that prefix in
+  // whatever the current state is works for either caller.
+  const applyCompaction = useCallback((summarizedCount: number, summary: string) => {
+    setMessages((prev) => {
+      const kept = prev.slice(summarizedCount);
+      const summaryMsg: ChatMessage = {
+        id: uid(),
+        role: "assistant",
+        blocks: [
+          { kind: "text", text: `📎 Compacted ${summarizedCount} earlier message(s): ${summary}` },
+        ],
+      };
+      return [summaryMsg, ...kept];
+    });
+  }, []);
+
+  // Live, client-side estimate of the current conversation's context usage —
+  // same char/4 heuristic the server uses to decide when to compact, so the bar
+  // and the server's actual behavior stay in agreement.
+  const contextInfo = useMemo(() => {
+    const active = providers.find((p) => p.id === providerId);
+    const modelId = modelOverride ?? active?.defaultModel ?? "";
+    const estimated = estimateMessagesTokens(
+      messages.map((m) => ({ content: blocksToText(m.blocks) }))
+    );
+    const limit = getModelContextLimit(active?.provider ?? null, modelId || null);
+    return { estimated, limit, percent: getContextUsagePercent(estimated, limit) };
+  }, [messages, providers, providerId, modelOverride]);
+
+  const contextWarnedRef = useRef(false);
+  useEffect(() => {
+    if (contextInfo.percent >= 90 && !contextWarnedRef.current) {
+      contextWarnedRef.current = true;
+      toast.info(
+        "Context window filling up",
+        `~${contextInfo.percent}% used — try /compact to free some up.`
+      );
+    } else if (contextInfo.percent < 90) {
+      contextWarnedRef.current = false;
+    }
+  }, [contextInfo.percent]);
+
   // Settle an interactive tool approval — resumes the paused tool in the open
   // stream. The approval block flips to its resolved state when the server's
   // `approval_resolved` event arrives.
@@ -194,10 +244,38 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
           case "context": {
             const active = providers.find((p) => p.id === providerId);
             inject(
-              `Context — ${messages.length} message(s) · provider: ${active?.name ?? "none"} · model: ${
-                modelOverride ?? active?.defaultModel ?? "default"
-              }.`
+              `Context — ${messages.length} message(s), ~${contextInfo.estimated.toLocaleString()} tokens ` +
+                `(${contextInfo.percent}% of ~${contextInfo.limit.toLocaleString()}) · provider: ${active?.name ?? "none"} · model: ${
+                  modelOverride ?? active?.defaultModel ?? "default"
+                }.`
             );
+            break;
+          }
+          case "compact": {
+            if (messages.length < 2) {
+              inject("Nothing to compact yet.");
+              break;
+            }
+            const convo = messages.map((m) => ({ role: m.role, content: blocksToText(m.blocks) }));
+            try {
+              const res = await fetch("/api/ai/compact", {
+                method: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({
+                  messages: convo,
+                  providerId,
+                  modelOverride: modelOverride ?? undefined,
+                }),
+              });
+              const data = await res.json();
+              if (!res.ok) {
+                inject(data.error || "Could not compact the conversation.");
+                break;
+              }
+              applyCompaction(data.summarizedCount, data.summary);
+            } catch {
+              inject("Could not reach the compaction endpoint.");
+            }
             break;
           }
           case "help":
@@ -207,7 +285,7 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
             );
             break;
           default:
-            handled = false; // compact / init / review → send to the engine
+            handled = false; // init / review → send to the engine
         }
         if (handled) return;
       }
@@ -271,6 +349,11 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
         const idMap = new Map<string, number>();
         let streamError = "";
         let fallbackNotice: string | undefined;
+        // A ref-like holder (not a bare `let`) so reading it after the loop isn't
+        // subject to TS narrowing a closure-mutated let back to `null`.
+        const compaction: { current: { summarizedCount: number; summary: string } | null } = {
+          current: null,
+        };
         let buffer = "";
 
         // Parse the NDJSON stream line-by-line into stream events, folding each into
@@ -289,6 +372,13 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
                 fallbackNotice = `Replied via ${evt.name} after the primary provider failed.`;
                 toast.info("Switched provider", fallbackNotice);
               }
+              return;
+            }
+            if (evt.type === "context_compacted") {
+              // Applied after the stream finishes (below), once the assistant's
+              // reply has landed in state — applyCompaction slices from whatever
+              // the current state is, which by then includes this turn's reply.
+              compaction.current = { summarizedCount: evt.summarizedCount, summary: evt.summary };
               return;
             }
             appendEvent(blocks, idMap, evt);
@@ -317,6 +407,15 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
         }
         if (buffer) handleLine(buffer);
         flush();
+
+        // `history` (captured above) is a prefix of the post-flush state — this
+        // turn's assistant reply is now in state too, so applying the swap here
+        // (rather than inside handleLine, before the reply exists) is what makes
+        // the *next* request small: it re-sends from this trimmed state, not the
+        // full pre-compaction history.
+        if (compaction.current) {
+          applyCompaction(compaction.current.summarizedCount, compaction.current.summary);
+        }
 
         const replyText = blocksToText(blocks);
         if (streamError && !replyText.trim()) throw new Error(streamError);
@@ -425,6 +524,25 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
             </div>
           </div>
           <div className="from-bg-base via-bg-base/80 bg-gradient-to-t to-transparent py-4">
+            {contextInfo.percent >= 50 && (
+              <div className="mx-auto mb-2 max-w-3xl px-4">
+                <div
+                  className="h-1 w-full overflow-hidden rounded-full bg-white/8"
+                  title={`~${contextInfo.estimated.toLocaleString()} / ~${contextInfo.limit.toLocaleString()} tokens (${contextInfo.percent}%, estimated)`}
+                >
+                  <div
+                    className={`h-full rounded-full transition-all duration-300 ${
+                      contextInfo.percent >= 90
+                        ? "bg-rose-400"
+                        : contextInfo.percent >= 70
+                          ? "bg-amber-400"
+                          : "bg-emerald-400"
+                    }`}
+                    style={{ width: `${contextInfo.percent}%` }}
+                  />
+                </div>
+              </div>
+            )}
             {attachment && (
               <div className="mx-auto mb-2 max-w-3xl px-4">
                 <div className="glass-input text-text-secondary inline-flex items-center gap-2 rounded-full border border-emerald-400/20 px-3 py-1 text-xs transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]">
