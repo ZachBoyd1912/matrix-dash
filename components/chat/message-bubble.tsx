@@ -3,7 +3,7 @@
 import { TranscriptRenderer } from "./transcript-renderer";
 import { blocksToText, type Block, type ApprovalDecision } from "@/lib/chat/blocks";
 import { cn } from "@/lib/utils/cn";
-import { Sparkles, User } from "lucide-react";
+import { Sparkles, User, RotateCw, GitFork, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Props {
   role: "user" | "assistant" | "system";
@@ -12,12 +12,34 @@ interface Props {
   onApprove?: (id: string, decision: ApprovalDecision) => void;
   /** Set when the fallback cascade served this turn from a non-primary provider. */
   fallbackNotice?: string;
+  /** Which regenerated variant is currently shown (0-based). */
+  variantIndex?: number;
+  /** Total variant count — the picker only renders when this is > 1. */
+  variantCount?: number;
+  /** Re-run this assistant turn. Omitted (no session, or a stream in flight) hides the action. */
+  onRegenerate?: () => void;
+  /** Start a new session containing everything up to and including this message. */
+  onFork?: () => void;
+  onSwitchVariant?: (index: number) => void;
 }
 
-export function MessageBubble({ role, blocks, streaming, onApprove, fallbackNotice }: Props) {
+export function MessageBubble({
+  role,
+  blocks,
+  streaming,
+  onApprove,
+  fallbackNotice,
+  variantIndex,
+  variantCount,
+  onRegenerate,
+  onFork,
+  onSwitchVariant,
+}: Props) {
   if (role === "system") return null;
 
   const isUser = role === "user";
+  const showVariantPicker = !isUser && (variantCount ?? 0) > 1 && onSwitchVariant;
+  const showActions = !streaming && (onRegenerate || onFork);
 
   return (
     <div className={cn("group flex w-full gap-3", isUser && "justify-end")}>
@@ -45,6 +67,51 @@ export function MessageBubble({ role, blocks, streaming, onApprove, fallbackNoti
         </div>
         {!isUser && fallbackNotice && (
           <p className="text-text-muted mt-1.5 pl-1 text-[11px]">{fallbackNotice}</p>
+        )}
+        {(showActions || showVariantPicker) && (
+          <div className="mt-1.5 flex items-center gap-2 pl-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+            {showVariantPicker && (
+              <div className="text-text-muted flex items-center gap-1 text-[11px]">
+                <button
+                  onClick={() => onSwitchVariant!((variantIndex ?? 0) - 1)}
+                  disabled={(variantIndex ?? 0) <= 0}
+                  className="hover:text-text-primary rounded p-0.5 disabled:opacity-30"
+                  aria-label="Previous variant"
+                >
+                  <ChevronLeft size={12} />
+                </button>
+                <span>
+                  {(variantIndex ?? 0) + 1}/{variantCount}
+                </span>
+                <button
+                  onClick={() => onSwitchVariant!((variantIndex ?? 0) + 1)}
+                  disabled={(variantIndex ?? 0) >= (variantCount ?? 1) - 1}
+                  className="hover:text-text-primary rounded p-0.5 disabled:opacity-30"
+                  aria-label="Next variant"
+                >
+                  <ChevronRight size={12} />
+                </button>
+              </div>
+            )}
+            {onRegenerate && (
+              <button
+                onClick={onRegenerate}
+                className="text-text-muted hover:text-text-primary flex items-center gap-1 text-[11px] transition-colors"
+                aria-label="Regenerate response"
+              >
+                <RotateCw size={11} /> Regenerate
+              </button>
+            )}
+            {onFork && (
+              <button
+                onClick={onFork}
+                className="text-text-muted hover:text-text-primary flex items-center gap-1 text-[11px] transition-colors"
+                aria-label="Fork from here"
+              >
+                <GitFork size={11} /> Fork from here
+              </button>
+            )}
+          </div>
         )}
       </div>
       {isUser && (

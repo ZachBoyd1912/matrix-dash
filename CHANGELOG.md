@@ -2,6 +2,29 @@
 
 # Changelog
 
+## 07/07/2026 @ 06:24:06 IST — "Claude Sonnet 5"
+
+**Goal:** Execute Plan 16 (conversation branching & message regeneration) from `TODO.md` — Phase E.1 of the 19-plan roadmap, first of two schema-touching features (16 → 17, run independently since a file-overlap check confirmed zero shared files).
+
+**Added:**
+- `sessions.parentSessionId` / `sessions.forkedFromMessageId` (`lib/db/schema.ts` + `ensureColumn` migrations in `lib/db/client.ts`) — set when a session was created via "Fork from here" or "Duplicate" on another session.
+- `sessionMessages.variants` (JSON array) / `.activeVariantIndex` — a regenerated assistant turn's alternates live in `variants`; the row's own `content`/`blocks`/`providerId`/`providerKind`/`modelName`/`inputTokens`/`outputTokens` columns always mirror `variants[activeVariantIndex]`. Deliberate: every other query in this codebase (Plan 8's cost.ts SQL aggregates, Plan 9's context estimator, memory extraction, plain rendering) reads those columns directly and needed zero changes to keep working with variants layered on top.
+- `regenerateMessageId` on `POST /api/ai/chat` (`app/api/ai/chat/route.ts`) — re-runs an existing assistant turn against the same prior history; appends the result as a new variant on the existing row (snapshotting the pre-regenerate state as variant 0 on first use) instead of inserting a new message. Reuses the exact same fallback/streamText/persistence path a normal turn takes.
+- `message_persisted` / `variant_saved` stream events (`lib/chat/blocks.ts`) — the client only ever generates a local placeholder id for a turn it just sent; these events carry the real DB row id (for regenerate/fork to reference later) and the new variant count (for the picker), respectively.
+- `POST /api/sessions/[id]/fork` (new) — copies messages up to and including a given `forkedFromMessageId` into a new session (a mid-conversation branch); omitting it copies the whole session (this is "Duplicate" — no separate endpoint, since it's the same operation with no cut point).
+- `PATCH /api/sessions/[id]/messages/[messageId]` (new) — switches which variant is active; no LLM call, just mirrors the chosen variant's fields into the row's main columns.
+- Chat UI (`message-bubble.tsx`, `chat-interface.tsx`): hover actions on each turn — "Regenerate" (assistant only) and "Fork from here" (any turn) — plus a `‹ 1/2 ›` variant picker once a message has more than one variant.
+- Sessions UI: a "Duplicate" button on the session detail header (`sessions/[id]/page.tsx`), and a flat-grid/branch-tree view toggle on the sessions list (`sessions/page.tsx`) — tree mode groups sessions by `parentSessionId` and indents forks under their origin.
+
+**Changed:**
+- `app/api/sessions/route.ts`'s `GET` — now selects `parentSessionId`/`forkedFromMessageId` too (previously an explicit column list that predated this plan); the sessions list and tree view both depend on this.
+
+**Verification:** `pnpm typecheck`/`pnpm lint`/`pnpm test` (20/20)/`pnpm format:check` all clean. Live dev-server + real DB (DeepSeek provider): (1) sent a real turn, confirmed `message_persisted` fired for both the user and assistant rows with real DB ids; (2) regenerated that assistant turn — confirmed via `GET .../messages` that the row still has exactly one assistant message (no duplicate insert), `variants` holds both the original and regenerated replies, `activeVariantIndex: 1`, and `createdAt` stayed at the *original* timestamp (not the regenerate time) so the message keeps its chronological position; (3) `PATCH .../messages/:id` with `activeVariantIndex: 0` correctly mirrored variant 0 back into the main columns; (4) forked from the user message — new session correctly contained only that one message (not the assistant reply after it); (5) duplicated the session (fork with no cut point) — new session correctly contained both messages; (6) confirmed `/api/usage` and `/api/sessions` matched their exact pre-test baseline after deleting all three test sessions (SQLite `foreign_keys = ON` cascade-deleted their messages). One real bug caught mid-implementation: the schema/migration edits landed in files a long-running dev server process had already initialized its DB connection from before the edits existed — `runColumnMigrations()` only runs once at first DB access, so the new columns didn't exist until the dev server was restarted; confirmed by the exact `SqliteError: no such column: "parent_session_id"` in the server log, fixed by restarting.
+
+**Not done:** No visual/browser verification this session — the Chrome extension wasn't connected, so the new hover-action buttons, variant picker, and tree-view toggle are typecheck-clean and confirmed via SSR (`200`, no hydration/render errors in server logs) but not visually confirmed in a live browser. The API/data layer (the actual substance of this feature) was fully exercised via curl against the real dev server and DB, per above.
+
+**Files touched:** `app/api/sessions/[id]/fork/route.ts` (new), `app/api/sessions/[id]/messages/[messageId]/route.ts` (new), `lib/db/schema.ts`, `lib/db/client.ts`, `types/session.ts`, `lib/chat/blocks.ts`, `app/api/ai/chat/route.ts`, `app/api/sessions/route.ts`, `components/chat/chat-interface.tsx`, `components/chat/message-bubble.tsx`, `app/dashboard/sessions/page.tsx`, `app/dashboard/sessions/[id]/page.tsx`.
+
 ## 07/07/2026 @ 06:01:46 IST — "Claude Sonnet 5"
 
 **Goal:** Execute Plan 11 (model parameter controls) from `TODO.md` — Phase D.4 of the 19-plan roadmap, last of the bundled AI-infrastructure cluster (10→8→9→11).

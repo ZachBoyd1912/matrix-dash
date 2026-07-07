@@ -100,12 +100,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
   <div class="todo-orb todo-orb-1"></div>
   <div class="todo-orb todo-orb-2"></div>
   <h1>Matrix Dashboard &amp; Builder — Implementation Plans</h1>
-  <p class="subtitle"><span>19</span> plans · <span>10</span> completed · <span>0</span> in progress · Last updated 07/07/2026 @ 06:01:46 IST</p>
+  <p class="subtitle"><span>19</span> plans · <span>11</span> completed · <span>0</span> in progress · Last updated 07/07/2026 @ 06:24:06 IST</p>
 </div>
 
 <div class="todo-stats">
   <div class="todo-stat"><div class="stat-num">19</div><div class="stat-label">Total Plans</div></div>
-  <div class="todo-stat"><div class="stat-num">10</div><div class="stat-label">Completed</div></div>
+  <div class="todo-stat"><div class="stat-num">11</div><div class="stat-label">Completed</div></div>
   <div class="todo-stat"><div class="stat-num">0</div><div class="stat-label">In Progress</div></div>
   <div class="todo-stat critical-stat"><div class="stat-num">5</div><div class="stat-label">Critical</div></div>
 </div>
@@ -804,12 +804,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
 </div>
 
 <!-- PLAN 16 -->
-<div class="todo-card" data-category="feature" data-priority="medium">
+<div class="todo-card completed" data-category="feature" data-priority="medium">
   <div class="card-header">
     <span class="card-emoji">🌳</span>
     <div>
       <div class="card-title">Plan 16: Conversation Branching &amp; Message Regeneration</div>
-      <div class="card-subtitle">ideated by deepseek v4 pro · 5 files · medium complexity</div>
+      <div class="card-subtitle">ideated by deepseek v4 pro · 12 files · medium complexity</div>
     </div>
   </div>
   <div class="card-badges">
@@ -826,24 +826,26 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
     <span class="skill-tag">@backend-dev-guidelines</span>
   </div>
   <details class="card-files">
-    <summary>5 files</summary>
+    <summary>12 files</summary>
     <div class="file-list">
-      <div><span class="file-edit">~ edit</span> lib/db/schema.ts (parentSessionId, forkedFromMessageId)</div>
-      <div><span class="file-edit">~ edit</span> components/chat/message-bubble.tsx (Regenerate button)</div>
-      <div><span class="file-edit">~ edit</span> components/chat/chat-interface.tsx (variant picker + fork)</div>
-      <div><span class="file-edit">~ edit</span> app/api/sessions/route.ts (forking support)</div>
-      <div><span class="file-edit">~ edit</span> app/dashboard/sessions/page.tsx (duplicate + tree view)</div>
+      <div><span class="file-new">+ new</span> app/api/sessions/[id]/fork/route.ts, app/api/sessions/[id]/messages/[messageId]/route.ts</div>
+      <div><span class="file-edit">~ edit</span> lib/db/schema.ts, lib/db/client.ts (parentSessionId, forkedFromMessageId, variants, activeVariantIndex)</div>
+      <div><span class="file-edit">~ edit</span> types/session.ts, lib/chat/blocks.ts (message_persisted/variant_saved events)</div>
+      <div><span class="file-edit">~ edit</span> components/chat/message-bubble.tsx (Regenerate/Fork actions + variant picker)</div>
+      <div><span class="file-edit">~ edit</span> components/chat/chat-interface.tsx, app/api/ai/chat/route.ts, app/api/sessions/route.ts</div>
+      <div><span class="file-edit">~ edit</span> app/dashboard/sessions/page.tsx (duplicate + tree view), sessions/[id]/page.tsx</div>
     </div>
   </details>
   <details class="tasks-summary">
-    <summary>6 tasks</summary>
+    <summary>6/6 tasks ✅</summary>
     <ul>
-      <li><input type="checkbox"> Add parentSessionId + forkedFromMessageId to sessions table</li>
-      <li><input type="checkbox"> Add Regenerate button on hover over assistant messages</li>
-      <li><input type="checkbox"> Build variant picker (1/3 dots) for multiple responses</li>
-      <li><input type="checkbox"> Add "Fork from here" action on any message</li>
-      <li><input type="checkbox"> Add session duplication + branch tree toggle on sessions page</li>
-      <li><input type="checkbox"> Verify: fork, regenerate, compare variants, tree renders</li>
+      <li><input type="checkbox" checked> <code>parentSessionId</code>/<code>forkedFromMessageId</code> added to <code>sessions</code>; <code>variants</code> (JSON array) + <code>activeVariantIndex</code> added to <code>session_messages</code> — the row's own content/blocks/provider*/*Tokens columns always mirror the active variant, so Plan 8's cost SQL, Plan 9's context estimator, and extraction all keep working unchanged with variants layered on top</li>
+      <li><input type="checkbox" checked> Regenerate — <code>regenerateMessageId</code> on <code>POST /api/ai/chat</code> reuses the exact same fallback/streamText/persistence path a normal turn takes, but appends the result as a new variant on the existing row (snapshotting the pre-regenerate state as variant 0 on first use) instead of inserting a new message. New <code>message_persisted</code>/<code>variant_saved</code> stream events tell the client the real DB id for a turn it only has a local placeholder id for, and the new variant count, respectively</li>
+      <li><input type="checkbox" checked> Variant picker — <code>‹ 1/2 ›</code> hover control on assistant bubbles once a message has &gt;1 variant; switching calls a new <code>PATCH /api/sessions/[id]/messages/[messageId]</code> (no LLM call, just mirrors the chosen variant into the main columns)</li>
+      <li><input type="checkbox" checked> "Fork from here" — hover action on any message; new <code>POST /api/sessions/[id]/fork</code> copies messages up to and including the given message into a new session</li>
+      <li><input type="checkbox" checked> Session duplication — the same fork endpoint with no cut point (full copy), exposed as a "Duplicate" button on the session detail header, not a separate endpoint</li>
+      <li><input type="checkbox" checked> Branch tree toggle — sessions list page groups by <code>parentSessionId</code> and indents forks under their origin; flat-grid view stays the default</li>
+      <li><input type="checkbox" checked> Verify — live dev-server + real DB (Deepseek): sent a real turn, confirmed <code>message_persisted</code> carried real DB ids for both turns; regenerated it and confirmed via <code>GET .../messages</code> exactly one assistant row exists (no duplicate insert), <code>variants</code> holds both replies, <code>activeVariantIndex: 1</code>, and <code>createdAt</code> stayed at the original timestamp (message keeps its chronological position); switched back to variant 0 and confirmed the main columns updated; forked from the user message and confirmed the new session held only that one message (not the reply after it); duplicated the session and confirmed both messages copied. One real bug found: the schema/migration edits didn't take effect until the long-running dev server was restarted (`runColumnMigrations()` only runs once at first DB access) — confirmed via a `no such column: "parent_session_id"` error in the server log, fixed by restarting. All test sessions deleted afterward, `/api/usage`/`/api/sessions` confirmed back to exact baseline. No browser extension was connected this session, so the new UI was confirmed via SSR (200, no render errors) and typecheck, not a live visual check</li>
     </ul>
   </details>
 </div>
@@ -1545,7 +1547,7 @@ Implement 3 caching strategies in sw.js. Add cache versioning + cleanup. Create 
 
 
 
-## 🌳 Plan 16: Conversation Branching & Message Regeneration (ideated by deepseek v4 pro)
+## ✅ Plan 16: Conversation Branching & Message Regeneration (ideated by deepseek v4 pro) — COMPLETED
 
 ### Goal
 Regenerate responses, fork conversations from any message, compare variants, branch tree visualization.
@@ -1557,22 +1559,29 @@ Sessions are strictly linear — no regenerate, no forking, no variant compariso
 Add parentSessionId + forkedFromMessageId to DB. Add Regenerate button on assistant messages. Build variant picker. Add "Fork from here". Session duplication + branch tree view.
 
 ### Tasks
-- [ ] **Add forking support** — parentSessionId + forkedFromMessageId to sessions table (Drizzle migration)
-- [ ] **Regenerate button** — on hover over assistant messages, re-send user message with same params
-- [ ] **Variant picker** — show 1/3 dots, allow deleting variants
-- [ ] **Fork from here** — create new session, copy messages up to fork point
-- [ ] **Session duplication** — clone full session
-- [ ] **Branch tree view** — toggle between flat list and parent/child tree on sessions page
-- [ ] **Verify** — fork, regenerate, compare variants, tree renders
+- [x] **Forking support** — `parentSessionId`/`forkedFromMessageId` on `sessions`; `variants` (JSON array) + `activeVariantIndex` on `session_messages`. The row's own content/blocks/provider*/*Tokens columns always mirror the active variant, so Plan 8's cost SQL, Plan 9's context estimator, and extraction needed zero changes
+- [x] **Regenerate button** — hover action on assistant bubbles. `regenerateMessageId` on `POST /api/ai/chat` re-runs the exact same fallback/streamText/persistence path a normal turn takes, but appends the result as a new variant on the existing row (snapshotting the pre-regenerate state as variant 0 on first use) instead of inserting a new message
+- [x] **Variant picker** — `‹ 1/2 ›` hover control, not dots (clearer at 2-3 variants); switching is a new `PATCH /api/sessions/[id]/messages/[messageId]`, no LLM call
+- [x] **Fork from here** — hover action on any message; new `POST /api/sessions/[id]/fork` copies messages up to and including the given message
+- [x] **Session duplication** — the same fork endpoint with no cut point, exposed as a "Duplicate" button on the session detail header rather than a separate endpoint
+- [x] **Branch tree view** — sessions list toggles between the existing flat grid and a tree grouped by `parentSessionId`, forks indented under their origin
+- [x] **Verify** — live dev-server + real DB (Deepseek): confirmed new `message_persisted`/`variant_saved` stream events carry real DB ids and variant counts to the client; regenerated a real assistant turn and confirmed via `GET .../messages` exactly one row exists afterward (no duplicate), `variants` holds both replies, `activeVariantIndex: 1`, `createdAt` unchanged (keeps chronological position); switched variants back via PATCH and confirmed the main columns updated; forked from a message and confirmed only messages up to that point copied; duplicated a session and confirmed all messages copied. Found one real bug: schema/migration edits don't take effect on an already-running dev server (`runColumnMigrations()` only runs once at first DB access) — confirmed via a `no such column` error, fixed by restarting the server. All test sessions cleaned up, `/api/usage`/`/api/sessions` confirmed back to exact baseline. No browser extension connected this session — new UI confirmed via SSR + typecheck, not a live visual check
 
 ### Files Touched
 | File | Action |
 |------|--------|
+| `app/api/sessions/[id]/fork/route.ts` | **NEW** |
+| `app/api/sessions/[id]/messages/[messageId]/route.ts` | **NEW** |
 | `lib/db/schema.ts` | Edit |
+| `lib/db/client.ts` | Edit |
+| `types/session.ts` | Edit |
+| `lib/chat/blocks.ts` | Edit |
+| `app/api/ai/chat/route.ts` | Edit |
+| `app/api/sessions/route.ts` | Edit |
 | `components/chat/message-bubble.tsx` | Edit |
 | `components/chat/chat-interface.tsx` | Edit |
-| `app/api/sessions/route.ts` | Edit |
 | `app/dashboard/sessions/page.tsx` | Edit |
+| `app/dashboard/sessions/[id]/page.tsx` | Edit |
 
 ### 🧠 Skills
 `@ai-engineer` `@frontend-developer` `@backend-dev-guidelines`

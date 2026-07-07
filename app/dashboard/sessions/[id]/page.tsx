@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { ArrowLeft, Trash2, Copy } from "lucide-react";
 import { ChatInterface } from "@/components/chat/chat-interface";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -60,6 +60,17 @@ export default function SessionPage() {
     router.push("/dashboard/sessions");
   };
 
+  const duplicate = async () => {
+    const res = await fetch(`/api/sessions/${sessionId}/fork`, { method: "POST" });
+    if (!res.ok) {
+      toast.error("Could not duplicate this session.");
+      return;
+    }
+    const data = await res.json();
+    toast.success("Session duplicated");
+    router.push(`/dashboard/sessions/${data.id}`);
+  };
+
   if (!session || messages === null) {
     return (
       <div className="p-8">
@@ -74,6 +85,8 @@ export default function SessionPage() {
     role: m.role,
     content: m.content,
     blocks: m.blocks,
+    variants: m.variants,
+    activeVariantIndex: m.activeVariantIndex,
   }));
 
   return (
@@ -91,6 +104,9 @@ export default function SessionPage() {
           onChange={(e) => renameSession(e.target.value)}
           className="h-9 flex-1 border-transparent bg-transparent text-sm font-semibold focus:bg-white/[0.03]"
         />
+        <Button size="icon" variant="ghost" onClick={duplicate} aria-label="Duplicate session">
+          <Copy size={14} />
+        </Button>
         <Button size="icon" variant="ghost" onClick={remove} aria-label="Delete">
           <Trash2 size={14} className="text-rose-400" />
         </Button>

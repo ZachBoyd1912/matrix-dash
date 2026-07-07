@@ -18,6 +18,8 @@ export async function GET() {
       id: sessions.id,
       name: sessions.name,
       context: sessions.context,
+      parentSessionId: sessions.parentSessionId,
+      forkedFromMessageId: sessions.forkedFromMessageId,
       createdAt: sessions.createdAt,
       updatedAt: sessions.updatedAt,
       messageCount: sql<number>`(SELECT COUNT(*) FROM session_messages WHERE session_id = ${sessions.id})`,

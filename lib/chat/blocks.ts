@@ -63,7 +63,13 @@ export type StreamEvent =
   | { type: "provider_used"; id: string; name: string; fellBack: boolean }
   /** Older turns were folded into a summary to fit the context window — the
    *  client should replace its working history with the summary + recent tail. */
-  | { type: "context_compacted"; summarizedCount: number; summary: string };
+  | { type: "context_compacted"; summarizedCount: number; summary: string }
+  /** A turn was written to `session_messages` — tells the client the real DB id
+   *  for a message it only has a locally-generated placeholder id for yet, so
+   *  later actions (regenerate, fork-from-here) can reference the right row. */
+  | { type: "message_persisted"; role: "user" | "assistant"; id: string }
+  /** A regenerate call appended a new variant to an existing assistant message. */
+  | { type: "variant_saved"; messageId: string; variantIndex: number; variantCount: number };
 
 /**
  * Fold one stream event into the block list in arrival order. Mutates `blocks` and

@@ -622,6 +622,14 @@ function runColumnMigrations(sqlite: Database.Database) {
   ensureColumn("session_messages", "input_tokens", "input_tokens INTEGER");
   ensureColumn("session_messages", "output_tokens", "output_tokens INTEGER");
   ensureColumn("presets", "generation_params", "generation_params TEXT");
+  ensureColumn("sessions", "parent_session_id", "parent_session_id TEXT");
+  ensureColumn("sessions", "forked_from_message_id", "forked_from_message_id TEXT");
+  ensureColumn("session_messages", "variants", "variants TEXT");
+  ensureColumn(
+    "session_messages",
+    "active_variant_index",
+    "active_variant_index INTEGER NOT NULL DEFAULT 0"
+  );
   // Kanban columns on tasks table
   ensureColumn("tasks", "kanban_status", "kanban_status TEXT NOT NULL DEFAULT 'backlog'");
   ensureColumn("tasks", "project_id", "project_id TEXT REFERENCES projects(id) ON DELETE SET NULL");

@@ -37,6 +37,7 @@ import {
 import { getPowerLevel } from "@/lib/ai/power";
 import type { AgentRequestContext } from "@/lib/ai/approvals";
 import type { GenerationParams } from "@/types/settings";
+import type { MessageVariant } from "@/types/session";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +54,14 @@ interface ChatPayload {
   reasoningEffort?: ReasoningEffort;
   /** Sampling overrides for this request — merged over the preset's own, if any. */
   generationParams?: GenerationParams;
+  /**
+   * Set when this request is a "Regenerate" on an existing assistant message
+   * rather than a new turn: `messages` is the history up to (not including)
+   * that message. The user turn is already persisted from the original send —
+   * skip re-inserting it — and the result is appended as a new variant on the
+   * existing row instead of inserting a new assistant row.
+   */
+  regenerateMessageId?: string;
 }
 
 // Bounds are defensive (this is client-controlled input reaching a paid API
@@ -135,6 +144,7 @@ export async function POST(req: Request) {
     systemContext,
     reasoningEffort,
     generationParams: requestGenerationParams,
+    regenerateMessageId,
   } = body;
   if (!Array.isArray(messages) || messages.length === 0) {
     return Response.json({ error: "messages required" }, { status: 400 });
@@ -298,13 +308,17 @@ export async function POST(req: Request) {
         );
   }
 
-  // Persist the user message immediately if we have a session.
-  if (sessionId && lastUser && typeof lastUser.content === "string") {
+  // Persist the user message immediately if we have a session — except on a
+  // regenerate, where this exact user turn is already a persisted row from the
+  // original send (regenerating only replaces the assistant reply after it).
+  let persistedUserMessageId: string | null = null;
+  if (sessionId && !regenerateMessageId && lastUser && typeof lastUser.content === "string") {
     try {
+      persistedUserMessageId = randomUUID();
       getDb()
         .insert(sessionMessages)
         .values({
-          id: randomUUID(),
+          id: persistedUserMessageId,
           sessionId,
           role: "user",
           content: lastUser.content,
@@ -315,6 +329,7 @@ export async function POST(req: Request) {
         .run();
     } catch (err) {
       console.error("[chat] failed to persist user message:", err);
+      persistedUserMessageId = null;
     }
   }
 
@@ -390,6 +405,13 @@ export async function POST(req: Request) {
       // Bind the per-request context so tools can emit approval requests into this
       // same stream (tools run during the fullStream loop below, after this point).
       reqCtx.emit = emit;
+
+      // Tell the client the real DB id for the user turn it just sent (its local
+      // state still has a client-generated placeholder id) so a later "Regenerate"
+      // or "Fork from here" on this turn can reference the persisted row.
+      if (persistedUserMessageId) {
+        emit({ type: "message_persisted", role: "user", id: persistedUserMessageId });
+      }
 
       // Tell the client to fold its own working history the same way, so the
       // *next* request is smaller too — otherwise it would re-send the full
@@ -487,25 +509,93 @@ export async function POST(req: Request) {
         // Persist the assistant turn with its structured block transcript. `content`
         // stays the concatenated text so extraction/search/export keep working.
         if (sessionId && serverBlocks.length) {
-          try {
-            getDb()
-              .insert(sessionMessages)
-              .values({
-                id: randomUUID(),
-                sessionId,
-                role: "assistant",
-                content: replyText,
-                blocks: serializeBlocksForStorage(serverBlocks),
-                providerId: capturedProvider.id,
-                providerKind: capturedProvider.provider,
-                modelName: attempt.candidate.modelOverride || capturedProvider.defaultModel || null,
-                inputTokens,
-                outputTokens,
-                createdAt: new Date().toISOString(),
-              })
-              .run();
-          } catch (err) {
-            console.error("[chat] failed to persist assistant message:", err);
+          const newBlocksJson = serializeBlocksForStorage(serverBlocks);
+          const modelName =
+            attempt.candidate.modelOverride || capturedProvider.defaultModel || null;
+          if (regenerateMessageId) {
+            // Regenerate: append this reply as a new variant on the existing row
+            // rather than inserting a new message. The first regenerate on a row
+            // snapshots its pre-regenerate state as variant 0 so it isn't lost.
+            try {
+              const existing = getDb()
+                .select()
+                .from(sessionMessages)
+                .where(eq(sessionMessages.id, regenerateMessageId))
+                .get();
+              if (existing && existing.role === "assistant") {
+                const priorVariants: MessageVariant[] = existing.variants
+                  ? JSON.parse(existing.variants)
+                  : [
+                      {
+                        content: existing.content,
+                        blocks: existing.blocks,
+                        providerId: existing.providerId,
+                        providerKind: existing.providerKind,
+                        modelName: existing.modelName,
+                        inputTokens: existing.inputTokens,
+                        outputTokens: existing.outputTokens,
+                        createdAt: existing.createdAt,
+                      },
+                    ];
+                priorVariants.push({
+                  content: replyText,
+                  blocks: newBlocksJson,
+                  providerId: capturedProvider.id,
+                  providerKind: capturedProvider.provider,
+                  modelName,
+                  inputTokens,
+                  outputTokens,
+                  createdAt: new Date().toISOString(),
+                });
+                const newIndex = priorVariants.length - 1;
+                getDb()
+                  .update(sessionMessages)
+                  .set({
+                    content: replyText,
+                    blocks: newBlocksJson,
+                    providerId: capturedProvider.id,
+                    providerKind: capturedProvider.provider,
+                    modelName,
+                    inputTokens,
+                    outputTokens,
+                    variants: JSON.stringify(priorVariants),
+                    activeVariantIndex: newIndex,
+                  })
+                  .where(eq(sessionMessages.id, regenerateMessageId))
+                  .run();
+                emit({
+                  type: "variant_saved",
+                  messageId: regenerateMessageId,
+                  variantIndex: newIndex,
+                  variantCount: priorVariants.length,
+                });
+              }
+            } catch (err) {
+              console.error("[chat] failed to persist regenerated variant:", err);
+            }
+          } else {
+            try {
+              const assistantMessageId = randomUUID();
+              getDb()
+                .insert(sessionMessages)
+                .values({
+                  id: assistantMessageId,
+                  sessionId,
+                  role: "assistant",
+                  content: replyText,
+                  blocks: newBlocksJson,
+                  providerId: capturedProvider.id,
+                  providerKind: capturedProvider.provider,
+                  modelName,
+                  inputTokens,
+                  outputTokens,
+                  createdAt: new Date().toISOString(),
+                })
+                .run();
+              emit({ type: "message_persisted", role: "assistant", id: assistantMessageId });
+            } catch (err) {
+              console.error("[chat] failed to persist assistant message:", err);
+            }
           }
         }
         // Extraction reads the same block-derived text just persisted above, rather

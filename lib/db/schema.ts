@@ -57,6 +57,14 @@ export const sessions = sqliteTable("sessions", {
   id: text("id").primaryKey(),
   name: text("name").notNull().default("New Session"),
   context: text("context").notNull().default("{}"),
+  // Set when this session was created via "Fork from here" / "Duplicate" on
+  // another session. Self-referencing (not a DB-level FK — sessions can be
+  // deleted independently of their forks; a dangling parentSessionId is fine,
+  // it just stops resolving in the branch tree view).
+  parentSessionId: text("parent_session_id"),
+  // The message (in the parent session) this fork branched from. Null for a
+  // full duplicate (fork with no cut point).
+  forkedFromMessageId: text("forked_from_message_id"),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 });
@@ -80,6 +88,16 @@ export const sessionMessages = sqliteTable("session_messages", {
   providerKind: text("provider_kind"),
   inputTokens: integer("input_tokens"),
   outputTokens: integer("output_tokens"),
+  // JSON-encoded array of regenerated variants for this assistant turn (each a
+  // snapshot of {content, blocks, providerId, providerKind, modelName,
+  // inputTokens, outputTokens, createdAt}). Null until a message is regenerated
+  // at least once. The row's own `content`/`blocks`/provider*/*Tokens columns
+  // always mirror `variants[activeVariantIndex]` — kept in sync deliberately so
+  // every other query in this codebase (cost.ts's SQL aggregates, the context
+  // estimator, extraction, plain rendering) reads the active variant with zero
+  // changes, instead of needing to know about variants at all.
+  variants: text("variants"),
+  activeVariantIndex: integer("active_variant_index").notNull().default(0),
   createdAt: text("created_at").notNull(),
 });
 

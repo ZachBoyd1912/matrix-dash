@@ -38,6 +38,10 @@ interface ChatMessage {
   blocks: Block[];
   /** Set once the fallback cascade reports this turn was served by a non-primary provider. */
   fallbackNotice?: string;
+  /** Which regenerated variant is currently shown. Undefined = never regenerated. */
+  variantIndex?: number;
+  /** Total variant count. Undefined/1 = no variant picker to show. */
+  variantCount?: number;
 }
 
 /** Shape persisted sessions pass in — converted to blocks on load. */
@@ -47,14 +51,30 @@ interface InitialMessage {
   content: string;
   /** JSON-encoded Block[] from session_messages.blocks (assistant turns). */
   blocks?: string | null;
+  /** JSON-encoded MessageVariant[] — present once a message has been regenerated. */
+  variants?: string | null;
+  activeVariantIndex?: number;
 }
 
-const toChatMessage = (m: InitialMessage): ChatMessage => ({
-  id: m.id,
-  role: m.role,
-  // Prefer the structured transcript; fall back to the legacy content string.
-  blocks: parseBlocksJson(m.blocks) ?? textToBlocks(m.content),
-});
+const toChatMessage = (m: InitialMessage): ChatMessage => {
+  let variantCount: number | undefined;
+  if (m.variants) {
+    try {
+      const arr = JSON.parse(m.variants);
+      if (Array.isArray(arr) && arr.length > 1) variantCount = arr.length;
+    } catch {
+      /* corrupt variants JSON — treat as no variants */
+    }
+  }
+  return {
+    id: m.id,
+    role: m.role,
+    // Prefer the structured transcript; fall back to the legacy content string.
+    blocks: parseBlocksJson(m.blocks) ?? textToBlocks(m.content),
+    variantIndex: variantCount ? (m.activeVariantIndex ?? 0) : undefined,
+    variantCount,
+  };
+};
 
 interface Props {
   sessionId?: string;
@@ -384,6 +404,17 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
               compaction.current = { summarizedCount: evt.summarizedCount, summary: evt.summary };
               return;
             }
+            if (evt.type === "message_persisted") {
+              // Swap this turn's local placeholder id for the real DB row id, so
+              // a later Regenerate/Fork on it references the right row. Safe to
+              // apply immediately: the user-turn event arrives before any
+              // text-delta (flush() below only ever matches on `assistantId`,
+              // never on the user message's id), and the assistant-turn event is
+              // always the last line, after streaming has already finished.
+              const localId = evt.role === "user" ? userMessage.id : assistantId;
+              setMessages((prev) => prev.map((m) => (m.id === localId ? { ...m, id: evt.id } : m)));
+              return;
+            }
             appendEvent(blocks, idMap, evt);
           } catch {
             // Backward-compat: a server that streams plain text → treat as reply text.
@@ -454,6 +485,186 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
     ]
   );
 
+  // Re-runs an existing assistant turn against the same history that produced
+  // it, appending the result as a new variant on that message (server-side)
+  // instead of creating a new message — mirrors `send()`'s stream-consumption
+  // shape but targets an existing message id rather than a fresh placeholder.
+  const regenerateMessage = useCallback(
+    async (messageId: string) => {
+      const idx = messages.findIndex((m) => m.id === messageId);
+      if (idx === -1) return;
+      const history = messages.slice(0, idx);
+      setError(null);
+      setStreaming(true);
+      setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, blocks: [] } : m)));
+
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      try {
+        const convo = history.map((m) => ({ role: m.role, content: blocksToText(m.blocks) }));
+        const ctx = contextText?.();
+        const res = await fetch("/api/ai/chat", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            messages: convo,
+            providerId,
+            sessionId,
+            mode: chatMode,
+            systemContext: ctx && ctx.trim() ? ctx : undefined,
+            modelOverride: modelOverride ?? undefined,
+            reasoningEffort,
+            generationParams:
+              Object.keys(generationParams).length > 0 ? generationParams : undefined,
+            regenerateMessageId: messageId,
+          }),
+          signal: controller.signal,
+        });
+
+        if (!res.ok || !res.body) {
+          const data = await res.json().catch(() => ({ error: "Stream failed" }));
+          throw new Error(data.error || `HTTP ${res.status}`);
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        const blocks: Block[] = [];
+        const idMap = new Map<string, number>();
+        let streamError = "";
+        let buffer = "";
+
+        const handleLine = (raw: string) => {
+          const trimmed = raw.trim();
+          if (!trimmed) return;
+          try {
+            const evt = JSON.parse(trimmed) as StreamEvent;
+            if (evt.type === "error") {
+              streamError = evt.value || "Stream error";
+              return;
+            }
+            if (evt.type === "provider_used") {
+              if (evt.fellBack) {
+                toast.info(
+                  "Switched provider",
+                  `Replied via ${evt.name} after the primary provider failed.`
+                );
+              }
+              return;
+            }
+            if (evt.type === "variant_saved") {
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === evt.messageId
+                    ? { ...m, variantIndex: evt.variantIndex, variantCount: evt.variantCount }
+                    : m
+                )
+              );
+              return;
+            }
+            if (evt.type === "context_compacted" || evt.type === "message_persisted") return;
+            appendEvent(blocks, idMap, evt);
+          } catch {
+            appendEvent(blocks, idMap, { type: "text", value: raw });
+          }
+        };
+
+        const flush = () =>
+          setMessages((prev) =>
+            prev.map((m) => (m.id === messageId ? { ...m, blocks: [...blocks] } : m))
+          );
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+          for (const l of lines) handleLine(l);
+          flush();
+        }
+        if (buffer) handleLine(buffer);
+        flush();
+
+        const replyText = blocksToText(blocks);
+        if (streamError && !replyText.trim()) throw new Error(streamError);
+        if (autoSpeak && replyText.trim()) speak(replyText);
+      } catch (err) {
+        if ((err as Error).name !== "AbortError") {
+          const message = err instanceof Error ? err.message : String(err);
+          setError(message);
+        }
+      } finally {
+        setStreaming(false);
+        abortRef.current = null;
+      }
+    },
+    [
+      messages,
+      providerId,
+      sessionId,
+      chatMode,
+      autoSpeak,
+      contextText,
+      modelOverride,
+      reasoningEffort,
+      generationParams,
+    ]
+  );
+
+  // Creates a new session containing everything up to and including this
+  // message, then navigates there — a snapshot branch point, not a live link.
+  const forkFromMessage = useCallback(
+    async (messageId: string) => {
+      if (!sessionId) return;
+      try {
+        const res = await fetch(`/api/sessions/${sessionId}/fork`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ forkedFromMessageId: messageId }),
+        });
+        if (!res.ok) throw new Error("Fork failed");
+        const data = await res.json();
+        toast.success("Forked", "Created a new session from this point.");
+        router.push(`/dashboard/sessions/${data.id}`);
+      } catch {
+        toast.error("Could not fork this conversation.");
+      }
+    },
+    [sessionId, router]
+  );
+
+  // Switches which regenerated variant is shown — a plain field swap server-side,
+  // no LLM call.
+  const switchVariant = useCallback(
+    async (messageId: string, variantIndex: number) => {
+      if (!sessionId) return;
+      try {
+        const res = await fetch(`/api/sessions/${sessionId}/messages/${messageId}`, {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ activeVariantIndex: variantIndex }),
+        });
+        if (!res.ok) return;
+        const row = await res.json();
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === messageId
+              ? {
+                  ...m,
+                  blocks: parseBlocksJson(row.blocks) ?? textToBlocks(row.content),
+                  variantIndex,
+                }
+              : m
+          )
+        );
+      } catch {
+        /* ignore */
+      }
+    },
+    [sessionId]
+  );
+
   const empty = messages.length === 0;
   const noProvider = providers.length === 0;
 
@@ -518,6 +729,11 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
                   }
                   onApprove={approve}
                   fallbackNotice={m.fallbackNotice}
+                  variantIndex={m.variantIndex}
+                  variantCount={m.variantCount}
+                  onRegenerate={sessionId && !streaming ? () => regenerateMessage(m.id) : undefined}
+                  onFork={sessionId ? () => forkFromMessage(m.id) : undefined}
+                  onSwitchVariant={sessionId ? (i: number) => switchVariant(m.id, i) : undefined}
                 />
               ))}
               {error && (
