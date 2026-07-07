@@ -15,7 +15,11 @@ export function Toaster() {
   const dismiss = useFeedback((s) => s.dismissToast);
 
   return (
-    <div className="pointer-events-none fixed right-4 bottom-4 z-[60] flex w-[min(360px,calc(100vw-2rem))] flex-col gap-2">
+    <div
+      role="status"
+      aria-live="polite"
+      className="pointer-events-none fixed right-4 bottom-4 z-[60] flex w-[min(360px,calc(100vw-2rem))] flex-col gap-2"
+    >
       {toasts.map((t) => (
         <div
           key={t.id}

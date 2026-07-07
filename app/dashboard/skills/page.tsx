@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Virtuoso } from "react-virtuoso";
 import {
   Plus,
   Wand2,
@@ -42,7 +43,6 @@ export default function SkillsPage() {
   const [bulkBusy, setBulkBusy] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const RENDER_CAP = 300;
 
   const refresh = useCallback(async () => {
     const res = await fetch("/api/skills");
@@ -59,8 +59,6 @@ export default function SkillsPage() {
       (s) => s.name.toLowerCase().includes(q) || (s.description ?? "").toLowerCase().includes(q)
     );
   }, [list, query]);
-
-  const shown = filtered.slice(0, RENDER_CAP);
 
   const bulkSet = async (isEnabled: boolean) => {
     if (!list || list.length === 0 || bulkBusy) return;
@@ -268,9 +266,9 @@ export default function SkillsPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setSelected(new Set(shown.map((s) => s.id)))}
+                  onClick={() => setSelected(new Set(filtered.map((s) => s.id)))}
                 >
-                  <CheckCheck size={13} /> Select shown
+                  <CheckCheck size={13} /> Select all
                 </Button>
                 <Button
                   variant="ghost"
@@ -314,11 +312,12 @@ export default function SkillsPage() {
           {filtered.length === 0 ? (
             <p className="text-text-muted py-6 text-center text-sm">No skills match “{query}”.</p>
           ) : (
-            <div className="space-y-2">
-              {shown.map((s) => (
+            <Virtuoso
+              useWindowScroll
+              data={filtered}
+              itemContent={(_, s) => (
                 <Card
-                  key={s.id}
-                  className={`flex items-start justify-between gap-4 ${
+                  className={`mb-2 flex items-start justify-between gap-4 ${
                     selectMode && selected.has(s.id) ? "ring-1 ring-emerald-500/60" : ""
                   }`}
                 >
@@ -358,14 +357,8 @@ export default function SkillsPage() {
                     </Button>
                   </div>
                 </Card>
-              ))}
-              {filtered.length > shown.length && (
-                <p className="text-text-muted py-3 text-center text-xs">
-                  Showing {shown.length} of {filtered.length} — refine your search to narrow the
-                  list.
-                </p>
               )}
-            </div>
+            />
           )}
         </>
       )}

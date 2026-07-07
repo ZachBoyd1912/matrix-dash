@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Virtuoso } from "react-virtuoso";
 import { NoteEditor } from "@/components/notes/note-editor";
-import { NotesGraph, type NotesGraphData } from "@/components/notes/notes-graph";
+import { NotesGraph, type NotesGraphData } from "@/components/notes/notes-graph-lazy";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import { useGsapEntrance } from "@/lib/hooks/use-gsap-entrance";
 import { timeAgo } from "@/lib/utils/time";
@@ -94,6 +95,7 @@ export default function NotesPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search notes…"
+              aria-label="Search notes"
               className="h-9 pl-9 text-xs"
             />
           </div>
@@ -112,9 +114,13 @@ export default function NotesPage() {
           </div>
         </div>
 
-        <div className="flex-1 space-y-1 overflow-y-auto p-2">
+        <div className="min-h-0 flex-1 p-2">
           {notes === null ? (
-            Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14" />)
+            <div className="space-y-1">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-14" />
+              ))}
+            </div>
           ) : notes.length === 0 ? (
             <div className="p-3">
               <EmptyState
@@ -129,33 +135,38 @@ export default function NotesPage() {
               />
             </div>
           ) : (
-            notes.map((note) => (
-              <button
-                key={note.id}
-                onClick={() => setSelectedId(note.id)}
-                className={cn(
-                  "group w-full rounded-md p-2 text-left transition-colors",
-                  selectedId === note.id
-                    ? "bg-white/[0.06] ring-1 ring-emerald-400/20"
-                    : "hover:bg-white/[0.03]"
-                )}
-              >
-                <div className="flex items-start gap-2">
-                  {note.isFavorite && (
-                    <Star size={11} className="mt-1 shrink-0 fill-amber-400 text-amber-400" />
+            <Virtuoso
+              style={{ height: "100%" }}
+              data={notes}
+              itemContent={(_, note) => (
+                <button
+                  onClick={() => setSelectedId(note.id)}
+                  className={cn(
+                    "group mb-1 w-full rounded-md p-2 text-left transition-colors",
+                    selectedId === note.id
+                      ? "bg-white/[0.06] ring-1 ring-emerald-400/20"
+                      : "hover:bg-white/[0.03]"
                   )}
-                  <div className="min-w-0 flex-1">
-                    <p className="text-text-primary truncate text-xs font-medium">
-                      {note.title || "Untitled"}
-                    </p>
-                    <p className="text-text-muted mt-0.5 truncate text-[10px]">
-                      {note.content.slice(0, 60) || "Empty note"}
-                    </p>
-                    <p className="text-text-muted mt-0.5 text-[10px]">{timeAgo(note.updatedAt)}</p>
+                >
+                  <div className="flex items-start gap-2">
+                    {note.isFavorite && (
+                      <Star size={11} className="mt-1 shrink-0 fill-amber-400 text-amber-400" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-text-primary truncate text-xs font-medium">
+                        {note.title || "Untitled"}
+                      </p>
+                      <p className="text-text-muted mt-0.5 truncate text-[10px]">
+                        {note.content.slice(0, 60) || "Empty note"}
+                      </p>
+                      <p className="text-text-muted mt-0.5 text-[10px]">
+                        {timeAgo(note.updatedAt)}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </button>
-            ))
+                </button>
+              )}
+            />
           )}
         </div>
       </aside>

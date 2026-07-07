@@ -12,7 +12,11 @@ import {
   Code2,
   Settings,
   Plus,
+  BookOpen,
+  BarChart3,
+  RotateCw,
 } from "lucide-react";
+import { restartOnboarding } from "@/components/onboarding/onboarding-wizard";
 import { useAppStore } from "@/lib/stores/use-app-store";
 import { useShortcut } from "@/lib/hooks/use-shortcut";
 import { useDebounce } from "@/lib/hooks/use-debounce";
@@ -199,6 +203,27 @@ export function CommandPalette() {
               icon={<Plus size={14} />}
               label="New session"
               hint="start chat"
+            />
+            <PaletteItem
+              onSelect={() => go("/dashboard/settings/integrations/obsidian")}
+              icon={<BookOpen size={14} />}
+              label="Obsidian vault sync"
+              hint="notes + memory"
+            />
+            <PaletteItem
+              onSelect={() => go("/dashboard/settings/diagnostics")}
+              icon={<BarChart3 size={14} />}
+              label="AI usage & cost"
+              hint="tokens spent"
+            />
+            <PaletteItem
+              onSelect={() => {
+                setOpen(false);
+                restartOnboarding();
+              }}
+              icon={<RotateCw size={14} />}
+              label="Replay onboarding tour"
+              hint="5-step intro"
             />
           </Command.Group>
         </Command.List>

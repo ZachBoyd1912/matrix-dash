@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { VirtuosoGrid } from "react-virtuoso";
 import { Sparkles, Loader2, Trash2, Download, Image as ImageIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -107,13 +108,19 @@ export default function ImagesPage() {
           description="Type a prompt above to start."
         />
       ) : (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-          {list.map((img) => (
-            <Card key={img.id} interactive className="group overflow-hidden rounded-2xl p-0">
+        <VirtuosoGrid
+          useWindowScroll
+          data={list}
+          listClassName="grid grid-cols-2 gap-4 md:grid-cols-3"
+          itemContent={(_, img) => (
+            <Card interactive className="group overflow-hidden rounded-2xl p-0">
               <div className="relative">
+                {/* data: URLs can't go through next/image's optimizer — lazy-decode instead. */}
                 <img
                   src={img.dataUrl}
-                  alt={img.prompt}
+                  alt={img.prompt || "Generated image"}
+                  loading="lazy"
+                  decoding="async"
                   className="aspect-square w-full object-cover"
                 />
                 <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-transparent to-transparent p-3 opacity-0 transition-opacity group-hover:opacity-100">
@@ -135,8 +142,8 @@ export default function ImagesPage() {
                 </Button>
               </div>
             </Card>
-          ))}
-        </div>
+          )}
+        />
       )}
     </div>
   );

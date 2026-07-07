@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { VirtuosoGrid } from "react-virtuoso";
 import Link from "next/link";
 import {
   Plus,
@@ -205,9 +206,12 @@ export default function SessionsPage() {
           {(byParent.get(null) ?? []).map((root) => renderBranch(root, 0))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {sessions.map((s) => renderCard(s))}
-        </div>
+        <VirtuosoGrid
+          useWindowScroll
+          data={sessions}
+          listClassName="grid grid-cols-1 gap-4 md:grid-cols-2"
+          itemContent={(_, s) => renderCard(s)}
+        />
       )}
     </div>
   );

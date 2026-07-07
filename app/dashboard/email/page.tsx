@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { Virtuoso } from "react-virtuoso";
 import { Inbox, Send, FileEdit, Trash2, Star, PenSquare, Mail, ArchiveRestore } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
@@ -174,11 +175,12 @@ export default function EmailPage() {
             size="sm"
             className="ml-auto shrink-0 rounded-full"
             onClick={() => setComposeOpen(true)}
+            aria-label="Compose message"
           >
             <PenSquare size={12} />
           </Button>
         </div>
-        <div className="flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1">
           {list === null ? (
             <div className="space-y-2 p-3">
               {Array.from({ length: 5 }).map((_, i) => (
@@ -196,49 +198,52 @@ export default function EmailPage() {
               />
             </div>
           ) : (
-            list.map((email) => (
-              <button
-                key={email.id}
-                onClick={() => open(email)}
-                className={cn(
-                  "w-full border-b border-l-2 border-white/5 px-4 py-3 text-left transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.99]",
-                  selected?.id === email.id
-                    ? "border-l-emerald-400/60 bg-emerald-400/[0.07] shadow-[inset_0_0_18px_-10px_rgba(52,211,153,0.7)]"
-                    : "border-l-transparent hover:bg-white/[0.03]"
-                )}
-              >
-                <div className="flex items-center gap-2">
-                  {!email.isRead && (
-                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
-                  )}
-                  <span
-                    className={cn(
-                      "flex-1 truncate text-xs",
-                      email.isRead ? "text-text-secondary" : "text-text-primary font-medium"
-                    )}
-                  >
-                    {folder === "sent" || folder === "drafts"
-                      ? email.toAddr || "(no recipient)"
-                      : email.fromAddr}
-                  </span>
-                  {email.isStarred && (
-                    <Star size={11} className="shrink-0 fill-amber-400 text-amber-400" />
-                  )}
-                  <span className="text-text-muted shrink-0 text-[10px]">
-                    {timeAgo(email.createdAt)}
-                  </span>
-                </div>
-                <p
+            <Virtuoso
+              style={{ height: "100%" }}
+              data={list}
+              itemContent={(_, email) => (
+                <button
+                  onClick={() => open(email)}
                   className={cn(
-                    "mt-1 truncate text-xs",
-                    email.isRead ? "text-text-muted" : "text-text-primary"
+                    "w-full border-b border-l-2 border-white/5 px-4 py-3 text-left transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.99]",
+                    selected?.id === email.id
+                      ? "border-l-emerald-400/60 bg-emerald-400/[0.07] shadow-[inset_0_0_18px_-10px_rgba(52,211,153,0.7)]"
+                      : "border-l-transparent hover:bg-white/[0.03]"
                   )}
                 >
-                  {email.subject || "(no subject)"}
-                </p>
-                <p className="text-text-muted mt-0.5 truncate text-[11px]">{email.body}</p>
-              </button>
-            ))
+                  <div className="flex items-center gap-2">
+                    {!email.isRead && (
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400" />
+                    )}
+                    <span
+                      className={cn(
+                        "flex-1 truncate text-xs",
+                        email.isRead ? "text-text-secondary" : "text-text-primary font-medium"
+                      )}
+                    >
+                      {folder === "sent" || folder === "drafts"
+                        ? email.toAddr || "(no recipient)"
+                        : email.fromAddr}
+                    </span>
+                    {email.isStarred && (
+                      <Star size={11} className="shrink-0 fill-amber-400 text-amber-400" />
+                    )}
+                    <span className="text-text-muted shrink-0 text-[10px]">
+                      {timeAgo(email.createdAt)}
+                    </span>
+                  </div>
+                  <p
+                    className={cn(
+                      "mt-1 truncate text-xs",
+                      email.isRead ? "text-text-muted" : "text-text-primary"
+                    )}
+                  >
+                    {email.subject || "(no subject)"}
+                  </p>
+                  <p className="text-text-muted mt-0.5 truncate text-[11px]">{email.body}</p>
+                </button>
+              )}
+            />
           )}
         </div>
       </section>
@@ -371,13 +376,24 @@ function ComposeDialog({
       description="Messages are stored locally — connect a provider in Settings → Email to actually send."
     >
       <div className="space-y-3">
-        <Input value={to} onChange={(e) => setTo(e.target.value)} placeholder="To" />
-        <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Subject" />
+        <Input
+          value={to}
+          onChange={(e) => setTo(e.target.value)}
+          placeholder="To"
+          aria-label="To"
+        />
+        <Input
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+          placeholder="Subject"
+          aria-label="Subject"
+        />
         <Textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}
           rows={8}
           placeholder="Write your message…"
+          aria-label="Message body"
         />
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={() => save("drafts")} disabled={busy}>

@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
+import { VirtuosoGrid } from "react-virtuoso";
 import { MemoryCard } from "@/components/memory-bank/memory-card";
 import { MemoryDetail } from "@/components/memory-bank/memory-detail";
-import { MemoryGraph } from "@/components/memory-bank/memory-graph";
+import { MemoryGraph } from "@/components/memory-bank/memory-graph-lazy";
 import { NewMemoryDialog } from "@/components/memory-bank/new-memory-dialog";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 import {
@@ -120,6 +121,7 @@ export default function MemoryBankPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search memories…"
+            aria-label="Search memories"
             className="pl-9"
           />
         </div>
@@ -190,7 +192,7 @@ export default function MemoryBankPage() {
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[1fr_360px]">
         <div className="overflow-hidden border-r border-white/5">
           {view === "list" ? (
-            <div className="h-full overflow-y-auto p-4 md:p-6">
+            <div className="h-full p-4 md:p-6">
               {memories === null ? (
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {Array.from({ length: 6 }).map((_, i) => (
@@ -208,16 +210,18 @@ export default function MemoryBankPage() {
                   }
                 />
               ) : (
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {filtered.map((m) => (
+                <VirtuosoGrid
+                  style={{ height: "100%" }}
+                  data={filtered}
+                  listClassName="grid grid-cols-1 gap-3 sm:grid-cols-2"
+                  itemContent={(_, m) => (
                     <MemoryCard
-                      key={m.id}
                       memory={m}
                       selected={selectedId === m.id}
                       onSelect={() => setSelectedId(m.id)}
                     />
-                  ))}
-                </div>
+                  )}
+                />
               )}
             </div>
           ) : (

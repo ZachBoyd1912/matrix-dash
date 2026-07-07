@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { GeistMono } from "geist/font/mono";
 import { Instrument_Serif, Work_Sans, Fragment_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
@@ -53,6 +53,11 @@ export const metadata: Metadata = {
   other: {
     "google-site-verification": "GUiEmulK8l2VasAwqI03Vy639GgRrH6uRRbgavVyRFc",
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

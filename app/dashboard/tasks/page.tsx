@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { Virtuoso } from "react-virtuoso";
 import {
   Plus,
   Clock,
@@ -169,12 +170,13 @@ function Todos() {
           description="Add your first to-do above."
         />
       ) : (
-        <div className="space-y-2">
-          {list.map((t) => (
+        <Virtuoso
+          useWindowScroll
+          data={list}
+          itemContent={(_, t) => (
             <Card
-              key={t.id}
               className={cn(
-                "flex items-center gap-3 rounded-xl py-3 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
+                "mb-2 flex items-center gap-3 rounded-xl py-3 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
                 t.isDone && "opacity-50"
               )}
             >
@@ -209,8 +211,8 @@ function Todos() {
                 <Trash2 size={13} />
               </button>
             </Card>
-          ))}
-        </div>
+          )}
+        />
       )}
     </div>
   );

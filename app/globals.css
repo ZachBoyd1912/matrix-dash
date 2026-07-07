@@ -78,6 +78,13 @@
     color: #fff;
   }
 
+  /* Global keyboard-focus ring — glass-input has its own richer treatment,
+     so exclude it; everything else gets a visible accent outline. */
+  :focus-visible:not(.glass-input) {
+    outline: 2px solid var(--color-emerald-accent);
+    outline-offset: 2px;
+  }
+
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
