@@ -18,6 +18,14 @@ Matrix is **not** a hosted multi-tenant SaaS product. There is no public signup 
 - Local-first & encrypted: SQLite on disk, AES-256-GCM for every stored key and token, self-hosted on infrastructure the owner controls.
 - Matrix Builder: an integrated AI site/dashboard builder available from inside Matrix — describe a site or dashboard in a prompt and it generates a complete, editable, multi-page build.
 
+## Pages
+
+- About: https://zbautomations.ie/about.html
+- FAQ / Resources: https://zbautomations.ie/resources/
+- Privacy Policy: https://zbautomations.ie/privacy.html
+- Terms of Service: https://zbautomations.ie/terms.html
+
 ## Contact
 
 - Website: https://zbautomations.ie
+- Source: https://github.com/ZachBoyd1912/matrix-dash

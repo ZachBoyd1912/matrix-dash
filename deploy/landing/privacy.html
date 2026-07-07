@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Privacy Policy — ZB Automations</title>
+<meta name="description" content="How ZB Automations handles data for the zbautomations.ie site and the self-hosted Matrix dashboard you run yourself." />
+<meta name="theme-color" content="#a8461f" />
+<meta name="robots" content="index, follow" />
+
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="canonical" href="https://zbautomations.ie/privacy.html" />
+<link rel="stylesheet" href="/shared.css" />
+</head>
+<body>
+
+<div class="aurora"></div>
+<div class="grid-overlay"></div>
+
+<header class="nav scrolled" id="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="/" aria-label="ZB Automations home">
+      <svg class="mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="14.5" stroke="#a8461f" stroke-width="1.3"/><circle cx="16" cy="16" r="10.5" stroke="#a8461f" stroke-width="1"/><path d="M20 16 L23.5 16 M18.83 18.83 L21.3 21.3 M16 20 L16 23.5 M13.17 18.83 L10.7 21.3 M12 16 L8.5 16 M13.17 13.17 L10.7 10.7 M16 12 L16 8.5 M18.83 13.17 L21.3 10.7" stroke="#a8461f" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>
+      <span class="name">ZB Automations</span>
+    </a>
+    <nav class="nav-links">
+      <a class="link" href="/about.html">About</a>
+      <a class="link" href="/resources/">Resources</a>
+      <a class="btn btn-primary" href="https://matrix.zbautomations.ie">
+        Open Dashboard
+        <svg class="arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap doc">
+    <div class="doc-head">
+      <span class="eyebrow">Legal</span>
+      <h1>Privacy Policy</h1>
+      <p class="updated">Last updated 07 July 2026</p>
+    </div>
+    <div class="doc-body">
+      <h2>What this covers</h2>
+      <p>This policy covers two separate things: the public marketing site at <strong>zbautomations.ie</strong>, and the Matrix dashboard software itself. They're handled very differently, so we split them out below rather than writing one policy that blurs the two.</p>
+
+      <h2>The zbautomations.ie website</h2>
+      <p>This is a static site with no accounts, no forms, no cookies, and no analytics or tracking scripts of any kind. Your web server logs standard request metadata (IP address, user agent, requested path, timestamp) — this is generic infrastructure logging, not used for profiling or shared with any third party for advertising.</p>
+
+      <h2>The Matrix dashboard</h2>
+      <p>Matrix is self-hosted software: <strong>ZB Automations does not operate a hosted version of Matrix, does not receive your data, and cannot access an instance you run yourself.</strong> Whatever you enter into your own deployment — chat messages, notes, memory bank entries, connected accounts, API keys — is encrypted at rest (AES-256-GCM) and stored in a local SQLite database on infrastructure you control. Whether that data ever leaves your machine is entirely up to you and whichever third-party AI providers or integrations you choose to connect (e.g. Anthropic, OpenAI, Google, GitHub, Slack) — those providers' own privacy policies govern data you send them, not this one.</p>
+
+      <h2>Third-party services</h2>
+      <p>If you connect Matrix to a third-party AI provider or integration, the requests you make are sent directly from your own server to that provider, under whatever account and API key you supplied. ZB Automations is not a party to that data flow and has no visibility into it.</p>
+
+      <h2>Changes to this policy</h2>
+      <p>If this policy changes, the "last updated" date above will change too. There's no mailing list or account to notify since there's nothing to sign up for.</p>
+
+      <h2>Contact</h2>
+      <p>Questions about this policy can be raised via the <a href="https://github.com/ZachBoyd1912/matrix-dash">GitHub repository</a>.</p>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="col-brand">
+        <a class="brand" href="/" aria-label="ZB Automations home">
+          <svg class="mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="16" cy="16" r="14.5" stroke="#a8461f" stroke-width="1.3"/><circle cx="16" cy="16" r="10.5" stroke="#a8461f" stroke-width="1"/><path d="M20 16 L23.5 16 M18.83 18.83 L21.3 21.3 M16 20 L16 23.5 M13.17 18.83 L10.7 21.3 M12 16 L8.5 16 M13.17 13.17 L10.7 10.7 M16 12 L16 8.5 M18.83 13.17 L21.3 10.7" stroke="#a8461f" stroke-width="1.4" stroke-linecap="round"/>
+          </svg>
+          <span class="name">ZB Automations</span>
+        </a>
+        <p>A local-first AI command center. Built and self-hosted on infrastructure you own.</p>
+      </div>
+      <div class="foot-links">
+        <div class="group">
+          <h4>Platform</h4>
+          <a href="https://matrix.zbautomations.ie">Dashboard</a>
+          <a href="https://matrix.zbautomations.ie/dashboard/matrix-builder">Matrix Builder</a>
+        </div>
+        <div class="group">
+          <h4>Company</h4>
+          <a href="/about.html">About</a>
+          <a href="/resources/">Resources</a>
+          <a href="/privacy.html">Privacy</a>
+          <a href="/terms.html">Terms</a>
+        </div>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© <span id="yr">2026</span> ZB Automations</span>
+      <span>Self-hosted · Private · Encrypted</span>
+    </div>
+  </div>
+</footer>
+
+<script>document.getElementById('yr').textContent = new Date().getFullYear();</script>
+</body>
+</html>

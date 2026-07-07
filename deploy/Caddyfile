@@ -1,22 +1,48 @@
 # Caddy reverse proxy for Matrix Dashboard
 # Serves: matrix.zbautomations.ie → Next.js on :3000
 #          zbautomations.ie → static landing page
+#          www.zbautomations.ie → 301 redirect to apex (DNS already points here;
+#          without this block Cloudflare gets a 525, since Caddy has no site
+#          matching that hostname to terminate TLS for)
+
+# Baseline security headers, applied to every site below. HSTS is safe here —
+# both zbautomations.ie and matrix./builder. are already HTTPS-only via
+# Caddy's automatic HTTPS + Cloudflare, so opting browsers into HTTPS-only for
+# a year has no downside and no plaintext fallback to break.
+(security_headers) {
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+}
 
 # Dashboard subdomain
 matrix.zbautomations.ie {
+    import security_headers
     reverse_proxy localhost:3000
     encode gzip zstd
 }
 
 # Root domain — landing page
 zbautomations.ie {
+    import security_headers
+    header Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self'"
     root * /var/www/landing
     file_server
     encode gzip zstd
 }
 
+# www → apex, permanent redirect (preserves path/query)
+www.zbautomations.ie {
+    redir https://zbautomations.ie{uri} permanent
+}
+
 # Matrix Builder subdomain — the bolt fork, on the same VM
 builder.zbautomations.ie {
+    import security_headers
     reverse_proxy localhost:5001
     encode gzip zstd
 }
