@@ -9,7 +9,9 @@ import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty";
 import { toast, confirm } from "@/lib/stores/use-feedback";
 import { useGsapEntrance } from "@/lib/hooks/use-gsap-entrance";
+import { ParamControls } from "@/components/chat/param-controls";
 import type { Preset } from "@/types/jarvis";
+import type { GenerationParams } from "@/types/settings";
 
 export default function PresetsPage() {
   const ref = useGsapEntrance();
@@ -17,6 +19,7 @@ export default function PresetsPage() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [systemPrompt, setSystemPrompt] = useState("");
+  const [generationParams, setGenerationParams] = useState<GenerationParams>({});
 
   const refresh = useCallback(async () => {
     const res = await fetch("/api/presets");
@@ -32,10 +35,11 @@ export default function PresetsPage() {
     await fetch("/api/presets", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name, systemPrompt }),
+      body: JSON.stringify({ name, systemPrompt, generationParams }),
     });
     setName("");
     setSystemPrompt("");
+    setGenerationParams({});
     setOpen(false);
     toast.success("Persona saved");
     refresh();
@@ -91,6 +95,11 @@ export default function PresetsPage() {
                 <p className="text-text-secondary mt-1 line-clamp-2 font-mono text-xs">
                   {p.systemPrompt}
                 </p>
+                {Object.keys(p.generationParams).length > 0 && (
+                  <p className="text-text-muted mt-1 text-[10px]">
+                    Custom sampling params ({Object.keys(p.generationParams).length})
+                  </p>
+                )}
               </div>
               <Button size="icon" variant="ghost" onClick={() => remove(p)} aria-label="Delete">
                 <Trash2 size={13} className="text-rose-400" />
@@ -114,6 +123,7 @@ export default function PresetsPage() {
             rows={6}
             placeholder="You are a..."
           />
+          <ParamControls value={generationParams} onChange={setGenerationParams} />
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setOpen(false)}>
               Cancel

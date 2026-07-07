@@ -299,6 +299,9 @@ export const presets = sqliteTable("presets", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   systemPrompt: text("system_prompt").notNull().default(""),
+  // JSON-encoded GenerationParams — a single column for a small optional config
+  // object, same choice as fallbackProviderIds, rather than one column per field.
+  generationParams: text("generation_params"),
   createdAt: text("created_at").notNull(),
 });
 

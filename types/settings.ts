@@ -9,6 +9,23 @@ export interface AppSettings {
   fallbackProviderIds: string[];
 }
 
+/**
+ * Sampling/generation overrides passed straight through to streamText()'s and
+ * generateText()'s CallSettings — field names match the AI SDK v5 option names
+ * exactly (e.g. maxOutputTokens, not maxTokens) so no translation layer is needed
+ * at the call sites. Every field is optional: an absent field means "use the
+ * provider's own default," not zero.
+ */
+export interface GenerationParams {
+  temperature?: number;
+  topP?: number;
+  maxOutputTokens?: number;
+  frequencyPenalty?: number;
+  presencePenalty?: number;
+  seed?: number;
+  stopSequences?: string[];
+}
+
 export const SETTING_DEFAULTS: Record<string, string> = {
   autoExtract: "1",
   autoInject: "1",

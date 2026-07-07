@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils/cn";
 import { useAppStore } from "@/lib/stores/use-app-store";
 import { toast } from "@/lib/stores/use-feedback";
 import { supportsReasoning, type ModelInfo, type ReasoningEffort } from "@/lib/ai/models";
+import { ParamControls } from "./param-controls";
 
 // Module-level cache so reopening the dropdown (or remounting) doesn't refetch.
 const modelCache = new Map<string, ModelInfo[]>();
@@ -31,6 +32,8 @@ export function ModelSelector() {
   const setModelOverride = useAppStore((s) => s.setModelOverride);
   const reasoningEffort = useAppStore((s) => s.reasoningEffort);
   const setReasoningEffort = useAppStore((s) => s.setReasoningEffort);
+  const generationParams = useAppStore((s) => s.generationParams);
+  const setGenerationParams = useAppStore((s) => s.setGenerationParams);
 
   const active = providers.find((p) => p.id === activeId);
   const currentModel = modelOverride ?? active?.defaultModel ?? "";
@@ -233,6 +236,8 @@ export function ModelSelector() {
           {error && filtered.length > 0 && (
             <p className="px-2 pt-1 text-[10px] text-amber-400/80">{error}</p>
           )}
+
+          <ParamControls value={generationParams} onChange={setGenerationParams} />
 
           {/* Set as default */}
           {currentModel && currentModel !== active.defaultModel && (

@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import type { AiProviderPublic } from "@/types/ai-provider";
 import type { ReasoningEffort } from "@/lib/ai/models";
+import type { GenerationParams } from "@/types/settings";
 
 interface AppState {
   sidebarCollapsed: boolean;
@@ -33,6 +34,11 @@ interface AppState {
   /** Per-conversation reasoning/thinking level. */
   reasoningEffort: ReasoningEffort;
   setReasoningEffort: (effort: ReasoningEffort) => void;
+  /** Per-conversation sampling overrides (temperature, topP, etc.) — in-memory
+   *  only, same as reasoningEffort/modelOverride above, not written to session
+   *  metadata; resets on reload. */
+  generationParams: GenerationParams;
+  setGenerationParams: (params: GenerationParams) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -64,4 +70,6 @@ export const useAppStore = create<AppState>((set) => ({
   setModelOverride: (modelOverride) => set({ modelOverride }),
   reasoningEffort: "off",
   setReasoningEffort: (reasoningEffort) => set({ reasoningEffort }),
+  generationParams: {},
+  setGenerationParams: (generationParams) => set({ generationParams }),
 }));

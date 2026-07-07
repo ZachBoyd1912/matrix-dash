@@ -2,12 +2,16 @@ import { generateText, stepCountIs } from "ai";
 import { getActiveProvider, resolveModel } from "./registry";
 import { buildAgentTools } from "./tools";
 import { buildMemoryContext } from "./injection";
+import type { GenerationParams } from "@/types/settings";
 
 /**
  * Run a single prompt through the agent loop (non-streaming). Used by the
  * scheduler and webhooks. Returns the final text, or throws if no provider.
  */
-export async function runAgent(prompt: string, opts?: { useTools?: boolean }): Promise<string> {
+export async function runAgent(
+  prompt: string,
+  opts?: { useTools?: boolean; generationParams?: GenerationParams }
+): Promise<string> {
   const provider = getActiveProvider();
   if (!provider) throw new Error("No active AI provider");
 
@@ -27,6 +31,7 @@ export async function runAgent(prompt: string, opts?: { useTools?: boolean }): P
     prompt,
     tools: useTools ? buildAgentTools() : undefined,
     stopWhen: useTools ? stepCountIs(8) : undefined,
+    ...opts?.generationParams,
   });
   return text;
 }

@@ -116,6 +116,7 @@ export interface Preset {
   id: string;
   name: string;
   systemPrompt: string;
+  generationParams: import("./settings").GenerationParams;
   createdAt: string;
 }
 

@@ -1,5 +1,6 @@
 import { stepCountIs, type ModelMessage, type TextStreamPart } from "ai";
 import { randomUUID } from "crypto";
+import { z } from "zod";
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { searchSkillsFts } from "@/lib/db/fts";
@@ -35,6 +36,7 @@ import {
 } from "@/lib/chat/blocks";
 import { getPowerLevel } from "@/lib/ai/power";
 import type { AgentRequestContext } from "@/lib/ai/approvals";
+import type { GenerationParams } from "@/types/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +51,27 @@ interface ChatPayload {
   systemContext?: string;
   /** Per-request reasoning/thinking level; falls back to the global setting when omitted. */
   reasoningEffort?: ReasoningEffort;
+  /** Sampling overrides for this request — merged over the preset's own, if any. */
+  generationParams?: GenerationParams;
+}
+
+// Bounds are defensive (this is client-controlled input reaching a paid API
+// call), not because the UI can produce out-of-range values — the sliders
+// already clamp to these ranges. Invalid input is dropped, not 400'd: a bad
+// param shouldn't break the chat, it should just fall back to provider defaults.
+const generationParamsSchema = z.object({
+  temperature: z.number().min(0).max(2).optional(),
+  topP: z.number().min(0).max(1).optional(),
+  maxOutputTokens: z.number().int().min(1).max(64_000).optional(),
+  frequencyPenalty: z.number().min(-2).max(2).optional(),
+  presencePenalty: z.number().min(-2).max(2).optional(),
+  seed: z.number().int().optional(),
+  stopSequences: z.array(z.string().max(200)).max(10).optional(),
+});
+
+function parseGenerationParams(value: unknown): GenerationParams {
+  const parsed = generationParamsSchema.safeParse(value);
+  return parsed.success ? parsed.data : {};
 }
 
 // Rather than concatenate every enabled skill into the prompt (a user can have
@@ -111,6 +134,7 @@ export async function POST(req: Request) {
     presetId,
     systemContext,
     reasoningEffort,
+    generationParams: requestGenerationParams,
   } = body;
   if (!Array.isArray(messages) || messages.length === 0) {
     return Response.json({ error: "messages required" }, { status: 400 });
@@ -137,11 +161,26 @@ export async function POST(req: Request) {
   const appSettings = getAppSettings();
 
   let presetPrompt = "";
+  let presetGenerationParams: GenerationParams = {};
   if (presetId) {
     const preset = getDb().select().from(presets).where(eq(presets.id, presetId)).get();
-    if (preset) presetPrompt = preset.systemPrompt;
+    if (preset) {
+      presetPrompt = preset.systemPrompt;
+      if (preset.generationParams) {
+        try {
+          presetGenerationParams = parseGenerationParams(JSON.parse(preset.generationParams));
+        } catch {
+          /* malformed stored JSON — ignore, fall back to no overrides */
+        }
+      }
+    }
   }
-
+  // Request-level params (the chat composer's Advanced panel, live for just this
+  // turn) win over whatever the chosen persona/preset stored as its defaults.
+  const generationParams: GenerationParams = {
+    ...presetGenerationParams,
+    ...parseGenerationParams(requestGenerationParams),
+  };
   const agentPreamble = isAgent
     ? "You are Jarvis, an autonomous personal assistant. You can use tools to search memory, notes, the web, manage tasks and calendar, and draft email. Take initiative: call tools to gather what you need, then act. Be concise."
     : "";
@@ -316,6 +355,11 @@ export async function POST(req: Request) {
         reasoningEffort,
         appSettings.enableThinking
       ),
+      // Sampling overrides (temperature, topP, maxOutputTokens, etc.) — field
+      // names already match streamText()'s own CallSettings, so no translation
+      // needed. Same for every candidate: these are a user/preset choice, not
+      // something that varies by which provider ends up serving the request.
+      ...generationParams,
       abortSignal: req.signal,
       experimental_context: reqCtx,
       // The fallback cascade's own retry (lib/ai/retry.ts) owns the backoff

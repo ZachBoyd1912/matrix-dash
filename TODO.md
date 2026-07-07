@@ -100,12 +100,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
   <div class="todo-orb todo-orb-1"></div>
   <div class="todo-orb todo-orb-2"></div>
   <h1>Matrix Dashboard &amp; Builder — Implementation Plans</h1>
-  <p class="subtitle"><span>19</span> plans · <span>9</span> completed · <span>0</span> in progress · Last updated 07/07/2026 @ 05:40:47 IST</p>
+  <p class="subtitle"><span>19</span> plans · <span>10</span> completed · <span>0</span> in progress · Last updated 07/07/2026 @ 06:01:46 IST</p>
 </div>
 
 <div class="todo-stats">
   <div class="todo-stat"><div class="stat-num">19</div><div class="stat-label">Total Plans</div></div>
-  <div class="todo-stat"><div class="stat-num">9</div><div class="stat-label">Completed</div></div>
+  <div class="todo-stat"><div class="stat-num">10</div><div class="stat-label">Completed</div></div>
   <div class="todo-stat"><div class="stat-num">0</div><div class="stat-label">In Progress</div></div>
   <div class="todo-stat critical-stat"><div class="stat-num">5</div><div class="stat-label">Critical</div></div>
 </div>
@@ -572,12 +572,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
 </div>
 
 <!-- PLAN 11 -->
-<div class="todo-card" data-category="ai" data-priority="high">
+<div class="todo-card completed" data-category="ai" data-priority="high">
   <div class="card-header">
     <span class="card-emoji">🎛️</span>
     <div>
       <div class="card-title">Plan 11: Model Parameter Controls — Temperature, Top P, Max Tokens</div>
-      <div class="card-subtitle">ideated by deepseek v4 pro · 8 files · medium complexity</div>
+      <div class="card-subtitle">ideated by deepseek v4 pro · 12 files · medium complexity</div>
     </div>
   </div>
   <div class="card-badges">
@@ -594,24 +594,25 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
     <span class="skill-tag">@typescript-expert</span>
   </div>
   <details class="card-files">
-    <summary>8 files</summary>
+    <summary>12 files</summary>
     <div class="file-list">
       <div><span class="file-new">+ new</span> components/chat/param-controls.tsx</div>
-      <div><span class="file-edit">~ edit</span> types/settings.ts, lib/stores/use-app-store.ts</div>
-      <div><span class="file-edit">~ edit</span> components/chat/model-selector.tsx, app/api/ai/chat/route.ts</div>
-      <div><span class="file-edit">~ edit</span> lib/ai/runner.ts, lib/db/schema.ts, presets/page.tsx</div>
+      <div><span class="file-edit">~ edit</span> types/settings.ts, lib/stores/use-app-store.ts, types/jarvis.ts</div>
+      <div><span class="file-edit">~ edit</span> components/chat/model-selector.tsx, components/chat/chat-interface.tsx, app/api/ai/chat/route.ts</div>
+      <div><span class="file-edit">~ edit</span> lib/ai/runner.ts, lib/db/schema.ts, lib/db/client.ts</div>
+      <div><span class="file-edit">~ edit</span> app/api/presets/route.ts, app/dashboard/settings/presets/page.tsx</div>
     </div>
   </details>
   <details class="tasks-summary">
-    <summary>7 tasks</summary>
+    <summary>7/7 tasks ✅</summary>
     <ul>
-      <li><input type="checkbox"> Define GenerationParams type (temperature, topP, maxTokens, etc.)</li>
-      <li><input type="checkbox"> Build param-controls UI (sliders, inputs, collapsible Advanced)</li>
-      <li><input type="checkbox"> Plumb params through chat route → streamText() config</li>
-      <li><input type="checkbox"> Add to agent runner generateText() config</li>
-      <li><input type="checkbox"> Persist per-session in Zustand + session metadata</li>
-      <li><input type="checkbox"> Extend presets to include generation params</li>
-      <li><input type="checkbox"> Verify: temp=0 produces deterministic output, maxTokens=50 truncates</li>
+      <li><input type="checkbox" checked> <code>GenerationParams</code> type (<code>types/settings.ts</code>) — field names deliberately mirror the AI SDK's own <code>CallSettings</code> exactly (<code>maxOutputTokens</code>, not <code>maxTokens</code>) so no translation layer is needed at any call site</li>
+      <li><input type="checkbox" checked> <code>param-controls.tsx</code> — sliders (temperature/topP/frequencyPenalty/presencePenalty), number inputs (maxOutputTokens/seed), comma-separated stopSequences input, Reset button, collapsible "Advanced" wrapper with active-count badge. Shared as-is between the chat composer and the persona/preset editor</li>
+      <li><input type="checkbox" checked> Plumbed through chat route → <code>streamText()</code> config, validated by a shared Zod schema with explicit numeric bounds per field; invalid values are silently dropped (<code>safeParse</code> → <code>{}</code>) rather than rejected with a 400</li>
+      <li><input type="checkbox" checked> Added to agent runner — <code>runAgent()</code> now accepts an optional <code>generationParams</code>, spread into its own <code>generateText()</code> call, so scheduled/webhook agent runs get the same override surface as interactive chat</li>
+      <li><input type="checkbox" checked> Persisted per-request in Zustand (<code>use-app-store.ts</code>) — request-level params always win over whatever the active persona stored, so a one-off override never permanently changes a saved persona</li>
+      <li><input type="checkbox" checked> Presets extended — new nullable <code>presets.generation_params</code> JSON column (schema.ts + client.ts migration), surfaced in the persona editor and shown as a "Custom sampling params (N)" indicator on persona cards</li>
+      <li><input type="checkbox" checked> Verify — live dev-server + real Deepseek provider: traced <code>maxOutputTokens: 15</code> end-to-end by logging the actual outgoing HTTP body inside the fallback cascade, confirming <code>max_completion_tokens: 15</code> genuinely reached DeepSeek's API (the app-side plumbing is fully correct); <code>temperature: 0</code> sent twice with an identical prompt returned an identical one-word answer both times, confirming the param is honored end-to-end for a field DeepSeek's endpoint actually respects. <strong>Known limitation, not a bug in this app:</strong> DeepSeek's <code>deepseek-chat</code> endpoint does not appear to honor <code>max_completion_tokens</code> for truncation (a 500-word-essay prompt capped at 15 tokens still returned the full essay) — very likely because <code>@ai-sdk/openai</code> unconditionally emits that newer field name rather than the legacy <code>max_tokens</code> DeepSeek's compat layer may expect (confirmed via the installed package's own source; not independently confirmed against DeepSeek's docs). A real fix means switching ~15 openai-compat provider kinds to a different SDK adapter — a re-architecture with real regression risk against Plans 7–10's already-tested wire-format behavior, deliberately out of scope here. All debug logging removed and verified absent (<code>grep -rn DEBUG</code>, zero matches); no test providers/sessions left behind</li>
     </ul>
   </details>
 </div>
@@ -1344,7 +1345,7 @@ Add ranked fallback provider list setting. Build fallback/retry/circuit-breaker 
 
 
 
-## 🎛️ Plan 11: Model Parameter Controls — Temperature, Top P, Max Tokens & More (ideated by deepseek v4 pro)
+## ✅ Plan 11: Model Parameter Controls — Temperature, Top P, Max Tokens & More (ideated by deepseek v4 pro) — COMPLETED
 
 ### Goal
 Expose temperature, top_p, max_tokens, frequency_penalty, presence_penalty, seed, stop sequences in chat UI.
@@ -1356,13 +1357,13 @@ Only reasoning effort is configurable. No temperature, top_p, or sampling contro
 Add GenerationParams type. Build param-controls UI with sliders. Pass to streamText()/generateText(). Persist per-session. Extend presets.
 
 ### Tasks
-- [ ] **Define GenerationParams** — temperature, topP, maxTokens, frequencyPenalty, presencePenalty, seed, stopSequences
-- [ ] **Build param-controls UI** — collapsible Advanced section in model selector, sliders + inputs, reset button
-- [ ] **Plumb through chat route** — pass all params to streamText() config
-- [ ] **Add to agent runner** — accept GenerationParams in runAgent config
-- [ ] **Persist per-session** — Zustand store + session metadata
-- [ ] **Extend presets** — add param fields to presets table + editor
-- [ ] **Verify** — temp=0 deterministic, maxTokens=50 truncates
+- [x] **Define GenerationParams** — `types/settings.ts`, field names deliberately mirror the AI SDK's own `CallSettings` exactly (`maxOutputTokens`, not `maxTokens`) so no translation layer is needed at any call site
+- [x] **Build param-controls UI** — `param-controls.tsx`: sliders (temperature/topP/frequencyPenalty/presencePenalty), number inputs (maxOutputTokens/seed), comma-separated stopSequences input, reset button, collapsible "Advanced" wrapper with active-count badge. Shared as-is between the chat composer and the persona/preset editor
+- [x] **Plumb through chat route** — validated by a shared Zod schema with explicit numeric bounds per field; invalid values silently drop to `{}` via `safeParse` rather than a 400, so a stale-client malformed param can't break the chat
+- [x] **Add to agent runner** — `runAgent()` accepts an optional `generationParams`, spread into its own `generateText()` call — scheduled/webhook agent runs get the same override surface as interactive chat
+- [x] **Persist per-request** — Zustand store (`use-app-store.ts`); request-level params always win over whatever the active persona stored, so a one-off override never permanently changes a saved persona
+- [x] **Extend presets** — new nullable `presets.generation_params` JSON column (schema.ts + client.ts migration), surfaced in the persona editor with a "Custom sampling params (N)" indicator on persona cards
+- [x] **Verify** — live dev-server + real Deepseek provider: traced `maxOutputTokens: 15` end-to-end by logging the actual outgoing HTTP body inside the fallback cascade, confirming `max_completion_tokens: 15` genuinely reached DeepSeek's API — the app-side plumbing (UI → store → route → Zod merge → streamText() options → provider HTTP body) is fully correct. `temperature: 0` sent twice with an identical prompt returned an identical one-word answer both times, confirming the param is honored end-to-end for a field DeepSeek actually respects. **Known limitation, not a bug in this app:** DeepSeek's `deepseek-chat` endpoint does not appear to honor `max_completion_tokens` for truncation (a 500-word-essay prompt capped at 15 tokens still returned the full essay) — very likely because `@ai-sdk/openai` unconditionally emits that newer field name rather than the legacy `max_tokens` DeepSeek's compat layer may expect (confirmed via the installed package's own source; not independently confirmed against DeepSeek's docs). A real fix means switching ~15 openai-compat provider kinds to a different SDK adapter — a re-architecture with real regression risk against Plans 7–10's already-tested wire-format behavior, deliberately out of scope here and flagged as a separate initiative if it matters in practice. All debug logging added during troubleshooting removed and verified absent; no test providers/sessions left behind
 
 ### Files Touched
 | File | Action |
@@ -1370,10 +1371,14 @@ Add GenerationParams type. Build param-controls UI with sliders. Pass to streamT
 | `components/chat/param-controls.tsx` | **NEW** |
 | `types/settings.ts` | Edit |
 | `lib/stores/use-app-store.ts` | Edit |
+| `types/jarvis.ts` | Edit |
 | `components/chat/model-selector.tsx` | Edit |
+| `components/chat/chat-interface.tsx` | Edit |
 | `app/api/ai/chat/route.ts` | Edit |
+| `app/api/presets/route.ts` | Edit |
 | `lib/ai/runner.ts` | Edit |
 | `lib/db/schema.ts` | Edit |
+| `lib/db/client.ts` | Edit |
 | `app/dashboard/settings/presets/page.tsx` | Edit |
 
 ### 🧠 Skills

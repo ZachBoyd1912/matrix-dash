@@ -87,6 +87,7 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
   const router = useRouter();
   const modelOverride = useAppStore((s) => s.modelOverride);
   const reasoningEffort = useAppStore((s) => s.reasoningEffort);
+  const generationParams = useAppStore((s) => s.generationParams);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [attachment, setAttachment] = useState<{ name: string; text: string } | null>(null);
   const [ccInstalled, setCcInstalled] = useState<boolean | null>(null);
@@ -332,6 +333,8 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
             systemContext: ctx && ctx.trim() ? ctx : undefined,
             modelOverride: modelOverride ?? undefined,
             reasoningEffort,
+            generationParams:
+              Object.keys(generationParams).length > 0 ? generationParams : undefined,
           }),
           signal: controller.signal,
         });
@@ -445,6 +448,7 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
       contextText,
       modelOverride,
       reasoningEffort,
+      generationParams,
       router,
       setModelSelectorOpen,
     ]
