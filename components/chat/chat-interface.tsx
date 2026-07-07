@@ -12,6 +12,7 @@ import { ChatInput } from "./chat-input";
 import { ClaudeCodeEmpty } from "./claude-code-hero";
 import { LogoMark } from "@/components/layout/logo";
 import { useAppStore } from "@/lib/stores/use-app-store";
+import { toast } from "@/lib/stores/use-feedback";
 import { speak } from "@/lib/hooks/use-voice";
 import { SLASH_COMMANDS } from "@/lib/chat/slash-commands";
 import { useRouter } from "next/navigation";
@@ -30,6 +31,8 @@ interface ChatMessage {
   id: string;
   role: "user" | "assistant" | "system";
   blocks: Block[];
+  /** Set once the fallback cascade reports this turn was served by a non-primary provider. */
+  fallbackNotice?: string;
 }
 
 /** Shape persisted sessions pass in — converted to blocks on load. */
@@ -267,6 +270,7 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
         const blocks: Block[] = [];
         const idMap = new Map<string, number>();
         let streamError = "";
+        let fallbackNotice: string | undefined;
         let buffer = "";
 
         // Parse the NDJSON stream line-by-line into stream events, folding each into
@@ -280,6 +284,13 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
               streamError = evt.value || "Stream error";
               return;
             }
+            if (evt.type === "provider_used") {
+              if (evt.fellBack) {
+                fallbackNotice = `Replied via ${evt.name} after the primary provider failed.`;
+                toast.info("Switched provider", fallbackNotice);
+              }
+              return;
+            }
             appendEvent(blocks, idMap, evt);
           } catch {
             // Backward-compat: a server that streams plain text → treat as reply text.
@@ -290,7 +301,9 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
         // A fresh array reference each tick so React re-renders the streamed blocks.
         const flush = () =>
           setMessages((prev) =>
-            prev.map((m) => (m.id === assistantId ? { ...m, blocks: [...blocks] } : m))
+            prev.map((m) =>
+              m.id === assistantId ? { ...m, blocks: [...blocks], fallbackNotice } : m
+            )
           );
 
         while (true) {
@@ -401,6 +414,7 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
                     streaming && m.role === "assistant" && m.id === messages[messages.length - 1].id
                   }
                   onApprove={approve}
+                  fallbackNotice={m.fallbackNotice}
                 />
               ))}
               {error && (

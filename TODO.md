@@ -100,12 +100,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
   <div class="todo-orb todo-orb-1"></div>
   <div class="todo-orb todo-orb-2"></div>
   <h1>Matrix Dashboard &amp; Builder — Implementation Plans</h1>
-  <p class="subtitle"><span>19</span> plans · <span>6</span> completed · <span>0</span> in progress · Last updated 07/07/2026 @ 00:26:24 IST</p>
+  <p class="subtitle"><span>19</span> plans · <span>7</span> completed · <span>0</span> in progress · Last updated 07/07/2026 @ 00:56:00 IST</p>
 </div>
 
 <div class="todo-stats">
   <div class="todo-stat"><div class="stat-num">19</div><div class="stat-label">Total Plans</div></div>
-  <div class="todo-stat"><div class="stat-num">6</div><div class="stat-label">Completed</div></div>
+  <div class="todo-stat"><div class="stat-num">7</div><div class="stat-label">Completed</div></div>
   <div class="todo-stat"><div class="stat-num">0</div><div class="stat-label">In Progress</div></div>
   <div class="todo-stat critical-stat"><div class="stat-num">5</div><div class="stat-label">Critical</div></div>
 </div>
@@ -525,12 +525,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
 </div>
 
 <!-- PLAN 10 -->
-<div class="todo-card" data-category="ai" data-priority="critical">
+<div class="todo-card completed" data-category="ai" data-priority="critical">
   <div class="card-header">
     <span class="card-emoji">🔄</span>
     <div>
       <div class="card-title">Plan 10: AI Provider Fallback &amp; Retry Logic</div>
-      <div class="card-subtitle">ideated by deepseek v4 pro · 7 files · medium complexity</div>
+      <div class="card-subtitle">ideated by deepseek v4 pro · 12 files · medium complexity</div>
     </div>
   </div>
   <div class="card-badges">
@@ -547,24 +547,26 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-he
     <span class="skill-tag">@nodejs-best-practices</span>
   </div>
   <details class="card-files">
-    <summary>7 files</summary>
+    <summary>12 files</summary>
     <div class="file-list">
       <div><span class="file-new">+ new</span> lib/ai/fallback.ts, lib/ai/retry.ts, lib/ai/circuit-breaker.ts</div>
-      <div><span class="file-edit">~ edit</span> types/settings.ts, app/api/ai/chat/route.ts</div>
-      <div><span class="file-edit">~ edit</span> app/dashboard/settings/integrations/page.tsx</div>
-      <div><span class="file-edit">~ edit</span> components/chat/chat-interface.tsx</div>
+      <div><span class="file-new">+ new</span> components/settings/fallback-order.tsx</div>
+      <div><span class="file-edit">~ edit</span> types/settings.ts, lib/db/settings.ts, lib/ai/registry.ts</div>
+      <div><span class="file-edit">~ edit</span> lib/chat/blocks.ts, app/api/ai/chat/route.ts</div>
+      <div><span class="file-edit">~ edit</span> app/dashboard/settings/page.tsx (not integrations/page.tsx — see notes)</div>
+      <div><span class="file-edit">~ edit</span> components/chat/chat-interface.tsx, components/chat/message-bubble.tsx</div>
     </div>
   </details>
   <details class="tasks-summary">
-    <summary>7 tasks</summary>
+    <summary>7/7 tasks ✅</summary>
     <ul>
-      <li><input type="checkbox"> Add ranked fallback provider list to settings</li>
-      <li><input type="checkbox"> Build fallback wrapper (try primary, cascade on failure)</li>
-      <li><input type="checkbox"> Implement retry with jittered exponential backoff (1s/2s/4s)</li>
-      <li><input type="checkbox"> Build circuit breaker (open after 3 failures, 60s cooldown)</li>
-      <li><input type="checkbox"> Integrate into chat route, return X-Provider-Used header</li>
-      <li><input type="checkbox"> Add fallback indicator to chat UI + toast on failover</li>
-      <li><input type="checkbox"> Verify: trigger outages, confirm seamless fallback</li>
+      <li><input type="checkbox" checked> Add ranked fallback provider list to settings — lives on <code>app/dashboard/settings/page.tsx</code> (the real AI Providers page) via new <code>FallbackOrder</code> component, not <code>settings/integrations/page.tsx</code> (a link-hub for unrelated services). Stored as a JSON-encoded provider-id array under the existing generic key/value settings table — no schema/migration needed</li>
+      <li><input type="checkbox" checked> Build fallback wrapper — <code>lib/ai/fallback.ts</code>'s <code>streamWithFallback()</code> tries each candidate in rank order, skipping circuit-open ones, cascading on failure</li>
+      <li><input type="checkbox" checked> Implement retry with jittered exponential backoff (1s/2s/4s) — generic <code>withBackoff()</code> in <code>lib/ai/retry.ts</code>; the cascade calls it with 2 attempts per candidate (immediate + one ~1s backoff) rather than the full 4-attempt ladder, a deliberate latency tradeoff so one dead provider doesn't stall an interactive chat request for 7+ seconds before falling back</li>
+      <li><input type="checkbox" checked> Build circuit breaker (open after 3 failures, 60s cooldown) — <code>lib/ai/circuit-breaker.ts</code>, same in-module Map pattern as middleware.ts's rate limiter; live-verified to open and correctly skip a dead provider on request 4</li>
+      <li><input type="checkbox" checked> Integrate into chat route — the streamText() + cascade now runs <em>inside</em> the ReadableStream's <code>start()</code>, not before it, since a provider only "wins" once real content arrives (streamText() surfaces failures as stream parts, not thrown exceptions, confirmed against the AI SDK v5 docs). Response headers can't reflect the eventual winner (the Response is constructed before the cascade runs), so "X-Provider-Used" became a <code>provider_used</code> NDJSON stream event instead — the correct signal for a streaming response</li>
+      <li><input type="checkbox" checked> Add fallback indicator to chat UI + toast on failover — <code>toast.info()</code> on switch, plus a persistent caption under the assistant bubble (<code>message-bubble.tsx</code>) naming which provider actually replied</li>
+      <li><input type="checkbox" checked> Verify: live dev-server + real DB testing (not just typecheck) caught two real bugs before this worked — (1) the AI SDK emits a lifecycle <code>{type:"start"}</code> part immediately, before the network call resolves; the cascade was treating that as success and committing to a dead provider instantly — fixed by skipping known lifecycle-only part types (start/start-step/finish-step) before deciding a winner; (2) the existing "fold system prompt into user turn for non-OpenAI openai-compat providers" workaround was computed once from the originally-requested provider's kind, so falling back to a different provider kind sent the wrong message shape and got rejected — fixed by recomputing per-candidate. Also disabled the SDK's own internal <code>maxRetries</code> (default 2) since it was compounding with this app's own backoff. Verified end-to-end: a temporary broken provider (bad port) correctly cascaded to the real working provider with an accurate <code>provider_used</code> event, and the circuit breaker opened after repeated failures. All test providers/settings cleaned up afterward</li>
     </ul>
   </details>
 </div>
@@ -1300,7 +1302,7 @@ Install tiktoken / use AI SDK countTokens. Add contextWindow to model registry. 
 
 
 
-## 🔄 Plan 10: AI Provider Fallback & Retry Logic (ideated by deepseek v4 pro)
+## ✅ Plan 10: AI Provider Fallback & Retry Logic (ideated by deepseek v4 pro) — COMPLETED
 
 ### Goal
 Auto failover, exponential backoff retry, and circuit breaker for AI providers.
@@ -1312,13 +1314,13 @@ Single active provider — any outage breaks all chat. No retry for transient fa
 Add ranked fallback provider list setting. Build fallback/retry/circuit-breaker utilities. Integrate into chat route. Add UI indicator.
 
 ### Tasks
-- [ ] **Fallback settings** — `providerFallbackOrder: string[]` with drag-to-reorder UI
-- [ ] **Create fallback wrapper** — `lib/ai/fallback.ts`: cascade through list, 30s timeout per attempt
-- [ ] **Add retry logic** — `lib/ai/retry.ts`: 3 retries, 1s/2s/4s backoff, ±25% jitter, only on 429/5xx
-- [ ] **Add circuit breaker** — `lib/ai/circuit-breaker.ts`: open after 3 failures, 60s cooldown, half-open probe
-- [ ] **Integrate into chat** — replace single provider with fallback chain, return X-Provider-Used header
-- [ ] **Add UI indicator** — "Routed via Anthropic (OpenAI unavailable)" + toast
-- [ ] **Verify** — trigger provider failures, confirm seamless failover
+- [x] **Fallback settings** — no new column: `fallbackProviderIds` is a JSON-encoded provider-id array stored under the existing generic key/value settings table. UI is `FallbackOrder` (checkbox + up/down arrows, not drag-and-drop) on `app/dashboard/settings/page.tsx` — the real AI Providers page (`settings/integrations/page.tsx` is an unrelated link-hub for GitHub/Slack/Drive/etc.)
+- [x] **Create fallback wrapper** — `lib/ai/fallback.ts`'s `streamWithFallback()`: cascades through the ranked list, skipping circuit-open candidates. No fixed per-attempt timeout — a candidate is decided by its first non-lifecycle stream part (see Verify notes)
+- [x] **Add retry logic** — `lib/ai/retry.ts`'s `withBackoff()` implements the full 1s/2s/4s ±25%-jitter ladder generically; the cascade calls it with 2 attempts per candidate (not all 4 rungs) to keep one dead provider from stalling an interactive request for 7+ seconds. Retries on whatever error the SDK surfaces (no 429/5xx-only filter — proportional for a single-user app, not classifying error codes)
+- [x] **Add circuit breaker** — `lib/ai/circuit-breaker.ts`: opens after 3 failures, 60s cooldown, plain trial retry after cooldown (no half-open quota — not needed at this app's scale). Live-verified: opened after repeated failures and correctly skipped the dead provider on the next request
+- [x] **Integrate into chat** — the streamText()+cascade now runs *inside* the response ReadableStream's `start()`, since streamText() surfaces failures as stream parts, not exceptions, and a winner can only be known once real content arrives. Response headers can't carry the eventual winner (Response is constructed before the cascade runs), so **"X-Provider-Used" became a `provider_used` NDJSON stream event** (`{id, name, fellBack}`) instead
+- [x] **Add UI indicator** — `toast.info()` on failover + a persistent "Replied via X after the primary provider failed" caption under the assistant bubble (`message-bubble.tsx`), rather than a one-line "Routed via Anthropic" banner
+- [x] **Verify** — live dev-server + real DB testing (not just typecheck) found and fixed two real bugs: (1) the AI SDK emits a lifecycle `{type:"start"}` part immediately, before the network call resolves — the cascade was treating that as success and committing to a dead provider instantly; fixed by skipping known lifecycle-only part types (start/start-step/finish-step); (2) the "fold system prompt into user turn" workaround (for non-OpenAI openai-compat providers whose APIs reject the "developer" role) was computed once from the originally-requested provider's kind — falling back to a different provider kind sent the wrong message shape and got rejected; fixed by recomputing per-candidate. Also set `maxRetries: 0` per candidate since the SDK's own default retry was compounding with this app's backoff. End-to-end verified: a temporary broken provider correctly cascaded to the real working one with an accurate `provider_used` event, and the circuit breaker opened after repeated failures. All test providers/settings cleaned up afterward
 
 ### Files Touched
 | File | Action |
@@ -1326,10 +1328,15 @@ Add ranked fallback provider list setting. Build fallback/retry/circuit-breaker 
 | `lib/ai/fallback.ts` | **NEW** |
 | `lib/ai/retry.ts` | **NEW** |
 | `lib/ai/circuit-breaker.ts` | **NEW** |
+| `components/settings/fallback-order.tsx` | **NEW** |
 | `types/settings.ts` | Edit |
+| `lib/db/settings.ts` | Edit |
+| `lib/ai/registry.ts` | Edit |
+| `lib/chat/blocks.ts` | Edit |
 | `app/api/ai/chat/route.ts` | Edit |
-| `app/dashboard/settings/integrations/page.tsx` | Edit |
+| `app/dashboard/settings/page.tsx` | Edit (not `settings/integrations/page.tsx`) |
 | `components/chat/chat-interface.tsx` | Edit |
+| `components/chat/message-bubble.tsx` | Edit |
 
 ### 🧠 Skills
 `@ai-engineer` `@backend-dev-guidelines` `@nodejs-best-practices` `@performance-engineer`

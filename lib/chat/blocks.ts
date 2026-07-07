@@ -58,7 +58,9 @@ export type StreamEvent =
   | {
       type: "usage";
       value: { inputTokens?: number; outputTokens?: number; totalTokens?: number };
-    };
+    }
+  /** Which provider actually served this turn, once the fallback cascade committed to one. */
+  | { type: "provider_used"; id: string; name: string; fellBack: boolean };
 
 /**
  * Fold one stream event into the block list in arrival order. Mutates `blocks` and

@@ -5,6 +5,8 @@ export interface AppSettings {
   systemPrompt: string;
   /** Stream extended-thinking/reasoning from providers that support it (Anthropic). */
   enableThinking: boolean;
+  /** Ordered provider IDs tried, in order, if the requested/active provider's stream fails. */
+  fallbackProviderIds: string[];
 }
 
 export const SETTING_DEFAULTS: Record<string, string> = {
@@ -13,6 +15,7 @@ export const SETTING_DEFAULTS: Record<string, string> = {
   maxInjectedMemories: "10",
   systemPrompt: "",
   enableThinking: "1",
+  fallbackProviderIds: "[]",
   /** Local code-server (web VS Code) bind port. */
   ideServerPort: "3010",
   /** Auto-start code-server when the IDE page mounts ("1" on / "0" off). */

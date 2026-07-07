@@ -10,9 +10,11 @@ interface Props {
   blocks: Block[];
   streaming?: boolean;
   onApprove?: (id: string, decision: ApprovalDecision) => void;
+  /** Set when the fallback cascade served this turn from a non-primary provider. */
+  fallbackNotice?: string;
 }
 
-export function MessageBubble({ role, blocks, streaming, onApprove }: Props) {
+export function MessageBubble({ role, blocks, streaming, onApprove, fallbackNotice }: Props) {
   if (role === "system") return null;
 
   const isUser = role === "user";
@@ -24,18 +26,25 @@ export function MessageBubble({ role, blocks, streaming, onApprove }: Props) {
           <Sparkles size={13} className="text-emerald-300" />
         </div>
       )}
-      <div
-        className={cn(
-          "max-w-[78%] rounded-2xl px-4 py-3 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
-          isUser
-            ? "text-text-primary rounded-tr-sm border border-emerald-400/30 bg-emerald-400/15 shadow-[0_0_18px_-6px_rgba(52,211,153,0.6)]"
-            : "glass rounded-tl-sm border border-white/5"
-        )}
-      >
-        {isUser ? (
-          <div className="text-sm leading-relaxed whitespace-pre-wrap">{blocksToText(blocks)}</div>
-        ) : (
-          <TranscriptRenderer blocks={blocks} streaming={streaming} onApprove={onApprove} />
+      <div className={cn("max-w-[78%] min-w-0", isUser && "flex flex-col items-end")}>
+        <div
+          className={cn(
+            "rounded-2xl px-4 py-3 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
+            isUser
+              ? "text-text-primary rounded-tr-sm border border-emerald-400/30 bg-emerald-400/15 shadow-[0_0_18px_-6px_rgba(52,211,153,0.6)]"
+              : "glass rounded-tl-sm border border-white/5"
+          )}
+        >
+          {isUser ? (
+            <div className="text-sm leading-relaxed whitespace-pre-wrap">
+              {blocksToText(blocks)}
+            </div>
+          ) : (
+            <TranscriptRenderer blocks={blocks} streaming={streaming} onApprove={onApprove} />
+          )}
+        </div>
+        {!isUser && fallbackNotice && (
+          <p className="text-text-muted mt-1.5 pl-1 text-[11px]">{fallbackNotice}</p>
         )}
       </div>
       {isUser && (

@@ -23,6 +23,16 @@ export function getAllSettings(): Record<string, string> {
   return result;
 }
 
+function parseFallbackIds(raw: string | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
 export function getAppSettings(): AppSettings {
   const all = getAllSettings();
   return {
@@ -31,5 +41,6 @@ export function getAppSettings(): AppSettings {
     maxInjectedMemories: Math.max(1, parseInt(all.maxInjectedMemories, 10) || 10),
     systemPrompt: all.systemPrompt ?? "",
     enableThinking: all.enableThinking !== "0",
+    fallbackProviderIds: parseFallbackIds(all.fallbackProviderIds),
   };
 }

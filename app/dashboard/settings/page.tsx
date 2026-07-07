@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Plug } from "lucide-react";
 import { ProviderForm } from "@/components/settings/provider-form";
 import { ProviderList } from "@/components/settings/provider-list";
+import { FallbackOrder } from "@/components/settings/fallback-order";
 import { useAppStore } from "@/lib/stores/use-app-store";
 import { useGsapEntrance } from "@/lib/hooks/use-gsap-entrance";
 import type { AiProviderPublic } from "@/types/ai-provider";
@@ -43,6 +44,7 @@ export default function ProvidersPage() {
         </div>
       </div>
       <ProviderList providers={providers} onChange={refresh} />
+      <FallbackOrder providers={providers} />
       <ProviderForm onCreated={refresh} />
     </div>
   );

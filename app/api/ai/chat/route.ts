@@ -1,4 +1,4 @@
-import { streamText, stepCountIs, type ModelMessage } from "ai";
+import { stepCountIs, type ModelMessage, type TextStreamPart } from "ai";
 import { randomUUID } from "crypto";
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
@@ -8,8 +8,11 @@ import {
   getProvider,
   getActiveProvider,
   resolveModel,
+  getFallbackChain,
   type ProviderRecord,
+  type FallbackCandidate,
 } from "@/lib/ai/registry";
+import { streamWithFallback } from "@/lib/ai/fallback";
 import { buildMemoryContext } from "@/lib/ai/injection";
 import { extractMemories } from "@/lib/ai/extraction";
 import { getAppSettings } from "@/lib/db/settings";
@@ -153,34 +156,36 @@ export async function POST(req: Request) {
     .map((b) => b?.trim())
     .filter((b): b is string => !!b);
 
+  const systemContent = systemBits.join("\n\n");
+
   // @ai-sdk/openai sends the system message as role "developer" for any model id
   // that isn't gpt-3 / gpt-4 / chatgpt-4o / gpt-5-chat. First-party OpenAI accepts
   // that, but third-party openai-compat endpoints (deepseek, opencode, openrouter…)
   // reject the "developer" role. For those, fold the system text into the first
   // user turn so no "system"/"developer" message is ever sent.
-  const spec = providerSpec(provider.provider);
-  const foldSystem =
-    (spec?.sdk ?? "openai-compat") === "openai-compat" && provider.provider !== "openai";
+  //
+  // This depends on which provider's *kind* is actually serving the request, so
+  // it's computed per fallback candidate rather than once for the originally
+  // requested provider — a fallback provider can need different message shaping
+  // than the primary one.
+  function finalMessagesFor(providerKind: string): ModelMessage[] {
+    if (!systemContent) return messages;
+    const spec = providerSpec(providerKind);
+    const foldSystem =
+      (spec?.sdk ?? "openai-compat") === "openai-compat" && providerKind !== "openai";
+    if (!foldSystem) return [{ role: "system", content: systemContent }, ...messages];
 
-  const systemContent = systemBits.join("\n\n");
-  let finalMessages: ModelMessage[];
-  if (!systemContent) {
-    finalMessages = messages;
-  } else if (!foldSystem) {
-    finalMessages = [{ role: "system", content: systemContent }, ...messages];
-  } else {
     const i = messages.findIndex((m) => m.role === "user" && typeof m.content === "string");
-    finalMessages =
-      i === -1
-        ? [{ role: "user", content: systemContent } as ModelMessage, ...messages]
-        : messages.map((m, idx) =>
-            idx === i
-              ? ({
-                  ...m,
-                  content: `${systemContent}\n\n———\n\n${m.content as string}`,
-                } as ModelMessage)
-              : m
-          );
+    return i === -1
+      ? [{ role: "user", content: systemContent } as ModelMessage, ...messages]
+      : messages.map((m, idx) =>
+          idx === i
+            ? ({
+                ...m,
+                content: `${systemContent}\n\n———\n\n${m.content as string}`,
+              } as ModelMessage)
+            : m
+        );
   }
 
   // Persist the user message immediately if we have a session.
@@ -203,15 +208,12 @@ export async function POST(req: Request) {
     }
   }
 
-  let model;
-  try {
-    model = resolveModel(provider, modelOverride);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return Response.json({ error: `Provider error: ${message}` }, { status: 500 });
-  }
-
-  const capturedProvider = provider;
+  // Ranked candidates for this turn: the requested/active provider first, then
+  // the user's configured fallback order (Settings → AI Providers). Building the
+  // model + calling streamText() per candidate happens lazily inside the stream
+  // below — a candidate only "wins" once its first real stream part arrives, since
+  // content may already be flowing to the client by the time a later part errors.
+  const chain = getFallbackChain(provider, modelOverride);
   const tools = isAgent ? buildAgentTools() : undefined;
 
   // Per-request context for tools: lets a tool's execute() emit an interactive
@@ -225,40 +227,35 @@ export async function POST(req: Request) {
     powerLevel: getPowerLevel(),
   };
 
-  // Reasoning/thinking: scoped to the provider's SDK + the model's capability.
-  // An explicit per-request effort wins; otherwise the global enableThinking
+  // Builds this candidate's streamText() options — called once per cascade
+  // attempt, since the model/providerOptions differ per provider. Reasoning/
+  // thinking is scoped to the provider's SDK + the model's capability; an
+  // explicit per-request effort wins, otherwise the global enableThinking
   // setting decides (preserving prior Anthropic-only behavior).
-  const modelId = modelOverride || provider.defaultModel || "";
-  const providerOptions = buildProviderOptions(
-    provider.provider,
-    modelId,
-    reasoningEffort,
-    appSettings.enableThinking
-  );
-
-  const result = streamText({
-    model,
-    messages: finalMessages,
-    tools,
-    stopWhen: isAgent ? stepCountIs(8) : undefined,
-    providerOptions,
-    abortSignal: req.signal,
-    experimental_context: reqCtx,
-    onFinish: async ({ text }) => {
-      // Memory extraction runs in the background. Assistant-row persistence happens
-      // in the stream's `finally` below, where the full block transcript is assembled.
-      const fullMessages: ModelMessage[] = [
-        // Only real user/assistant turns feed extraction — never system messages
-        // (host context, presets, memory blocks), which would otherwise get mined
-        // and persisted as bogus "memories".
-        ...messages.filter((m) => m.role !== "system"),
-        { role: "assistant", content: text },
-      ];
-      void extractMemories(fullMessages).catch((err) =>
-        console.error("[chat] extraction failed:", err)
-      );
-    },
-  });
+  const buildStreamOptions = (candidate: FallbackCandidate) => {
+    const modelId = candidate.modelOverride || candidate.provider.defaultModel || "";
+    return {
+      model: resolveModel(candidate.provider, candidate.modelOverride),
+      messages: finalMessagesFor(candidate.provider.provider),
+      tools,
+      stopWhen: isAgent ? stepCountIs(8) : undefined,
+      providerOptions: buildProviderOptions(
+        candidate.provider.provider,
+        modelId,
+        reasoningEffort,
+        appSettings.enableThinking
+      ),
+      abortSignal: req.signal,
+      experimental_context: reqCtx,
+      // The fallback cascade's own retry (lib/ai/retry.ts) owns the backoff
+      // schedule — leaving the SDK's default maxRetries: 2 on top would silently
+      // compound into up to 3x the delay per cascade attempt.
+      maxRetries: 0,
+      onError: ({ error }: { error: unknown }) => {
+        console.error(`[chat] ${candidate.provider.name} stream error:`, error);
+      },
+    };
+  };
 
   // NDJSON stream: one JSON object per line. Each event is also folded into a
   // server-side block array (via the same reducer the client uses) so the
@@ -278,35 +275,73 @@ export async function POST(req: Request) {
       // Bind the per-request context so tools can emit approval requests into this
       // same stream (tools run during the fullStream loop below, after this point).
       reqCtx.emit = emit;
+
+      // Try each provider in the fallback chain. A candidate only "wins" once its
+      // first real part arrives off fullStream — we can't swap providers after
+      // content has already started reaching the client.
+      let attempt;
       try {
-        for await (const part of result.fullStream) {
-          if (part.type === "text-delta") {
-            emit({ type: "text", value: part.text });
-          } else if (part.type === "reasoning-delta") {
-            emit({ type: "reasoning", value: part.text });
-          } else if (part.type === "tool-call") {
-            // Surface each agent tool invocation so the client can render it as a
-            // Claude-Code-style tool card (matched to its result by toolCallId).
-            emit({ type: "tool_call", id: part.toolCallId, name: part.toolName, args: part.input });
-          } else if (part.type === "tool-result") {
-            emit({
-              type: "tool_result",
-              id: part.toolCallId,
-              name: part.toolName,
-              result: part.output,
-            });
-          } else if (part.type === "tool-error") {
-            const msg = part.error instanceof Error ? part.error.message : String(part.error);
-            emit({ type: "tool_result", id: part.toolCallId, name: part.toolName, error: msg });
-          } else if (part.type === "error") {
-            const msg = part.error instanceof Error ? part.error.message : String(part.error);
-            emit({ type: "error", value: msg });
-          }
+        attempt = await streamWithFallback(chain, buildStreamOptions);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        emit({ type: "error", value: msg });
+        controller.close();
+        return;
+      }
+
+      const winner = attempt.candidate.provider;
+      // Assistant-row persistence and memory extraction below key off this,
+      // not the originally-requested `provider` — cost/history should reflect
+      // whoever actually answered.
+      const capturedProvider: ProviderRecord = winner;
+      emit({
+        type: "provider_used",
+        id: winner.id,
+        name: winner.name,
+        fellBack: winner.id !== provider.id,
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- see fallback.ts
+      const handlePart = (part: TextStreamPart<any>) => {
+        if (part.type === "text-delta") {
+          emit({ type: "text", value: part.text });
+        } else if (part.type === "reasoning-delta") {
+          emit({ type: "reasoning", value: part.text });
+        } else if (part.type === "tool-call") {
+          // Surface each agent tool invocation so the client can render it as a
+          // Claude-Code-style tool card (matched to its result by toolCallId).
+          emit({ type: "tool_call", id: part.toolCallId, name: part.toolName, args: part.input });
+        } else if (part.type === "tool-result") {
+          emit({
+            type: "tool_result",
+            id: part.toolCallId,
+            name: part.toolName,
+            result: part.output,
+          });
+        } else if (part.type === "tool-error") {
+          const msg = part.error instanceof Error ? part.error.message : String(part.error);
+          emit({ type: "tool_result", id: part.toolCallId, name: part.toolName, error: msg });
+        } else if (part.type === "error") {
+          const msg = part.error instanceof Error ? part.error.message : String(part.error);
+          emit({ type: "error", value: msg });
+        }
+      };
+
+      try {
+        // The cascade already consumed the first part to decide this candidate
+        // won — handle it, then keep pulling from the same iterator so nothing
+        // is skipped or re-read.
+        handlePart(attempt.firstPart);
+        while (true) {
+          const next = await attempt.iterator.next();
+          if (next.done) break;
+          handlePart(next.value);
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         emit({ type: "error", value: msg });
       } finally {
+        const replyText = blocksToText(serverBlocks);
         // Persist the assistant turn with its structured block transcript. `content`
         // stays the concatenated text so extraction/search/export keep working.
         if (sessionId && serverBlocks.length) {
@@ -317,16 +352,34 @@ export async function POST(req: Request) {
                 id: randomUUID(),
                 sessionId,
                 role: "assistant",
-                content: blocksToText(serverBlocks),
+                content: replyText,
                 blocks: serializeBlocksForStorage(serverBlocks),
                 providerId: capturedProvider.id,
-                modelName: modelOverride || capturedProvider.defaultModel || null,
+                modelName: attempt.candidate.modelOverride || capturedProvider.defaultModel || null,
                 createdAt: new Date().toISOString(),
               })
               .run();
           } catch (err) {
             console.error("[chat] failed to persist assistant message:", err);
           }
+        }
+        // Extraction reads the same block-derived text just persisted above, rather
+        // than a separate onFinish callback — onFinish is registered per streamText()
+        // call, and this route now makes one such call per fallback candidate, which
+        // would make "did onFinish fire for the winning attempt" an extra thing to
+        // get right. Deriving from serverBlocks is unambiguous no matter which
+        // candidate won.
+        if (replyText.trim()) {
+          const fullMessages: ModelMessage[] = [
+            // Only real user/assistant turns feed extraction — never system messages
+            // (host context, presets, memory blocks), which would otherwise get mined
+            // and persisted as bogus "memories".
+            ...messages.filter((m) => m.role !== "system"),
+            { role: "assistant", content: replyText },
+          ];
+          void extractMemories(fullMessages).catch((err) =>
+            console.error("[chat] extraction failed:", err)
+          );
         }
         controller.close();
       }

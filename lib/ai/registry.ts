@@ -8,6 +8,7 @@ import type { LanguageModel } from "ai";
 import { getDb } from "@/lib/db/client";
 import { aiProviders } from "@/lib/db/schema";
 import { decrypt } from "@/lib/utils/crypto";
+import { getAppSettings } from "@/lib/db/settings";
 import {
   DEFAULT_MODELS,
   providerSpec,
@@ -64,4 +65,34 @@ export function resolveModel(provider: ProviderRecord, override?: string | null)
       return createOpenAI({ apiKey, baseURL }).chat(modelId);
     }
   }
+}
+
+export interface FallbackCandidate {
+  provider: ProviderRecord;
+  /** Only set for the originally-requested provider — fallbacks use their own default model. */
+  modelOverride?: string | null;
+}
+
+/**
+ * Builds the ranked list of providers to try for one chat turn: the requested
+ * (or active) provider first, then the user's configured fallback order from
+ * Settings → AI Providers, skipping duplicates and any provider that's since
+ * been deleted.
+ */
+export function getFallbackChain(
+  primary: ProviderRecord,
+  modelOverride?: string | null
+): FallbackCandidate[] {
+  const { fallbackProviderIds } = getAppSettings();
+  const chain: FallbackCandidate[] = [{ provider: primary, modelOverride }];
+  const seen = new Set([primary.id]);
+
+  for (const id of fallbackProviderIds) {
+    if (seen.has(id)) continue;
+    const p = getProvider(id);
+    if (!p) continue;
+    seen.add(id);
+    chain.push({ provider: p });
+  }
+  return chain;
 }
