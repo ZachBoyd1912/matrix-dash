@@ -1,7 +1,7 @@
 // Bump this string whenever the caching strategy below changes — it names the
 // caches, so a bump makes activate() below clean out anything from the old
 // version rather than serving stale entries under the new logic forever.
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const STATIC_CACHE = `matrix-static-${CACHE_VERSION}`;
 const API_CACHE = `matrix-api-${CACHE_VERSION}`;
 const OFFLINE_URL = "/dashboard/offline";
@@ -55,10 +55,13 @@ async function cacheFirst(req, cacheName) {
 // NetworkFirst — the local SQLite DB behind these routes is the live source of
 // truth and changes constantly, so always prefer a fresh response; a cached
 // copy is a resilience fallback for a dropped connection, never the default.
+// Query-string requests are never cached: search endpoints mint an unbounded
+// set of distinct URLs (one per keystroke), and the Cache API has no eviction,
+// so caching them grows storage forever for entries that are never re-hit.
 async function networkFirst(req, cacheName) {
   try {
     const res = await fetch(req);
-    if (res.ok) {
+    if (res.ok && !new URL(req.url).search) {
       const cache = await caches.open(cacheName);
       cache.put(req, res.clone());
     }

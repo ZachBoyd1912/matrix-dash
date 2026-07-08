@@ -87,7 +87,14 @@ export function syncNoteToVault(note: typeof notes.$inferSelect): void {
   if (!vaultPath) return;
 
   const dir = path.join(vaultPath, NOTES_SUBDIR);
-  const filename = sanitizeFilename(note.title || note.id);
+  let filename = sanitizeFilename(note.title || note.id);
+  // Two notes can share a title → same sanitized filename; without this the
+  // second silently overwrites the first note's vault file. Suffix with a bit
+  // of the id when a DIFFERENT row already owns that path.
+  const conflict = getDb().select().from(notes).where(eq(notes.vaultRelPath, filename)).get();
+  if (conflict && conflict.id !== note.id) {
+    filename = filename.replace(/\.md$/, ` (${note.id.slice(0, 4)}).md`);
+  }
 
   if (note.vaultRelPath && note.vaultRelPath !== filename) {
     fs.rmSync(path.join(dir, note.vaultRelPath), { force: true });
@@ -100,7 +107,10 @@ export function syncNoteToVault(note: typeof notes.$inferSelect): void {
         .filter(Boolean)
     : [];
   const favorite = !!note.isFavorite;
-  const frontmatter = tags.length === 0 && !favorite ? "" : buildFrontmatter({ tags, favorite });
+  // Always emit frontmatter: if it were omitted, a note whose CONTENT starts
+  // with "---" (a markdown horizontal rule) would have its opening lines eaten
+  // as fake frontmatter on read-back — silent content loss on round-trip.
+  const frontmatter = buildFrontmatter({ tags, favorite });
   const content = frontmatter + note.content;
 
   const targetPath = path.join(dir, filename);
@@ -122,7 +132,12 @@ export function syncMemoryToVault(memory: typeof memories.$inferSelect): void {
   if (!vaultPath) return;
 
   const dir = path.join(vaultPath, MEMORIES_SUBDIR);
-  const filename = sanitizeFilename(memory.content.slice(0, 60) || memory.id);
+  let filename = sanitizeFilename(memory.content.slice(0, 60) || memory.id);
+  // Same collision guard as notes: first 60 chars of two memories can match.
+  const conflict = getDb().select().from(memories).where(eq(memories.vaultRelPath, filename)).get();
+  if (conflict && conflict.id !== memory.id) {
+    filename = filename.replace(/\.md$/, ` (${memory.id.slice(0, 4)}).md`);
+  }
 
   if (memory.vaultRelPath && memory.vaultRelPath !== filename) {
     fs.rmSync(path.join(dir, memory.vaultRelPath), { force: true });

@@ -99,7 +99,15 @@ export function middleware(req: NextRequest) {
       return NextResponse.json({ error: "Cross-site request blocked" }, { status: 403 });
     }
 
+    // A body without Content-Length (chunked transfer) would bypass the size
+    // gate entirely — middleware can't buffer the stream to measure it, so
+    // require the header on any request that carries a body (411 is the
+    // standard status for exactly this). GET/HEAD-style bodyless mutations
+    // (some DELETEs send no body and no header) stay allowed.
     const contentLength = req.headers.get("content-length");
+    if (!contentLength && req.headers.get("transfer-encoding")) {
+      return NextResponse.json({ error: "Length required" }, { status: 411 });
+    }
     if (contentLength && Number(contentLength) > bodyLimitFor(pathname)) {
       return NextResponse.json({ error: "Payload too large" }, { status: 413 });
     }
