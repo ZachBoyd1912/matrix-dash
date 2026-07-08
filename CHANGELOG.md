@@ -2,6 +2,15 @@
 
 # Changelog
 
+## 08/07/2026 @ 07:10:57 IST — "Claude Fable 5"
+
+**Goal:** Document the monetization strategy for zbautomations.ie as a committed plan file, per the user's decisions in the planning session (client-services funnel first, self-hosted contact form, packages without public prices; blueprint sales deferred).
+
+**Added:**
+- `monetization-plan-zbautomations.ie.md` — full implementation plan for the client-services conversion funnel: new `deploy/landing/services.html` (4 named packages, enquiry form), self-hosted contact endpoint (`deploy/contact-service/` Node+nodemailer service on 127.0.0.1:3002, systemd unit, Caddy `/api/contact` reverse-proxy route), spam defense (honeypot + time trap + rate limiting, no third-party captcha), nav/CTA rewiring across all 5 landing pages (GitHub-as-contact retired), SEO/GEO registration (sitemap, llms.txt "Important context" amendment, ProfessionalService JSON-LD), targeted deploy sequence and curl-verified end-to-end checklist. Cause: the landing site had zero monetization surface — no form, no services page, no way for a prospect to hire ZB Automations. Verification: plan only, no runtime surface; file renders as valid markdown. Implementation is a follow-up session; blocked only on SMTP creds for `/etc/contact-form.env`.
+
+**Files Touched:** `monetization-plan-zbautomations.ie.md` (new), `CHANGELOG.md`.
+
 ## 08/07/2026 @ 03:01:58 IST — "Claude Fable 5"
 
 **Goal:** /loop iteration 1 — the review/analyze/test/fix phase the user directed to follow roadmap completion ("review, analyze, test and fix everything shipped this session, note all findings and fixes extensively in changelog"). Attempted twice as a 5-dimension adversarial-review Workflow (AI pipeline, sessions/DB, Obsidian sync, PWA/security, UI pass — each finding independently verified by a skeptic agent); both attempts died instantly on API subagent session limits, so this iteration ran as an inline self-review against the same five-dimension checklist.
