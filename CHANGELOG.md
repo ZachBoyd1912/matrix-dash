@@ -2,7 +2,16 @@
 
 # Changelog
 
-## 08/07/2026 @ 07:45:33 IST — "Claude Sonnet 5"
+## 08/07/2026 @ 17:40:19 IST — "Claude Sonnet 5"
+
+**Goal:** Fix the dark-mode toggle button — user reported it doesn't switch the dashboard to dark mode.
+
+**Fixed:**
+- **Theme toggle was a no-op on fresh sessions** (`components/layout/theme-toggle.tsx`). The toggle remembers the "last dark theme" so switching back from light returns you there instead of always to `"matrix"`. That memory was seeded from `DEFAULT_THEME`, which used to be a dark theme (`"matrix"`) but became `"paper"` (a **light** theme, `lib/themes.ts:37-43`) when Paper Signal shipped as the default brand (commit `54be725`) — the toggle was never updated to match. On any fresh session, clicking "switch to dark" called `setTheme("paper")`, reassigning the current light theme to itself: a silent no-op. **Fix:** derive the dark-theme fallback dynamically — `THEMES.find(t => !t.light)?.id` — instead of hardcoding `DEFAULT_THEME`, so this can't regress again if the default theme changes.
+
+**Verification:** `pnpm typecheck` clean. Confirmed live in the running dev server (hot-reloaded) — user tested the button in-browser and confirmed it now switches to dark mode.
+
+**Files Touched:** `components/layout/theme-toggle.tsx`, `CHANGELOG.md`.
 
 **Goal:** Runtime testing pass before human QA handoff — the user directly asked whether all 19 plans were "tested and sent live." Answer at the time was: implemented and statically verified, but not runtime-tested against real systems. This entry closes that gap as far as possible without a working browser session (Chrome extension's per-site content-read permission never unblocked despite two grant attempts — `navigate` succeeded but `screenshot`/`get_page_text`/`read_page` kept failing, first with a permission error, then with "Frame showing error page," then the extension stopped responding entirely on a plain `https://example.com` load. Per the user's instruction, stopped fighting it — they'll do the visual/interactive browser pass themselves).
 

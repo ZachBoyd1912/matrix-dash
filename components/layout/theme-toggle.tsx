@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { Sun, Moon } from "lucide-react";
-import { themeMeta, DEFAULT_THEME } from "@/lib/themes";
+import { themeMeta, THEMES, DEFAULT_THEME } from "@/lib/themes";
+
+const FALLBACK_DARK_THEME = THEMES.find((t) => !t.light)?.id ?? DEFAULT_THEME;
 
 /**
  * Quick light/dark flip. Remembers the last dark theme so toggling back from a
@@ -12,7 +14,7 @@ import { themeMeta, DEFAULT_THEME } from "@/lib/themes";
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const [lastDark, setLastDark] = useState(DEFAULT_THEME);
+  const [lastDark, setLastDark] = useState(FALLBACK_DARK_THEME);
 
   useEffect(() => setMounted(true), []);
 
