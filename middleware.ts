@@ -55,10 +55,22 @@ function isCsrfExempt(pathname: string): boolean {
  * through untouched. That's the same lenient same-origin check most
  * frameworks use instead of per-request CSRF tokens.
  */
-function isCrossSiteMutation(req: NextRequest): boolean {
+// `req.nextUrl.origin` reflects what Node's own HTTP server sees — behind a
+// TLS-terminating reverse proxy (Caddy proxies https:// to plain http://
+// localhost:3000), that's the wrong scheme, so a real same-origin request
+// (browser's Origin: https://...) would never match it (self: http://...)
+// and get misclassified as cross-site. Trust the proxy's forwarded headers
+// when present; only fall back to nextUrl for direct/local connections.
+export function selfOrigin(req: NextRequest): string {
+  const proto = req.headers.get("x-forwarded-proto") ?? req.nextUrl.protocol.replace(":", "");
+  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? req.nextUrl.host;
+  return `${proto}://${host}`;
+}
+
+export function isCrossSiteMutation(req: NextRequest): boolean {
   const origin = req.headers.get("origin");
   const referer = req.headers.get("referer");
-  const self = req.nextUrl.origin;
+  const self = selfOrigin(req);
 
   if (origin) return origin !== self;
   if (referer) {
