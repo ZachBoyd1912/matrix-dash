@@ -27,6 +27,9 @@ export function DropdownMenu({ trigger, items, align = "end", className }: Props
   const [open, setOpen] = React.useState(false);
   const [active, setActive] = React.useState(0);
   const rootRef = React.useRef<HTMLDivElement | null>(null);
+  const triggerRef = React.useRef<HTMLButtonElement | null>(null);
+  const itemRefs = React.useRef<(HTMLButtonElement | null)[]>([]);
+  const wasOpen = React.useRef(false);
 
   React.useEffect(() => {
     if (!open) return;
@@ -36,6 +39,22 @@ export function DropdownMenu({ trigger, items, align = "end", className }: Props
     document.addEventListener("pointerdown", onPointerDown);
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [open]);
+
+  // Move real DOM focus onto the active item — the highlight class alone is
+  // visual-only and announces nothing to a screen reader, and Tab could escape
+  // past an open menu without ever landing inside it. Only restore focus to
+  // the trigger on an actual open→close transition, never on mount (open
+  // starts false, and this effect must not steal focus from whatever else is
+  // on the page the first time it runs).
+  React.useEffect(() => {
+    if (open) {
+      itemRefs.current[active]?.focus();
+      wasOpen.current = true;
+    } else if (wasOpen.current) {
+      triggerRef.current?.focus();
+      wasOpen.current = false;
+    }
+  }, [open, active]);
 
   const enabled = items.map((it, i) => (!it.disabled ? i : -1)).filter((i) => i >= 0);
 
@@ -70,6 +89,7 @@ export function DropdownMenu({ trigger, items, align = "end", className }: Props
   return (
     <div ref={rootRef} className={cn("relative inline-block", className)} onKeyDown={onKeyDown}>
       <button
+        ref={triggerRef}
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
@@ -89,6 +109,9 @@ export function DropdownMenu({ trigger, items, align = "end", className }: Props
           {items.map((item, i) => (
             <button
               key={item.label}
+              ref={(el) => {
+                itemRefs.current[i] = el;
+              }}
               role="menuitem"
               type="button"
               disabled={item.disabled}

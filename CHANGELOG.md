@@ -2,6 +2,31 @@
 
 # Changelog
 
+## 08/07/2026 @ 07:13:13 IST — "Claude Sonnet 5"
+
+**Goal:** /loop iteration 2 — continuing the review/analyze/test/fix directive. Three more parallel-Workflow attempts died on the API subagent session limit (two 5-dimension attempts, one scoped-down 2-agent attempt — the last one was genuinely mid-execution with live-growing transcripts when the user asked for status, confirming these are real rate-limit deaths, not silent misconfiguration). Per explicit user instruction this iteration ran with **no subagents/workflows at all** — every check below is direct inline code reading and reasoning.
+
+**Confirmed finding → FIXED (1):**
+- **`components/ui/dropdown-menu.tsx`: keyboard navigation never moved real DOM focus.** The `active` index driving the highlighted item was purely a CSS class (`bg-white/8`) — arrow keys moved the visual highlight but focus stayed on the trigger button throughout, so a screen reader announced nothing as the "selection" changed, and Tab could escape the open menu without ever entering it. Not a live user-facing bug today (grepped the whole app — `DropdownMenu` isn't imported anywhere yet, it's Tier-3 primitive infrastructure with no consumer), but a real defect waiting for its first caller. **Fix:** item buttons now get real refs and receive actual `.focus()` when they become active; closing the menu restores focus to the trigger — but only on a genuine open→close transition (a naive version of this fix would have stolen focus from whatever's on the page on component *mount*, since `open` starts `false`; guarded with a `wasOpen` ref so the restore-focus effect only fires after the menu was actually opened once).
+
+**Re-verified (adversarially, against my own loop-1 fixes) → all hold:**
+- Obsidian always-frontmatter fix doesn't break reading pre-existing frontmatter-less files (`parseFrontmatter` already falls back to whole-file-as-body when there's no `---` opener — verified by reading the function, not just trusting the earlier test).
+- Filename-collision suffix (4 hex chars of the row's id) has a theoretical residual collision if a *third* same-titled row's suffix also collided — astronomically unlikely for a personal single-user vault; not treated as a defect worth further guarding.
+- SW query-string cache skip doesn't accidentally exclude any legitimately-cacheable request — audited the API surface; every `/api/*` GET that carries a query string uses it for search/filter (transient, per-keystroke), never for a stable cacheable resource.
+- Middleware's new 411-on-chunked-without-Content-Length doesn't break any real caller — this app's own client code never sends a chunked/streaming *request* body (only response streaming exists); the 411 only ever fires against a client deliberately trying to dodge the size gate.
+
+**Checked, no new defect found:**
+- GSAP-entrance-vs-Virtuoso interaction: refuted. `useGsapEntrance`'s ref sits on each page's outer wrapper `<div>`; Virtuoso is nested several DOM levels inside it (through header/filter/grid containers), never a direct child — GSAP's "animate every direct child" only ever touched the same 1-2 layout containers it did before virtualization existed. No new interaction.
+- Virtuoso `itemContent` closures (`memory-bank`, `sessions` pages): refuted. These are inline arrow functions re-created on every parent render, so Virtuoso always calls the current one — no staleness risk, this is the standard correct pattern for render-prop virtualization callbacks.
+- Onboarding wizard vs. `Dialog`'s window-level Escape listener: real *architectural* fragility, not a live bug. `Dialog` attaches its Escape handler unscoped to any single instance — if two `Dialog`s were ever open simultaneously, both would react to one Escape press. Traced whether this is reachable: the wizard renders as a full-screen backdrop-blurred overlay that blocks all clicks to anything behind it, and nothing in the codebase opens a *second* dialog programmatically (no fetch-triggered or timer-triggered dialog opens exist). Not reachable today; would need a proper dialog stack manager if a future feature ever layers dialogs — noted, not fixed, since fixing infrastructure with no live bug is out of scope for a review pass.
+- Rate-limit `Map` (middleware) and circuit-breaker `Map` (`lib/ai/circuit-breaker.ts`): both bounded — rate-limit has opportunistic eviction past 5000 entries, circuit-breaker is keyed by the finite set of a user's configured providers. No unbounded growth.
+- Cost aggregation SQL (`lib/ai/cost.ts`): NULL-token rows are correctly excluded from `messageCount` and cost is `null` (unknown) vs `0` (nothing tracked) are correctly distinguished — no silent miscounting.
+- Chat regenerate/variant event handling: `regenerateMessage()`'s own `handleLine` explicitly ignores `message_persisted` (only the initial-send path listens for it), so there's no id-swap race between the two code paths.
+
+**Verification:** typecheck / lint (0 errors) / tests 26/26 / format:check all pass. This iteration made no live-server or browser checks (no new server-observable behavior changed — the dropdown-menu fix has zero current callers to exercise it against).
+
+**Files touched:** `components/ui/dropdown-menu.tsx`.
+
 ## 08/07/2026 @ 07:10:57 IST — "Claude Fable 5"
 
 **Goal:** Document the monetization strategy for zbautomations.ie as a committed plan file, per the user's decisions in the planning session (client-services funnel first, self-hosted contact form, packages without public prices; blueprint sales deferred).
