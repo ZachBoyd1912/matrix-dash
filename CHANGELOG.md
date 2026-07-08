@@ -2,6 +2,23 @@
 
 # Changelog
 
+## 08/07/2026 @ 17:46:20 IST — "Claude Sonnet 5"
+
+**Goal:** Follow-up from the user's manual browser test pass — they found 4 real, distinct problems that static/API-level testing couldn't have caught, since they all involve client-side UI wiring, not server logic. Investigated each directly against the source rather than guessing.
+
+**Fixed:**
+- **The main "Chat" nav entry (`/dashboard/chat`) never established a `sessionId`.** `<ChatInterface />` was rendered with zero props there, and `app/api/ai/chat/route.ts` only persists a message `if (sessionId && ...)` — so every conversation started from the primary nav link was fully ephemeral: nothing was saved, cost/token usage was never recorded, and `onRegenerate`/`onFork`/`onSwitchVariant` were always `undefined` (all three gated on `sessionId` in `chat-interface.tsx`) so their buttons never rendered. This is why the user saw no hover actions on assistant messages, no fork button, no variant picker, and $0 cost for a conversation they'd actually run against a real provider — none of it was a rendering bug, the conversation itself was never being saved anywhere. **Fix:** `app/dashboard/chat/page.tsx` now redirects to `/dashboard/sessions?new=1`, reusing that page's existing, already-working create-session-then-navigate flow instead of duplicating it. The nav link now always lands you in a real, persisted session where regenerate/fork/variants/cost-tracking all work.
+
+**Investigated, not bugs (documented for clarity):**
+- **Command palette (⌘K) vs. in-chat slash commands (`/`) are two separate, real systems.** The 3 actions added in the UI pass ("Replay onboarding tour", "Obsidian vault sync", "AI usage & cost") were only ever added to the ⌘K palette (`command-palette.tsx`'s "Actions" group, which renders unconditionally — pressing ⌘K with an empty search shows them immediately, no typing needed). The `/` system in the chat input (`lib/chat/slash-commands.ts`) is a distinct, pre-existing feature whose commands get sent to the AI as prompts — adding navigation actions there wouldn't make sense. The user tried `/` and correctly found nothing, since nothing was ever added there. Clarified `app/dashboard/settings/shortcuts/page.tsx`'s two relevant rows so this distinction is visible in-app instead of only in a changelog entry.
+- **Model parameter controls (temperature/top-P/etc.) are fully wired, just not obviously placed.** `ParamControls` isn't an orphaned component — it's reachable by clicking the model name/selector button inside the chat composer (`chat-input.tsx` renders `<ModelSelector>`, which contains `<ParamControls>`), and the values genuinely flow into the Zustand store and then into the actual `POST /api/ai/chat` request body (`generationParams` in `chat-interface.tsx`). Confirmed via `grep`, not assumed. A discoverability gap, not a functional one.
+- **Context-window progress bar only renders once usage crosses 50%** (`chat-interface.tsx`, `contextInfo.percent >= 50`) — by design, so a short test conversation won't show it. Not a bug.
+- **PWA install prompt: code is correct, browser heuristics are opaque.** `app/manifest.ts` (Next's App Router convention, auto-served + auto-linked, no static file needed) is valid — name, icons, `display: "standalone"` all present. `pwa-register.tsx` correctly captures `beforeinstallprompt` and stores it; `topbar.tsx` correctly renders an install button when that event has fired. Chrome's own decision of *when* to fire `beforeinstallprompt` is a black-box engagement heuristic (page-visit count, time-on-site, prior dismissals for the origin) — nothing in this codebase controls it. If it still doesn't appear after normal use, that's a browser-side signal, not something to "fix" here.
+
+**Verification:** typecheck 0 errors, lint 0 errors (61 pre-existing warnings unchanged), tests 31/31, format clean.
+
+**Files touched:** `app/dashboard/chat/page.tsx`, `app/dashboard/settings/shortcuts/page.tsx`, `CHANGELOG.md`.
+
 ## 08/07/2026 @ 17:40:19 IST — "Claude Sonnet 5"
 
 **Goal:** Fix the dark-mode toggle button — user reported it doesn't switch the dashboard to dark mode.
@@ -12,6 +29,8 @@
 **Verification:** `pnpm typecheck` clean. Confirmed live in the running dev server (hot-reloaded) — user tested the button in-browser and confirmed it now switches to dark mode.
 
 **Files Touched:** `components/layout/theme-toggle.tsx`, `CHANGELOG.md`.
+
+## 08/07/2026 @ 07:45:33 IST — "Claude Sonnet 5"
 
 **Goal:** Runtime testing pass before human QA handoff — the user directly asked whether all 19 plans were "tested and sent live." Answer at the time was: implemented and statically verified, but not runtime-tested against real systems. This entry closes that gap as far as possible without a working browser session (Chrome extension's per-site content-read permission never unblocked despite two grant attempts — `navigate` succeeded but `screenshot`/`get_page_text`/`read_page` kept failing, first with a permission error, then with "Frame showing error page," then the extension stopped responding entirely on a plain `https://example.com` load. Per the user's instruction, stopped fighting it — they'll do the visual/interactive browser pass themselves).
 

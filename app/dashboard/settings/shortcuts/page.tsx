@@ -5,10 +5,19 @@ import { useGsapEntrance } from "@/lib/hooks/use-gsap-entrance";
 import { Keyboard } from "lucide-react";
 
 const SHORTCUTS: { keys: string[]; action: string; context: string }[] = [
-  { keys: ["⌘", "K"], action: "Open command palette", context: "Everywhere" },
+  {
+    keys: ["⌘", "K"],
+    action: "Open command palette — browse every action, or search",
+    context: "Everywhere",
+  },
   { keys: ["Esc"], action: "Close dialog / palette", context: "Everywhere" },
   { keys: ["Enter"], action: "Send message", context: "Chat" },
   { keys: ["Shift", "Enter"], action: "New line", context: "Chat" },
+  {
+    keys: ["/"],
+    action: "Slash commands — sent to the AI (e.g. /compact, /usage)",
+    context: "Chat",
+  },
   { keys: ["⌘", "S"], action: "Save current file", context: "IDE" },
 ];
 
