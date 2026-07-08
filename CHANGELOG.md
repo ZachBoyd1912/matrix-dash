@@ -2,6 +2,23 @@
 
 # Changelog
 
+## 08/07/2026 @ 18:33:15 IST — "Claude Sonnet 5"
+
+**Goal:** User provided a real production HAR capture (`matrix.zbautomations.ie.har`) plus a screenshot showing a `Cross-site request blocked` error, and reported production page loads still taking 5-10s. Investigated both from primary evidence rather than guessing.
+
+**Fixed:**
+- **CSRF check false-positived on genuine same-origin requests in production** (`middleware.ts`). The HAR showed `POST /api/workspace` (the IDE's "Launch in workspace" button) getting `403 {"error":"Cross-site request blocked"}` despite `Origin: https://matrix.zbautomations.ie`, `Referer: https://matrix.zbautomations.ie/dashboard/ide`, and Chrome's own `sec-fetch-site: same-origin` all confirming it was genuinely same-origin. Root cause: `isCrossSiteMutation()` compared the browser's `Origin` against `req.nextUrl.origin` — but production runs behind Caddy, which terminates TLS and proxies to plain `http://localhost:3000`, so `req.nextUrl.origin` resolves to `http://matrix.zbautomations.ie` (wrong scheme) while the browser correctly sends `https://...`. The scheme mismatch alone triggered a false cross-site block. This is exactly the kind of bug that a proxy-free local `pnpm dev` session can never surface — it only exists behind Caddy, which is why this session's earlier "tested" pass never caught it. **Fix:** new `selfOrigin()` helper trusts `X-Forwarded-Proto`/`X-Forwarded-Host` (Caddy sets both by default) when present, falling back to `nextUrl` for direct/local connections. Added `__tests__/middleware.test.ts` (5 tests) reproducing the exact captured production request plus dev-fallback and genuinely-cross-site cases. **Not yet live** — this fix needs a production redeploy to take effect; the HAR that caught it was captured against the still-broken build.
+
+**Investigated (performance), inconclusive from this HAR:**
+- Ruled out: server response time (app responds in 5-20ms directly on the VM; ~90ms/38ms through the full Cloudflare→Caddy→Next.js path for the initial document), and any single oversized asset (largest response was a 120KB CSS file, loaded in 15ms).
+- The HAR shows multi-second gaps with zero network activity (7s, then ~19s) between early requests, which looked at first like a client-side hang — but the pattern (recurring `/api/notifications` calls roughly every 20s) is consistent with the capture starting mid-session and catching normal polling/idle-time gaps, not literally the first-load moment the user experienced. `/api/ollama` returning `{"status":{"ok":false,"error":"fetch failed"}}` is expected (no local Ollama running on the production VM) and unrelated.
+- Confirmed via `gcloud compute ssh`: production runs on an `e2-micro` (1 shared vCPU, 1GB RAM total) hosting matrix-dash + Matrix Builder + Caddy simultaneously; real swap activity was observed under even light diagnostic load, though this didn't manifest as slow direct HTTP responses in testing.
+- **Still need from the user**: a HAR captured from the actual moment of a cold page load (not mid-session), or confirmation of whether reloading the *same* page a second time is still slow — that will show whether this is genuinely first-visit-only (consistent with a cold-cache/CDN-warming effect) or a sustained problem.
+
+**Verification:** typecheck 0 errors, lint 0 errors (61 pre-existing warnings unchanged), tests 36/36 (31 prior + 5 new), format clean.
+
+**Files touched:** `middleware.ts`, `__tests__/middleware.test.ts` (new), `CHANGELOG.md`.
+
 ## 08/07/2026 @ 17:46:20 IST — "Claude Sonnet 5"
 
 **Goal:** Follow-up from the user's manual browser test pass — they found 4 real, distinct problems that static/API-level testing couldn't have caught, since they all involve client-side UI wiring, not server logic. Investigated each directly against the source rather than guessing.
