@@ -2,6 +2,26 @@
 
 # Changelog
 
+## 08/07/2026 @ 07:45:33 IST — "Claude Sonnet 5"
+
+**Goal:** Runtime testing pass before human QA handoff — the user directly asked whether all 19 plans were "tested and sent live." Answer at the time was: implemented and statically verified, but not runtime-tested against real systems. This entry closes that gap as far as possible without a working browser session (Chrome extension's per-site content-read permission never unblocked despite two grant attempts — `navigate` succeeded but `screenshot`/`get_page_text`/`read_page` kept failing, first with a permission error, then with "Frame showing error page," then the extension stopped responding entirely on a plain `https://example.com` load. Per the user's instruction, stopped fighting it — they'll do the visual/interactive browser pass themselves).
+
+**Live-tested against the real Obsidian vault (`~/Desktop/Obsidian Vault`) via the running dev server + curl, not just unit tests:**
+- Created a note via `POST /api/notes` with content starting with `---` (the exact leading-horizontal-rule scenario the loop-1 frontmatter fix targets). Read the actual file written to `Matrix Notes/` on disk: real frontmatter block present, body's leading `---` preserved verbatim — confirms the fix works against the live sync path, not just `parseFrontmatter`/`buildFrontmatter` in isolation.
+- Edited that file directly on disk (simulating an Obsidian-side edit: different tags, `favorite: true`, different body still starting with `---`), triggered `POST /api/notes/sync`, and confirmed the DB row picked up the new tags/favorite and the full body — vault→DB direction verified too.
+- Created a second note with the identical title to test the filename-collision fix: got `Test Note --- Frontmatter Check (0e56).md` (4 hex chars of its own id) sitting alongside the original file, neither overwritten — collision suffixing confirmed live.
+- Deleted both test notes via `DELETE /api/notes/[id]` — confirmed delete propagates to the vault (files removed, not just the DB rows) and left the vault clean, no test artifacts behind.
+
+**Route smoke test:** started `pnpm dev`, curled all 11 pages touched by this session's plans (`/dashboard`, `/chat`, `/sessions`, `/notes`, `/memory-bank`, `/images`, `/skills`, `/tasks`, `/email`, `/settings/integrations/obsidian`, `/offline`) — all returned `200`. Scanned the dev server log for exceptions: found `ECONNRESET`/`aborted` and `Socket timeout`/`ETIMEOUT` entries, traced both to non-issues — the first was my own curl client timing out during a route's one-time dev-mode compile (13.9s for `/api/notes/[id]`, unrelated to any code shipped this session), the second is a pre-existing IMAP credential failure in the unrelated email-sync background job. No application exceptions from anything touched this session.
+
+**Added a real automated test for the loop-2 dropdown-menu fix** (`__tests__/components/dropdown-menu.test.tsx`, 5 tests) — this component has zero live callers anywhere in the app, so there was no page to browser-test it on; an RTL test exercising actual keyboard events and asserting `document.activeElement`/`toHaveFocus()` is the correct verification method here instead. Confirms: mount doesn't steal focus, ArrowDown moves real DOM focus (not just the highlight class) onto each item in turn, Escape returns focus to the trigger, Enter selects and closes. All 5 pass.
+
+**Verification:** typecheck 0 errors, lint 0 errors (61 pre-existing warnings unchanged), tests 31/31 (26 prior + 5 new), format clean. Dev server stopped after testing (8GB RAM constraint).
+
+**Honest status:** implementation, static verification, and everything testable without a rendered browser page are now done to a high standard. Visual/interactive QA (does it actually look and feel right, keyboard nav across real pages, PWA install/offline behavior, dark/light themes) genuinely needs a human or working browser session and was NOT completed here — the user is doing that pass themselves.
+
+**Files touched:** `__tests__/components/dropdown-menu.test.tsx` (new), `CHANGELOG.md`.
+
 ## 08/07/2026 @ 07:27:16 IST — "Claude Fable 5"
 
 **Goal:** Add GitHub Actions CI so every push/PR to main is verified with a full production build — the check this 8GB machine physically cannot run locally (typecheck-only local verification has previously let runtime and build-breaking bugs through; see the CSRF ordering bug and the six stacked deploy-pipeline bugs).
