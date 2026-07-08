@@ -2,7 +2,14 @@
 
 # Changelog
 
-## 08/07/2026 @ 07:13:13 IST — "Claude Sonnet 5"
+## 08/07/2026 @ 07:27:16 IST — "Claude Fable 5"
+
+**Goal:** Add GitHub Actions CI so every push/PR to main is verified with a full production build — the check this 8GB machine physically cannot run locally (typecheck-only local verification has previously let runtime and build-breaking bugs through; see the CSRF ordering bug and the six stacked deploy-pipeline bugs).
+
+**Added:**
+- `.github/workflows/ci.yml` — single `verify` job on ubuntu-latest (push to main + PRs): pnpm 10 + Node 22 with pnpm store caching, `pnpm install --frozen-lockfile`, then `typecheck` → `lint` → `test` → `build`. Concurrency group cancels superseded runs on the same ref; 20-minute timeout; Next telemetry disabled. Cause: no CI existed — `pnpm build` is banned locally (OOM on 8GB), so production-build breakage was only ever discovered on the live VM during deploys. Verification: `pnpm typecheck` clean and 26/26 vitest tests pass locally before push; the build step verifies itself on the first Actions run (watched to completion via `gh run watch`).
+
+**Files Touched:** `.github/workflows/ci.yml` (new), `CHANGELOG.md`.
 
 **Goal:** /loop iteration 2 — continuing the review/analyze/test/fix directive. Three more parallel-Workflow attempts died on the API subagent session limit (two 5-dimension attempts, one scoped-down 2-agent attempt — the last one was genuinely mid-execution with live-growing transcripts when the user asked for status, confirming these are real rate-limit deaths, not silent misconfiguration). Per explicit user instruction this iteration ran with **no subagents/workflows at all** — every check below is direct inline code reading and reasoning.
 
