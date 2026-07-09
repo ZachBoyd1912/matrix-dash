@@ -2,6 +2,20 @@
 
 # Changelog
 
+## 09/07/2026 @ 13:52:59 IST — "Claude Opus 4.8"
+
+**Goal:** Fix a live 500 the user hit right after shipping the agent system: `POST /api/agents/draft` (the "draft an agent with AI" feature) failed on the active DeepSeek provider.
+
+**Fixed:**
+- **`/api/agents/draft` 500 on openai-compat providers** (`app/api/agents/draft/route.ts`). The server log showed `AI_APICallError: unknown variant \`developer\`, expected one of system|user|assistant|tool` — `@ai-sdk/openai` renders a `system:` prompt as a `developer`-role message, which DeepSeek (and other openai-compat endpoints) reject. This is the same "developer role" quirk the chat route and summarizer already guard with `shouldFoldSystemPrompt()`; the new draft route didn't. **Fix:** fold the instruction into the user turn when `shouldFoldSystemPrompt(provider.provider)`. Verified live against the active DeepSeek provider → 200 with a valid drafted config.
+- **Same latent bug in Jarvis voice** (`lib/ai/jarvis.ts`). `runJarvisTurn` passed `system: persona`, so voice chat would have 500'd identically on DeepSeek. Folded the persona into the final user turn on fold-requiring providers.
+
+**Note (not a bug):** the seeded Site Auditor agent runs correctly (WebFetch of the target site succeeds); its repeated approval prompts are the policy engine correctly queuing each unclassified `Bash`/curl command — use the approval card's "always allow this command" to teach it, or scope its instructions to prefer WebFetch. Pre-existing `[Error: Socket timeout] uncaughtException` lines in the dev log are the Gmail account sync failing, unrelated to the agent system.
+
+**Verification:** typecheck 0 errors, lint 0 errors; live `POST /api/agents/draft` returns 200 on DeepSeek.
+
+**Files touched:** `app/api/agents/draft/route.ts`, `lib/ai/jarvis.ts`, `CHANGELOG.md`.
+
 ## 09/07/2026 @ 08:41:44 IST — "Claude Opus 4.8"
 
 **Goal:** Build a fully automated, user-creatable agent system for the dashboard with full-system read + tiered/gated write access, guardrails, approvals, audit, rollback, and a Jarvis-style voice layer reachable from Mac and iPhone. Implemented across 10 sequential, independently-verified phases from an approved plan.

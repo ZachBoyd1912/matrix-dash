@@ -1,6 +1,7 @@
 import { generateText } from "ai";
 import { z } from "zod";
 import { getActiveProvider, resolveModel } from "@/lib/ai/registry";
+import { shouldFoldSystemPrompt } from "@/types/ai-provider";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -35,10 +36,17 @@ export async function POST(req: Request) {
   if (!provider) return Response.json({ error: "No active AI provider" }, { status: 400 });
 
   const model = resolveModel(provider);
+  // Some openai-compat endpoints (deepseek, openrouter…) reject a "system"/"developer"
+  // role, so fold the instruction into the user turn for those (same as the chat route).
   const { text } = await generateText({
     model,
-    system: DRAFT_SYSTEM,
-    prompt: parsed.data.description,
+    ...(shouldFoldSystemPrompt(provider.provider)
+      ? {
+          messages: [
+            { role: "user", content: `${DRAFT_SYSTEM}\n\n———\n\n${parsed.data.description}` },
+          ],
+        }
+      : { system: DRAFT_SYSTEM, prompt: parsed.data.description }),
   });
 
   const draft = extractJson(text);

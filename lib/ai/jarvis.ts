@@ -5,6 +5,7 @@ import { getDb } from "@/lib/db/client";
 import { sessions, sessionMessages, presets, agentApprovals } from "@/lib/db/schema";
 import { getActiveProvider, resolveModel } from "@/lib/ai/registry";
 import { getSetting, setSetting } from "@/lib/db/settings";
+import { shouldFoldSystemPrompt } from "@/types/ai-provider";
 import { buildVoiceTools } from "@/lib/ai/voice-tools";
 import { settleApproval } from "@/lib/services/agent-approvals";
 
@@ -62,15 +63,19 @@ export async function runJarvisTurn(
       .run();
   }
 
+  const priorTurns = history.map((m) => ({
+    role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
+    content: m.content,
+  }));
+  // Fold the persona into the final user turn for openai-compat endpoints
+  // (deepseek etc.) that reject a "system"/"developer" role.
+  const fold = shouldFoldSystemPrompt(provider.provider);
   const { text: reply } = await generateText({
     model,
-    system: persona,
+    ...(fold ? {} : { system: persona }),
     messages: [
-      ...history.map((m) => ({
-        role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
-        content: m.content,
-      })),
-      { role: "user" as const, content: text },
+      ...priorTurns,
+      { role: "user" as const, content: fold ? `${persona}\n\n———\n\n${text}` : text },
     ],
     tools: buildVoiceTools(),
     stopWhen: stepCountIs(6),
