@@ -30,7 +30,7 @@ export async function PUT(req: Request) {
   if (!provisional) return Response.json({ error: "No provisional secret" }, { status: 400 });
   const secret = decrypt(provisional);
   const verified = verifySync({ token: parsed.data.code, secret });
-  if (!verified) {
+  if (!verified.valid) {
     return Response.json({ ok: false, error: "Invalid code" }, { status: 400 });
   }
   setSetting("totpSecret", provisional);

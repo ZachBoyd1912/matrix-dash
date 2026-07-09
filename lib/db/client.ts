@@ -607,6 +607,31 @@ function ensureIntegrationTables(sqlite: Database.Database) {
   );
 
   exec(
+    `CREATE TABLE users (
+      id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, name TEXT NOT NULL DEFAULT '',
+      password_hash TEXT, totp_secret TEXT, totp_enabled INTEGER DEFAULT 0,
+      role TEXT NOT NULL DEFAULT 'member', is_active INTEGER DEFAULT 1,
+      last_login_at TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+    )`,
+    "users"
+  );
+
+  exec(
+    `CREATE TABLE auth_sessions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      mfa_satisfied INTEGER DEFAULT 0, user_agent TEXT, ip TEXT,
+      created_at TEXT NOT NULL, last_seen_at TEXT NOT NULL, expires_at TEXT NOT NULL
+    )`,
+    "auth_sessions"
+  );
+
+  sqlite.exec(
+    `CREATE INDEX IF NOT EXISTS idx_auth_sessions_user ON auth_sessions(user_id);
+     CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);`
+  );
+
+  exec(
     `CREATE TABLE agents (
       id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT NOT NULL DEFAULT '',
       instructions TEXT NOT NULL DEFAULT '', model TEXT, cwd TEXT,

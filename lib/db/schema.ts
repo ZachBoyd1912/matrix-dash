@@ -494,6 +494,44 @@ export const gmailConnections = sqliteTable("gmail_connections", {
   createdAt: text("created_at").notNull(),
 });
 
+// ─── USERS (multi-tenant accounts) ────────────────────────
+// Each user is an isolated workspace owner. All user-data tables carry an
+// owner_id referencing users.id; queries scope to the authenticated user.
+export const users = sqliteTable("users", {
+  id: text("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  name: text("name").notNull().default(""),
+  // scrypt: "<saltHex>:<hashHex>". Null when the account is CF-Access-only (no password set yet).
+  passwordHash: text("password_hash"),
+  // Encrypted TOTP secret; totpEnabled gates the 2FA step at login.
+  totpSecret: text("totp_secret"),
+  totpEnabled: integer("totp_enabled", { mode: "boolean" }).default(false),
+  // "owner" can manage other accounts; "member" is a normal isolated workspace.
+  role: text("role", { enum: ["owner", "member"] })
+    .notNull()
+    .default("member"),
+  isActive: integer("is_active", { mode: "boolean" }).default(true),
+  lastLoginAt: text("last_login_at"),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
+// ─── AUTH SESSIONS (app-level login sessions) ─────────────
+export const authSessions = sqliteTable("auth_sessions", {
+  // The opaque session token stored in the httpOnly cookie (random, high-entropy).
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  // When true the second factor (TOTP) has been satisfied for this session.
+  mfaSatisfied: integer("mfa_satisfied", { mode: "boolean" }).default(false),
+  userAgent: text("user_agent"),
+  ip: text("ip"),
+  createdAt: text("created_at").notNull(),
+  lastSeenAt: text("last_seen_at").notNull(),
+  expiresAt: text("expires_at").notNull(),
+});
+
 // ─── AGENTS (autonomous agent system) ─────────────────────
 // A user-defined autonomous agent driven by the Claude Agent SDK. Config here is
 // read once at run start (runs don't hot-reload edits); see agentVersions for the

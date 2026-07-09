@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { SESSION_COOKIE, isPublicApi } from "@/lib/auth/constants";
 
 /**
  * Self-hosted, single-instance app — an in-memory sliding window is fine
@@ -102,6 +103,13 @@ function bodyLimitFor(pathname: string): number {
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   if (!pathname.startsWith("/api/")) return NextResponse.next();
+
+  // App-level auth gate: non-public API routes require a session cookie. Full
+  // session validation + per-user scoping happens in the route/handler; this is
+  // the cheap first line (the outer Cloudflare Access gate is defense-in-depth).
+  if (!isPublicApi(pathname) && !req.cookies.get(SESSION_COOKIE)) {
+    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+  }
 
   const now = Date.now();
   const ip = clientIp(req);

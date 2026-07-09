@@ -2,6 +2,10 @@
 
 # Changelog
 
+## 09/07/2026 @ 21:46:00 IST — "Claude Fable 5"
+
+**Added (branch feat/multi-user-auth, Phase 1 of multi-tenant rebuild):** Real app-level login + account foundation ahead of per-user data isolation. New `users` + `auth_sessions` tables; scrypt password hashing (`lib/auth/password.ts`, built-in crypto, no dep); revocable server-side sessions via httpOnly cookie (`lib/auth/session.ts`); `getCurrentUser()` (`lib/auth/current-user.ts`); login/logout/bootstrap/me routes (`app/api/auth/*`); a login page with first-run owner setup + TOTP step (`app/login/page.tsx`); dashboard layout gate (redirects to /login) + middleware API gate (401 without a session, public allowlist for auth/hooks/oauth-callbacks). Also fixed a latent bug where TOTP verify checked `!verifyResult` (always truthy object) instead of `.valid` — matters now that 2FA is becoming real. Verified: 4 auth unit tests (password, session lifecycle, bad/expired rejection). **Not deployed** — data isolation (Phase 2) is next; login works but tables are not yet owner-scoped. **Files:** `lib/auth/*`, `lib/db/users.ts`, `app/api/auth/*`, `app/login/page.tsx`, `app/dashboard/layout.tsx`, `middleware.ts`, `lib/db/{schema,client}.ts`, `app/api/auth/totp/route.ts`, `__tests__/lib/auth.test.ts`.
+
 ## 09/07/2026 @ 16:13:07 IST — "Claude Opus 4.8"
 
 **Fixed:** The Agents page showed a false "Claude CLI not found" banner in production even though agents authenticate fine. The onboarding check ran `which claude`, but the Agent SDK bundles its own runtime — no standalone CLI is needed. Rewrote the check to test actual auth-readiness (CLAUDE_CODE_OAUTH_TOKEN / ANTHROPIC_API_KEY / stored CLI creds) and corrected the banner copy. Verified on the prod VM with a real SDK call returning success. **Files:** `app/api/agents/onboarding/route.ts`, `app/dashboard/agents/page.tsx`, `CHANGELOG.md`.
