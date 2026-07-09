@@ -2,6 +2,10 @@
 
 # Changelog
 
+## 09/07/2026 @ 16:13:07 IST — "Claude Opus 4.8"
+
+**Fixed:** The Agents page showed a false "Claude CLI not found" banner in production even though agents authenticate fine. The onboarding check ran `which claude`, but the Agent SDK bundles its own runtime — no standalone CLI is needed. Rewrote the check to test actual auth-readiness (CLAUDE_CODE_OAUTH_TOKEN / ANTHROPIC_API_KEY / stored CLI creds) and corrected the banner copy. Verified on the prod VM with a real SDK call returning success. **Files:** `app/api/agents/onboarding/route.ts`, `app/dashboard/agents/page.tsx`, `CHANGELOG.md`.
+
 ## 09/07/2026 @ 14:05:55 IST — "Claude Opus 4.8"
 
 **Goal:** Fix two bugs the user hit while running the seeded Site Auditor agent, then deploy the agent system to production.

@@ -53,7 +53,7 @@ export default function AgentsPage() {
     costPct: number;
     runs: number;
   } | null>(null);
-  const [cliMissing, setCliMissing] = useState(false);
+  const [authMissing, setAuthMissing] = useState(false);
 
   const load = useCallback(async () => {
     const [agentsRes, settingsRes, usageRes, onboardRes] = await Promise.all([
@@ -69,8 +69,8 @@ export default function AgentsPage() {
     }
     if (usageRes.ok) setUsage(await usageRes.json());
     if (onboardRes.ok) {
-      const o = (await onboardRes.json()) as { cliFound: boolean };
-      setCliMissing(!o.cliFound);
+      const o = (await onboardRes.json()) as { authReady: boolean };
+      setAuthMissing(!o.authReady);
     }
   }, []);
 
@@ -163,13 +163,13 @@ export default function AgentsPage() {
         </div>
       </div>
 
-      {cliMissing && (
+      {authMissing && (
         <Card className="border-amber-500/40 p-4 text-sm">
-          <div className="font-medium text-amber-300">Claude CLI not found</div>
+          <div className="font-medium text-amber-300">Agent authentication not configured</div>
           <div className="text-text-muted mt-1 text-xs">
-            Agents run on the Claude Agent SDK via your Claude subscription, which needs the{" "}
-            <code>claude</code> CLI installed and logged in. On a headless host, run{" "}
-            <code>claude setup-token</code>.
+            Agents run on the Claude Agent SDK via your Claude subscription. Set{" "}
+            <code>CLAUDE_CODE_OAUTH_TOKEN</code> (from <code>claude setup-token</code>) or{" "}
+            <code>ANTHROPIC_API_KEY</code> in the environment so runs can authenticate.
           </div>
         </Card>
       )}
