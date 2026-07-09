@@ -2,6 +2,18 @@
 
 # Changelog
 
+## 09/07/2026 @ 14:05:55 IST — "Claude Opus 4.8"
+
+**Goal:** Fix two bugs the user hit while running the seeded Site Auditor agent, then deploy the agent system to production.
+
+**Fixed:**
+- **Approved tools never executed** (`lib/services/agent-approvals.ts`) — the real bug behind "gave approval but it isn't doing anything." When a gated tool was approved via the API/registry path, `finalize()` resolved the paused run with `{behavior:"allow", updatedInput: undefined}`. The Agent SDK validates that result and rejects `updatedInput: undefined` with a `ZodError: expected record`, so the *approved* tool failed with a "harness-level permission error" instead of running (visible as "✗ Bash · Allowed" in the transcript). Auto-allowed tools were unaffected because they return the real input record. **Fix:** the promise registry now carries only the decision (a boolean); `awaitApproval()` builds the `PermissionResult` with its own closure `input` (a real record) on both the instant-registry and DB-poll paths. Verified with a new real e2e: a write outside the allowlist queues, and after approval the file actually lands on disk. (This also explains the earlier "succeeded but no file" e2e observation that the auto-allow path had masked.)
+- **Duplicate React key in the run transcript** (`lib/chat/blocks.ts`, `components/chat/transcript-renderer.tsx`) — when the SDK replayed an assistant message, `appendEvent` pushed a second `tool_call` block with the same tool-use id, so the renderer's `key={block.id}` collided ("two children with the same key `toolu_…`"). **Fix:** `appendEvent` now ignores a repeat `tool_call` for an id it already has (a tool-use id is unique per invocation), and the renderer uses a composite `id-index` key defensively. Shared with the chat transcript; full suite still 72/72.
+
+**Verification:** typecheck 0 errors, lint 0 errors, tests 72/72; real end-to-end approval run confirms approved tools now execute.
+
+**Files touched:** `lib/services/agent-approvals.ts`, `lib/chat/blocks.ts`, `components/chat/transcript-renderer.tsx`, `CHANGELOG.md`.
+
 ## 09/07/2026 @ 13:52:59 IST — "Claude Opus 4.8"
 
 **Goal:** Fix a live 500 the user hit right after shipping the agent system: `POST /api/agents/draft` (the "draft an agent with AI" feature) failed on the active DeepSeek provider.

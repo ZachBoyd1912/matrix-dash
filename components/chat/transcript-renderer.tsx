@@ -50,9 +50,15 @@ export function TranscriptRenderer({
           case "reasoning":
             return <ThinkingBlock key={i} thinking={block.text} active={!!streaming && isLast} />;
           case "tool_call":
-            return <ToolCallBlock key={block.id} block={block} />;
+            return <ToolCallBlock key={`${block.id}-${i}`} block={block} />;
           case "approval":
-            return <ApprovalCard key={block.id} block={block} onDecide={onApprove ?? (() => {})} />;
+            return (
+              <ApprovalCard
+                key={`${block.id}-${i}`}
+                block={block}
+                onDecide={onApprove ?? (() => {})}
+              />
+            );
           case "error":
             return (
               <div

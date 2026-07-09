@@ -92,6 +92,10 @@ export function appendEvent(blocks: Block[], idMap: Map<string, number>, ev: Str
       else blocks.push({ kind: "reasoning", text: ev.value });
       return blocks;
     case "tool_call":
+      // A tool_use id is unique per invocation; if the same id arrives twice
+      // (SDK message replay), keep the existing block instead of duplicating it —
+      // duplicates otherwise collide on React keys in the transcript.
+      if (idMap.has(ev.id)) return blocks;
       idMap.set(ev.id, blocks.length);
       blocks.push({
         kind: "tool_call",

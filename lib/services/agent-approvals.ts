@@ -19,7 +19,9 @@ import type { StreamEvent } from "@/lib/chat/blocks";
  */
 
 interface Pending {
-  resolve: (r: PermissionResult) => void;
+  // Carries only the decision; awaitApproval() builds the PermissionResult with
+  // the original tool input (a real record) so the SDK actually runs the tool.
+  resolve: (approved: boolean) => void;
   runId: string;
 }
 
@@ -100,12 +102,19 @@ export async function awaitApproval(args: ApprovalRequestArgs): Promise<Permissi
 
   const result = await new Promise<PermissionResult>((resolve) => {
     const st = { settled: false };
-    const done = (r: PermissionResult) => {
+    // Build the PermissionResult HERE, with the original `input` (a record) as
+    // updatedInput — returning `updatedInput: undefined` makes the SDK reject the
+    // approval with a ZodError and the approved tool never runs.
+    const done = (approved: boolean, denyMessage?: string) => {
       if (st.settled) return;
       st.settled = true;
       clearInterval(poll);
       registry().pending.delete(approvalId);
-      resolve(r);
+      resolve(
+        approved
+          ? { behavior: "allow", updatedInput: input }
+          : { behavior: "deny", message: denyMessage ?? "Denied by user." }
+      );
     };
     // The registry lets settleApproval() resolve this instantly via the API path.
     registry().pending.set(approvalId, { runId, resolve: done });
@@ -125,15 +134,11 @@ export async function awaitApproval(args: ApprovalRequestArgs): Promise<Permissi
             .set({ status: "expired", decidedAt: new Date().toISOString() })
             .where(eq(agentApprovals.id, approvalId))
             .run();
-          done({ behavior: "deny", message: "Approval timed out." });
+          done(false, "Approval timed out.");
         }
         return;
       }
-      done(
-        row.status === "approved"
-          ? { behavior: "allow", updatedInput: input }
-          : { behavior: "deny", message: "Denied." }
-      );
+      done(row.status === "approved");
     }, 5000);
   });
 
@@ -157,8 +162,7 @@ export async function awaitApproval(args: ApprovalRequestArgs): Promise<Permissi
 export function settleApproval(
   approvalId: string,
   decision: "approve" | "deny",
-  alwaysAllow?: AlwaysAllowScope,
-  input?: Record<string, unknown>
+  alwaysAllow?: AlwaysAllowScope
 ): { ok: boolean; reason?: string } {
   const row = getDb().select().from(agentApprovals).where(eq(agentApprovals.id, approvalId)).get();
   if (!row) return { ok: false, reason: "not_found" };
@@ -178,20 +182,16 @@ export function settleApproval(
     applyLearnedRule(row.agentId, alwaysAllow);
   }
 
-  finalize(approvalId, decision === "approve", input);
+  finalize(approvalId, decision === "approve");
   return { ok: true };
 }
 
 /** Resolve the paused promise for a decided approval (if this process holds it). */
-function finalize(approvalId: string, approved: boolean, input?: Record<string, unknown>): void {
+function finalize(approvalId: string, approved: boolean): void {
   const entry = registry().pending.get(approvalId);
   if (!entry) return;
   registry().pending.delete(approvalId);
-  entry.resolve(
-    approved
-      ? { behavior: "allow", updatedInput: input }
-      : { behavior: "deny", message: "Denied by user." }
-  );
+  entry.resolve(approved);
 }
 
 function applyLearnedRule(agentId: string, scope: AlwaysAllowScope): void {
