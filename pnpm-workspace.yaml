@@ -10,3 +10,11 @@ allowBuilds:
   # not needed (it falls back to a JS resolver); don't run it — pnpm 11 on the
   # prod VM otherwise prompts for an explicit decision here.
   unrs-resolver: false
+
+# pnpm 11 enforces a ~24h minimum-release-age supply-chain gate by default, which
+# rejects the freshly-published Claude Agent SDK on the prod VM. Exempt just that
+# package family (the lockfile still pins exact versions + integrity hashes); the
+# gate stays in force for every other dependency.
+minimumReleaseAgeExclude:
+  - "@anthropic-ai/claude-agent-sdk"
+  - "@anthropic-ai/claude-agent-sdk-*"
