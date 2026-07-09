@@ -493,3 +493,134 @@ export const gmailConnections = sqliteTable("gmail_connections", {
   isActive: integer("is_active", { mode: "boolean" }).default(true),
   createdAt: text("created_at").notNull(),
 });
+
+// ─── AGENTS (autonomous agent system) ─────────────────────
+// A user-defined autonomous agent driven by the Claude Agent SDK. Config here is
+// read once at run start (runs don't hot-reload edits); see agentVersions for the
+// pre-edit history and agentRuns for execution records.
+export const agents = sqliteTable("agents", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull().default(""),
+  instructions: text("instructions").notNull().default(""),
+  // null → the system default model (Sonnet). Free-text SDK model id otherwise.
+  model: text("model"),
+  // Working directory the SDK runs in. null → getWorkspaceRoot() (~/MatrixDash).
+  cwd: text("cwd"),
+  // JSON string[] of absolute path prefixes/globs the agent may write to without
+  // approval (its safe zone). Everything else is queued/denied by the policy engine.
+  writeAllowlist: text("write_allowlist").notNull().default("[]"),
+  // JSON of learned "always allow" rules ({ paths: string[], commands: string[] })
+  // appended when an approval is granted with scope. Merged into policy evaluation.
+  learnedRules: text("learned_rules").notNull().default('{"paths":[],"commands":[]}'),
+  // JSON string[] of skill ids injected into this agent's system prompt.
+  skillIds: text("skill_ids").notNull().default("[]"),
+  // JSON of MCP server configs attached to the SDK session.
+  mcpServers: text("mcp_servers").notNull().default("[]"),
+  allowSubagents: integer("allow_subagents", { mode: "boolean" }).default(false),
+  // "triggered" (default) | "standing_watch" (tight check-in interval).
+  mode: text("mode").notNull().default("triggered"),
+  // "direct" | "pr" | null (auto-detect from repo commit history).
+  pushMode: text("push_mode"),
+  // Distinct git author for autonomous commits (null → derived per-agent default).
+  gitAuthorName: text("git_author_name"),
+  gitAuthorEmail: text("git_author_email"),
+  // Cron expression; only fires when scheduleEnabled.
+  schedule: text("schedule"),
+  scheduleEnabled: integer("schedule_enabled", { mode: "boolean" }).default(false),
+  isEnabled: integer("is_enabled", { mode: "boolean" }).default(true),
+  // Reset to 0 on success; auto-disables the schedule at the failure threshold.
+  consecutiveFailures: integer("consecutive_failures").notNull().default(0),
+  // Per-agent overrides of the global limits (null → use the global setting).
+  maxTurns: integer("max_turns"),
+  timeoutMs: integer("timeout_ms"),
+  perRunCostUsd: real("per_run_cost_usd"),
+  perRunTokens: integer("per_run_tokens"),
+  maxChainDepth: integer("max_chain_depth"),
+  // JSON { postToChat: bool, fileNote: bool, inDigest: bool }.
+  deliverables: text("deliverables")
+    .notNull()
+    .default('{"postToChat":false,"fileNote":false,"inDigest":true}'),
+  lastRunAt: text("last_run_at"),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
+// ─── AGENT RUNS (execution records + transcripts) ─────────
+export const agentRuns = sqliteTable("agent_runs", {
+  id: text("id").primaryKey(),
+  agentId: text("agent_id")
+    .notNull()
+    .references(() => agents.id, { onDelete: "cascade" }),
+  // queued|running|awaiting_approval|succeeded|failed|cancelled|timeout|interrupted|needs_review
+  status: text("status").notNull().default("queued"),
+  // manual|cron|webhook|chat|voice
+  trigger: text("trigger").notNull().default("manual"),
+  dryRun: integer("dry_run", { mode: "boolean" }).default(false),
+  chainDepth: integer("chain_depth").notNull().default(0),
+  parentRunId: text("parent_run_id"),
+  urgent: integer("urgent", { mode: "boolean" }).default(false),
+  prompt: text("prompt").notNull().default(""),
+  sdkSessionId: text("sdk_session_id"),
+  sourceSessionId: text("source_session_id"),
+  // JSON-encoded Block[] (same shape as session_messages.blocks).
+  blocks: text("blocks"),
+  result: text("result"),
+  error: text("error"),
+  inputTokens: integer("input_tokens").notNull().default(0),
+  outputTokens: integer("output_tokens").notNull().default(0),
+  costUsd: real("cost_usd").notNull().default(0),
+  numTurns: integer("num_turns").notNull().default(0),
+  gitRepoPath: text("git_repo_path"),
+  gitBranch: text("git_branch"),
+  pushModeUsed: text("push_mode_used"),
+  prUrl: text("pr_url"),
+  snapshotDir: text("snapshot_dir"),
+  startedAt: text("started_at"),
+  endedAt: text("ended_at"),
+  createdAt: text("created_at").notNull(),
+});
+
+// ─── AGENT APPROVALS (persistent gated-action queue) ──────
+export const agentApprovals = sqliteTable("agent_approvals", {
+  id: text("id").primaryKey(),
+  runId: text("run_id")
+    .notNull()
+    .references(() => agentRuns.id, { onDelete: "cascade" }),
+  agentId: text("agent_id").notNull(),
+  toolName: text("tool_name").notNull(),
+  input: text("input").notNull().default("{}"),
+  summary: text("summary").notNull().default(""),
+  // "gated" | "break_glass"
+  tier: text("tier").notNull().default("gated"),
+  justification: text("justification"),
+  // pending|approved|denied|expired|orphaned
+  status: text("status").notNull().default("pending"),
+  // HMAC token for single-use ntfy/Telegram approve/deny action URLs.
+  signedToken: text("signed_token"),
+  createdAt: text("created_at").notNull(),
+  expiresAt: text("expires_at").notNull(),
+  decidedAt: text("decided_at"),
+});
+
+// ─── AGENT SECRET READS (queryable audit of masked reads) ─
+export const agentSecretReads = sqliteTable("agent_secret_reads", {
+  id: text("id").primaryKey(),
+  runId: text("run_id").notNull(),
+  agentId: text("agent_id").notNull(),
+  path: text("path").notNull(),
+  toolName: text("tool_name").notNull(),
+  createdAt: text("created_at").notNull(),
+});
+
+// ─── AGENT VERSIONS (config history for diff/revert) ──────
+export const agentVersions = sqliteTable("agent_versions", {
+  id: text("id").primaryKey(),
+  agentId: text("agent_id")
+    .notNull()
+    .references(() => agents.id, { onDelete: "cascade" }),
+  // JSON snapshot of the full agent config as it was BEFORE this edit.
+  snapshot: text("snapshot").notNull(),
+  changeNote: text("change_note"),
+  createdAt: text("created_at").notNull(),
+});

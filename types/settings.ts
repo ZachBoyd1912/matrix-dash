@@ -51,4 +51,63 @@ export const SETTING_DEFAULTS: Record<string, string> = {
   obsidianSyncEnabled: "0",
   /** Sync direction: "bidirectional" | "to-vault" | "from-vault". */
   obsidianSyncDirection: "bidirectional",
+
+  // ─── Agent system ────────────────────────────────────────
+  /** Global emergency stop — when "1", queued runs don't start and active runs are aborted. */
+  agents_kill_switch: "0",
+  /** Max agent runs executing at once (clamped to 1 on low-RAM hosts). */
+  agents_max_concurrent: "1",
+  /** Default per-run turn cap when an agent has no override. */
+  agents_default_max_turns: "30",
+  /** Default per-run wall-clock timeout in minutes. */
+  agents_run_timeout_min: "30",
+  /** Daily spend ceiling (USD, estimated) across all runs; queue pauses past it. */
+  agents_daily_cost_budget_usd: "10",
+  /** Daily token ceiling across all runs; queue pauses past it. */
+  agents_daily_token_budget: "2000000",
+  /** Minutes a pending approval waits before auto-denying. */
+  agents_approval_timeout_min: "60",
+  /** JSON string[] of extra denylist path globs / bash patterns. */
+  agents_denylist_extra: "[]",
+  /** Email address for run-failure / pending-approval / digest notifications. */
+  agents_notify_email: "",
+  /** Absolute path to the agent-system source repo (self-modification guard). */
+  agents_self_path: "/Users/zach/Desktop/matrix-dash",
+  /** Days before a run's before-copy snapshot dir is pruned. */
+  agents_snapshot_retention_days: "30",
+  /** Send the daily agent digest email ("1" on / "0" off). */
+  agents_digest_enabled: "1",
+  /** Max runtime agent-chaining depth before a run needs break-glass approval. */
+  agents_max_chain_depth: "3",
+  /** Percent of the rolling-5h usage window at which cron/webhook runs soft-pause. */
+  agents_usage_buffer_pct: "80",
+  /** Consecutive failures before a scheduled agent auto-disables its schedule. */
+  agents_failure_disable_threshold: "3",
+  /** Quiet-hours window (24h "HH:MM"); routine notifications suppressed, urgent breaks through. */
+  agents_quiet_hours_start: "",
+  agents_quiet_hours_end: "",
+  /** Days an agent-opened PR may stay open before the digest nudges about it. */
+  agents_stale_pr_days: "7",
+
+  // ─── Voice (Jarvis) ──────────────────────────────────────
+  /** Master voice toggle ("1" on / "0" off; off → browser-engine fallback). */
+  voice_enabled: "0",
+  /** OpenAI TTS voice id. */
+  voice_tts_voice: "onyx",
+  /** Push-to-talk hotkey (empty → click only). */
+  voice_hotkey: "",
+  /** Auto-reopen the mic after Jarvis speaks ("1" on / "0" strict press-to-talk). */
+  voice_conversation_mode: "0",
+  /** Preset id used for voice-originated turns. */
+  voice_jarvis_preset_id: "preset-jarvis",
+  /** Spoken morning-briefing time (24h "HH:MM"; empty → on first daily interaction). */
+  voice_morning_briefing_time: "",
+
+  // ─── Remote reachability (Phase 9) ───────────────────────
+  /** Telegram bot token (empty → bridge disabled). */
+  telegram_bot_token: "",
+  /** The only Telegram chat id the bot will answer (rejects all others). */
+  telegram_chat_id: "",
+  /** Cloudflare Tunnel expected/enabled (informational + gates the bridge UI). */
+  remote_tunnel_enabled: "0",
 };

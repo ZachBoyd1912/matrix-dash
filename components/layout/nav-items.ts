@@ -16,6 +16,7 @@ import {
   Image as ImageIcon,
   FolderKanban,
   SquareTerminal,
+  Bot,
   type LucideIcon,
 } from "lucide-react";
 
@@ -39,6 +40,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard/compare", label: "Compare", icon: GitCompare },
   { href: "/dashboard/images", label: "Images", icon: ImageIcon },
   { href: "/dashboard/skills", label: "Skills", icon: Wand2 },
+  { href: "/dashboard/agents", label: "Agents", icon: Bot },
   { href: "/dashboard/sessions", label: "Sessions", icon: Layers },
   { href: "/dashboard/ide", label: "IDE", icon: Code2 },
   { href: "/dashboard/matrix-builder", label: "Matrix Builder", icon: Blocks },

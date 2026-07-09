@@ -486,6 +486,8 @@ export function getSqlite(): Database.Database {
   ensureIntegrationTables(sqlite);
   seedWelcomeEmail(sqlite);
   seedProjects(sqlite);
+  seedAgents(sqlite);
+  seedJarvisPreset(sqlite);
   backfillSkillsFts(sqlite);
   g.__matrixSqlite = sqlite;
   return sqlite;
@@ -602,6 +604,78 @@ function ensureIntegrationTables(sqlite: Database.Database) {
       imap_enabled INTEGER DEFAULT 1, is_active INTEGER DEFAULT 1, created_at TEXT NOT NULL
     )`,
     "gmail_connections"
+  );
+
+  exec(
+    `CREATE TABLE agents (
+      id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT NOT NULL DEFAULT '',
+      instructions TEXT NOT NULL DEFAULT '', model TEXT, cwd TEXT,
+      write_allowlist TEXT NOT NULL DEFAULT '[]',
+      learned_rules TEXT NOT NULL DEFAULT '{"paths":[],"commands":[]}',
+      skill_ids TEXT NOT NULL DEFAULT '[]', mcp_servers TEXT NOT NULL DEFAULT '[]',
+      allow_subagents INTEGER DEFAULT 0, mode TEXT NOT NULL DEFAULT 'triggered',
+      push_mode TEXT, git_author_name TEXT, git_author_email TEXT,
+      schedule TEXT, schedule_enabled INTEGER DEFAULT 0, is_enabled INTEGER DEFAULT 1,
+      consecutive_failures INTEGER NOT NULL DEFAULT 0,
+      max_turns INTEGER, timeout_ms INTEGER, per_run_cost_usd REAL, per_run_tokens INTEGER,
+      max_chain_depth INTEGER,
+      deliverables TEXT NOT NULL DEFAULT '{"postToChat":false,"fileNote":false,"inDigest":true}',
+      last_run_at TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+    )`,
+    "agents"
+  );
+
+  exec(
+    `CREATE TABLE agent_runs (
+      id TEXT PRIMARY KEY,
+      agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+      status TEXT NOT NULL DEFAULT 'queued', trigger TEXT NOT NULL DEFAULT 'manual',
+      dry_run INTEGER DEFAULT 0, chain_depth INTEGER NOT NULL DEFAULT 0,
+      parent_run_id TEXT, urgent INTEGER DEFAULT 0, prompt TEXT NOT NULL DEFAULT '',
+      sdk_session_id TEXT, source_session_id TEXT, blocks TEXT, result TEXT, error TEXT,
+      input_tokens INTEGER NOT NULL DEFAULT 0, output_tokens INTEGER NOT NULL DEFAULT 0,
+      cost_usd REAL NOT NULL DEFAULT 0, num_turns INTEGER NOT NULL DEFAULT 0,
+      git_repo_path TEXT, git_branch TEXT, push_mode_used TEXT, pr_url TEXT, snapshot_dir TEXT,
+      started_at TEXT, ended_at TEXT, created_at TEXT NOT NULL
+    )`,
+    "agent_runs"
+  );
+
+  exec(
+    `CREATE TABLE agent_approvals (
+      id TEXT PRIMARY KEY,
+      run_id TEXT NOT NULL REFERENCES agent_runs(id) ON DELETE CASCADE,
+      agent_id TEXT NOT NULL, tool_name TEXT NOT NULL, input TEXT NOT NULL DEFAULT '{}',
+      summary TEXT NOT NULL DEFAULT '', tier TEXT NOT NULL DEFAULT 'gated',
+      justification TEXT, status TEXT NOT NULL DEFAULT 'pending', signed_token TEXT,
+      created_at TEXT NOT NULL, expires_at TEXT NOT NULL, decided_at TEXT
+    )`,
+    "agent_approvals"
+  );
+
+  exec(
+    `CREATE TABLE agent_secret_reads (
+      id TEXT PRIMARY KEY, run_id TEXT NOT NULL, agent_id TEXT NOT NULL,
+      path TEXT NOT NULL, tool_name TEXT NOT NULL, created_at TEXT NOT NULL
+    )`,
+    "agent_secret_reads"
+  );
+
+  exec(
+    `CREATE TABLE agent_versions (
+      id TEXT PRIMARY KEY,
+      agent_id TEXT NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+      snapshot TEXT NOT NULL, change_note TEXT, created_at TEXT NOT NULL
+    )`,
+    "agent_versions"
+  );
+
+  // Indexes are created idempotently regardless of table pre-existence.
+  sqlite.exec(
+    `CREATE INDEX IF NOT EXISTS idx_agent_runs_created ON agent_runs(created_at);
+     CREATE INDEX IF NOT EXISTS idx_agent_runs_agent ON agent_runs(agent_id, created_at);
+     CREATE INDEX IF NOT EXISTS idx_agent_approvals_status ON agent_approvals(status);
+     CREATE INDEX IF NOT EXISTS idx_agent_versions_agent ON agent_versions(agent_id, created_at);`
   );
 }
 
@@ -848,6 +922,66 @@ function seedProjects(sqlite: Database.Database) {
     ],
   ];
   for (const p of projects) stmt.run(...p);
+}
+
+/**
+ * Seed the three starter agents (all disabled by default) the first time the
+ * agents table is empty. They double as editable templates.
+ */
+function seedAgents(sqlite: Database.Database) {
+  const count = sqlite.prepare("SELECT COUNT(*) AS c FROM agents").get() as { c: number };
+  if (count.c > 0) return;
+  const now = new Date().toISOString();
+  const stmt = sqlite.prepare(`
+    INSERT INTO agents (id, name, description, instructions, mode, schedule, schedule_enabled,
+      is_enabled, deliverables, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?)
+  `);
+  const digest = '{"postToChat":false,"fileNote":true,"inDigest":true}';
+  const seeds: [string, string, string, string, string, string][] = [
+    [
+      "seed-site-auditor",
+      "Site Auditor",
+      "Weekly SEO + uptime check on zbautomations.ie.",
+      "You audit zbautomations.ie once a week. Check the site returns HTTP 200, review basic on-page SEO (title, meta description, headings, sitemap/robots reachability), and note anything broken or degraded. Write a concise report. If the site returns a non-200 status or is unreachable, call flagUrgent with the details.",
+      "triggered",
+      "0 9 * * 1",
+    ],
+    [
+      "seed-vault-librarian",
+      "Vault Librarian",
+      "Nightly Obsidian vault tidy + summary.",
+      "You tidy and summarize the Obsidian vault at ~/Desktop/Obsidian Vault each night. Identify notes without tags, obvious duplicates, and orphaned links, and produce a short summary of what changed in the vault over the last day. Do not delete anything without approval — propose changes.",
+      "triggered",
+      "0 2 * * *",
+    ],
+    [
+      "seed-repo-custodian",
+      "Repo Custodian",
+      "Daily typecheck + test report on active repos.",
+      "You run the project's own verification commands (typecheck, lint, tests) on the matrix-dash repo daily and report failures. Do not push fixes automatically unless explicitly scoped to do so; summarize what passed and what needs attention.",
+      "triggered",
+      "0 7 * * *",
+    ],
+  ];
+  for (const [id, name, description, instructions, mode, schedule] of seeds) {
+    stmt.run(id, name, description, instructions, mode, schedule, digest, now, now);
+  }
+}
+
+/** Seed the Jarvis voice persona preset once (used for voice-originated turns). */
+function seedJarvisPreset(sqlite: Database.Database) {
+  const existing = sqlite.prepare("SELECT id FROM presets WHERE id = 'preset-jarvis'").get() as
+    { id: string } | undefined;
+  if (existing) return;
+  const prompt =
+    "You are Jarvis, a spoken assistant. Reply conversationally and concisely — you are being " +
+    "heard, not read. Never dictate code blocks, long lists, or markdown tables aloud; instead " +
+    'summarize and offer to show detail on-screen (e.g. "I\'ve opened the diff in the run view"). ' +
+    "Be confident, dry, and economical with words. Address the user directly.";
+  sqlite
+    .prepare("INSERT INTO presets (id, name, system_prompt, created_at) VALUES (?, ?, ?, ?)")
+    .run("preset-jarvis", "Jarvis", prompt, new Date().toISOString());
 }
 
 /**

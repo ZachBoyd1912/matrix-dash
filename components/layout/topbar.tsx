@@ -6,6 +6,9 @@ import { useAppStore } from "@/lib/stores/use-app-store";
 import { useOnlineStatus } from "@/lib/hooks/use-online-status";
 import { ThemeToggle } from "./theme-toggle";
 import { NotificationBell } from "./notification-bell";
+import { ApprovalBadge } from "./approval-badge";
+import { VoiceOrb } from "./voice-orb";
+import { VoiceAnnouncer } from "./voice-announcer";
 
 const TITLES: Record<string, string> = {
   "/dashboard": "Overview",
@@ -93,6 +96,9 @@ export function Topbar() {
               <span className="rounded border border-white/5 bg-white/[0.06] px-1.5 py-0.5">K</span>
             </kbd>
           </button>
+          <VoiceOrb />
+          <VoiceAnnouncer />
+          <ApprovalBadge />
           <NotificationBell />
           <div className="relative grid h-8 w-8 place-items-center rounded-full border border-white/10 bg-gradient-to-br from-emerald-400/30 to-sky-400/30 shadow-[0_0_16px_-4px_rgba(52,211,153,0.5)]">
             <Sparkles size={13} className="text-emerald-300" />

@@ -1,8 +1,9 @@
 import { randomUUID } from "crypto";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
-import { apiTokens, tasks } from "@/lib/db/schema";
+import { apiTokens, tasks, agents } from "@/lib/db/schema";
 import { runAgent } from "@/lib/ai/runner";
+import { startRun } from "@/lib/services/agent-runner";
 import { notify } from "@/lib/services/notify";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +34,14 @@ export async function POST(req: Request, ctx: Ctx) {
     .where(eq(apiTokens.id, row.id))
     .run();
 
-  let body: { action?: string; title?: string; body?: string; remindAt?: string; prompt?: string };
+  let body: {
+    action?: string;
+    title?: string;
+    body?: string;
+    remindAt?: string;
+    prompt?: string;
+    agent?: string;
+  };
   try {
     body = await req.json();
   } catch {
@@ -71,6 +79,26 @@ export async function POST(req: Request, ctx: Ctx) {
           { status: 500 }
         );
       }
+    case "agent_run": {
+      // Fire-and-forget: queue an autonomous agent run and return its id immediately.
+      if (!body.agent)
+        return Response.json({ error: "agent (id or name) required" }, { status: 400 });
+      const target = getDb()
+        .select({ id: agents.id })
+        .from(agents)
+        .where(or(eq(agents.id, body.agent), eq(agents.name, body.agent)))
+        .get();
+      if (!target) return Response.json({ error: "agent not found" }, { status: 404 });
+      try {
+        const runId = startRun(target.id, { trigger: "webhook", prompt: body.prompt });
+        return Response.json({ ok: true, runId });
+      } catch (err) {
+        return Response.json(
+          { ok: false, error: err instanceof Error ? err.message : String(err) },
+          { status: 500 }
+        );
+      }
+    }
     default:
       return Response.json({ error: "unknown action" }, { status: 400 });
   }

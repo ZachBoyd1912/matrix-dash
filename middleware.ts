@@ -85,7 +85,13 @@ export function isCrossSiteMutation(req: NextRequest): boolean {
 
 const DEFAULT_BODY_LIMIT = 1_000_000; // 1MB
 const LARGE_BODY_LIMIT = 10_000_000; // 10MB
-const LARGE_BODY_PREFIXES = ["/api/ai/chat", "/api/images", "/api/uploads", "/api/workspace/file"];
+const LARGE_BODY_PREFIXES = [
+  "/api/ai/chat",
+  "/api/images",
+  "/api/uploads",
+  "/api/workspace/file",
+  "/api/voice/transcribe",
+];
 
 function bodyLimitFor(pathname: string): number {
   return LARGE_BODY_PREFIXES.some((p) => pathname.startsWith(p))

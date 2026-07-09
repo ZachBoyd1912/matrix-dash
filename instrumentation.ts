@@ -19,6 +19,13 @@ export async function register() {
     } catch (err) {
       console.error("[instrumentation] obsidian watcher failed to start:", err);
     }
+
+    try {
+      const { initTelegramBot } = await import("@/lib/services/telegram-bot");
+      initTelegramBot();
+    } catch (err) {
+      console.error("[instrumentation] telegram bridge failed to start:", err);
+    }
   }
 }
 
