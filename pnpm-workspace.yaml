@@ -6,3 +6,7 @@ allowBuilds:
   better-sqlite3: true
   esbuild: true
   sharp: true
+  # Transitive dep of @anthropic-ai/claude-agent-sdk. Its native build script is
+  # not needed (it falls back to a JS resolver); don't run it — pnpm 11 on the
+  # prod VM otherwise prompts for an explicit decision here.
+  unrs-resolver: false
