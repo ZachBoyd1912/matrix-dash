@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { githubConnections } from "@/lib/db/schema";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +9,7 @@ interface Ctx {
   params: Promise<{ owner: string; repo: string; n: string }>;
 }
 
-export async function GET(_req: Request, ctx: Ctx) {
+export const GET = withUser(async (_req: Request, ctx: Ctx) => {
   const { owner, repo, n } = await ctx.params;
   const conn = getDb()
     .select()
@@ -26,9 +27,9 @@ export async function GET(_req: Request, ctx: Ctx) {
   });
   const data = await res.json();
   return Response.json(data);
-}
+});
 
-export async function PATCH(req: Request, ctx: Ctx) {
+export const PATCH = withUser(async (req: Request, ctx: Ctx) => {
   const { owner, repo, n } = await ctx.params;
   let payload: unknown;
   try {
@@ -55,4 +56,4 @@ export async function PATCH(req: Request, ctx: Ctx) {
   });
   const data = await res.json();
   return Response.json(data);
-}
+});

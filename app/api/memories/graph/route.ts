@@ -1,6 +1,7 @@
 import { getDb } from "@/lib/db/client";
 import { memories, memoryLinks } from "@/lib/db/schema";
 import type { Memory } from "@/types/memory";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +9,7 @@ function toMemory(row: typeof memories.$inferSelect): Memory {
   return { ...row, isPinned: !!row.isPinned };
 }
 
-export async function GET() {
+export const GET = withUser(async () => {
   const db = getDb();
   const allMemories = db.select().from(memories).all().map(toMemory);
   const allLinks = db.select().from(memoryLinks).all();
@@ -28,4 +29,4 @@ export async function GET() {
       strength: l.strength,
     })),
   });
-}
+});

@@ -3,6 +3,7 @@ import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { sessionMessages, sessions } from "@/lib/db/schema";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ interface Ctx {
   params: Promise<{ id: string }>;
 }
 
-export async function GET(_req: Request, ctx: Ctx) {
+export const GET = withUser(async (_req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
   const rows = getDb()
     .select()
@@ -26,9 +27,9 @@ export async function GET(_req: Request, ctx: Ctx) {
     .orderBy(asc(sessionMessages.createdAt))
     .all();
   return Response.json(rows);
-}
+});
 
-export async function POST(req: Request, ctx: Ctx) {
+export const POST = withUser(async (req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
   let payload: unknown;
   try {
@@ -56,4 +57,4 @@ export async function POST(req: Request, ctx: Ctx) {
     .run();
   getDb().update(sessions).set({ updatedAt: now }).where(eq(sessions.id, id)).run();
   return Response.json({ id: messageId });
-}
+});

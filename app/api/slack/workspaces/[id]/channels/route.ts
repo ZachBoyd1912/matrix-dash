@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db/client";
 import { slackChannels } from "@/lib/db/schema";
 import { listChannels } from "@/lib/services/slack";
 import type { SlackChannelPublic } from "@/types/jarvis";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -23,13 +24,13 @@ function toPublic(row: typeof slackChannels.$inferSelect): SlackChannelPublic {
   };
 }
 
-export async function GET(_req: Request, ctx: Ctx) {
+export const GET = withUser(async (_req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
   const rows = getDb().select().from(slackChannels).where(eq(slackChannels.workspaceId, id)).all();
   return Response.json(rows.map(toPublic));
-}
+});
 
-export async function POST(_req: Request, ctx: Ctx) {
+export const POST = withUser(async (_req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
   try {
     const channels = await listChannels(id);
@@ -57,4 +58,4 @@ export async function POST(_req: Request, ctx: Ctx) {
       { status: 500 }
     );
   }
-}
+});

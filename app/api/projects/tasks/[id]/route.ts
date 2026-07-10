@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { tasks } from "@/lib/db/schema";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ interface Ctx {
   params: Promise<{ id: string }>;
 }
 
-export async function PATCH(req: Request, ctx: Ctx) {
+export const PATCH = withUser(async (req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
   let payload: unknown;
   try {
@@ -36,10 +37,10 @@ export async function PATCH(req: Request, ctx: Ctx) {
   Object.assign(updates, parsed.data);
   getDb().update(tasks).set(updates).where(eq(tasks.id, id)).run();
   return Response.json({ ok: true });
-}
+});
 
-export async function DELETE(_req: Request, ctx: Ctx) {
+export const DELETE = withUser(async (_req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
   getDb().delete(tasks).where(eq(tasks.id, id)).run();
   return Response.json({ ok: true });
-}
+});

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { slackWorkspaces } from "@/lib/db/schema";
 import { sendMessage } from "@/lib/services/slack";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ const sendSchema = z.object({
   text: z.string().max(50000),
 });
 
-export async function POST(req: Request) {
+export const POST = withUser(async (req: Request) => {
   let payload: unknown;
   try {
     payload = await req.json();
@@ -28,4 +29,4 @@ export async function POST(req: Request) {
   }
   const result = await sendMessage(ws.id, parsed.data.channel, parsed.data.text);
   return Response.json(result);
-}
+});

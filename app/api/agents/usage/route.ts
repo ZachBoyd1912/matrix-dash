@@ -2,12 +2,13 @@ import { gte, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { agentRuns } from "@/lib/db/schema";
 import { getSetting } from "@/lib/db/settings";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 /** Today's agent spend vs the configured daily budgets, for the usage bar. */
-export async function GET() {
+export const GET = withUser(async () => {
   const start = new Date();
   start.setHours(0, 0, 0, 0);
   const row = getDb()
@@ -35,4 +36,4 @@ export async function GET() {
     costPct: costBudget > 0 ? Math.min(100, (cost / costBudget) * 100) : 0,
     tokenPct: tokenBudget > 0 ? Math.min(100, (tokens / tokenBudget) * 100) : 0,
   });
-}
+});

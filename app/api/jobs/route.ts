@@ -5,6 +5,7 @@ import cron from "node-cron";
 import { getDb } from "@/lib/db/client";
 import { scheduledJobs } from "@/lib/db/schema";
 import { syncScheduledJobs } from "@/lib/services/daemon";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -15,12 +16,12 @@ const createSchema = z.object({
   isEnabled: z.boolean().optional(),
 });
 
-export async function GET() {
+export const GET = withUser(async () => {
   const rows = getDb().select().from(scheduledJobs).orderBy(desc(scheduledJobs.createdAt)).all();
   return Response.json(rows.map((j) => ({ ...j, isEnabled: !!j.isEnabled })));
-}
+});
 
-export async function POST(req: Request) {
+export const POST = withUser(async (req: Request) => {
   let payload: unknown;
   try {
     payload = await req.json();
@@ -46,4 +47,4 @@ export async function POST(req: Request) {
     .run();
   syncScheduledJobs();
   return Response.json({ id });
-}
+});

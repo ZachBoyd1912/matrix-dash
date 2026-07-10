@@ -1,6 +1,7 @@
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { agentRuns } from "@/lib/db/schema";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -9,7 +10,7 @@ interface Ctx {
   params: Promise<{ id: string }>;
 }
 
-export async function GET(_req: Request, ctx: Ctx) {
+export const GET = withUser(async (_req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
   const rows = getDb()
     .select({
@@ -35,4 +36,4 @@ export async function GET(_req: Request, ctx: Ctx) {
     .limit(100)
     .all();
   return Response.json(rows.map((r) => ({ ...r, dryRun: !!r.dryRun, urgent: !!r.urgent })));
-}
+});

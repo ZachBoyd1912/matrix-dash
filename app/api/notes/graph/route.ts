@@ -1,9 +1,10 @@
 import { getDb } from "@/lib/db/client";
 import { notes, noteLinks } from "@/lib/db/schema";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export const GET = withUser(async () => {
   const db = getDb();
   const allNotes = db.select().from(notes).all();
   const allLinks = db.select().from(noteLinks).all();
@@ -20,4 +21,4 @@ export async function GET() {
       target: l.targetNoteId,
     })),
   });
-}
+});

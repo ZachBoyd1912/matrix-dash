@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { githubConnections } from "@/lib/db/schema";
 import { createPR } from "@/lib/services/github";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ const createSchema = z.object({
   base: z.string().max(200).default("main"),
 });
 
-export async function POST(req: Request, ctx: Ctx) {
+export const POST = withUser(async (req: Request, ctx: Ctx) => {
   const { owner, repo } = await ctx.params;
   let payload: unknown;
   try {
@@ -46,4 +47,4 @@ export async function POST(req: Request, ctx: Ctx) {
     parsed.data.base
   );
   return Response.json(result);
-}
+});

@@ -3,6 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { webhooks } from "@/lib/db/schema";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -13,12 +14,12 @@ const createSchema = z.object({
   isEnabled: z.boolean().optional(),
 });
 
-export async function GET() {
+export const GET = withUser(async () => {
   const rows = getDb().select().from(webhooks).orderBy(desc(webhooks.createdAt)).all();
   return Response.json(rows.map((r) => ({ ...r, isEnabled: !!r.isEnabled })));
-}
+});
 
-export async function POST(req: Request) {
+export const POST = withUser(async (req: Request) => {
   let payload: unknown;
   try {
     payload = await req.json();
@@ -40,9 +41,9 @@ export async function POST(req: Request) {
     })
     .run();
   return Response.json({ id });
-}
+});
 
-export async function PATCH(req: Request) {
+export const PATCH = withUser(async (req: Request) => {
   const url = new URL(req.url);
   const id = url.searchParams.get("id");
   if (!id) return Response.json({ error: "id required" }, { status: 400 });
@@ -54,12 +55,12 @@ export async function PATCH(req: Request) {
   }
   getDb().update(webhooks).set(payload).where(eq(webhooks.id, id)).run();
   return Response.json({ ok: true });
-}
+});
 
-export async function DELETE(req: Request) {
+export const DELETE = withUser(async (req: Request) => {
   const url = new URL(req.url);
   const id = url.searchParams.get("id");
   if (!id) return Response.json({ error: "id required" }, { status: 400 });
   getDb().delete(webhooks).where(eq(webhooks.id, id)).run();
   return Response.json({ ok: true });
-}
+});

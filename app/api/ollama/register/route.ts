@@ -4,11 +4,12 @@ import { aiProviders } from "@/lib/db/schema";
 import { encrypt } from "@/lib/utils/crypto";
 import { eq } from "drizzle-orm";
 import { getSetting } from "@/lib/db/settings";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
 /** Register the local Ollama install as an AI provider (model-specific). */
-export async function POST(req: Request) {
+export const POST = withUser(async (req: Request) => {
   let body: { model?: string };
   try {
     body = await req.json();
@@ -44,4 +45,4 @@ export async function POST(req: Request) {
     })
     .run();
   return Response.json({ id });
-}
+});

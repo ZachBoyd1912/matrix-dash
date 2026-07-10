@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { skills } from "@/lib/db/schema";
 import { withLog, logger } from "@/lib/utils/logger";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -99,173 +100,175 @@ async function mapPool<T, R>(
   return results;
 }
 
-export const POST = withLog(async (req) => {
-  let payload: unknown;
-  try {
-    payload = await req.json();
-  } catch {
-    return Response.json({ error: "Invalid JSON" }, { status: 400 });
-  }
-  const parsed = schema.safeParse(payload);
-  if (!parsed.success) {
-    return Response.json({ error: "A GitHub repo URL is required" }, { status: 400 });
-  }
-
-  const repo = parseRepo(parsed.data.repoUrl);
-  if (!repo) {
-    return Response.json(
-      { error: "That doesn't look like a github.com repo URL" },
-      { status: 400 }
-    );
-  }
-
-  try {
-    // 1. Resolve the default branch (main/master/whatever).
-    const metaRes = await fetch(`https://api.github.com/repos/${repo.owner}/${repo.repo}`, {
-      headers: GH_HEADERS,
-    });
-    if (metaRes.status === 404) {
-      return Response.json({ error: "Repository not found (is it public?)" }, { status: 404 });
+export const POST = withLog(
+  withUser(async (req) => {
+    let payload: unknown;
+    try {
+      payload = await req.json();
+    } catch {
+      return Response.json({ error: "Invalid JSON" }, { status: 400 });
     }
-    if (metaRes.status === 403) {
+    const parsed = schema.safeParse(payload);
+    if (!parsed.success) {
+      return Response.json({ error: "A GitHub repo URL is required" }, { status: 400 });
+    }
+
+    const repo = parseRepo(parsed.data.repoUrl);
+    if (!repo) {
       return Response.json(
-        { error: "GitHub rate limit reached — try again in a few minutes." },
-        { status: 429 }
-      );
-    }
-    if (!metaRes.ok) {
-      return Response.json({ error: `GitHub error ${metaRes.status}` }, { status: 502 });
-    }
-    const meta = (await metaRes.json()) as { default_branch?: string };
-    const branch = meta.default_branch || "main";
-
-    // 2. Flat recursive tree of the whole repo.
-    const treeRes = await fetch(
-      `https://api.github.com/repos/${repo.owner}/${repo.repo}/git/trees/${branch}?recursive=1`,
-      { headers: GH_HEADERS }
-    );
-    if (!treeRes.ok) {
-      return Response.json(
-        { error: `Could not read repo tree (${treeRes.status})` },
-        { status: 502 }
-      );
-    }
-    const tree = (await treeRes.json()) as {
-      tree?: { path: string; type: string }[];
-      truncated?: boolean;
-    };
-
-    const allSkillMd = (tree.tree ?? [])
-      .filter((e) => e.type === "blob" && /(^|\/)SKILL\.md$/i.test(e.path))
-      .map((e) => e.path);
-
-    // Many catalog repos vendor a second, packaged copy of every skill under
-    // plugins/** (or vendor/**, dist/**). Those inflate the count and import
-    // duplicates. Prefer a canonical top-level `skills/` directory when present;
-    // only fall back to "everything" for repos that don't have one.
-    const canonical = allSkillMd.filter((p) => /^skills\//i.test(p));
-    let skillPaths = canonical.length ? canonical : allSkillMd;
-
-    // Collapse paths that point at the same skill folder (same basename dir),
-    // keeping the shortest path (the least-nested / canonical copy).
-    const byFolder = new Map<string, string>();
-    for (const p of skillPaths) {
-      const folder = p.split("/").slice(-2, -1)[0] || p;
-      const key = folder.toLowerCase();
-      const prev = byFolder.get(key);
-      if (!prev || p.length < prev.length) byFolder.set(key, p);
-    }
-    skillPaths = [...byFolder.values()];
-
-    const found = skillPaths.length;
-    if (found === 0) {
-      return Response.json(
-        { imported: 0, skipped: 0, found: 0, error: "No SKILL.md files found in that repo." },
-        { status: 404 }
+        { error: "That doesn't look like a github.com repo URL" },
+        { status: 400 }
       );
     }
 
-    const cappedPaths = skillPaths.slice(0, MAX_SKILLS);
-
-    // 3. Existing names (case-insensitive) so we skip duplicates.
-    const db = getDb();
-    const existing = new Set(
-      db
-        .select({ name: skills.name })
-        .from(skills)
-        .all()
-        .map((r) => r.name.toLowerCase())
-    );
-
-    // 4. Fetch every SKILL.md in parallel (bounded) and parse it.
-    let fetchFailures = 0;
-    const fetched = await mapPool(cappedPaths, FETCH_CONCURRENCY, async (path) => {
-      try {
-        const rawRes = await fetch(
-          `https://raw.githubusercontent.com/${repo.owner}/${repo.repo}/${branch}/${path}`,
-          { headers: { "User-Agent": "matrix-dash" } }
+    try {
+      // 1. Resolve the default branch (main/master/whatever).
+      const metaRes = await fetch(`https://api.github.com/repos/${repo.owner}/${repo.repo}`, {
+        headers: GH_HEADERS,
+      });
+      if (metaRes.status === 404) {
+        return Response.json({ error: "Repository not found (is it public?)" }, { status: 404 });
+      }
+      if (metaRes.status === 403) {
+        return Response.json(
+          { error: "GitHub rate limit reached — try again in a few minutes." },
+          { status: 429 }
         );
-        if (!rawRes.ok) {
+      }
+      if (!metaRes.ok) {
+        return Response.json({ error: `GitHub error ${metaRes.status}` }, { status: 502 });
+      }
+      const meta = (await metaRes.json()) as { default_branch?: string };
+      const branch = meta.default_branch || "main";
+
+      // 2. Flat recursive tree of the whole repo.
+      const treeRes = await fetch(
+        `https://api.github.com/repos/${repo.owner}/${repo.repo}/git/trees/${branch}?recursive=1`,
+        { headers: GH_HEADERS }
+      );
+      if (!treeRes.ok) {
+        return Response.json(
+          { error: `Could not read repo tree (${treeRes.status})` },
+          { status: 502 }
+        );
+      }
+      const tree = (await treeRes.json()) as {
+        tree?: { path: string; type: string }[];
+        truncated?: boolean;
+      };
+
+      const allSkillMd = (tree.tree ?? [])
+        .filter((e) => e.type === "blob" && /(^|\/)SKILL\.md$/i.test(e.path))
+        .map((e) => e.path);
+
+      // Many catalog repos vendor a second, packaged copy of every skill under
+      // plugins/** (or vendor/**, dist/**). Those inflate the count and import
+      // duplicates. Prefer a canonical top-level `skills/` directory when present;
+      // only fall back to "everything" for repos that don't have one.
+      const canonical = allSkillMd.filter((p) => /^skills\//i.test(p));
+      let skillPaths = canonical.length ? canonical : allSkillMd;
+
+      // Collapse paths that point at the same skill folder (same basename dir),
+      // keeping the shortest path (the least-nested / canonical copy).
+      const byFolder = new Map<string, string>();
+      for (const p of skillPaths) {
+        const folder = p.split("/").slice(-2, -1)[0] || p;
+        const key = folder.toLowerCase();
+        const prev = byFolder.get(key);
+        if (!prev || p.length < prev.length) byFolder.set(key, p);
+      }
+      skillPaths = [...byFolder.values()];
+
+      const found = skillPaths.length;
+      if (found === 0) {
+        return Response.json(
+          { imported: 0, skipped: 0, found: 0, error: "No SKILL.md files found in that repo." },
+          { status: 404 }
+        );
+      }
+
+      const cappedPaths = skillPaths.slice(0, MAX_SKILLS);
+
+      // 3. Existing names (case-insensitive) so we skip duplicates.
+      const db = getDb();
+      const existing = new Set(
+        db
+          .select({ name: skills.name })
+          .from(skills)
+          .all()
+          .map((r) => r.name.toLowerCase())
+      );
+
+      // 4. Fetch every SKILL.md in parallel (bounded) and parse it.
+      let fetchFailures = 0;
+      const fetched = await mapPool(cappedPaths, FETCH_CONCURRENCY, async (path) => {
+        try {
+          const rawRes = await fetch(
+            `https://raw.githubusercontent.com/${repo.owner}/${repo.repo}/${branch}/${path}`,
+            { headers: { "User-Agent": "matrix-dash" } }
+          );
+          if (!rawRes.ok) {
+            fetchFailures++;
+            return null;
+          }
+          const rawText = await rawRes.text();
+          const folder = path.split("/").slice(-2, -1)[0] || path.replace(/\.md$/i, "");
+          return parseSkillMd(rawText, folder);
+        } catch {
           fetchFailures++;
           return null;
         }
-        const rawText = await rawRes.text();
-        const folder = path.split("/").slice(-2, -1)[0] || path.replace(/\.md$/i, "");
-        return parseSkillMd(rawText, folder);
-      } catch {
-        fetchFailures++;
-        return null;
-      }
-    });
-
-    // 5. Dedup by name and insert everything in one transaction (fast + atomic).
-    const seenThisRun = new Set<string>();
-    const now = new Date().toISOString();
-    const toInsert: (typeof skills.$inferInsert)[] = [];
-    let duplicates = 0;
-    for (const skill of fetched) {
-      if (!skill) continue;
-      const key = skill.name.toLowerCase();
-      if (existing.has(key) || seenThisRun.has(key)) {
-        duplicates++;
-        continue;
-      }
-      seenThisRun.add(key);
-      toInsert.push({
-        id: randomUUID(),
-        name: skill.name,
-        description: skill.description,
-        instructions: skill.instructions,
-        isEnabled: false, // imported skills start disabled — user opts in (see chat route)
-        createdAt: now,
-        updatedAt: now,
       });
-    }
 
-    if (toInsert.length > 0) {
-      db.transaction((tx) => {
-        for (const row of toInsert) tx.insert(skills).values(row).run();
+      // 5. Dedup by name and insert everything in one transaction (fast + atomic).
+      const seenThisRun = new Set<string>();
+      const now = new Date().toISOString();
+      const toInsert: (typeof skills.$inferInsert)[] = [];
+      let duplicates = 0;
+      for (const skill of fetched) {
+        if (!skill) continue;
+        const key = skill.name.toLowerCase();
+        if (existing.has(key) || seenThisRun.has(key)) {
+          duplicates++;
+          continue;
+        }
+        seenThisRun.add(key);
+        toInsert.push({
+          id: randomUUID(),
+          name: skill.name,
+          description: skill.description,
+          instructions: skill.instructions,
+          isEnabled: false, // imported skills start disabled — user opts in (see chat route)
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+
+      if (toInsert.length > 0) {
+        db.transaction((tx) => {
+          for (const row of toInsert) tx.insert(skills).values(row).run();
+        });
+      }
+
+      const imported = toInsert.length;
+      const skipped = duplicates + fetchFailures;
+      logger.ok(
+        `Imported ${imported} skill(s) from ${repo.owner}/${repo.repo} ` +
+          `(${found} found, ${duplicates} dup, ${fetchFailures} fetch-fail)`
+      );
+      return Response.json({
+        imported,
+        skipped,
+        found,
+        truncated: !!tree.truncated || found > MAX_SKILLS,
+        repo: `${repo.owner}/${repo.repo}`,
       });
+    } catch (err) {
+      logger.error("Skill import failed", err);
+      return Response.json(
+        { error: "Import failed — check the URL and your connection." },
+        { status: 500 }
+      );
     }
-
-    const imported = toInsert.length;
-    const skipped = duplicates + fetchFailures;
-    logger.ok(
-      `Imported ${imported} skill(s) from ${repo.owner}/${repo.repo} ` +
-        `(${found} found, ${duplicates} dup, ${fetchFailures} fetch-fail)`
-    );
-    return Response.json({
-      imported,
-      skipped,
-      found,
-      truncated: !!tree.truncated || found > MAX_SKILLS,
-      repo: `${repo.owner}/${repo.repo}`,
-    });
-  } catch (err) {
-    logger.error("Skill import failed", err);
-    return Response.json(
-      { error: "Import failed — check the URL and your connection." },
-      { status: 500 }
-    );
-  }
-});
+  })
+);

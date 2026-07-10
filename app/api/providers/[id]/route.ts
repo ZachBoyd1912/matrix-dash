@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db/client";
 import { aiProviders } from "@/lib/db/schema";
 import { encrypt } from "@/lib/utils/crypto";
 import { toPublic } from "@/lib/ai/registry";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -19,14 +20,14 @@ interface Ctx {
   params: Promise<{ id: string }>;
 }
 
-export async function GET(_req: Request, ctx: Ctx) {
+export const GET = withUser(async (_req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
   const row = getDb().select().from(aiProviders).where(eq(aiProviders.id, id)).get();
   if (!row) return Response.json({ error: "not found" }, { status: 404 });
   return Response.json(toPublic(row));
-}
+});
 
-export async function PATCH(req: Request, ctx: Ctx) {
+export const PATCH = withUser(async (req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
   let payload: unknown;
   try {
@@ -55,10 +56,10 @@ export async function PATCH(req: Request, ctx: Ctx) {
   }
   const row = db.select().from(aiProviders).where(eq(aiProviders.id, id)).get();
   return Response.json(row ? toPublic(row) : { id });
-}
+});
 
-export async function DELETE(_req: Request, ctx: Ctx) {
+export const DELETE = withUser(async (_req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
   getDb().delete(aiProviders).where(eq(aiProviders.id, id)).run();
   return Response.json({ ok: true });
-}
+});

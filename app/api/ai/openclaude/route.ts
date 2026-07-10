@@ -9,13 +9,14 @@ import {
   type Block,
   type StreamEvent,
 } from "@/lib/chat/blocks";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
 /** Status probe for the chat UI's install banner. */
-export async function GET() {
+export const GET = withUser(async () => {
   return Response.json(await detectOpenClaude());
-}
+});
 
 interface Payload {
   messages?: { role: string; content: unknown }[];
@@ -23,7 +24,7 @@ interface Payload {
 }
 
 /** Run a chat turn through OpenClaude (on the active Matrix provider), streaming blocks. */
-export async function POST(req: Request) {
+export const POST = withUser(async (req: Request) => {
   let body: Payload;
   try {
     body = (await req.json()) as Payload;
@@ -97,4 +98,4 @@ export async function POST(req: Request) {
       "cache-control": "no-cache, no-transform",
     },
   });
-}
+});

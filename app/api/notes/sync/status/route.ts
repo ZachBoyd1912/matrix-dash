@@ -2,10 +2,11 @@ import { count, isNotNull } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { notes, memories } from "@/lib/db/schema";
 import { getSetting } from "@/lib/db/settings";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export const GET = withUser(async () => {
   const db = getDb();
 
   const noteCount = db.select({ value: count() }).from(notes).get()?.value ?? 0;
@@ -26,4 +27,4 @@ export async function GET() {
     syncedNoteCount,
     syncedMemoryCount,
   });
-}
+});

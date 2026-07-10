@@ -7,6 +7,7 @@ import { searchMemoriesFts } from "@/lib/db/fts";
 import { autoLink } from "@/lib/ai/extraction";
 import { syncMemoryToVault } from "@/lib/services/obsidian-sync";
 import { MEMORY_TYPES, type Memory } from "@/types/memory";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,7 @@ const createSchema = z.object({
   source: z.string().max(200).optional(),
 });
 
-export async function GET(req: Request) {
+export const GET = withUser(async (req: Request) => {
   const url = new URL(req.url);
   const q = url.searchParams.get("q")?.trim();
   const type = url.searchParams.get("type");
@@ -53,9 +54,9 @@ export async function GET(req: Request) {
         .all();
 
   return Response.json(rows.map(toMemory));
-}
+});
 
-export async function POST(req: Request) {
+export const POST = withUser(async (req: Request) => {
   let payload: unknown;
   try {
     payload = await req.json();
@@ -98,4 +99,4 @@ export async function POST(req: Request) {
   }
 
   return Response.json(created ? toMemory(created) : { id });
-}
+});

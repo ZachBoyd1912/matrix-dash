@@ -4,6 +4,7 @@ import path from "path";
 import { getDb } from "@/lib/db/client";
 import { agents } from "@/lib/db/schema";
 import { sql } from "drizzle-orm";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -14,7 +15,7 @@ export const runtime = "nodejs";
  * whether it can authenticate. Agents run when a subscription token
  * (CLAUDE_CODE_OAUTH_TOKEN) or an API key is present, or the CLI has stored creds.
  */
-export async function GET() {
+export const GET = withUser(async () => {
   const hasToken = !!process.env.CLAUDE_CODE_OAUTH_TOKEN;
   const hasApiKey = !!process.env.ANTHROPIC_API_KEY;
   let cliCreds = false;
@@ -48,4 +49,4 @@ export async function GET() {
     setupHint:
       "Set CLAUDE_CODE_OAUTH_TOKEN (from `claude setup-token`) or ANTHROPIC_API_KEY in the environment so agents can authenticate.",
   });
-}
+});

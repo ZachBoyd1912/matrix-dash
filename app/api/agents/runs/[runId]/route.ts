@@ -3,6 +3,7 @@ import { getDb } from "@/lib/db/client";
 import { agentRuns } from "@/lib/db/schema";
 import { cancelRun, isRunActive } from "@/lib/services/agent-runner";
 import { parseBlocksJson } from "@/lib/chat/blocks";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -11,7 +12,7 @@ interface Ctx {
   params: Promise<{ runId: string }>;
 }
 
-export async function GET(_req: Request, ctx: Ctx) {
+export const GET = withUser(async (_req: Request, ctx: Ctx) => {
   const { runId } = await ctx.params;
   const row = getDb().select().from(agentRuns).where(eq(agentRuns.id, runId)).get();
   if (!row) return Response.json({ error: "Not found" }, { status: 404 });
@@ -22,9 +23,9 @@ export async function GET(_req: Request, ctx: Ctx) {
     blocks: parseBlocksJson(row.blocks) ?? [],
     isActive: isRunActive(runId),
   });
-}
+});
 
-export async function POST(req: Request, ctx: Ctx) {
+export const POST = withUser(async (req: Request, ctx: Ctx) => {
   const { runId } = await ctx.params;
   let action = "";
   try {
@@ -38,4 +39,4 @@ export async function POST(req: Request, ctx: Ctx) {
     return Response.json({ ok: true });
   }
   return Response.json({ error: "Unknown action" }, { status: 400 });
-}
+});

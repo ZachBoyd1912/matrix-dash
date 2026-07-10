@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db/client";
 import { emailAccounts, gmailConnections } from "@/lib/db/schema";
 import { syncAccount } from "@/lib/services/email";
 import { syncGmailEmails } from "@/lib/services/gmail";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ interface Ctx {
   params: Promise<{ id: string }>;
 }
 
-export async function PATCH(req: Request, ctx: Ctx) {
+export const PATCH = withUser(async (req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
   let payload: unknown;
   try {
@@ -28,9 +29,9 @@ export async function PATCH(req: Request, ctx: Ctx) {
   if (!parsed.success) return Response.json({ error: parsed.error.flatten() }, { status: 400 });
   getDb().update(emailAccounts).set(parsed.data).where(eq(emailAccounts.id, id)).run();
   return Response.json({ ok: true });
-}
+});
 
-export async function POST(_req: Request, ctx: Ctx) {
+export const POST = withUser(async (_req: Request, ctx: Ctx) => {
   // Manual sync trigger. Routes through Gmail API for OAuth-connected accounts.
   const { id } = await ctx.params;
   const account = getDb().select().from(emailAccounts).where(eq(emailAccounts.id, id)).get();
@@ -54,10 +55,10 @@ export async function POST(_req: Request, ctx: Ctx) {
       { status: 500 }
     );
   }
-}
+});
 
-export async function DELETE(_req: Request, ctx: Ctx) {
+export const DELETE = withUser(async (_req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
   getDb().delete(emailAccounts).where(eq(emailAccounts.id, id)).run();
   return Response.json({ ok: true });
-}
+});

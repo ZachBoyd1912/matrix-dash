@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { getDb } from "@/lib/db/client";
 import { attachments } from "@/lib/db/schema";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -10,7 +11,7 @@ export const maxDuration = 60;
  * PDFs/text are extracted to plain text for RAG. Returns the attachment record
  * plus any extracted text so the client can prepend it as chat context.
  */
-export async function POST(req: Request) {
+export const POST = withUser(async (req: Request) => {
   const form = await req.formData().catch(() => null);
   if (!form) return Response.json({ error: "Expected multipart form" }, { status: 400 });
   const file = form.get("file");
@@ -57,4 +58,4 @@ export async function POST(req: Request) {
     .run();
 
   return Response.json({ id, name: file.name, kind, mime, extractedText, hasImage: !!dataUrl });
-}
+});

@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { calendars } from "@/lib/db/schema";
 import { syncCaldav } from "@/lib/services/calendar";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +10,7 @@ interface Ctx {
   params: Promise<{ id: string }>;
 }
 
-export async function POST(_req: Request, ctx: Ctx) {
+export const POST = withUser(async (_req: Request, ctx: Ctx) => {
   // Trigger CalDAV sync.
   const { id } = await ctx.params;
   const cal = getDb().select().from(calendars).where(eq(calendars.id, id)).get();
@@ -23,10 +24,10 @@ export async function POST(_req: Request, ctx: Ctx) {
       { status: 500 }
     );
   }
-}
+});
 
-export async function DELETE(_req: Request, ctx: Ctx) {
+export const DELETE = withUser(async (_req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
   getDb().delete(calendars).where(eq(calendars.id, id)).run();
   return Response.json({ ok: true });
-}
+});

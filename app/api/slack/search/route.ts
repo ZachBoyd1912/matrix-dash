@@ -2,10 +2,11 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { slackWorkspaces } from "@/lib/db/schema";
 import { searchMessages } from "@/lib/services/slack";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
+export const GET = withUser(async (req: Request) => {
   const url = new URL(req.url);
   const q = url.searchParams.get("q");
   if (!q) return Response.json({ error: "query required" }, { status: 400 });
@@ -23,4 +24,4 @@ export async function GET(req: Request) {
       ts: r.ts,
     }))
   );
-}
+});

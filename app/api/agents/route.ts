@@ -5,6 +5,7 @@ import { getDb } from "@/lib/db/client";
 import { agents, agentRuns } from "@/lib/db/schema";
 import { listAgents } from "@/lib/db/agents";
 import { desc, eq } from "drizzle-orm";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +43,7 @@ const createSchema = z.object({
 });
 
 /** List agents, each with a compact last-run summary. */
-export async function GET() {
+export const GET = withUser(async () => {
   const rows = listAgents();
   const withSummary = rows.map((a) => {
     const lastRun = getDb()
@@ -60,9 +61,9 @@ export async function GET() {
     return { ...a, lastRun: lastRun ?? null };
   });
   return Response.json(withSummary);
-}
+});
 
-export async function POST(req: Request) {
+export const POST = withUser(async (req: Request) => {
   let payload: unknown;
   try {
     payload = await req.json();
@@ -112,4 +113,4 @@ export async function POST(req: Request) {
     .run();
 
   return Response.json({ id });
-}
+});

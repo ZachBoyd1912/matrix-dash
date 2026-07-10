@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { files } from "@/lib/db/schema";
 import { languageFromPath } from "@/lib/utils/language";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -17,14 +18,14 @@ interface Ctx {
   params: Promise<{ id: string }>;
 }
 
-export async function GET(_req: Request, ctx: Ctx) {
+export const GET = withUser(async (_req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
   const row = getDb().select().from(files).where(eq(files.id, id)).get();
   if (!row) return Response.json({ error: "not found" }, { status: 404 });
   return Response.json(row);
-}
+});
 
-export async function PATCH(req: Request, ctx: Ctx) {
+export const PATCH = withUser(async (req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
   let payload: unknown;
   try {
@@ -51,10 +52,10 @@ export async function PATCH(req: Request, ctx: Ctx) {
 
   getDb().update(files).set(updates).where(eq(files.id, id)).run();
   return Response.json({ ok: true });
-}
+});
 
-export async function DELETE(_req: Request, ctx: Ctx) {
+export const DELETE = withUser(async (_req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
   getDb().delete(files).where(eq(files.id, id)).run();
   return Response.json({ ok: true });
-}
+});

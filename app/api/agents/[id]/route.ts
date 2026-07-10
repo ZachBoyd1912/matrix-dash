@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { agents } from "@/lib/db/schema";
 import { getAgent, snapshotAgentVersion, agentHasActiveRun } from "@/lib/db/agents";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -42,14 +43,14 @@ const updateSchema = z.object({
     .optional(),
 });
 
-export async function GET(_req: Request, ctx: Ctx) {
+export const GET = withUser(async (_req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
   const agent = getAgent(id);
   if (!agent) return Response.json({ error: "Not found" }, { status: 404 });
   return Response.json(agent);
-}
+});
 
-export async function PATCH(req: Request, ctx: Ctx) {
+export const PATCH = withUser(async (req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
   if (!getAgent(id)) return Response.json({ error: "Not found" }, { status: 404 });
 
@@ -88,7 +89,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
   }
 
   return Response.json({ ok: true });
-}
+});
 
 /** Re-register agent cron entries. Tolerant of the daemon hook not existing yet (pre-Phase 5). */
 async function resyncAgentSchedules(): Promise<void> {
@@ -102,7 +103,7 @@ async function resyncAgentSchedules(): Promise<void> {
   }
 }
 
-export async function DELETE(_req: Request, ctx: Ctx) {
+export const DELETE = withUser(async (_req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
   if (!getAgent(id)) return Response.json({ error: "Not found" }, { status: 404 });
   if (agentHasActiveRun(id)) {
@@ -114,4 +115,4 @@ export async function DELETE(_req: Request, ctx: Ctx) {
   getDb().delete(agents).where(eq(agents.id, id)).run();
   await resyncAgentSchedules();
   return Response.json({ ok: true });
-}
+});

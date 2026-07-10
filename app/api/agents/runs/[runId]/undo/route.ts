@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { agentRuns } from "@/lib/db/schema";
 import { undoSnapshots, hasSnapshots } from "@/lib/services/agent-snapshots";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -15,7 +16,7 @@ interface Ctx {
  * reverted via git (the run's branch / commit), surfaced in the "Changes" view;
  * this route handles the before-copy manifest.
  */
-export async function POST(_req: Request, ctx: Ctx) {
+export const POST = withUser(async (_req: Request, ctx: Ctx) => {
   const { runId } = await ctx.params;
   const row = getDb()
     .select({ id: agentRuns.id })
@@ -33,4 +34,4 @@ export async function POST(_req: Request, ctx: Ctx) {
   }
   const result = undoSnapshots(runId);
   return Response.json({ ok: true, ...result });
-}
+});

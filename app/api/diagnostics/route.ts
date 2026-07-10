@@ -6,10 +6,11 @@ import { getDbPath } from "@/lib/utils/db-path";
 import { detectOllama } from "@/lib/services/ollama";
 import { embeddingsAvailable } from "@/lib/ai/embeddings";
 import { getActiveProvider } from "@/lib/ai/registry";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export const GET = withUser(async () => {
   const db = getDb();
 
   const counts = {
@@ -64,4 +65,4 @@ export async function GET() {
     nodeVersion: process.version,
     platform: process.platform,
   });
-}
+});

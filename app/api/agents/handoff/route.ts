@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db/client";
 import { sessionMessages } from "@/lib/db/schema";
 import { getAgent } from "@/lib/db/agents";
 import { startRun } from "@/lib/services/agent-runner";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -19,7 +20,7 @@ const bodySchema = z.object({
  * the recent session transcript plus the user's extra instructions, and links the
  * run back to the session (source_session_id) so its result can post back.
  */
-export async function POST(req: Request) {
+export const POST = withUser(async (req: Request) => {
   let payload: unknown;
   try {
     payload = await req.json();
@@ -56,4 +57,4 @@ export async function POST(req: Request) {
 
   const runId = startRun(agentId, { trigger: "chat", prompt, sourceSessionId: sessionId });
   return Response.json({ runId });
-}
+});

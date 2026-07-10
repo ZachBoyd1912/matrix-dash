@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getSqlite } from "@/lib/db/client";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +9,7 @@ const schema = z.object({
   scope: z.enum(["memories", "notes", "sessions", "files", "all"]).default("all"),
 });
 
-export async function POST(req: Request) {
+export const POST = withUser(async (req: Request) => {
   let payload: unknown;
   try {
     payload = await req.json();
@@ -42,4 +43,4 @@ export async function POST(req: Request) {
   });
   t();
   return Response.json({ ok: true, scope: parsed.data.scope });
-}
+});

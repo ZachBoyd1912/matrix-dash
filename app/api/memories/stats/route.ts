@@ -1,10 +1,11 @@
 import { sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { memories, memoryLinks } from "@/lib/db/schema";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export const GET = withUser(async () => {
   const db = getDb();
   const total =
     db
@@ -30,4 +31,4 @@ export async function GET() {
   const counts: Record<string, number> = { identity: 0, project: 0, global: 0, lesson: 0 };
   for (const row of byType) counts[row.type] = row.c;
   return Response.json({ total, links, pinned, counts });
-}
+});

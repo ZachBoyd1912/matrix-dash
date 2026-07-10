@@ -9,10 +9,11 @@ import {
   files,
   settings,
 } from "@/lib/db/schema";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export const GET = withUser(async () => {
   const db = getDb();
   const data = {
     exportedAt: new Date().toISOString(),
@@ -31,4 +32,4 @@ export async function GET() {
       "content-disposition": `attachment; filename="matrix-dash-${Date.now()}.json"`,
     },
   });
-}
+});

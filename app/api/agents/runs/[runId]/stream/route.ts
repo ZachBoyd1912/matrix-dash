@@ -4,6 +4,7 @@ import { agentRuns } from "@/lib/db/schema";
 import { parseBlocksJson, type StreamEvent } from "@/lib/chat/blocks";
 import { snapshotRunEvents, subscribeRunEvents } from "@/lib/services/run-bus";
 import { isRunActive } from "@/lib/services/agent-runner";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -17,7 +18,7 @@ interface Ctx {
  * block snapshot + current status, then live StreamEvents from the run-bus. If
  * the run is already terminal, it hydrates and closes immediately.
  */
-export async function GET(req: Request, ctx: Ctx) {
+export const GET = withUser(async (req: Request, ctx: Ctx) => {
   const { runId } = await ctx.params;
   const row = getDb().select().from(agentRuns).where(eq(agentRuns.id, runId)).get();
   if (!row) return Response.json({ error: "Not found" }, { status: 404 });
@@ -89,4 +90,4 @@ export async function GET(req: Request, ctx: Ctx) {
       "x-accel-buffering": "no",
     },
   });
-}
+});

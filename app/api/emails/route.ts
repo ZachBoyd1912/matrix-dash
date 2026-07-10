@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { emails } from "@/lib/db/schema";
 import type { Email } from "@/types/email";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ const createSchema = z.object({
   body: z.string().max(50000).default(""),
 });
 
-export async function GET(req: Request) {
+export const GET = withUser(async (req: Request) => {
   const url = new URL(req.url);
   const folder = url.searchParams.get("folder") ?? "inbox";
   const starred = url.searchParams.get("starred") === "1";
@@ -39,9 +40,9 @@ export async function GET(req: Request) {
         .orderBy(desc(emails.createdAt))
         .all();
   return Response.json(rows.map(toEmail));
-}
+});
 
-export async function POST(req: Request) {
+export const POST = withUser(async (req: Request) => {
   let payload: unknown;
   try {
     payload = await req.json();
@@ -67,4 +68,4 @@ export async function POST(req: Request) {
     })
     .run();
   return Response.json({ id });
-}
+});

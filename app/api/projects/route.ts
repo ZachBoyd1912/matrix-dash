@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { projects } from "@/lib/db/schema";
 import type { Project } from "@/types/jarvis";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -17,12 +18,12 @@ const createSchema = z.object({
   path: z.string().max(500).nullable().optional(),
 });
 
-export async function GET() {
+export const GET = withUser(async () => {
   const rows = getDb().select().from(projects).orderBy(asc(projects.name)).all();
   return Response.json(rows satisfies Project[]);
-}
+});
 
-export async function POST(req: Request) {
+export const POST = withUser(async (req: Request) => {
   let payload: unknown;
   try {
     payload = await req.json();
@@ -53,4 +54,4 @@ export async function POST(req: Request) {
   const row = getDb().select().from(projects).where(eq(projects.id, id)).get();
   if (!row) return Response.json({ error: "Create failed" }, { status: 500 });
   return Response.json(row satisfies Project);
-}
+});

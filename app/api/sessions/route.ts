@@ -3,6 +3,7 @@ import { desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { sessions } from "@/lib/db/schema";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ const createSchema = z.object({
   context: z.record(z.string(), z.unknown()).optional(),
 });
 
-export async function GET() {
+export const GET = withUser(async () => {
   const db = getDb();
   const rows = db
     .select({
@@ -28,9 +29,9 @@ export async function GET() {
     .orderBy(desc(sessions.updatedAt))
     .all();
   return Response.json(rows);
-}
+});
 
-export async function POST(req: Request) {
+export const POST = withUser(async (req: Request) => {
   let payload: unknown = {};
   try {
     payload = await req.json();
@@ -52,4 +53,4 @@ export async function POST(req: Request) {
     .run();
   const row = getDb().select().from(sessions).where(eq(sessions.id, id)).get();
   return Response.json(row);
-}
+});

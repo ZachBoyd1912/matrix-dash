@@ -7,6 +7,7 @@ import { searchNotesFts } from "@/lib/db/fts";
 import { extractWikiLinks } from "@/lib/utils/wiki";
 import { syncNoteToVault } from "@/lib/services/obsidian-sync";
 import type { Note } from "@/types/note";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ const createSchema = z.object({
   folderId: z.string().max(200).nullable().optional(),
 });
 
-export async function GET(req: Request) {
+export const GET = withUser(async (req: Request) => {
   const url = new URL(req.url);
   const q = url.searchParams.get("q")?.trim();
   const limit = Math.min(500, parseInt(url.searchParams.get("limit") || "200", 10));
@@ -36,7 +37,7 @@ export async function GET(req: Request) {
     .limit(limit)
     .all();
   return Response.json(rows.map(toNote));
-}
+});
 
 function syncNoteLinks(noteId: string, content: string) {
   const db = getDb();
@@ -58,7 +59,7 @@ function syncNoteLinks(noteId: string, content: string) {
   }
 }
 
-export async function POST(req: Request) {
+export const POST = withUser(async (req: Request) => {
   let payload: unknown;
   try {
     payload = await req.json();
@@ -104,4 +105,4 @@ export async function POST(req: Request) {
   }
 
   return Response.json(row ? toNote(row) : { id });
-}
+});

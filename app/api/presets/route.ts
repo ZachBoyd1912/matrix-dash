@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { presets } from "@/lib/db/schema";
 import type { GenerationParams } from "@/types/settings";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -41,12 +42,12 @@ function toPublic(row: typeof presets.$inferSelect) {
   };
 }
 
-export async function GET() {
+export const GET = withUser(async () => {
   const rows = getDb().select().from(presets).orderBy(asc(presets.name)).all();
   return Response.json(rows.map(toPublic));
-}
+});
 
-export async function POST(req: Request) {
+export const POST = withUser(async (req: Request) => {
   let payload: unknown;
   try {
     payload = await req.json();
@@ -70,12 +71,12 @@ export async function POST(req: Request) {
     })
     .run();
   return Response.json({ id });
-}
+});
 
-export async function DELETE(req: Request) {
+export const DELETE = withUser(async (req: Request) => {
   const url = new URL(req.url);
   const id = url.searchParams.get("id");
   if (!id) return Response.json({ error: "id required" }, { status: 400 });
   getDb().delete(presets).where(eq(presets.id, id)).run();
   return Response.json({ ok: true });
-}
+});

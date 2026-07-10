@@ -6,6 +6,7 @@ import { emailAccounts } from "@/lib/db/schema";
 import { encrypt } from "@/lib/utils/crypto";
 import { testEmailAccount } from "@/lib/services/email";
 import type { EmailAccountPublic } from "@/types/jarvis";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -41,12 +42,12 @@ const createSchema = z.object({
   test: z.boolean().optional(),
 });
 
-export async function GET() {
+export const GET = withUser(async () => {
   const rows = getDb().select().from(emailAccounts).orderBy(desc(emailAccounts.createdAt)).all();
   return Response.json(rows.map(toPublic));
-}
+});
 
-export async function POST(req: Request) {
+export const POST = withUser(async (req: Request) => {
   let payload: unknown;
   try {
     payload = await req.json();
@@ -88,4 +89,4 @@ export async function POST(req: Request) {
     })
     .run();
   return Response.json({ id });
-}
+});

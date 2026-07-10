@@ -2,10 +2,11 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { githubConnections } from "@/lib/db/schema";
 import { syncRepos } from "@/lib/services/github";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
-export async function POST() {
+export const POST = withUser(async () => {
   const conn = getDb()
     .select()
     .from(githubConnections)
@@ -23,4 +24,4 @@ export async function POST() {
       { status: 500 }
     );
   }
-}
+});

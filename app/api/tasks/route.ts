@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { tasks } from "@/lib/db/schema";
 import type { Task } from "@/types/jarvis";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -19,12 +20,12 @@ const createSchema = z.object({
   priority: z.enum(["low", "normal", "high"]).optional(),
 });
 
-export async function GET() {
+export const GET = withUser(async () => {
   const rows = getDb().select().from(tasks).orderBy(asc(tasks.isDone), asc(tasks.dueAt)).all();
   return Response.json(rows.map(toTask));
-}
+});
 
-export async function POST(req: Request) {
+export const POST = withUser(async (req: Request) => {
   let payload: unknown;
   try {
     payload = await req.json();
@@ -50,4 +51,4 @@ export async function POST(req: Request) {
     .run();
   const row = getDb().select().from(tasks).where(eq(tasks.id, id)).get();
   return Response.json(row ? toTask(row) : { id });
-}
+});

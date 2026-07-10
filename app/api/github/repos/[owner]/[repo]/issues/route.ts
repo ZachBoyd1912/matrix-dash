@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { githubConnections } from "@/lib/db/schema";
 import { createIssue } from "@/lib/services/github";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ const createSchema = z.object({
   labels: z.array(z.string().max(200)).optional(),
 });
 
-export async function POST(req: Request, ctx: Ctx) {
+export const POST = withUser(async (req: Request, ctx: Ctx) => {
   const { owner, repo } = await ctx.params;
   let payload: unknown;
   try {
@@ -44,4 +45,4 @@ export async function POST(req: Request, ctx: Ctx) {
     parsed.data.labels
   );
   return Response.json(result);
-}
+});

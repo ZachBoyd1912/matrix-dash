@@ -2,6 +2,7 @@ import { desc } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { githubRepos } from "@/lib/db/schema";
 import type { GitHubRepoPublic } from "@/types/jarvis";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ function toPublic(row: typeof githubRepos.$inferSelect): GitHubRepoPublic {
   };
 }
 
-export async function GET() {
+export const GET = withUser(async () => {
   const rows = getDb().select().from(githubRepos).orderBy(desc(githubRepos.stars)).all();
   return Response.json(rows.map(toPublic));
-}
+});

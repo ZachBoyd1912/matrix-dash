@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { aiProviders, images } from "@/lib/db/schema";
 import { decrypt } from "@/lib/utils/crypto";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -15,14 +16,14 @@ const generateSchema = z.object({
   size: z.string().max(200).optional(),
 });
 
-export async function GET() {
+export const GET = withUser(async () => {
   return Response.json(
     getDb().select().from(images).orderBy(desc(images.createdAt)).limit(60).all()
   );
-}
+});
 
 /** Generate via OpenAI Images API (works with OpenAI + OpenAI-compatible providers). */
-export async function POST(req: Request) {
+export const POST = withUser(async (req: Request) => {
   let payload: unknown;
   try {
     payload = await req.json();
@@ -88,12 +89,12 @@ export async function POST(req: Request) {
     })
     .run();
   return Response.json({ id, dataUrl });
-}
+});
 
-export async function DELETE(req: Request) {
+export const DELETE = withUser(async (req: Request) => {
   const url = new URL(req.url);
   const id = url.searchParams.get("id");
   if (!id) return Response.json({ error: "id required" }, { status: 400 });
   getDb().delete(images).where(eq(images.id, id)).run();
   return Response.json({ ok: true });
-}
+});

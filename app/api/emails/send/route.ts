@@ -3,6 +3,7 @@ import { getDb } from "@/lib/db/client";
 import { emailAccounts } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { sendEmail } from "@/lib/services/email";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ const schema = z.object({
   body: z.string().max(50000).default(""),
 });
 
-export async function POST(req: Request) {
+export const POST = withUser(async (req: Request) => {
   let payload: unknown;
   try {
     payload = await req.json();
@@ -43,4 +44,4 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
-}
+});

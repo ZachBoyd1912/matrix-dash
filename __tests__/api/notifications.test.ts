@@ -1,4 +1,19 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+
+// Route handlers are now wrapped in withUser(), which resolves the request's
+// session via getCurrentSession() (reads cookies() — unavailable outside a Next
+// request). Mock it to an owner session: owner context resolves to the primary
+// DB, so these direct-invocation tests behave exactly as before wrapping.
+vi.mock("@/lib/auth/current-user", () => ({
+  getCurrentSession: async () => ({
+    user: { id: "test-owner", role: "owner" },
+    sessionId: "test-session",
+    mfaSatisfied: true,
+  }),
+  getCurrentUser: async () => ({ id: "test-owner", role: "owner" }),
+  getCloudflareAccessEmail: async () => null,
+}));
+
 import { GET, PATCH, DELETE } from "@/app/api/notifications/route";
 import { getDb, resetTables } from "@/lib/test-db";
 import { notifications } from "@/lib/db/schema";

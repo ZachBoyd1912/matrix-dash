@@ -3,6 +3,7 @@ import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { contacts } from "@/lib/db/schema";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -12,11 +13,11 @@ const createSchema = z.object({
   notes: z.string().max(50000).optional(),
 });
 
-export async function GET() {
+export const GET = withUser(async () => {
   return Response.json(getDb().select().from(contacts).orderBy(asc(contacts.name)).all());
-}
+});
 
-export async function POST(req: Request) {
+export const POST = withUser(async (req: Request) => {
   let payload: unknown;
   try {
     payload = await req.json();
@@ -37,12 +38,12 @@ export async function POST(req: Request) {
     })
     .run();
   return Response.json({ id });
-}
+});
 
-export async function DELETE(req: Request) {
+export const DELETE = withUser(async (req: Request) => {
   const url = new URL(req.url);
   const id = url.searchParams.get("id");
   if (!id) return Response.json({ error: "id required" }, { status: 400 });
   getDb().delete(contacts).where(eq(contacts.id, id)).run();
   return Response.json({ ok: true });
-}
+});

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { sessionMessages } from "@/lib/db/schema";
 import type { MessageVariant } from "@/types/session";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ interface Ctx {
 // Switches which regenerated variant is "active" for a message — no LLM call,
 // just mirrors the chosen variant's fields into the row's main columns (the
 // same columns every other query in this codebase reads directly).
-export async function PATCH(req: Request, ctx: Ctx) {
+export const PATCH = withUser(async (req: Request, ctx: Ctx) => {
   const { messageId } = await ctx.params;
   let payload: unknown;
   try {
@@ -69,4 +70,4 @@ export async function PATCH(req: Request, ctx: Ctx) {
 
   const row = getDb().select().from(sessionMessages).where(eq(sessionMessages.id, messageId)).get();
   return Response.json(row);
-}
+});

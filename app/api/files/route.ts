@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { files } from "@/lib/db/schema";
 import { languageFromPath } from "@/lib/utils/language";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ const createSchema = z.object({
   sessionId: z.string().max(200).nullable().optional(),
 });
 
-export async function GET() {
+export const GET = withUser(async () => {
   // Strip content for the list endpoint — IDE pulls full content per file.
   const rows = getDb()
     .select({
@@ -31,9 +32,9 @@ export async function GET() {
     .orderBy(asc(files.path))
     .all();
   return Response.json(rows);
-}
+});
 
-export async function POST(req: Request) {
+export const POST = withUser(async (req: Request) => {
   let payload: unknown;
   try {
     payload = await req.json();
@@ -60,4 +61,4 @@ export async function POST(req: Request) {
     })
     .run();
   return Response.json({ id });
-}
+});

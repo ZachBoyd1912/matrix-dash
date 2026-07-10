@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db/client";
 import { calendars } from "@/lib/db/schema";
 import { encrypt } from "@/lib/utils/crypto";
 import type { Calendar } from "@/types/jarvis";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -26,12 +27,12 @@ const createSchema = z.object({
   caldavPass: z.string().max(200).nullable().optional(),
 });
 
-export async function GET() {
+export const GET = withUser(async () => {
   const rows = getDb().select().from(calendars).all();
   return Response.json(rows.map(toPublic));
-}
+});
 
-export async function POST(req: Request) {
+export const POST = withUser(async (req: Request) => {
   let payload: unknown;
   try {
     payload = await req.json();
@@ -54,4 +55,4 @@ export async function POST(req: Request) {
     })
     .run();
   return Response.json({ id });
-}
+});

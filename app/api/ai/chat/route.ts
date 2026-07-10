@@ -38,6 +38,7 @@ import { getPowerLevel } from "@/lib/ai/power";
 import type { AgentRequestContext } from "@/lib/ai/approvals";
 import type { GenerationParams } from "@/types/settings";
 import type { MessageVariant } from "@/types/session";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -126,7 +127,7 @@ function buildSkillsPrompt(userText: string): string {
   return `These skills are relevant to the current request — apply them when useful. Call findSkills/loadSkill to pull in others if the task needs them.\n\n${lines.join("\n\n")}${note}`;
 }
 
-export async function POST(req: Request) {
+export const POST = withUser(async (req: Request) => {
   let body: ChatPayload;
   try {
     body = (await req.json()) as ChatPayload;
@@ -628,4 +629,4 @@ export async function POST(req: Request) {
       "x-provider-id": provider.id,
     },
   });
-}
+});

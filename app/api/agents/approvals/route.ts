@@ -1,12 +1,13 @@
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { agentApprovals, agents } from "@/lib/db/schema";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 /** Pending approvals (or just the count with ?count=1 for the topbar badge). */
-export async function GET(req: Request) {
+export const GET = withUser(async (req: Request) => {
   const url = new URL(req.url);
   const countOnly = url.searchParams.get("count") === "1";
 
@@ -34,4 +35,4 @@ export async function GET(req: Request) {
     return { ...r, agentName: a?.name ?? "Agent", input };
   });
   return Response.json(withAgent);
-}
+});

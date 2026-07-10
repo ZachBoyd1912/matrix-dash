@@ -4,6 +4,7 @@ import cron from "node-cron";
 import { getDb } from "@/lib/db/client";
 import { scheduledJobs } from "@/lib/db/schema";
 import { syncScheduledJobs, triggerJobNow } from "@/lib/services/daemon";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ interface Ctx {
   params: Promise<{ id: string }>;
 }
 
-export async function PATCH(req: Request, ctx: Ctx) {
+export const PATCH = withUser(async (req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
   let payload: unknown;
   try {
@@ -34,19 +35,19 @@ export async function PATCH(req: Request, ctx: Ctx) {
   getDb().update(scheduledJobs).set(parsed.data).where(eq(scheduledJobs.id, id)).run();
   syncScheduledJobs();
   return Response.json({ ok: true });
-}
+});
 
-export async function POST(_req: Request, ctx: Ctx) {
+export const POST = withUser(async (_req: Request, ctx: Ctx) => {
   // Run now.
   const { id } = await ctx.params;
   await triggerJobNow(id);
   const row = getDb().select().from(scheduledJobs).where(eq(scheduledJobs.id, id)).get();
   return Response.json({ ok: true, lastResult: row?.lastResult });
-}
+});
 
-export async function DELETE(_req: Request, ctx: Ctx) {
+export const DELETE = withUser(async (_req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
   getDb().delete(scheduledJobs).where(eq(scheduledJobs.id, id)).run();
   syncScheduledJobs();
   return Response.json({ ok: true });
-}
+});

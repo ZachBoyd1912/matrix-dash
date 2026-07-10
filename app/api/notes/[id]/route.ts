@@ -9,6 +9,7 @@ import { extractWikiLinks } from "@/lib/utils/wiki";
 import { syncNoteToVault, NOTES_SUBDIR } from "@/lib/services/obsidian-sync";
 import { getSetting } from "@/lib/db/settings";
 import type { Note, NoteBacklinks } from "@/types/note";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ interface Ctx {
   params: Promise<{ id: string }>;
 }
 
-export async function GET(_req: Request, ctx: Ctx) {
+export const GET = withUser(async (_req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
   const db = getDb();
   const row = db.select().from(notes).where(eq(notes.id, id)).get();
@@ -68,7 +69,7 @@ export async function GET(_req: Request, ctx: Ctx) {
   };
 
   return Response.json({ note: toNote(row), backlinks });
-}
+});
 
 function rebuildLinks(noteId: string, content: string) {
   const db = getDb();
@@ -88,7 +89,7 @@ function rebuildLinks(noteId: string, content: string) {
   }
 }
 
-export async function PATCH(req: Request, ctx: Ctx) {
+export const PATCH = withUser(async (req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
   let payload: unknown;
   try {
@@ -127,9 +128,9 @@ export async function PATCH(req: Request, ctx: Ctx) {
   }
 
   return Response.json(toNote(row));
-}
+});
 
-export async function DELETE(_req: Request, ctx: Ctx) {
+export const DELETE = withUser(async (_req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
   const existing = getDb().select().from(notes).where(eq(notes.id, id)).get();
   getDb().delete(notes).where(eq(notes.id, id)).run();
@@ -146,4 +147,4 @@ export async function DELETE(_req: Request, ctx: Ctx) {
   }
 
   return Response.json({ ok: true });
-}
+});

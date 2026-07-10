@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { tasks } from "@/lib/db/schema";
 import type { KanbanTask } from "@/types/jarvis";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ const createSchema = z.object({
     .optional(),
 });
 
-export async function GET(req: Request) {
+export const GET = withUser(async (req: Request) => {
   const url = new URL(req.url);
   const projectId = url.searchParams.get("projectId");
   const status = url.searchParams.get("kanbanStatus");
@@ -45,9 +46,9 @@ export async function GET(req: Request) {
 
   const rows = query.all();
   return Response.json(rows.map(toKanban));
-}
+});
 
-export async function POST(req: Request) {
+export const POST = withUser(async (req: Request) => {
   let payload: unknown;
   try {
     payload = await req.json();
@@ -86,4 +87,4 @@ export async function POST(req: Request) {
     .run();
   const row = getDb().select().from(tasks).where(eq(tasks.id, id)).get();
   return Response.json(row ? toKanban(row) : { id });
-}
+});

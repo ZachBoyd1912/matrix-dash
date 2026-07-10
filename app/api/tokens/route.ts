@@ -3,18 +3,19 @@ import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { apiTokens } from "@/lib/db/schema";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
 const createSchema = z.object({ label: z.string().min(1).max(500) });
 
-export async function GET() {
+export const GET = withUser(async () => {
   // Only show last 8 chars to avoid leaking full tokens after creation.
   const rows = getDb().select().from(apiTokens).orderBy(desc(apiTokens.createdAt)).all();
   return Response.json(rows.map((r) => ({ ...r, token: `…${r.token.slice(-8)}` })));
-}
+});
 
-export async function POST(req: Request) {
+export const POST = withUser(async (req: Request) => {
   let payload: unknown;
   try {
     payload = await req.json();
@@ -31,12 +32,12 @@ export async function POST(req: Request) {
     .run();
   // Only time the full token is returned.
   return Response.json({ id, token });
-}
+});
 
-export async function DELETE(req: Request) {
+export const DELETE = withUser(async (req: Request) => {
   const url = new URL(req.url);
   const id = url.searchParams.get("id");
   if (!id) return Response.json({ error: "id required" }, { status: 400 });
   getDb().delete(apiTokens).where(eq(apiTokens.id, id)).run();
   return Response.json({ ok: true });
-}
+});
