@@ -104,6 +104,36 @@ describe("withUser route wrapper", () => {
     ).toBeUndefined();
   });
 
+  it("propagates account context into a ReadableStream start() across an await", async () => {
+    // Mirrors the 4 streaming DB routes (ai/chat, etc.): the stream is built
+    // synchronously inside the withUser scope, and its async start() persists to
+    // getDb() AFTER the Response is returned. Proves the ALS context survives.
+    const STREAM_NOTE = "with-user-stream-note";
+    fakeSession = MEMBER;
+    const res = await withUser(async () => {
+      const stream = new ReadableStream<Uint8Array>({
+        async start(controller) {
+          await Promise.resolve(); // context must survive this await
+          getDb().insert(notes).values(note(STREAM_NOTE)).run();
+          controller.enqueue(new TextEncoder().encode("ok"));
+          controller.close();
+        },
+      });
+      return new Response(stream);
+    })();
+    await res.text(); // drain the stream so start() completes
+
+    // Landed in the member's isolated DB (context propagated), not the primary.
+    expect(
+      getSystemDb().select().from(notes).where(eq(notes.id, STREAM_NOTE)).get()
+    ).toBeUndefined();
+    fakeSession = MEMBER;
+    const inMember = await withUser(async () =>
+      Response.json(getDb().select().from(notes).where(eq(notes.id, STREAM_NOTE)).get() ?? null)
+    )();
+    expect((await inMember.json())?.title).toBe("X");
+  });
+
   it("rejects a request with no session before the handler runs", async () => {
     fakeSession = null;
     const res = await insert(ORPHAN_NOTE)();

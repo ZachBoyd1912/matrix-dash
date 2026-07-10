@@ -36,6 +36,7 @@ const SECTIONS = [
   { href: "/dashboard/settings/agents", label: "Agents", icon: Bot },
   { href: "/dashboard/settings/shortcuts", label: "Shortcuts", icon: Keyboard },
   { href: "/dashboard/settings/account", label: "Account", icon: User },
+  { href: "/dashboard/settings/accounts", label: "Accounts", icon: Users },
   { href: "/dashboard/settings/auth", label: "Security (2FA)", icon: Lock },
   { href: "/dashboard/settings/tokens", label: "API Tokens", icon: KeyRound },
   { href: "/dashboard/settings/vault", label: "Vault", icon: Shield },

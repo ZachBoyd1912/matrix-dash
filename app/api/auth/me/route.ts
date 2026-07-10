@@ -9,7 +9,13 @@ export async function GET() {
   const user = await getCurrentUser();
   return Response.json({
     user: user
-      ? { email: user.email, name: user.name, role: user.role, totpEnabled: !!user.totpEnabled }
+      ? {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          totpEnabled: !!user.totpEnabled,
+        }
       : null,
     needsBootstrap: countUsers() === 0,
   });

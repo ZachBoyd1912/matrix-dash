@@ -37,6 +37,19 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid email or password" }, { status: 401 });
   }
 
+  // Member sign-in gate. Per-account DB isolation (withUser) does NOT isolate
+  // the shared host: the agent runner, workspace filesystem routes, and the
+  // shared Claude subscription token all sit below getDb(). A member session
+  // would therefore be over-privileged (owner-level machine access via an
+  // agent run). Until that capability boundary exists (Phase 4), only owners
+  // may sign in — accounts can be created/managed, but not yet used by members.
+  if (user.role !== "owner") {
+    return Response.json(
+      { error: "Member sign-in isn't enabled on this instance yet." },
+      { status: 403 }
+    );
+  }
+
   if (user.totpEnabled && user.totpSecret) {
     if (!code) return Response.json({ mfaRequired: true }, { status: 200 });
     let ok = false;
