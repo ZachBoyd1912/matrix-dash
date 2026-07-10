@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { eq, sql } from "drizzle-orm";
-import { getDb } from "./client";
+import { getSystemDb } from "./client";
 import { users } from "./schema";
 import { hashPassword } from "@/lib/auth/password";
 
@@ -8,7 +8,7 @@ export type UserRow = typeof users.$inferSelect;
 
 export function countUsers(): number {
   return (
-    getDb()
+    getSystemDb()
       .select({ n: sql<number>`COUNT(*)` })
       .from(users)
       .get()?.n ?? 0
@@ -16,15 +16,19 @@ export function countUsers(): number {
 }
 
 export function getUserByEmail(email: string): UserRow | undefined {
-  return getDb().select().from(users).where(eq(users.email, email.toLowerCase().trim())).get();
+  return getSystemDb()
+    .select()
+    .from(users)
+    .where(eq(users.email, email.toLowerCase().trim()))
+    .get();
 }
 
 export function getUserById(id: string): UserRow | undefined {
-  return getDb().select().from(users).where(eq(users.id, id)).get();
+  return getSystemDb().select().from(users).where(eq(users.id, id)).get();
 }
 
 export function listUsers(): UserRow[] {
-  return getDb().select().from(users).all();
+  return getSystemDb().select().from(users).all();
 }
 
 export interface CreateUserInput {
@@ -37,7 +41,7 @@ export interface CreateUserInput {
 export function createUser(input: CreateUserInput): UserRow {
   const id = randomUUID();
   const now = new Date().toISOString();
-  getDb()
+  getSystemDb()
     .insert(users)
     .values({
       id,
@@ -54,7 +58,7 @@ export function createUser(input: CreateUserInput): UserRow {
 }
 
 export function setUserPassword(id: string, password: string): void {
-  getDb()
+  getSystemDb()
     .update(users)
     .set({ passwordHash: hashPassword(password), updatedAt: new Date().toISOString() })
     .where(eq(users.id, id))
@@ -62,7 +66,7 @@ export function setUserPassword(id: string, password: string): void {
 }
 
 export function touchLogin(id: string): void {
-  getDb()
+  getSystemDb()
     .update(users)
     .set({ lastLoginAt: new Date().toISOString() })
     .where(eq(users.id, id))
@@ -71,5 +75,5 @@ export function touchLogin(id: string): void {
 
 /** The first-created owner (the account that inherits pre-multi-user data). */
 export function getOwner(): UserRow | undefined {
-  return getDb().select().from(users).where(eq(users.role, "owner")).get();
+  return getSystemDb().select().from(users).where(eq(users.role, "owner")).get();
 }

@@ -1,7 +1,10 @@
+import fs from "fs";
+import path from "path";
 import Database from "better-sqlite3";
 import { drizzle, type BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
 import * as schema from "./schema";
-import { getDbPath } from "@/lib/utils/db-path";
+import { getDbPath, getDataDir } from "@/lib/utils/db-path";
+import { getDbContext } from "./context";
 
 const INIT_SQL = `
 CREATE TABLE IF NOT EXISTS memories (
@@ -465,19 +468,42 @@ END;
 `;
 
 type DB = BetterSQLite3Database<typeof schema>;
+interface Conn {
+  sqlite: Database.Database;
+  db: DB;
+}
 
-// Cached on globalThis so Next.js HMR doesn't leak connections.
+// One connection per account database, cached on globalThis so Next.js HMR
+// doesn't leak connections.
 const g = globalThis as unknown as {
-  __matrixSqlite?: Database.Database;
-  __matrixDb?: DB;
+  __matrixConns?: Map<string, Conn>;
 };
 
-export function getSqlite(): Database.Database {
-  if (g.__matrixSqlite) {
-    ensureIntegrationTables(g.__matrixSqlite);
-    return g.__matrixSqlite;
+function conns(): Map<string, Conn> {
+  if (!g.__matrixConns) g.__matrixConns = new Map();
+  return g.__matrixConns;
+}
+
+/**
+ * Resolve which account database the current call should use. With no user
+ * context — boot, background jobs, or the owner account — this is the primary
+ * matrix.db (all existing data, unchanged). A member account resolves to its own
+ * isolated file under users/, so workspaces can never read each other's data.
+ */
+function resolveDbPath(): string {
+  const ctx = getDbContext();
+  if (!ctx || ctx.isOwner) return getDbPath();
+  return path.join(getDataDir(), "users", `${ctx.userId}.db`);
+}
+
+function openConn(dbPath: string): Conn {
+  const cached = conns().get(dbPath);
+  if (cached) {
+    ensureIntegrationTables(cached.sqlite);
+    return cached;
   }
-  const sqlite = new Database(getDbPath(), { timeout: 5000 });
+  fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+  const sqlite = new Database(dbPath, { timeout: 5000 });
   sqlite.pragma("journal_mode = WAL");
   sqlite.pragma("foreign_keys = ON");
   sqlite.pragma("busy_timeout = 5000");
@@ -489,8 +515,27 @@ export function getSqlite(): Database.Database {
   seedAgents(sqlite);
   seedJarvisPreset(sqlite);
   backfillSkillsFts(sqlite);
-  g.__matrixSqlite = sqlite;
-  return sqlite;
+  const conn: Conn = { sqlite, db: drizzle(sqlite, { schema }) };
+  conns().set(dbPath, conn);
+  return conn;
+}
+
+/** SQLite handle for the current account's workspace. */
+export function getSqlite(): Database.Database {
+  return openConn(resolveDbPath()).sqlite;
+}
+
+/**
+ * The primary/system database (matrix.db) — always the same regardless of
+ * account context. Holds the cross-account auth tables (users, auth_sessions);
+ * auth resolution must use this, never a member's context DB.
+ */
+export function getSystemSqlite(): Database.Database {
+  return openConn(getDbPath()).sqlite;
+}
+
+export function getSystemDb(): DB {
+  return openConn(getDbPath()).db;
 }
 
 /** Idempotently create integration tables that may not exist yet (hot-reload safe). */
@@ -1042,8 +1087,7 @@ function backfillSkillsFts(sqlite: Database.Database) {
   }
 }
 
+/** Drizzle handle for the current account's workspace (see resolveDbPath). */
 export function getDb(): DB {
-  if (g.__matrixDb) return g.__matrixDb;
-  g.__matrixDb = drizzle(getSqlite(), { schema });
-  return g.__matrixDb;
+  return openConn(resolveDbPath()).db;
 }

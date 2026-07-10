@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { and, eq, gt } from "drizzle-orm";
-import { getDb } from "@/lib/db/client";
+import { getSystemDb } from "@/lib/db/client";
 import { users, authSessions } from "@/lib/db/schema";
 import { SESSION_COOKIE } from "./constants";
 
@@ -27,7 +27,7 @@ export function createSession(
   const token = crypto.randomBytes(32).toString("hex");
   const now = new Date();
   const expiresAt = new Date(now.getTime() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
-  getDb()
+  getSystemDb()
     .insert(authSessions)
     .values({
       id: token,
@@ -47,17 +47,17 @@ export function createSession(
 export function getSessionUser(token: string | undefined | null): ResolvedSession | null {
   if (!token) return null;
   const nowIso = new Date().toISOString();
-  const row = getDb()
+  const row = getSystemDb()
     .select()
     .from(authSessions)
     .where(and(eq(authSessions.id, token), gt(authSessions.expiresAt, nowIso)))
     .get();
   if (!row) return null;
-  const user = getDb().select().from(users).where(eq(users.id, row.userId)).get();
+  const user = getSystemDb().select().from(users).where(eq(users.id, row.userId)).get();
   if (!user || !user.isActive) return null;
   // Touch lastSeenAt (best-effort; not on the hot path critical section).
   try {
-    getDb()
+    getSystemDb()
       .update(authSessions)
       .set({ lastSeenAt: nowIso })
       .where(eq(authSessions.id, token))
@@ -69,14 +69,18 @@ export function getSessionUser(token: string | undefined | null): ResolvedSessio
 }
 
 export function markSessionMfaSatisfied(token: string): void {
-  getDb().update(authSessions).set({ mfaSatisfied: true }).where(eq(authSessions.id, token)).run();
+  getSystemDb()
+    .update(authSessions)
+    .set({ mfaSatisfied: true })
+    .where(eq(authSessions.id, token))
+    .run();
 }
 
 export function destroySession(token: string): void {
-  getDb().delete(authSessions).where(eq(authSessions.id, token)).run();
+  getSystemDb().delete(authSessions).where(eq(authSessions.id, token)).run();
 }
 
 /** Revoke every session for a user (e.g. password change, account disable). */
 export function destroyAllSessions(userId: string): void {
-  getDb().delete(authSessions).where(eq(authSessions.userId, userId)).run();
+  getSystemDb().delete(authSessions).where(eq(authSessions.userId, userId)).run();
 }
