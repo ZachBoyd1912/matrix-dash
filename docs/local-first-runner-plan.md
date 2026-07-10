@@ -34,12 +34,17 @@ that user's agent runs locally.
 
 ## Non-negotiable realities (set expectations before building)
 
-1. **"Auto-install" can't be silent — and mustn't be.** A daemon with Full Disk /
-   Photos / Keychain access triggers macOS Gatekeeper + per-category TCC consent
-   prompts *by design*. Safe distribution requires a **code-signed, notarized**
-   artifact (Apple Developer account, ~$99/yr). Realistically the flow is a
-   *guided* install: download → run → approve a sequence of OS prompts. Anything
-   that bypassed those prompts would be indistinguishable from malware.
+1. **Install is a guided, one-click-ish flow — and no Apple fee is required.**
+   Decision (owner): we will **not** pay for an Apple Developer account / code
+   signing. That is fine, because we distribute the runner **as a script/Node
+   process, not a packaged `.app`** — and macOS Gatekeeper's scary "unidentified
+   developer, can't be opened" block only applies to downloaded `.app` bundles
+   and binaries, **not** to scripts the user runs themselves. See "Install UX
+   (no signing)" below. The unavoidable-and-desirable part is the per-category
+   **TCC consent prompts** (Full Disk, Photos, Contacts, etc.) — those are just
+   "Allow" dialogs the user clicks once; they need no signing. They'll be
+   attributed to `node`/Terminal rather than a branded app name, which is an
+   acceptable cosmetic tradeoff for a free, self-installed tool.
 2. **Cron can only schedule; execution needs that user's runner online** (their
    laptop awake + connected). This is the "Mac must be on" limitation, now
    per-user. It's a known limitation, not a bug — surface it in the UI ("runner
@@ -91,16 +96,39 @@ is polish on a working spine.
 - **R6 — Reworked onboarding.** A replayable, in-depth tutorial (settings button
   to replay) explaining the local-first model, walking through: create account →
   download + pair runner → grant OS permissions → first agent run.
-- **R7 — Guided install polish.** Code-signed/notarized artifact; launchd (mac) /
-  systemd (linux) service; one-click download + guided permission grants.
+- **R7 — Install polish (no signing, no fee).** launchd (mac) / systemd (linux)
+  LaunchAgent for auto-start + reconnect; the download button + `.command`
+  installer below; guided TCC permission grants. No notarization.
 
-Ship R1–R3 on your own Mac before touching member distribution (R6/R7), which is
-where the cost (Apple signing, cross-platform, support) lives.
+### Install UX (no signing, no Apple fee)
+
+The onboarding "Install runner" step gives the user two equivalent, free paths —
+both avoid the Gatekeeper `.app` block because nothing is a packaged app:
+
+1. **Copy-paste command (fastest):** one line the user pastes into Terminal, e.g.
+   `curl -fsSL https://matrix.zbautomations.ie/install-runner.sh | sh -s -- <pair-code>`
+   (or `npx matrix-runner pair <pair-code>` if we publish to npm). Terminal runs
+   scripts the user explicitly invokes — Gatekeeper doesn't gate this at all.
+2. **Double-clickable installer (the "button"):** the dashboard serves a
+   `matrix-runner-install.command` file (a shell script with the `.command`
+   extension that Terminal opens on double-click), pre-filled with the user's
+   pair code. First double-click shows a single ordinary "are you sure you want
+   to open this" prompt (not the dead-end "unidentified developer" block), then
+   it runs. This is the closest thing to a one-click install without paying.
+
+Either path: downloads the runner (a small Node bundle), pairs it with the
+account, and registers a launchd LaunchAgent so it starts on login and
+reconnects. The OS then shows normal "Allow access to Files/Photos/Contacts?"
+TCC prompts the first time an agent actually touches that data — the user clicks
+Allow. All free, all script-based, zero developer account.
+
+Ship R1–R3 on your own Mac before touching member distribution (R6/R7). The
+remaining cost there is cross-platform coverage + support, **not** Apple signing.
 
 ## Open decisions (for later phases, not blocking R1–R3)
 
-- Signing/notarization: register an Apple Developer account now, or defer until
-  members are real?
+- ~~Signing/notarization~~ **Decided: no Apple Developer account, no signing.**
+  Script-based install (see "Install UX") instead.
 - Runner ↔ data: runner is stateless (streams back to hosted DB) vs. a local
   cache for offline. Start stateless.
 - Windows/Linux members, or macOS-only to start (matches current usage)?
