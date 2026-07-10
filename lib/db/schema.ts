@@ -512,6 +512,8 @@ export const users = sqliteTable("users", {
     .default("member"),
   isActive: integer("is_active", { mode: "boolean" }).default(true),
   lastLoginAt: text("last_login_at"),
+  // Set when the user finishes (or skips) the onboarding tour; null → auto-launch it.
+  tutorialCompletedAt: text("tutorial_completed_at"),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 });
@@ -614,6 +616,10 @@ export const agentRuns = sqliteTable("agent_runs", {
   pushModeUsed: text("push_mode_used"),
   prUrl: text("pr_url"),
   snapshotDir: text("snapshot_dir"),
+  // Matrix Runner: which paired device executed this run ("local" execution =
+  // legacy in-process, "runner" = dispatched to the device below).
+  execution: text("execution").notNull().default("local"),
+  deviceId: text("device_id"),
   startedAt: text("started_at"),
   endedAt: text("ended_at"),
   createdAt: text("created_at").notNull(),
@@ -661,4 +667,76 @@ export const agentVersions = sqliteTable("agent_versions", {
   snapshot: text("snapshot").notNull(),
   changeNote: text("change_note"),
   createdAt: text("created_at").notNull(),
+});
+
+// ─── MATRIX RUNNER (local-first execution devices) ────────
+// A paired device running the Matrix Runner process. These live in the SYSTEM
+// DB (cross-account, like users/auth_sessions): pairing + dispatch must resolve
+// a token to its owner before any per-account context exists. Job payloads
+// carry ids/params only — transcripts stay in the user's per-account DB.
+
+export const runnerDevices = sqliteTable("runner_devices", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull().default(""),
+  platform: text("platform").notNull().default(""), // darwin|linux|win32
+  arch: text("arch").notNull().default(""),
+  appVersion: text("app_version").notNull().default(""),
+  // sha256 hex of the runner token; the raw token is shown exactly once at pairing.
+  tokenHash: text("token_hash").notNull().unique(),
+  // The device agent runs dispatch to when the user has several paired.
+  isDefault: integer("is_default", { mode: "boolean" }).default(false),
+  createdAt: text("created_at").notNull(),
+  lastSeenAt: text("last_seen_at"),
+  revokedAt: text("revoked_at"),
+});
+
+// Short-lived one-time codes minted in the dashboard; the runner exchanges one
+// for a long-lived device token at POST /api/runner/pair.
+export const runnerPairCodes = sqliteTable("runner_pair_codes", {
+  // sha256 hex of the pair code (never stored raw).
+  codeHash: text("code_hash").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  createdAt: text("created_at").notNull(),
+  expiresAt: text("expires_at").notNull(),
+  usedAt: text("used_at"),
+});
+
+// One-time member invite links: owner mints, member opens /invite/[token] to
+// set their own password. (Phase 5 flow; table lands with the platform DDL.)
+export const accountInvites = sqliteTable("account_invites", {
+  tokenHash: text("token_hash").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  createdBy: text("created_by").notNull(),
+  createdAt: text("created_at").notNull(),
+  expiresAt: text("expires_at").notNull(),
+  usedAt: text("used_at"),
+});
+
+// Dispatchable work for a device. Payload is ids/params only, NEVER content.
+export const runnerJobs = sqliteTable("runner_jobs", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  deviceId: text("device_id")
+    .notNull()
+    .references(() => runnerDevices.id, { onDelete: "cascade" }),
+  // agent_run|fs_op|console_stream|ide_ctl|ping
+  kind: text("kind").notNull(),
+  payload: text("payload").notNull().default("{}"),
+  // queued|dispatched|running|done|error|skipped_offline|cancelled
+  status: text("status").notNull().default("queued"),
+  // Links agent_run jobs to the run row in the user's per-account DB.
+  agentRunId: text("agent_run_id"),
+  error: text("error"),
+  createdAt: text("created_at").notNull(),
+  dispatchedAt: text("dispatched_at"),
+  completedAt: text("completed_at"),
 });

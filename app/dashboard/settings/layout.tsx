@@ -22,6 +22,7 @@ import {
   Activity,
   Drama,
   Calendar,
+  MonitorSmartphone,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
@@ -37,6 +38,7 @@ const SECTIONS = [
   { href: "/dashboard/settings/shortcuts", label: "Shortcuts", icon: Keyboard },
   { href: "/dashboard/settings/account", label: "Account", icon: User },
   { href: "/dashboard/settings/accounts", label: "Accounts", icon: Users },
+  { href: "/dashboard/settings/devices", label: "Devices", icon: MonitorSmartphone },
   { href: "/dashboard/settings/auth", label: "Security (2FA)", icon: Lock },
   { href: "/dashboard/settings/tokens", label: "API Tokens", icon: KeyRound },
   { href: "/dashboard/settings/vault", label: "Vault", icon: Shield },

@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { SESSION_COOKIE, isPublicApi } from "@/lib/auth/constants";
+import { SESSION_COOKIE, isPublicApi, isRunnerTokenApi } from "@/lib/auth/constants";
 
 /**
  * Self-hosted, single-instance app — an in-memory sliding window is fine
@@ -17,6 +17,10 @@ const DEFAULT_LIMIT = 100;
 // /api/hooks/[token] is the one endpoint designed for external, non-browser
 // callers (see route comment) and triggers agent execution — tighter budget.
 const WEBHOOK_LIMIT = 20;
+// An active runner posts batched frames continuously during a run (heartbeat
+// pongs + throttled transcript batches) — needs more headroom than the default,
+// and its own bucket so a busy runner can't starve the same IP's browser use.
+const RUNNER_LIMIT = 600;
 
 // Opportunistic eviction on access rather than a timer — keeps this portable
 // across middleware runtimes without relying on setInterval semantics.
@@ -44,8 +48,10 @@ const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 // Inbound webhook: authenticated by the token in the URL itself, and called
 // by non-browser clients that won't send a matching (or any) Origin header.
+// Runner routes: same reasoning — a machine client authenticated by its own
+// Bearer token, never a browser riding a cookie.
 function isCsrfExempt(pathname: string): boolean {
-  return pathname.startsWith("/api/hooks/");
+  return pathname.startsWith("/api/hooks/") || isRunnerTokenApi(pathname);
 }
 
 /**
@@ -92,6 +98,7 @@ const LARGE_BODY_PREFIXES = [
   "/api/uploads",
   "/api/workspace/file",
   "/api/voice/transcribe",
+  "/api/runner/events",
 ];
 
 function bodyLimitFor(pathname: string): number {
@@ -113,8 +120,19 @@ export function middleware(req: NextRequest) {
 
   const now = Date.now();
   const ip = clientIp(req);
-  const limit = pathname.startsWith("/api/hooks/") ? WEBHOOK_LIMIT : DEFAULT_LIMIT;
-  const bucketKey = pathname.startsWith("/api/hooks/") ? `hook:${ip}` : `api:${ip}`;
+  const isRunner = isRunnerTokenApi(pathname);
+  const limit = pathname.startsWith("/api/hooks/")
+    ? WEBHOOK_LIMIT
+    : isRunner
+      ? RUNNER_LIMIT
+      : DEFAULT_LIMIT;
+  const bucketKey = pathname.startsWith("/api/hooks/")
+    ? `hook:${ip}`
+    : isRunner
+      ? // Key runner traffic by token (suffix is plenty for bucketing) so several
+        // devices behind one NAT don't share a bucket with each other or the browser.
+        `runner:${(req.headers.get("authorization") ?? "").slice(-24) || ip}`
+      : `api:${ip}`;
 
   if (!checkRateLimit(bucketKey, limit, now)) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });

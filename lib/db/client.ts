@@ -656,7 +656,8 @@ function ensureIntegrationTables(sqlite: Database.Database) {
       id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, name TEXT NOT NULL DEFAULT '',
       password_hash TEXT, totp_secret TEXT, totp_enabled INTEGER DEFAULT 0,
       role TEXT NOT NULL DEFAULT 'member', is_active INTEGER DEFAULT 1,
-      last_login_at TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+      last_login_at TEXT, tutorial_completed_at TEXT,
+      created_at TEXT NOT NULL, updated_at TEXT NOT NULL
     )`,
     "users"
   );
@@ -674,6 +675,53 @@ function ensureIntegrationTables(sqlite: Database.Database) {
   sqlite.exec(
     `CREATE INDEX IF NOT EXISTS idx_auth_sessions_user ON auth_sessions(user_id);
      CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);`
+  );
+
+  // ── Matrix Runner (local-first execution devices; system-DB tables) ──
+  exec(
+    `CREATE TABLE runner_devices (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name TEXT NOT NULL DEFAULT '', platform TEXT NOT NULL DEFAULT '',
+      arch TEXT NOT NULL DEFAULT '', app_version TEXT NOT NULL DEFAULT '',
+      token_hash TEXT NOT NULL UNIQUE, is_default INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL, last_seen_at TEXT, revoked_at TEXT
+    )`,
+    "runner_devices"
+  );
+  exec(
+    `CREATE TABLE runner_pair_codes (
+      code_hash TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at TEXT NOT NULL, expires_at TEXT NOT NULL, used_at TEXT
+    )`,
+    "runner_pair_codes"
+  );
+  exec(
+    `CREATE TABLE account_invites (
+      token_hash TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_by TEXT NOT NULL,
+      created_at TEXT NOT NULL, expires_at TEXT NOT NULL, used_at TEXT
+    )`,
+    "account_invites"
+  );
+  exec(
+    `CREATE TABLE runner_jobs (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      device_id TEXT NOT NULL REFERENCES runner_devices(id) ON DELETE CASCADE,
+      kind TEXT NOT NULL, payload TEXT NOT NULL DEFAULT '{}',
+      status TEXT NOT NULL DEFAULT 'queued',
+      agent_run_id TEXT, error TEXT,
+      created_at TEXT NOT NULL, dispatched_at TEXT, completed_at TEXT
+    )`,
+    "runner_jobs"
+  );
+  sqlite.exec(
+    `CREATE INDEX IF NOT EXISTS idx_runner_devices_user ON runner_devices(user_id);
+     CREATE INDEX IF NOT EXISTS idx_runner_jobs_device ON runner_jobs(device_id, status);
+     CREATE INDEX IF NOT EXISTS idx_runner_jobs_user ON runner_jobs(user_id, created_at);`
   );
 
   exec(
@@ -706,6 +754,7 @@ function ensureIntegrationTables(sqlite: Database.Database) {
       input_tokens INTEGER NOT NULL DEFAULT 0, output_tokens INTEGER NOT NULL DEFAULT 0,
       cost_usd REAL NOT NULL DEFAULT 0, num_turns INTEGER NOT NULL DEFAULT 0,
       git_repo_path TEXT, git_branch TEXT, push_mode_used TEXT, pr_url TEXT, snapshot_dir TEXT,
+      execution TEXT NOT NULL DEFAULT 'local', device_id TEXT,
       started_at TEXT, ended_at TEXT, created_at TEXT NOT NULL
     )`,
     "agent_runs"
@@ -753,6 +802,9 @@ function ensureIntegrationTables(sqlite: Database.Database) {
 function runColumnMigrations(sqlite: Database.Database) {
   const ensureColumn = (table: string, column: string, ddl: string) => {
     const cols = sqlite.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+    // Table not created yet (integration tables land AFTER this runs, in
+    // ensureIntegrationTables) — its CREATE DDL already carries the column.
+    if (cols.length === 0) return;
     if (!cols.some((c) => c.name === column)) {
       sqlite.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl}`);
     }
@@ -774,6 +826,10 @@ function runColumnMigrations(sqlite: Database.Database) {
     "active_variant_index",
     "active_variant_index INTEGER NOT NULL DEFAULT 0"
   );
+  // Matrix Runner platform columns on pre-existing tables
+  ensureColumn("users", "tutorial_completed_at", "tutorial_completed_at TEXT");
+  ensureColumn("agent_runs", "execution", "execution TEXT NOT NULL DEFAULT 'local'");
+  ensureColumn("agent_runs", "device_id", "device_id TEXT");
   // Kanban columns on tasks table
   ensureColumn("tasks", "kanban_status", "kanban_status TEXT NOT NULL DEFAULT 'backlog'");
   ensureColumn("tasks", "project_id", "project_id TEXT REFERENCES projects(id) ON DELETE SET NULL");
