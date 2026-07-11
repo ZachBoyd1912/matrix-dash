@@ -61,6 +61,15 @@ function autoCredentials(matrixOrigin?: string): { env: Record<string, string>; 
   return { env, model: active?.defaultModel ?? undefined };
 }
 
+/** Subscription (Pro/Max) OAuth-token auth: mark to scrub proxy/api-key env. */
+function subscriptionCredentials(token: string): {
+  env: Record<string, string>;
+  scrub: true;
+  model?: string;
+} {
+  return { env: { CLAUDE_CODE_OAUTH_TOKEN: token }, scrub: true };
+}
+
 /** Detect whether the `claude` CLI is available. */
 export function detectClaude(): Promise<ClaudeStatus> {
   const bin = findClaudeBin();
@@ -142,12 +151,16 @@ export function runClaudeTurn(opts: {
   model?: string;
   signal?: AbortSignal;
   emit: (ev: StreamEvent) => void;
+  /** When set, authenticate with the user's Claude subscription OAuth token
+   * (chat-via-subscription) instead of the Matrix proxy — the env is scrubbed of
+   * any ANTHROPIC_* API-key/proxy overrides so the token authenticates cleanly. */
+  oauthToken?: string;
 }): Promise<{ ok: boolean; error?: string }> {
-  const { prompt, matrixSessionId, matrixOrigin, signal, emit } = opts;
+  const { prompt, matrixSessionId, matrixOrigin, signal, emit, oauthToken } = opts;
   const bin = findClaudeBin();
   const root = getWorkspaceRoot();
   const resume = matrixSessionId ? ccSessions.get(matrixSessionId) : undefined;
-  const creds = autoCredentials(matrixOrigin);
+  const creds = oauthToken ? subscriptionCredentials(oauthToken) : autoCredentials(matrixOrigin);
 
   // We deliberately DON'T pass --model: Claude Code always sends its own Claude model
   // id to the proxy, which Matrix ignores in favour of the active provider/model.
@@ -161,7 +174,15 @@ export function runClaudeTurn(opts: {
   ];
   if (resume) args.push("--resume", resume);
 
-  const env = { ...process.env, ...creds.env };
+  // Subscription path: start from a scrubbed env (drop any inherited Anthropic
+  // API-key/proxy overrides) so the OAuth token authenticates cleanly.
+  const baseEnv = { ...process.env };
+  if ("scrub" in creds && creds.scrub) {
+    delete baseEnv.ANTHROPIC_API_KEY;
+    delete baseEnv.ANTHROPIC_AUTH_TOKEN;
+    delete baseEnv.ANTHROPIC_BASE_URL;
+  }
+  const env = { ...baseEnv, ...creds.env };
 
   return new Promise((resolve) => {
     let child: ReturnType<typeof spawn>;

@@ -39,6 +39,10 @@ import type { AgentRequestContext } from "@/lib/ai/approvals";
 import type { GenerationParams } from "@/types/settings";
 import type { MessageVariant } from "@/types/session";
 import { withUser } from "@/lib/auth/with-user";
+import { runClaudeTurn } from "@/lib/services/claude-code";
+import { resolveSubscriptionToken } from "@/lib/services/runner-credentials";
+import { getContextUserId } from "@/lib/db/context";
+import { getOwner } from "@/lib/db/users";
 
 export const dynamic = "force-dynamic";
 
@@ -163,6 +167,95 @@ export const POST = withUser(async (req: Request) => {
       { error: "No AI provider configured. Add one in Settings → Add Models." },
       { status: 404 }
     );
+  }
+
+  // ── Chat-via-subscription (decision 5) ──────────────────────────────────
+  // When the chosen provider is the user's Claude Pro/Max subscription, run the
+  // turn through the Agent SDK (claude-code) under THEIR OAuth token, streaming
+  // the same NDJSON block protocol. Fully isolated from the streamText cascade
+  // below, so API-key chat is untouched. Falls back with a clear error if the
+  // token is missing. NOTE: the SDK runs on this host (the VM) per turn — heavy
+  // on the e2-micro; acceptable for occasional turns, watch memory at scale.
+  if (provider.provider === "claude-subscription") {
+    const uid = getContextUserId() ?? getOwner()?.id ?? "";
+    const token = uid ? resolveSubscriptionToken(uid) : null;
+    if (!token) {
+      return Response.json(
+        { error: "No Claude subscription token set. Add it in Settings → AI Providers." },
+        { status: 400 }
+      );
+    }
+    const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
+    const prompt =
+      lastUserMsg && typeof lastUserMsg.content === "string" ? lastUserMsg.content : "";
+    if (!prompt) return Response.json({ error: "messages required" }, { status: 400 });
+
+    if (sessionId) {
+      try {
+        getDb()
+          .insert(sessionMessages)
+          .values({
+            id: randomUUID(),
+            sessionId,
+            role: "user",
+            content: prompt,
+            createdAt: new Date().toISOString(),
+          })
+          .run();
+      } catch {
+        /* best-effort */
+      }
+    }
+
+    const enc = new TextEncoder();
+    const nl = (o: object) => enc.encode(JSON.stringify(o) + "\n");
+    const subStream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        const blocks: Block[] = [];
+        const idMap = new Map<string, number>();
+        const emit = (ev: StreamEvent) => {
+          appendEvent(blocks, idMap, ev);
+          controller.enqueue(nl(ev));
+        };
+        try {
+          await runClaudeTurn({
+            prompt,
+            matrixSessionId: sessionId,
+            matrixOrigin: new URL(req.url).origin,
+            signal: req.signal,
+            emit,
+            oauthToken: token,
+          });
+        } catch (e) {
+          emit({ type: "error", value: e instanceof Error ? e.message : String(e) });
+        } finally {
+          if (sessionId && blocks.length) {
+            try {
+              getDb()
+                .insert(sessionMessages)
+                .values({
+                  id: randomUUID(),
+                  sessionId,
+                  role: "assistant",
+                  content: blocksToText(blocks),
+                  blocks: serializeBlocksForStorage(blocks),
+                  createdAt: new Date().toISOString(),
+                })
+                .run();
+            } catch {
+              /* best-effort */
+            }
+          }
+          controller.close();
+        }
+      },
+    });
+    return new Response(subStream, {
+      headers: {
+        "content-type": "application/x-ndjson; charset=utf-8",
+        "cache-control": "no-cache, no-transform",
+      },
+    });
   }
 
   const lastUser = [...messages].reverse().find((m) => m.role === "user");
