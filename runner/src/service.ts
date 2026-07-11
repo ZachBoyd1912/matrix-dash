@@ -23,27 +23,73 @@ function nodePath(): string {
   return process.execPath;
 }
 
-export function installService(log: (m: string) => void): void {
-  const logDir = path.join(os.homedir(), ".matrix-runner", "logs");
-  fs.mkdirSync(logDir, { recursive: true });
-  const logFile = path.join(logDir, "runner.log");
+interface ServicePaths {
+  nodePath: string;
+  selfPath: string;
+  logFile: string;
+}
 
-  if (process.platform === "darwin") {
-    const plist = `<?xml version="1.0" encoding="UTF-8"?>
+/* ── Pure config generators (testable on any platform, no side effects) ── */
+
+/** macOS launchd LaunchAgent plist — KeepAlive restarts on crash/update-swap. */
+export function launchdPlist(p: ServicePaths): string {
+  return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
   <key>Label</key><string>${LABEL}</string>
   <key>ProgramArguments</key><array>
-    <string>${nodePath()}</string>
-    <string>${selfPath()}</string>
+    <string>${p.nodePath}</string>
+    <string>${p.selfPath}</string>
     <string>run</string>
   </array>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>
-  <key>StandardOutPath</key><string>${logFile}</string>
-  <key>StandardErrorPath</key><string>${logFile}</string>
+  <key>StandardOutPath</key><string>${p.logFile}</string>
+  <key>StandardErrorPath</key><string>${p.logFile}</string>
 </dict></plist>
 `;
+}
+
+/** Linux systemd --user unit — Restart=always. */
+export function systemdUnit(p: ServicePaths): string {
+  return `[Unit]
+Description=Matrix Runner
+After=network-online.target
+
+[Service]
+ExecStart=${p.nodePath} ${p.selfPath} run
+Restart=always
+RestartSec=5
+StandardOutput=append:${p.logFile}
+StandardError=append:${p.logFile}
+
+[Install]
+WantedBy=default.target
+`;
+}
+
+/** Windows Task Scheduler ONLOGON args (no admin) for the current user. */
+export function windowsTaskArgs(p: ServicePaths): string[] {
+  return [
+    "/Create",
+    "/F",
+    "/SC",
+    "ONLOGON",
+    "/TN",
+    "MatrixRunner",
+    "/TR",
+    `"${p.nodePath}" "${p.selfPath}" run`,
+  ];
+}
+
+export function installService(log: (m: string) => void): void {
+  const logDir = path.join(os.homedir(), ".matrix-runner", "logs");
+  fs.mkdirSync(logDir, { recursive: true });
+  const logFile = path.join(logDir, "runner.log");
+  const paths: ServicePaths = { nodePath: nodePath(), selfPath: selfPath(), logFile };
+
+  if (process.platform === "darwin") {
+    const plist = launchdPlist(paths);
     const dir = path.join(os.homedir(), "Library", "LaunchAgents");
     fs.mkdirSync(dir, { recursive: true });
     const plistPath = path.join(dir, `${LABEL}.plist`);
@@ -59,20 +105,7 @@ export function installService(log: (m: string) => void): void {
   }
 
   if (process.platform === "linux") {
-    const unit = `[Unit]
-Description=Matrix Runner
-After=network-online.target
-
-[Service]
-ExecStart=${nodePath()} ${selfPath()} run
-Restart=always
-RestartSec=5
-StandardOutput=append:${logFile}
-StandardError=append:${logFile}
-
-[Install]
-WantedBy=default.target
-`;
+    const unit = systemdUnit(paths);
     const dir = path.join(os.homedir(), ".config", "systemd", "user");
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(path.join(dir, "matrix-runner.service"), unit);
@@ -84,17 +117,7 @@ WantedBy=default.target
 
   if (process.platform === "win32") {
     // ONLOGON task for the current user — no admin elevation required.
-    const cmd = `"${nodePath()}" "${selfPath()}" run`;
-    execFileSync("schtasks", [
-      "/Create",
-      "/F",
-      "/SC",
-      "ONLOGON",
-      "/TN",
-      "MatrixRunner",
-      "/TR",
-      cmd,
-    ]);
+    execFileSync("schtasks", windowsTaskArgs(paths));
     try {
       execFileSync("schtasks", ["/Run", "/TN", "MatrixRunner"]);
     } catch {
