@@ -132,3 +132,59 @@ remaining cost there is cross-platform coverage + support, **not** Apple signing
 - Runner ↔ data: runner is stateless (streams back to hosted DB) vs. a local
   cache for offline. Start stateless.
 - Windows/Linux members, or macOS-only to start (matches current usage)?
+
+---
+
+## P2 design (agent execution via runner) — resolved, ready to build
+
+Status: **P0/P1a/P1b shipped** (control plane + runner app + distribution, all
+pushed to `feat/matrix-runner`, several live-verified). P2 is the next phase and
+the trickiest seam. Design below incorporates an advisor review of the
+network-boundary correctness risks.
+
+**Shape:** extract `executeRun`'s core (SDK query loop + policy + `canUseTool` +
+git reversibility — all legitimately device-local) from `lib/services/agent-runner.ts`
+into a `runner-core` module with two injected interfaces:
+- **RunSink** — where blocks/status/usage go. Server-legacy impl = `getDb()` +
+  `flushBlocks` + `publishRunEvent` (unchanged). Device impl = `run_event` /
+  `usage` / `job_status` uplink frames.
+- **ApprovalBridge** — `canUseTool`'s queue/break_glass path. Server-legacy =
+  `requestApprovalDecision` (DB + in-process registry). Device = `approval_request`
+  frame out → await decision.
+
+`startRun` gains a fork: if the user has a default online device, create the
+`agent_runs` row (`execution='runner'`, `device_id=…`) and `enqueueJob('agent_run', {agentRunId, agentConfig, prompt, token})`
+instead of running in-process. Server keeps the run row, run-bus UI streaming,
+approvals inbox, cancel/kill, cron.
+
+**The four things that bite (advisor), in order:**
+1. **Token seam (gates the first device run).** The device SDK has no
+   `CLAUDE_CODE_OAUTH_TOKEN`. Per decision 5 the subscription token is
+   server-stored → the dispatch payload must carry the decrypted token; the
+   runner injects it into the SDK's scrubbed env per job, **memory-only**, never
+   written to `runner_jobs`/logs. (Entangled with P3's `claude-subscription`
+   provider — build the storage there, thread it here.)
+2. **Tool-server bridge (RESOLVED — bounded).** `buildAgentToolServer` has 3
+   tools (`flagUrgent`, `runAgent`, `agentStatus`); ALL touch server account
+   state (`getDb`, `startRun`, notify). On device they become thin RPC stubs →
+   `POST /api/runner/tool-call` (runner-token authed) → server runs the real
+   tool in the user's account context, returns the text result. One endpoint,
+   one pattern. `runner-core` therefore assumes NO local `getDb()`.
+3. **Approval delivery must be durable (real bug to avoid).** A pushed
+   `approval_decision` frame is lost if the device is mid-reconnect when the user
+   decides (waits are minutes–hours; the stream WILL drop). Fix: decisions
+   persist in `agent_approvals` (already do). The runner **reconciles pending
+   approvals for its in-flight jobs on every (re)connect AND polls** (mirror the
+   existing 5s DB-poll + registry pattern in `agent-approvals.ts`, across the
+   wire) — never push-only. Add `GET /api/runner/approvals` (runner-token authed,
+   returns decisions for the device's in-flight jobs).
+4. **Guardrail: server-legacy path must stay a behavioral no-op.** `executeRun`
+   runs in PRODUCTION now; big-bang branch won't deploy until P8, so a
+   server-path regression is invisible for weeks. The extraction must be provably
+   inert for the existing owner-on-VM flow — keep the current agent tests green
+   AND keep exercising in-process execution.
+
+**Integration test (real runner process vs test server):** approved · denied ·
+**decision-arrives-while-device-briefly-disconnected** (the reconnect reconcile) ·
+cancel-mid-await · server-restart-mid-run. Plus: server-legacy in-process run
+still works unchanged.
