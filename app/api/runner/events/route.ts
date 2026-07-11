@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { requireRunner } from "@/lib/auth/runner-auth";
-import { markRunnerActivity, updateJobStatus } from "@/lib/services/runner-bus";
+import { markRunnerActivity, updateJobStatus, resolveFsResult } from "@/lib/services/runner-bus";
 import {
   ingestRunEvents,
   recordRunnerUsage,
@@ -116,8 +116,12 @@ export async function POST(req: Request) {
       }
 
       case "fs_result":
+        resolveFsResult(raw.requestId, { ok: raw.ok, data: raw.data, error: raw.error });
+        handled++;
+        break;
+
       case "log_lines":
-        // Wired by the P4 parity bridges.
+        // Wired by the P4 console bridge.
         handled++;
         break;
 

@@ -42,6 +42,9 @@ export type ServerFrame =
   | { type: "job_dispatch"; jobId: string; kind: JobKind; payload: Record<string, unknown> }
   | { type: "job_cancel"; jobId: string }
   | { type: "approval_decision"; approvalId: string; approved: boolean }
+  // Request/reply for host features (workspace file ops, console, IDE control).
+  // The runner answers with a matching `fs_result` (requestId echoed).
+  | { type: "fs_op"; requestId: string; op: string; args: Record<string, unknown> }
   | { type: "update_available"; version: string }
   | { type: "update_required"; minProtocol: number }
   | { type: "kill_switch" };
@@ -82,7 +85,7 @@ export type RunnerFrame =
       costUsd: number;
       numTurns: number;
     }
-  | { type: "fs_result"; jobId: string; ok: boolean; data?: unknown; error?: string }
+  | { type: "fs_result"; requestId: string; ok: boolean; data?: unknown; error?: string }
   | { type: "log_lines"; lines: string[] };
 
 export interface EventsRequestBody {

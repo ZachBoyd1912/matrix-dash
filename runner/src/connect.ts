@@ -2,6 +2,7 @@ import type { RunnerConfig } from "./config";
 import { authHeaders, EventUplink } from "./api";
 import { runJob, cancelJob, cancelAllJobs } from "./jobs";
 import { recordPushedDecision } from "./approvals";
+import { handleFsOp } from "./fs-ops";
 import type { ServerFrame } from "@/lib/runner/protocol";
 
 /**
@@ -121,6 +122,12 @@ function handleFrame(
       break;
     case "job_cancel":
       cancelJob(frame.jobId);
+      break;
+    case "fs_op":
+      void handleFsOp(frame.op, frame.args).then((result) => {
+        uplink.push({ type: "fs_result", requestId: frame.requestId, ...result });
+        void uplink.flush();
+      });
       break;
     case "kill_switch":
       log("KILL SWITCH received — aborting all jobs");

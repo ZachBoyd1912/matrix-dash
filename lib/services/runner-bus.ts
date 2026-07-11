@@ -128,6 +128,54 @@ export function connectedDeviceIds(): string[] {
   return [...bus().conns.keys()];
 }
 
+/* ── Request/reply (workspace fs ops, IDE control) over the connection ── */
+
+interface PendingReq {
+  resolve: (r: { ok: boolean; data?: unknown; error?: string }) => void;
+  timer: ReturnType<typeof setTimeout>;
+}
+const REQ_KEY = Symbol.for("matrix-dash.runner-reqs");
+function pending(): Map<string, PendingReq> {
+  const g = globalThis as unknown as Record<symbol, Map<string, PendingReq> | undefined>;
+  if (!g[REQ_KEY]) g[REQ_KEY] = new Map();
+  return g[REQ_KEY]!;
+}
+
+/** Send an fs_op to a device and await its fs_result (rejects on timeout/offline). */
+export function runnerFsRequest(
+  deviceId: string,
+  op: string,
+  args: Record<string, unknown>,
+  timeoutMs = 15_000
+): Promise<{ ok: boolean; data?: unknown; error?: string }> {
+  return new Promise((resolve) => {
+    const requestId = crypto.randomUUID();
+    const timer = setTimeout(() => {
+      pending().delete(requestId);
+      resolve({ ok: false, error: "Device did not respond (timeout)." });
+    }, timeoutMs);
+    pending().set(requestId, { resolve, timer });
+    const sent = sendToRunner(deviceId, { type: "fs_op", requestId, op, args });
+    if (!sent) {
+      clearTimeout(timer);
+      pending().delete(requestId);
+      resolve({ ok: false, error: "Device offline." });
+    }
+  });
+}
+
+/** Resolve a pending fs request from an inbound fs_result frame. */
+export function resolveFsResult(
+  requestId: string,
+  result: { ok: boolean; data?: unknown; error?: string }
+): void {
+  const p = pending().get(requestId);
+  if (!p) return;
+  clearTimeout(p.timer);
+  pending().delete(requestId);
+  p.resolve(result);
+}
+
 /**
  * Create a runner_jobs row and dispatch it if the device is online.
  * Returns the job id; status is "dispatched" when pushed, else "queued"
