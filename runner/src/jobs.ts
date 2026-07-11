@@ -1,11 +1,14 @@
 import type { EventUplink } from "./api";
+import type { RunnerConfig } from "./config";
 import type { JobKind } from "@/lib/runner/protocol";
+import { runAgentJob } from "./agent-job";
+import type { AgentConfig } from "@/types/agents";
 
 /**
- * Job execution registry. P1 ships the `ping` handler (liveness echo used by
- * the P0 spine test and the pairing tutorial); P2 adds `agent_run` (Agent SDK
- * execution) and P4 adds `fs_op`/`console_stream`/`ide_ctl` on the same shape.
- * Every job gets an AbortController so job_cancel/kill_switch can stop it.
+ * Job execution registry. `ping` is the liveness echo; `agent_run` runs an
+ * agent via the SDK on this device (P2); P4 adds `fs_op`/`console_stream`/
+ * `ide_ctl` on the same shape. Every job gets an AbortController so
+ * job_cancel/kill_switch can stop it.
  */
 
 export interface JobContext {
@@ -13,6 +16,7 @@ export interface JobContext {
   payload: Record<string, unknown>;
   signal: AbortSignal;
   uplink: EventUplink;
+  cfg: RunnerConfig;
 }
 
 type JobHandler = (ctx: JobContext) => Promise<void>;
@@ -20,6 +24,20 @@ type JobHandler = (ctx: JobContext) => Promise<void>;
 const handlers: Partial<Record<JobKind, JobHandler>> = {
   ping: async ({ jobId, uplink }) => {
     uplink.push({ type: "job_status", jobId, status: "done" });
+  },
+  agent_run: async ({ jobId, payload, uplink, signal, cfg }) => {
+    await runAgentJob(
+      cfg,
+      jobId,
+      payload as unknown as {
+        agentRunId: string;
+        agent: AgentConfig;
+        prompt: string;
+        claudeToken?: string;
+      },
+      uplink,
+      signal
+    );
   },
 };
 
@@ -41,7 +59,8 @@ export async function runJob(
   jobId: string,
   kind: JobKind,
   payload: Record<string, unknown>,
-  uplink: EventUplink
+  uplink: EventUplink,
+  cfg: RunnerConfig
 ): Promise<void> {
   const handler = handlers[kind];
   if (!handler) {
@@ -55,9 +74,8 @@ export async function runJob(
   }
   const ac = new AbortController();
   active.set(jobId, ac);
-  uplink.push({ type: "job_status", jobId, status: "running" });
   try {
-    await handler({ jobId, payload, signal: ac.signal, uplink });
+    await handler({ jobId, payload, signal: ac.signal, uplink, cfg });
   } catch (err) {
     uplink.push({
       type: "job_status",

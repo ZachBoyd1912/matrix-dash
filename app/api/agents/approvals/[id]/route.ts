@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { settleApproval } from "@/lib/services/agent-approvals";
+import { pushApprovalDecision } from "@/lib/services/runner-approvals";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -18,7 +20,7 @@ const bodySchema = z.object({
     .optional(),
 });
 
-export async function POST(req: Request, ctx: Ctx) {
+export const POST = withUser(async (req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
   let payload: unknown;
   try {
@@ -33,5 +35,8 @@ export async function POST(req: Request, ctx: Ctx) {
   if (!res.ok) {
     return Response.json({ error: res.reason ?? "Could not settle" }, { status: 409 });
   }
+  // If this approval belongs to a device-executed run, push the decision to the
+  // device (fast path; the runner also polls /api/runner/approvals to be safe).
+  pushApprovalDecision(id, parsed.data.decision === "approve");
   return Response.json({ ok: true });
-}
+});

@@ -1,6 +1,7 @@
 import type { RunnerConfig } from "./config";
 import { authHeaders, EventUplink } from "./api";
 import { runJob, cancelJob, cancelAllJobs } from "./jobs";
+import { recordPushedDecision } from "./approvals";
 import type { ServerFrame } from "@/lib/runner/protocol";
 
 /**
@@ -49,7 +50,7 @@ export async function connectLoop(opts: ConnectLoopOptions): Promise<void> {
 
       log("connected");
       backoff = BACKOFF_MIN_MS;
-      await consumeFrames(res.body, uplink, log, opts.onUpdateSignal);
+      await consumeFrames(res.body, uplink, log, cfg, opts.onUpdateSignal);
       log("connection closed by server");
     } catch (err) {
       if (stopped) break;
@@ -72,6 +73,7 @@ async function consumeFrames(
   body: ReadableStream<Uint8Array>,
   uplink: EventUplink,
   log: (msg: string) => void,
+  cfg: RunnerConfig,
   onUpdateSignal?: () => void
 ): Promise<void> {
   const reader = body.getReader();
@@ -92,7 +94,7 @@ async function consumeFrames(
       } catch {
         continue; // never die on a malformed line
       }
-      handleFrame(frame, uplink, log, onUpdateSignal);
+      handleFrame(frame, uplink, log, cfg, onUpdateSignal);
     }
   }
 }
@@ -101,6 +103,7 @@ function handleFrame(
   frame: ServerFrame,
   uplink: EventUplink,
   log: (msg: string) => void,
+  cfg: RunnerConfig,
   onUpdateSignal?: () => void
 ): void {
   switch (frame.type) {
@@ -114,7 +117,7 @@ function handleFrame(
       break;
     case "job_dispatch":
       log(`job ${frame.jobId} (${frame.kind})`);
-      void runJob(frame.jobId, frame.kind, frame.payload, uplink);
+      void runJob(frame.jobId, frame.kind, frame.payload, uplink, cfg);
       break;
     case "job_cancel":
       cancelJob(frame.jobId);
@@ -124,7 +127,9 @@ function handleFrame(
       cancelAllJobs();
       break;
     case "approval_decision":
-      // P2: resolved by the agent-run handler's approval bridge.
+      // Fast path — the agent-run handler's waitForDecision also polls, so a
+      // decision lost in a reconnect gap is still picked up durably.
+      recordPushedDecision(frame.approvalId, frame.approved);
       break;
     case "update_available":
     case "update_required":

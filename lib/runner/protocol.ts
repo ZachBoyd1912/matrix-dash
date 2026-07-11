@@ -50,7 +50,17 @@ export type ServerFrame =
 
 export type RunnerFrame =
   | { type: "pong"; t: number }
-  | { type: "job_status"; jobId: string; status: JobStatus; error?: string }
+  | {
+      type: "job_status";
+      jobId: string;
+      status: JobStatus;
+      error?: string;
+      // For agent_run jobs, the device-computed final agent-run status
+      // (succeeded|needs_review|failed|timeout|cancelled|interrupted) — the git
+      // finalize that decides succeeded-vs-needs_review runs on the device.
+      runStatus?: string;
+      result?: string;
+    }
   | { type: "run_event"; jobId: string; runId: string; events: StreamEvent[] }
   | {
       type: "approval_request";

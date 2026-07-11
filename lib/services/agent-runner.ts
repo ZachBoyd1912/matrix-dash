@@ -17,6 +17,7 @@ import {
   type StreamEvent,
 } from "@/lib/chat/blocks";
 import { publishRunEvent } from "./run-bus";
+import { tryDispatchToDevice, cancelRunnerRun, broadcastKillToRunners } from "./runner-dispatch";
 import type { AgentConfig, RunStatus, RunTrigger } from "@/types/agents";
 import type {
   CanUseTool,
@@ -121,6 +122,8 @@ export interface StartRunOpts {
   sourceSessionId?: string;
   chainDepth?: number;
   parentRunId?: string;
+  /** Force in-process execution, bypassing device dispatch (tests, migration). */
+  forceLocal?: boolean;
 }
 
 /** Queue a run for an agent and kick the processor. Returns the new run id. */
@@ -143,6 +146,20 @@ export function startRun(agentId: string, opts: StartRunOpts = {}): string {
       createdAt: new Date().toISOString(),
     })
     .run();
+
+  // Local-first fork: if the run's owner has an online paired device, execute
+  // there (dispatch a job) instead of in-process. Falls through to the legacy
+  // in-process path when there's no device — keeping executeRun untouched.
+  // opts.forceLocal bypasses this (used by tests / the migration tooling).
+  if (!opts.forceLocal) {
+    try {
+      if (tryDispatchToDevice(runId, agent, opts.prompt ?? agent.instructions, opts.trigger))
+        return runId;
+    } catch {
+      /* dispatch layer failure → fall back to in-process */
+    }
+  }
+
   const s = state();
   s.queue.push(runId);
   void processQueue();
@@ -158,6 +175,8 @@ export function cancelRun(runId: string): void {
     act.abort.abort();
     return;
   }
+  // Device-executed run: tell the device to cancel its job.
+  if (cancelRunnerRun(runId)) return;
   // Not started yet — remove from queue and mark cancelled.
   const idx = s.queue.indexOf(runId);
   if (idx >= 0) s.queue.splice(idx, 1);
@@ -168,7 +187,7 @@ export function cancelRun(runId: string): void {
     .run();
 }
 
-/** Hard-abort every active run (kill switch). */
+/** Hard-abort every active run (kill switch) — in-process AND on every device. */
 export function killAllRuns(): void {
   const s = state();
   for (const act of s.active.values()) {
@@ -183,6 +202,7 @@ export function killAllRuns(): void {
       .where(eq(agentRuns.id, runId))
       .run();
   }
+  broadcastKillToRunners();
 }
 
 /** Boot cleanup: nothing survives a server restart, so mark orphans. */

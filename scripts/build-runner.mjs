@@ -26,6 +26,10 @@ execFileSync(
     "--target=node20",
     "--format=cjs",
     `--alias:@=${root}`,
+    // The Agent SDK ships platform-specific runtime binaries that can't be
+    // inlined — it's installed in the device's node_modules and required at
+    // runtime by agent-job.ts. Everything else bundles.
+    "--external:@anthropic-ai/claude-agent-sdk",
     `--outfile=${path.join(root, "runner/dist/matrix-runner.cjs")}`,
     "--banner:js=#!/usr/bin/env node",
     "--log-level=info",

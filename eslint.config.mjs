@@ -30,6 +30,7 @@ const eslintConfig = [
       "public/**",
       "next-env.d.ts",
       "vscode-extension/**",
+      "runner/dist/**",
     ],
   },
 ];

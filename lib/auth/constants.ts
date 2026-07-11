@@ -18,6 +18,8 @@ export const RUNNER_TOKEN_API_PATHS = [
   "/api/runner/pair",
   "/api/runner/connect",
   "/api/runner/events",
+  "/api/runner/approvals",
+  "/api/runner/tool-call",
   "/api/runner/update",
   "/api/runner/download",
   // Install scripts run via curl on a fresh, sessionless device; the embedded

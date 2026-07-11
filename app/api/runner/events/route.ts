@@ -1,7 +1,18 @@
 import { z } from "zod";
+import { eq } from "drizzle-orm";
 import { requireRunner } from "@/lib/auth/runner-auth";
 import { markRunnerActivity, updateJobStatus } from "@/lib/services/runner-bus";
-import { publishRunEvent } from "@/lib/services/run-bus";
+import {
+  ingestRunEvents,
+  recordRunnerUsage,
+  recordRunnerResult,
+  markRunnerRunStarted,
+  finalizeRunnerRun,
+} from "@/lib/services/runner-run-sink";
+import { ingestApprovalRequest } from "@/lib/services/runner-approvals";
+import { getSystemDb } from "@/lib/db/client";
+import { runnerJobs } from "@/lib/db/schema";
+import { notifyRunnerRunComplete } from "@/lib/services/runner-dispatch";
 import { PROTOCOL_VERSION, type RunnerFrame } from "@/lib/runner/protocol";
 import type { StreamEvent } from "@/lib/chat/blocks";
 
@@ -13,16 +24,19 @@ const bodySchema = z.object({
   frames: z.array(z.record(z.string(), z.unknown())).max(500),
 });
 
+const TERMINAL_JOB = new Set(["done", "error", "cancelled", "skipped_offline"]);
+
 /**
- * The runner's uplink: batched RunnerFrames. Counterpart of the /connect
- * downlink. P0 handles liveness + job status + run-event fan-out to the live
- * UI; the P2 execution bridge adds transcript persistence, approvals and
- * usage accounting on top of the same frame stream.
+ * The runner's uplink: batched RunnerFrames. Persists device-executed agent-run
+ * transcripts/usage/status into the owner's per-account DB (via runner-run-sink,
+ * in the device user's context), fans out to the live run view, bridges approval
+ * requests to the server-side inbox, and drives the job lifecycle.
  */
 export async function POST(req: Request) {
   const auth = requireRunner(req);
   if ("response" in auth) return auth.response;
   const { device } = auth;
+  const userId = device.userId;
 
   let payload: unknown;
   try {
@@ -39,8 +53,19 @@ export async function POST(req: Request) {
     );
   }
 
-  // Any authenticated upload proves liveness.
   markRunnerActivity(device.id);
+
+  // Map a jobId to its agent-run id (only for this device's own jobs — the
+  // device can't touch another account's runs even with a forged frame).
+  const runIdFor = (jobId: string): string | null => {
+    const job = getSystemDb()
+      .select({ agentRunId: runnerJobs.agentRunId, userId: runnerJobs.userId })
+      .from(runnerJobs)
+      .where(eq(runnerJobs.id, jobId))
+      .get();
+    if (!job || job.userId !== userId) return null;
+    return job.agentRunId ?? null;
+  };
 
   let handled = 0;
   for (const raw of parsed.data.frames as unknown as RunnerFrame[]) {
@@ -48,25 +73,56 @@ export async function POST(req: Request) {
       case "pong":
         handled++;
         break;
-      case "job_status":
-        updateJobStatus(raw.jobId, raw.status, raw.error);
-        handled++;
-        break;
+
       case "run_event":
-        // Live fan-out to any open run view. (P2 adds appendEvent persistence.)
-        for (const ev of raw.events as StreamEvent[]) publishRunEvent(raw.runId, ev);
+        if (runIdFor(raw.jobId)) ingestRunEvents(raw.runId, userId, raw.events as StreamEvent[]);
         handled++;
         break;
-      case "approval_request":
+
       case "usage":
+        if (runIdFor(raw.jobId)) {
+          recordRunnerUsage(raw.runId, userId, {
+            inputTokens: raw.inputTokens,
+            outputTokens: raw.outputTokens,
+            costUsd: raw.costUsd,
+            numTurns: raw.numTurns,
+          });
+        }
+        handled++;
+        break;
+
+      case "approval_request": {
+        const runId = runIdFor(raw.jobId);
+        if (runId) ingestApprovalRequest({ ...raw, runId, userId, deviceId: device.id });
+        handled++;
+        break;
+      }
+
+      case "job_status": {
+        updateJobStatus(raw.jobId, raw.status, raw.error);
+        const runId = runIdFor(raw.jobId);
+        if (runId) {
+          if (raw.status === "running") {
+            markRunnerRunStarted(runId, userId);
+          } else if (TERMINAL_JOB.has(raw.status)) {
+            if (raw.result) recordRunnerResult(runId, userId, raw.result);
+            const runStatus = raw.runStatus ?? (raw.status === "done" ? "succeeded" : "failed");
+            finalizeRunnerRun(runId, userId, { status: runStatus, error: raw.error ?? null });
+            await notifyRunnerRunComplete(runId, userId, runStatus).catch(() => {});
+          }
+        }
+        handled++;
+        break;
+      }
+
       case "fs_result":
       case "log_lines":
-        // Accepted (protocol-stable) — wired up by the P2/P4 bridges.
+        // Wired by the P4 parity bridges.
         handled++;
         break;
+
       default:
-        // Unknown frame types are ignored, not fatal — forward compatibility.
-        break;
+        break; // forward compatibility
     }
   }
 
