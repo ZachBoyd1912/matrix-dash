@@ -74,14 +74,25 @@ export async function runJob(
   }
   const ac = new AbortController();
   active.set(jobId, ac);
+  const stamp = () => new Date().toISOString();
+  uplink.push({
+    type: "log_lines",
+    lines: [`[${stamp()}] job ${kind} ${jobId.slice(0, 8)} started`],
+  });
   try {
     await handler({ jobId, payload, signal: ac.signal, uplink, cfg });
+    uplink.push({ type: "log_lines", lines: [`[${stamp()}] job ${jobId.slice(0, 8)} finished`] });
   } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    uplink.push({
+      type: "log_lines",
+      lines: [`[${stamp()}] job ${jobId.slice(0, 8)} error: ${msg}`],
+    });
     uplink.push({
       type: "job_status",
       jobId,
       status: ac.signal.aborted ? "cancelled" : "error",
-      error: err instanceof Error ? err.message : String(err),
+      error: msg,
     });
   } finally {
     active.delete(jobId);

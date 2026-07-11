@@ -2,6 +2,7 @@ import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { requireRunner } from "@/lib/auth/runner-auth";
 import { markRunnerActivity, updateJobStatus, resolveFsResult } from "@/lib/services/runner-bus";
+import { pushDeviceLog } from "@/lib/services/runner-console";
 import {
   ingestRunEvents,
   recordRunnerUsage,
@@ -121,7 +122,7 @@ export async function POST(req: Request) {
         break;
 
       case "log_lines":
-        // Wired by the P4 console bridge.
+        pushDeviceLog(device.id, raw.lines);
         handled++;
         break;
 
