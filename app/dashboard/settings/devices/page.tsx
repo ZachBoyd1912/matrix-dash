@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { MonitorSmartphone, Plus, Trash2, Star, Copy, Wifi, WifiOff } from "lucide-react";
+import { MonitorSmartphone, Plus, Trash2, Star, Copy, Wifi, WifiOff, Code2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +39,26 @@ export default function DevicesPage() {
     const res = await fetch("/api/runner/devices");
     if (res.ok) setDevices(await res.json());
   }, []);
+
+  const openIde = async () => {
+    toast.info("Starting IDE on your device…");
+    const res = await fetch("/api/runner/ide", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "start" }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      toast.error("Couldn't start IDE", data.error);
+      return;
+    }
+    if (data.needsInstall) {
+      toast.error("code-server isn't installed on that device", data.installHint);
+      return;
+    }
+    if (data.url) window.open(data.url, "_blank", "noopener");
+    else toast.error("IDE didn't return a URL");
+  };
 
   useEffect(() => {
     load();
@@ -210,6 +230,16 @@ export default function DevicesPage() {
                 </p>
               </div>
               <div className="flex items-center gap-2">
+                {d.online && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    title="Open IDE on this device"
+                    onClick={openIde}
+                  >
+                    <Code2 size={13} />
+                  </Button>
+                )}
                 {!d.isDefault && (
                   <Button
                     variant="ghost"

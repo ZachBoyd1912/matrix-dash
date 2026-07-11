@@ -3,6 +3,7 @@ import { authHeaders, EventUplink } from "./api";
 import { runJob, cancelJob, cancelAllJobs } from "./jobs";
 import { recordPushedDecision } from "./approvals";
 import { handleFsOp } from "./fs-ops";
+import { handleIde } from "./ide-manager";
 import type { ServerFrame } from "@/lib/runner/protocol";
 
 /**
@@ -123,12 +124,18 @@ function handleFrame(
     case "job_cancel":
       cancelJob(frame.jobId);
       break;
-    case "fs_op":
-      void handleFsOp(frame.op, frame.args).then((result) => {
-        uplink.push({ type: "fs_result", requestId: frame.requestId, ...result });
+    case "fs_op": {
+      // "ide" ops control the local code-server; everything else is filesystem.
+      const work =
+        frame.op === "ide"
+          ? handleIde(String(frame.args.action ?? "status"))
+          : handleFsOp(frame.op, frame.args);
+      void Promise.resolve(work).then((result) => {
+        uplink.push({ type: "fs_result", requestId: frame.requestId, ok: result.ok, data: result });
         void uplink.flush();
       });
       break;
+    }
     case "kill_switch":
       log("KILL SWITCH received — aborting all jobs");
       cancelAllJobs();
