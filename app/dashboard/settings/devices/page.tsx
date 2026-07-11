@@ -114,7 +114,7 @@ export default function DevicesPage() {
         </div>
       </div>
 
-      <Card interactive className="rounded-2xl">
+      <Card interactive className="rounded-2xl" data-tour="devices-pair">
         <div className="mb-3 flex items-center gap-2">
           <Plus size={15} className="text-emerald-400" />
           <h3 className="text-text-primary text-sm font-medium">Pair a new device</h3>

@@ -57,6 +57,7 @@ export function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                data-tour={`nav-${item.href.split("/").pop()}`}
                 title={collapsed ? item.label : undefined}
                 className={cn(
                   "group relative flex h-9 items-center gap-3 rounded-lg px-3 text-sm transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",

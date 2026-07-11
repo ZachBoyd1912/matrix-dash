@@ -121,3 +121,12 @@ export function updateUserProfile(id: string, patch: { name?: string; email?: st
 export function deleteUser(id: string): void {
   getSystemDb().delete(users).where(eq(users.id, id)).run();
 }
+
+/** Mark the onboarding tour finished (or reset to null to replay on next login). */
+export function setTutorialCompleted(id: string, at: string | null): void {
+  getSystemDb()
+    .update(users)
+    .set({ tutorialCompletedAt: at, updatedAt: new Date().toISOString() })
+    .where(eq(users.id, id))
+    .run();
+}

@@ -23,6 +23,7 @@ import {
   Drama,
   Calendar,
   MonitorSmartphone,
+  GraduationCap,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
@@ -39,6 +40,7 @@ const SECTIONS = [
   { href: "/dashboard/settings/account", label: "Account", icon: User },
   { href: "/dashboard/settings/accounts", label: "Accounts", icon: Users },
   { href: "/dashboard/settings/devices", label: "Devices", icon: MonitorSmartphone },
+  { href: "/dashboard/settings/tutorial", label: "Tutorial", icon: GraduationCap },
   { href: "/dashboard/settings/auth", label: "Security (2FA)", icon: Lock },
   { href: "/dashboard/settings/tokens", label: "API Tokens", icon: KeyRound },
   { href: "/dashboard/settings/vault", label: "Vault", icon: Shield },

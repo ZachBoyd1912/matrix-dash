@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
+import { TourLauncher } from "@/components/tour/tour-launcher";
 import { CommandPalette } from "./command-palette";
 import { MobileNav } from "./mobile-nav";
 import { PwaRegister } from "./pwa-register";
@@ -45,6 +46,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       </div>
       <MobileNav />
       <CommandPalette />
+      <TourLauncher />
       <Toaster />
       <ConfirmHost />
       <ConsoleCapture />
