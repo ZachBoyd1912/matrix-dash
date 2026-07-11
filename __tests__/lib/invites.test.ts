@@ -9,6 +9,7 @@ vi.mock("next/headers", () => ({
 import { createInvite, resolveInvite, consumeInvite } from "@/lib/db/invites";
 import { createUser, getUserById } from "@/lib/db/users";
 import { verifyPassword } from "@/lib/auth/password";
+import { setSetting } from "@/lib/db/settings";
 import { POST as acceptInvite, GET as checkInvite } from "@/app/api/auth/accept-invite/route";
 
 /**
@@ -47,7 +48,24 @@ describe("account invites", () => {
     expect(resolveInvite(t2)?.userId).toBe(id);
   });
 
+  it("refuses to accept an invite while member sign-in is disabled (gate consistency)", async () => {
+    setSetting("members_enabled", "0");
+    const id = mkMember();
+    const token = createInvite(id, "o");
+    const res = await acceptInvite(
+      new Request("http://t/api/auth/accept-invite", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ token, password: "member-chosen-pw" }),
+      })
+    );
+    expect(res.status).toBe(403);
+    // Invite is NOT consumed — it still resolves for when the owner opens sign-in.
+    expect(resolveInvite(token)?.userId).toBe(id);
+  });
+
   it("accept-invite route sets the member's own password (GET validates, POST commits)", async () => {
+    setSetting("members_enabled", "1"); // launch-open for this test
     const id = mkMember();
     const token = createInvite(id, "o");
 

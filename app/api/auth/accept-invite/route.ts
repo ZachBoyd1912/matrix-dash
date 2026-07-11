@@ -3,6 +3,7 @@ import { z } from "zod";
 import { resolveInvite, consumeInvite } from "@/lib/db/invites";
 import { setUserPassword, getUserById, touchLogin } from "@/lib/db/users";
 import { createSession, SESSION_COOKIE } from "@/lib/auth/session";
+import { getSetting } from "@/lib/db/settings";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -32,6 +33,17 @@ export async function POST(req: Request) {
   const parsed = bodySchema.safeParse(payload);
   if (!parsed.success) {
     return Response.json({ error: "An 8+ character password is required" }, { status: 400 });
+  }
+
+  // Same launch gate as login: accepting an invite creates a session, so it must
+  // also respect members_enabled — otherwise an invite sent before cutover would
+  // bypass the gate. The invite is NOT consumed here, so it stays valid until the
+  // owner opens member sign-in.
+  if (getSetting("members_enabled") !== "1") {
+    return Response.json(
+      { error: "Member sign-in isn't enabled on this instance yet." },
+      { status: 403 }
+    );
   }
 
   const userId = consumeInvite(parsed.data.token);
