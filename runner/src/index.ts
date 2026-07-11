@@ -1,6 +1,8 @@
 import { loadConfig, configPath } from "./config";
 import { pairDevice } from "./pair";
 import { connectLoop } from "./connect";
+import { installService, uninstallService } from "./service";
+import { checkAndApplyUpdate } from "./update";
 import { RUNNER_VERSION } from "./version";
 
 /**
@@ -69,6 +71,16 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (cmd === "install-service") {
+    installService(log);
+    return;
+  }
+
+  if (cmd === "uninstall-service") {
+    uninstallService(log);
+    return;
+  }
+
   if (cmd === "run") {
     const cfg = loadConfig();
     if (!cfg) {
@@ -78,14 +90,24 @@ async function main(): Promise<void> {
       process.exit(2);
     }
     log(`Matrix Runner v${RUNNER_VERSION} — device "${cfg.deviceName}" → ${cfg.serverUrl}`);
+
+    // Auto-update: under a service (non-TTY) a successful swap exits so
+    // KeepAlive/Restart relaunches the new version; foreground runs just log.
+    const doUpdate = () =>
+      void checkAndApplyUpdate(cfg, log, { exitOnUpdate: !process.stdout.isTTY });
+    doUpdate(); // once at startup
+    const updateTimer = setInterval(doUpdate, 6 * 60 * 60 * 1000);
+
     await connectLoop({
       cfg,
       log,
+      onUpdateSignal: doUpdate,
       onAuthError: () => {
         log("This device's token was revoked. Re-pair from Settings → Devices.");
         process.exit(3);
       },
     });
+    clearInterval(updateTimer);
     return;
   }
 

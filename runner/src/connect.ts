@@ -18,6 +18,8 @@ export interface ConnectLoopOptions {
   log: (msg: string) => void;
   /** Called when the server says our token is dead — stop, don't hammer. */
   onAuthError: () => void;
+  /** Called when the server signals an update (frame-driven auto-update). */
+  onUpdateSignal?: () => void;
   /** Test hook: resolve to stop the loop after the current connection drops. */
   stopSignal?: AbortSignal;
 }
@@ -47,7 +49,7 @@ export async function connectLoop(opts: ConnectLoopOptions): Promise<void> {
 
       log("connected");
       backoff = BACKOFF_MIN_MS;
-      await consumeFrames(res.body, uplink, log);
+      await consumeFrames(res.body, uplink, log, opts.onUpdateSignal);
       log("connection closed by server");
     } catch (err) {
       if (stopped) break;
@@ -69,7 +71,8 @@ export async function connectLoop(opts: ConnectLoopOptions): Promise<void> {
 async function consumeFrames(
   body: ReadableStream<Uint8Array>,
   uplink: EventUplink,
-  log: (msg: string) => void
+  log: (msg: string) => void,
+  onUpdateSignal?: () => void
 ): Promise<void> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
@@ -89,12 +92,17 @@ async function consumeFrames(
       } catch {
         continue; // never die on a malformed line
       }
-      handleFrame(frame, uplink, log);
+      handleFrame(frame, uplink, log, onUpdateSignal);
     }
   }
 }
 
-function handleFrame(frame: ServerFrame, uplink: EventUplink, log: (msg: string) => void): void {
+function handleFrame(
+  frame: ServerFrame,
+  uplink: EventUplink,
+  log: (msg: string) => void,
+  onUpdateSignal?: () => void
+): void {
   switch (frame.type) {
     case "hello":
       log(`hello: device ${frame.deviceId} (protocol v${frame.protocolVersion})`);
@@ -120,8 +128,8 @@ function handleFrame(frame: ServerFrame, uplink: EventUplink, log: (msg: string)
       break;
     case "update_available":
     case "update_required":
-      // P1b: auto-updater picks these up.
       log(`server signals update (${frame.type})`);
+      onUpdateSignal?.();
       break;
     default:
       break; // forward compatibility

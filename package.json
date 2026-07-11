@@ -30,7 +30,8 @@
     "prepare": "husky || exit 0",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "build:runner": "node scripts/build-runner.mjs"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.0",

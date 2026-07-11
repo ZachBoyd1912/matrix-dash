@@ -122,27 +122,47 @@ export default function DevicesPage() {
         {pairCode ? (
           <div className="space-y-3">
             <p className="text-text-secondary text-xs">
-              On the device you want to pair, run the Matrix Runner installer with this one-time
-              code (valid 10 minutes):
+              On the device you want to pair (valid 10 minutes, one use). Mac/Linux — paste in a
+              terminal:
             </p>
             <div className="flex items-center gap-2">
-              <code className="glass-input text-text-primary flex-1 truncate rounded-md px-3 py-2 font-mono text-xs">
-                {pairCode}
+              <code className="glass-input text-text-primary flex-1 truncate rounded-md px-3 py-2 font-mono text-[11px]">
+                {`curl -fsSL "${typeof window !== "undefined" ? window.location.origin : ""}/api/runner/install/sh?code=${pairCode}" | sh`}
               </code>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  navigator.clipboard.writeText(pairCode);
+                  navigator.clipboard.writeText(
+                    `curl -fsSL "${window.location.origin}/api/runner/install/sh?code=${pairCode}" | sh`
+                  );
                   toast.success("Copied");
                 }}
               >
                 <Copy size={13} />
               </Button>
             </div>
+            <p className="text-text-secondary text-xs">Or download a double-clickable installer:</p>
+            <div className="flex gap-2">
+              <a
+                href={`/api/runner/install/command?code=${pairCode}`}
+                download="Install Matrix Runner.command"
+                className="glass-input text-text-primary inline-flex h-8 items-center rounded-md px-3 text-xs hover:border-white/15 hover:bg-white/5"
+              >
+                macOS (.command)
+              </a>
+              <a
+                href={`/api/runner/install/bat?code=${pairCode}`}
+                download="Install Matrix Runner.bat"
+                className="glass-input text-text-primary inline-flex h-8 items-center rounded-md px-3 text-xs hover:border-white/15 hover:bg-white/5"
+              >
+                Windows (.bat)
+              </a>
+            </div>
             <p className="text-text-muted text-[11px]">
-              The guided installer (download button + full walkthrough) arrives with the runner app
-              phase — for now this code drives the CLI pairing flow.
+              Needs Node.js 20+ on the device. The installer downloads the runner, pairs it, and
+              installs a background service that starts at login. A full guided walkthrough arrives
+              with the onboarding tour.
             </p>
           </div>
         ) : (
