@@ -39,7 +39,9 @@ export async function GET() {
 const createSchema = z.object({
   email: z.string().email().max(320),
   name: z.string().max(200).optional(),
-  password: z.string().min(8).max(400),
+  // Optional: an invite-only account is created with no password; the member
+  // sets their own via the invite link. When provided, min 8 chars.
+  password: z.string().min(8).max(400).optional(),
 });
 
 export async function POST(req: Request) {
@@ -55,7 +57,7 @@ export async function POST(req: Request) {
   const parsed = createSchema.safeParse(payload);
   if (!parsed.success) {
     return Response.json(
-      { error: "A valid email and an 8+ character password are required" },
+      { error: "A valid email is required (password, if set, must be 8+ characters)" },
       { status: 400 }
     );
   }

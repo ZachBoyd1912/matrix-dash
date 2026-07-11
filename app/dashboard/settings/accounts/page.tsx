@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Users, UserPlus, ShieldCheck, Trash2, KeyRound, Info } from "lucide-react";
+import {
+  Users,
+  UserPlus,
+  ShieldCheck,
+  Trash2,
+  KeyRound,
+  Info,
+  Link as LinkIcon,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -110,6 +118,18 @@ export default function AccountsPage() {
     }
     toast.success("Account removed");
     load();
+  };
+
+  const invite = async (a: Account) => {
+    const res = await fetch(`/api/accounts/${a.id}/invite`, { method: "POST" });
+    const data = await res.json();
+    if (!res.ok) {
+      toast.error("Couldn't create invite", data.error);
+      return;
+    }
+    const link = `${window.location.origin}${data.path}`;
+    await navigator.clipboard.writeText(link).catch(() => {});
+    toast.success("Invite link copied", `Send it to ${a.email} — valid 7 days, one use.`);
   };
 
   const submitReset = async (id: string) => {
@@ -263,6 +283,16 @@ export default function AccountsPage() {
                   >
                     <KeyRound size={13} />
                   </Button>
+                  {!isSelf && a.role === "member" && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      title="Copy invite link"
+                      onClick={() => invite(a)}
+                    >
+                      <LinkIcon size={13} />
+                    </Button>
+                  )}
                   {!isSelf && (
                     <>
                       <Button

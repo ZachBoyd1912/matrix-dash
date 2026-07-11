@@ -5,6 +5,7 @@ import { getUserByEmail, touchLogin } from "@/lib/db/users";
 import { verifyPassword } from "@/lib/auth/password";
 import { createSession, SESSION_COOKIE } from "@/lib/auth/session";
 import { decrypt } from "@/lib/utils/crypto";
+import { getSetting } from "@/lib/db/settings";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -37,13 +38,12 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid email or password" }, { status: 401 });
   }
 
-  // Member sign-in gate. Per-account DB isolation (withUser) does NOT isolate
-  // the shared host: the agent runner, workspace filesystem routes, and the
-  // shared Claude subscription token all sit below getDb(). A member session
-  // would therefore be over-privileged (owner-level machine access via an
-  // agent run). Until that capability boundary exists (Phase 4), only owners
-  // may sign in — accounts can be created/managed, but not yet used by members.
-  if (user.role !== "owner") {
+  // Member sign-in gate — now a launch flag, not a hard block. The capability
+  // boundary exists (agents run only on the member's own device via the runner;
+  // members never execute on the server — see runner-dispatch). `members_enabled`
+  // opens member login at the big-bang cutover (P8); it stays "0" until then, so
+  // accounts can be created/invited/paired but members can't sign in yet.
+  if (user.role !== "owner" && getSetting("members_enabled") !== "1") {
     return Response.json(
       { error: "Member sign-in isn't enabled on this instance yet." },
       { status: 403 }

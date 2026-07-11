@@ -80,18 +80,24 @@ export function tryDispatchToDevice(
   const device = pickDevice(userId);
 
   if (!device) {
-    // No ONLINE device. If a device is paired but offline and this is an
-    // unattended trigger, skip it (decision 4) rather than run on the server;
-    // interactive triggers (manual/chat/voice), or users with no device at
-    // all, fall through to the in-process legacy path.
-    if ((trigger === "cron" || trigger === "webhook") && hasPairedDevice(userId)) {
+    // No ONLINE device. SAFETY INVARIANT: a member (non-owner) must NEVER fall
+    // through to in-process execution — that would run their agent on the VM,
+    // on the OWNER's host + token, defeating the whole isolation model. So a
+    // member with no online device is always skipped here (returns true), never
+    // run on the server. Only the owner's runs fall through to the legacy
+    // in-process path (their own VM), and only for interactive triggers; the
+    // owner's unattended cron/webhook runs skip when their device is offline
+    // (decision 4).
+    const owner = isOwnerUser(userId);
+    const unattended = trigger === "cron" || trigger === "webhook";
+    const mustSkip = !owner || (unattended && hasPairedDevice(userId));
+    if (mustSkip) {
+      const reason = !owner
+        ? "No online device — member agent runs execute only on your own device."
+        : "Device offline — scheduled run skipped.";
       getDb()
         .update(agentRuns)
-        .set({
-          status: "skipped_offline",
-          error: "Device offline — scheduled run skipped.",
-          endedAt: new Date().toISOString(),
-        })
+        .set({ status: "skipped_offline", error: reason, endedAt: new Date().toISOString() })
         .where(eq(agentRuns.id, runId))
         .run();
       void import("./agent-notify").then(({ notifyAgentEvent }) =>
@@ -99,7 +105,7 @@ export function tryDispatchToDevice(
       );
       return true;
     }
-    return false;
+    return false; // owner, interactive, no device → legacy in-process (their VM)
   }
 
   // Record the routing on the run row (in the current user context).
