@@ -69,4 +69,24 @@ describe("device fs-op handler", () => {
     expect(escape.ok).toBe(false);
     expect(escape.error).toContain("escapes");
   });
+
+  it("tree returns the readTree-compatible shape the workspace UI expects", async () => {
+    await handleFsOp("write", { path: "proj/index.ts", content: "export {}" });
+    const tree = await handleFsOp("tree", { root: TMP });
+    expect(tree.ok).toBe(true);
+    const data = tree.data as {
+      root: string;
+      name: string;
+      tree: Array<{ name: string; type: string }>;
+    };
+    expect(data.root).toBe(TMP);
+    expect(typeof data.name).toBe("string");
+    expect(data.tree.some((e) => e.name === "proj" && e.type === "dir")).toBe(true);
+
+    const read = await handleFsOp("read", { path: "proj/index.ts" });
+    const fr = read.data as { language: string; truncated: boolean; bytes: number };
+    expect(fr.language).toBe("typescript");
+    expect(fr.truncated).toBe(false);
+    expect(fr.bytes).toBeGreaterThan(0);
+  });
 });
