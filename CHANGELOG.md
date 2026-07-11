@@ -2,6 +2,19 @@
 
 # Changelog
 
+## 11/07/2026 @ 21:45:40 IST — "Claude Opus 4.8"
+
+**Goal:** Raise Windows runner-service confidence to the maximum achievable without a Windows machine, after a throwaway-VM validation attempt was blocked by a closed GCP billing account (no cloud resource can be created).
+
+**Added:**
+- `__tests__/lib/runner-service-install.test.ts` — exercises the ACTUAL `win32` branch of `installService`/`uninstallService` in `runner/src/service.ts` (previously only the pure `windowsTaskArgs()` generator was tested). Mocks `process.platform` + `fs`/`os`/`child_process` to prove: (1) install drives `schtasks /Create /F /SC ONLOGON /TN MatrixRunner`; (2) install does **not** throw when `schtasks /Run` fails with no interactive session (the "starts at next logon" fallback path); (3) uninstall drives `schtasks /Delete /F /TN MatrixRunner`.
+  - *Cause:* the win32 execution branch (the real syscall + its try/catch fallback) had zero coverage — a genuine gap, since Windows can't be run on this Mac and GCP billing is closed.
+  - *Verification:* `pnpm typecheck` clean; `pnpm test --run` → 134 passed (was 131, +3), 26 files.
+
+**Note (not code):** Real Windows *device* execution still requires actual Windows hardware or a reopened GCP billing account — this closes the software-testable portion only. Separately flagged to owner: GCP billing on `matrix-dashboard-id` is in state `closed`, an operational risk to the live prod VM.
+
+**Files touched:** `__tests__/lib/runner-service-install.test.ts`, `CHANGELOG.md`.
+
 ## 11/07/2026 @ 18:07:10 IST — "Claude Fable 5"
 
 **Fixed (main — member isolation gap caught by an end-to-end member-journey simulation):** Simulating the full friend flow (owner enables members → creates account → invite → member sets own password + signs in → member pairs their OWN runner → member runs an agent) surfaced a real bug: **`POST /api/agents/[id]/run` returned "Not found" for a member's own agent**. Root cause: the Phase 2b `withUser` codemod matched routes importing `@/lib/db/client` directly, but 7 routes reach per-account data through *helpers* (`getAgent`, `startRun`, `getSetting`, provider resolution) without importing the client — so they ran in NO user context and resolved to the OWNER's DB for members. Wrapped all 7 in `withUser`: `agents/[id]/run` (the one the sim caught), `settings`, `search` + `search/test`, and `voice/{chat,speak,transcribe}`. **Verified live in the sim:** after the fix the member's run executes on THEIR own paired device (`execution: runner`) → succeeded, and the owner still cannot see the member's agent/run. That's the complete member journey validated end-to-end — everything except a literally different human on a physically different machine. Suite 131/131, typecheck + lint clean. **Files:** `app/api/agents/[id]/run/route.ts`, `app/api/settings/route.ts`, `app/api/search/{,test/}route.ts`, `app/api/voice/{chat,speak,transcribe}/route.ts`.
