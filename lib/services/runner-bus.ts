@@ -159,16 +159,39 @@ export function enqueueJob(opts: {
   return id;
 }
 
+/**
+ * Optional hook to merge memory-only fields (e.g. the Claude subscription
+ * token) into a dispatch frame at SEND time without persisting them to
+ * runner_jobs. Registered by runner-dispatch.
+ */
+type DispatchAugmenter = (job: {
+  id: string;
+  userId: string;
+  deviceId: string;
+  kind: string;
+}) => Record<string, unknown> | undefined;
+let dispatchAugmenter: DispatchAugmenter | null = null;
+export function setDispatchAugmenter(fn: DispatchAugmenter): void {
+  dispatchAugmenter = fn;
+}
+
 /** Attempt to push a queued job to its device. Safe to call repeatedly. */
 export function dispatchJob(jobId: string): boolean {
   const db = getSystemDb();
   const job = db.select().from(runnerJobs).where(eq(runnerJobs.id, jobId)).get();
   if (!job || job.status !== "queued") return false;
+  const stored = JSON.parse(job.payload) as Record<string, unknown>;
+  const transient = dispatchAugmenter?.({
+    id: job.id,
+    userId: job.userId,
+    deviceId: job.deviceId,
+    kind: job.kind,
+  });
   const ok = sendToRunner(job.deviceId, {
     type: "job_dispatch",
     jobId: job.id,
     kind: job.kind as JobKind,
-    payload: JSON.parse(job.payload) as Record<string, unknown>,
+    payload: transient ? { ...stored, ...transient } : stored,
   });
   if (ok) {
     db.update(runnerJobs)

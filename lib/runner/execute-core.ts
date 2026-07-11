@@ -66,6 +66,23 @@ export interface ExecuteDeps {
   policyPaths: { selfPaths: string[]; dbPaths: string[]; extraDenylist: string[] };
   maxChainDepthDefault: number;
   abortSignal: AbortSignal;
+  /** The user's own Claude subscription OAuth token — injected into the SDK env
+   * (memory-only) so the run bills to their usage. Falls back to the device's
+   * ambient login when absent. */
+  claudeToken?: string;
+}
+
+/** Scrubbed SDK env: drop any Anthropic API-key/proxy overrides so the
+ * subscription token (or the device's own login) authenticates cleanly. */
+function sdkEnv(claudeToken?: string): Record<string, string> {
+  const env: Record<string, string> = {};
+  for (const [k, v] of Object.entries(process.env)) {
+    if (k === "ANTHROPIC_API_KEY" || k === "ANTHROPIC_AUTH_TOKEN" || k === "ANTHROPIC_BASE_URL")
+      continue;
+    if (typeof v === "string") env[k] = v;
+  }
+  if (claudeToken) env.CLAUDE_CODE_OAUTH_TOKEN = claudeToken;
+  return env;
 }
 
 export interface ExecuteResult {
@@ -190,6 +207,7 @@ export async function executeAgentRun(
         permissionMode: "default",
         canUseTool,
         abortController: { signal: deps.abortSignal },
+        env: sdkEnv(deps.claudeToken),
         // The server-tool RPC + real MCP wiring are attached by the runner host.
       },
     });

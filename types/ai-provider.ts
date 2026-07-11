@@ -1,5 +1,6 @@
 export type ProviderKind =
   | "anthropic"
+  | "claude-subscription"
   | "openai"
   | "google"
   | "custom"
@@ -20,8 +21,12 @@ export type ProviderKind =
   | "novita"
   | "azure";
 
-/** Which Vercel AI SDK adapter resolves a given provider kind. */
-export type ProviderSdk = "anthropic" | "google" | "mistral" | "xai" | "openai-compat";
+/** Which Vercel AI SDK adapter resolves a given provider kind.
+ * "agent-sdk" is special: not a Vercel AI-SDK adapter but the Claude Agent SDK
+ * driven by an OAuth subscription token (used by agents on the runner, and by
+ * chat via the Agent-SDK path). */
+export type ProviderSdk =
+  "anthropic" | "google" | "mistral" | "xai" | "openai-compat" | "agent-sdk";
 
 export interface ProviderSpec {
   value: ProviderKind;
@@ -34,6 +39,9 @@ export interface ProviderSpec {
   requiresBaseUrl?: boolean;
   /** Runs on the user's machine (Ollama, LM Studio) — no API key needed. */
   local?: boolean;
+  /** Claude Pro/Max OAuth token (from `claude setup-token`), not an API key —
+   * powers agents on the runner and chat via the Agent SDK. */
+  subscription?: boolean;
 }
 
 /** Single source of truth for every selectable provider. */
@@ -44,6 +52,14 @@ export const PROVIDER_CATALOG: ProviderSpec[] = [
     sdk: "anthropic",
     baseUrl: null,
     defaultModel: "claude-sonnet-4-5",
+  },
+  {
+    value: "claude-subscription",
+    label: "Claude Subscription (Pro/Max)",
+    sdk: "agent-sdk",
+    baseUrl: null,
+    defaultModel: "claude-sonnet-4-5",
+    subscription: true,
   },
   { value: "openai", label: "OpenAI", sdk: "openai-compat", baseUrl: null, defaultModel: "gpt-4o" },
   {

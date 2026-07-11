@@ -4,9 +4,24 @@ import { getDb, getSystemDb } from "@/lib/db/client";
 import { runnerDevices, agentRuns, users } from "@/lib/db/schema";
 import { getContextUserId } from "@/lib/db/context";
 import { getOwner } from "@/lib/db/users";
-import { enqueueJob, isRunnerOnline, sendToRunner, broadcastToRunners } from "./runner-bus";
+import {
+  enqueueJob,
+  isRunnerOnline,
+  sendToRunner,
+  broadcastToRunners,
+  setDispatchAugmenter,
+} from "./runner-bus";
 import { runnerJobs } from "@/lib/db/schema";
+import { resolveSubscriptionToken } from "./runner-credentials";
 import type { AgentConfig } from "@/types/agents";
+
+// Merge the user's Claude subscription token into agent_run dispatch frames at
+// SEND time — memory-only, per dispatch (incl. reconnect re-dispatch).
+setDispatchAugmenter((job) => {
+  if (job.kind !== "agent_run") return undefined;
+  const token = resolveSubscriptionToken(job.userId);
+  return token ? { claudeToken: token } : undefined;
+});
 
 /* ------------------------------------------------------------------ *
  * Server-side dispatch fork for agent runs. Decides whether a run
@@ -94,9 +109,10 @@ export function tryDispatchToDevice(
     .where(eq(agentRuns.id, runId))
     .run();
 
-  // Job payload: ids + the full agent config + prompt. The Claude token is
-  // added by the P3 credential path; until then the device uses its ambient
-  // login. Payload never contains transcript content.
+  // Job payload: ids + the full agent config + prompt. The user's Claude
+  // subscription token (decision 5) is NOT stored here — it's resolved fresh
+  // and merged into the dispatch frame at send time (see dispatchJob), so it's
+  // memory-only, survives reconnect re-dispatch, and never lands in runner_jobs.
   enqueueJob({
     userId,
     deviceId: device.id,

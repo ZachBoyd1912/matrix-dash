@@ -79,6 +79,7 @@ export async function runAgentJob(
     },
     maxChainDepthDefault: 3,
     abortSignal: signal,
+    claudeToken: payload.claudeToken,
   });
 
   // The device computes the final agent-run status; the server persists it.
