@@ -108,6 +108,7 @@
     "@vitejs/plugin-react": "^6.0.3",
     "@vitest/ui": "^4.1.9",
     "drizzle-kit": "^0.31.0",
+    "esbuild": "^0.28.1",
     "eslint": "^9.39.4",
     "eslint-config-next": "^15.5.20",
     "eslint-config-prettier": "^10.1.8",
