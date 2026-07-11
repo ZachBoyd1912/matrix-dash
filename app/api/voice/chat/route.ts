@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { getSetting } from "@/lib/db/settings";
 import { runJarvisTurn } from "@/lib/ai/jarvis";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -12,7 +13,7 @@ const bodySchema = z.object({
 });
 
 /** One voice turn through the Jarvis persona (shared core in lib/ai/jarvis.ts). */
-export async function POST(req: Request) {
+export const POST = withUser(async (req: Request) => {
   if (getSetting("voice_enabled") !== "1") {
     return Response.json({ error: "Voice is disabled" }, { status: 403 });
   }
@@ -29,4 +30,4 @@ export async function POST(req: Request) {
     ephemeral: parsed.data.ephemeral,
   });
   return Response.json({ reply, sessionId });
-}
+});

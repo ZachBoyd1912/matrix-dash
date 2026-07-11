@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { resolveTtsEndpoint } from "@/lib/ai/voice-provider";
 import { getSetting } from "@/lib/db/settings";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -14,7 +15,7 @@ const bodySchema = z.object({
  * OpenAI text-to-speech. Returns the synthesized audio (mp3) as the response body
  * so the client can play it back. Falls back (503) when no TTS provider exists.
  */
-export async function POST(req: Request) {
+export const POST = withUser(async (req: Request) => {
   if (getSetting("voice_enabled") !== "1") {
     return Response.json({ error: "Voice is disabled" }, { status: 403 });
   }
@@ -58,4 +59,4 @@ export async function POST(req: Request) {
   } catch {
     return Response.json({ error: "TTS provider unreachable", fallback: true }, { status: 502 });
   }
-}
+});

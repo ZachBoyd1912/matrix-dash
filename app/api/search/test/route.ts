@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { webSearch } from "@/lib/services/web";
 import { setSetting } from "@/lib/db/settings";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,7 @@ const testSchema = z.object({
   searxngUrl: z.string().max(2048).optional(),
 });
 
-export async function POST(req: Request) {
+export const POST = withUser(async (req: Request) => {
   let payload: unknown;
   try {
     payload = await req.json();
@@ -39,4 +40,4 @@ export async function POST(req: Request) {
       error: e instanceof Error ? e.message : String(e),
     });
   }
-}
+});

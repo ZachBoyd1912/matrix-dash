@@ -2,6 +2,7 @@ import { z } from "zod";
 import { getAgent } from "@/lib/db/agents";
 import { getSetting } from "@/lib/db/settings";
 import { startRun } from "@/lib/services/agent-runner";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -17,7 +18,7 @@ const bodySchema = z
   })
   .optional();
 
-export async function POST(req: Request, ctx: Ctx) {
+export const POST = withUser(async (req: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
   const agent = getAgent(id);
   if (!agent) return Response.json({ error: "Not found" }, { status: 404 });
@@ -41,4 +42,4 @@ export async function POST(req: Request, ctx: Ctx) {
     prompt: opts?.prompt,
   });
   return Response.json({ runId });
-}
+});

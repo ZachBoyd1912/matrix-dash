@@ -1,5 +1,6 @@
 import { resolveSttEndpoint } from "@/lib/ai/voice-provider";
 import { getSetting } from "@/lib/db/settings";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -9,7 +10,7 @@ export const runtime = "nodejs";
  * forwards it to an OpenAI-compatible /audio/transcriptions endpoint, and returns
  * { text }. The audio is never persisted — transcribed and discarded.
  */
-export async function POST(req: Request) {
+export const POST = withUser(async (req: Request) => {
   if (getSetting("voice_enabled") !== "1") {
     return Response.json({ error: "Voice is disabled" }, { status: 403 });
   }
@@ -54,4 +55,4 @@ export async function POST(req: Request) {
   } catch {
     return Response.json({ error: "STT provider unreachable", fallback: true }, { status: 502 });
   }
-}
+});

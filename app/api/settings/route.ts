@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getAllSettings, setSetting } from "@/lib/db/settings";
+import { withUser } from "@/lib/auth/with-user";
 
 export const dynamic = "force-dynamic";
 
@@ -17,11 +18,11 @@ const OBSIDIAN_WATCHER_KEYS = new Set([
 
 const TELEGRAM_KEYS = new Set(["telegram_bot_token", "telegram_chat_id"]);
 
-export async function GET() {
+export const GET = withUser(async () => {
   return Response.json(getAllSettings());
-}
+});
 
-export async function PATCH(req: Request) {
+export const PATCH = withUser(async (req: Request) => {
   let payload: unknown;
   try {
     payload = await req.json();
@@ -72,4 +73,4 @@ export async function PATCH(req: Request) {
     }
   }
   return Response.json(getAllSettings());
-}
+});
