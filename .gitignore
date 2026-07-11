@@ -47,3 +47,8 @@ opencode-session-*.md
 .env.production.local
 .env*.production.local
 .gstack/
+
+# Playwright throwaway data
+.e2e-data/
+test-results/
+playwright-report/
