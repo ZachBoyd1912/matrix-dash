@@ -44,6 +44,9 @@ export default function AccountsPage() {
   const [resettingId, setResettingId] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState("");
 
+  // member-sign-in launch switch
+  const [membersEnabled, setMembersEnabled] = useState<boolean | null>(null);
+
   const load = async () => {
     const res = await fetch("/api/accounts");
     if (res.status === 403) {
@@ -59,7 +62,26 @@ export default function AccountsPage() {
       .then((r) => r.json())
       .then((d) => setMeId(d.user?.id ?? null))
       .catch(() => {});
+    fetch("/api/accounts/members-enabled")
+      .then((r) => (r.ok ? r.json() : { enabled: false }))
+      .then((d) => setMembersEnabled(!!d.enabled))
+      .catch(() => {});
   }, []);
+
+  const toggleMembers = async () => {
+    const next = !membersEnabled;
+    const res = await fetch("/api/accounts/members-enabled", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ enabled: next }),
+    });
+    if (!res.ok) {
+      toast.error("Couldn't update", (await res.json()).error);
+      return;
+    }
+    setMembersEnabled(next);
+    toast.success(next ? "Member sign-in enabled" : "Member sign-in disabled");
+  };
 
   const createAccount = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -177,17 +199,48 @@ export default function AccountsPage() {
         </div>
       </div>
 
-      <Card className="rounded-2xl border-amber-400/20 bg-amber-400/5 p-4">
-        <div className="flex gap-3">
-          <Info className="mt-0.5 shrink-0 text-amber-400" size={16} />
-          <p className="text-text-secondary text-xs leading-relaxed">
-            <span className="text-text-primary font-medium">
-              Member sign-in is not enabled yet.
-            </span>{" "}
-            You can set up member accounts now, but they can&apos;t sign in until per-member host
-            isolation lands (a member session would otherwise share this machine&apos;s files and
-            agent access). Owners sign in normally.
-          </p>
+      <Card
+        className={
+          membersEnabled
+            ? "rounded-2xl border-emerald-400/20 bg-emerald-400/5 p-4"
+            : "rounded-2xl border-amber-400/20 bg-amber-400/5 p-4"
+        }
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex gap-3">
+            <Info
+              className={
+                membersEnabled
+                  ? "mt-0.5 shrink-0 text-emerald-400"
+                  : "mt-0.5 shrink-0 text-amber-400"
+              }
+              size={16}
+            />
+            <p className="text-text-secondary text-xs leading-relaxed">
+              {membersEnabled ? (
+                <>
+                  <span className="text-text-primary font-medium">Member sign-in is enabled.</span>{" "}
+                  Invited members can sign in and run agents on their own device. Each member must
+                  also be allow-listed in Cloudflare Access, and pair a Matrix Runner.
+                </>
+              ) : (
+                <>
+                  <span className="text-text-primary font-medium">Member sign-in is off.</span> Set
+                  up accounts and send invites now; flip this on at launch, once members can pair
+                  their own device (agents run there, never on this host).
+                </>
+              )}
+            </p>
+          </div>
+          {membersEnabled !== null && (
+            <Button
+              variant={membersEnabled ? "ghost" : "secondary"}
+              size="sm"
+              onClick={toggleMembers}
+            >
+              {membersEnabled ? "Disable" : "Enable sign-in"}
+            </Button>
+          )}
         </div>
       </Card>
 
