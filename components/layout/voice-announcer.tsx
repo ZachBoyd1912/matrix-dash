@@ -66,7 +66,7 @@ export function VoiceAnnouncer() {
 
       // Speak only agent-relevant items (avoid narrating every app notification).
       const speakable = fresh
-        .filter((n) => /agent|approval|run|urgent|digest/i.test(n.title + n.body))
+        .filter((n) => /agent|approval|run|urgent|digest|briefing/i.test(n.title + n.body))
         .reverse(); // oldest-first for natural order
       for (const n of speakable) {
         speak(`${n.title}. ${n.body}`.slice(0, 300));

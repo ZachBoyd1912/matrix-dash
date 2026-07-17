@@ -2,7 +2,18 @@
 
 # Changelog
 
-## 17/07/2026 @ 01:38:52 IST — "Fable 5"
+## 17/07/2026 @ 01:40:34 IST — "Fable 5"
+
+**Goal:** Jarvis v1 Task 8 — one composer, spoken. The scheduled morning briefing and on-demand voice answers now read the same structure the Overview renders.
+
+**Changed:**
+- `lib/services/agent-digest.ts` — `sendMorningBriefing()` rebuilt on `composeBriefing()` + `renderSpoken()` (was: agent-run counts only). Title now "Good morning — daily briefing", href `/dashboard` (the new briefing surface). Cause: two independent briefing engines would drift; the daemon already chains a fresh sync ahead of this call.
+- `components/layout/voice-announcer.tsx` — title filter regex extended with `|briefing` so the renamed notification still gets spoken (body already sliced at 300; `renderSpoken` stays ≤280).
+- `lib/ai/voice-tools.ts` — 9th tool `getBriefing`: "Jarvis, what's my rundown?" answers from the same composer on demand, returning `{spoken, attention}`.
+
+**Verification:** `pnpm typecheck` zero errors; full suite `pnpm test --run` 152/152 across 29 files.
+
+**Files Touched:** `lib/services/agent-digest.ts`, `components/layout/voice-announcer.tsx`, `lib/ai/voice-tools.ts`, `CHANGELOG.md`
 
 **Goal:** Jarvis v1 Task 7 — replace the static marketing Overview with the real briefing surface.
 

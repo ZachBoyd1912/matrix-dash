@@ -151,5 +151,18 @@ export function buildVoiceTools(): ToolSet {
     },
   });
 
+  toolset.getBriefing = tool({
+    description:
+      "Give the user their daily rundown: projects, site health, pipeline-to-first-sale blockers, agent activity, and tasks. Use when asked for a briefing, rundown, status, or 'what's up'.",
+    inputSchema: z.object({}),
+    execute: async () => {
+      // Same composer the Overview page and the scheduled morning briefing
+      // use — voice answers can never drift from what the dashboard shows.
+      const { composeBriefing, renderSpoken } = await import("@/lib/services/briefing");
+      const briefing = composeBriefing();
+      return { spoken: renderSpoken(briefing), attention: briefing.attention };
+    },
+  });
+
   return toolset;
 }

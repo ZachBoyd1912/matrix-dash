@@ -67,33 +67,21 @@ export async function sendDailyDigest(): Promise<void> {
 
 /**
  * A short, spoken-friendly overnight briefing. Creates one notification the voice
- * announcer will read aloud (title matched by its agent/run/digest filter).
+ * announcer will read aloud (title matched by its agent/run/digest/briefing filter,
+ * body sliced at 300 chars — renderSpoken stays ≤280 for that reason).
+ *
+ * Built on the shared composer (lib/services/briefing.ts) so this and the
+ * Overview page can never drift; the daemon chains a portfolio sync ahead of
+ * this call so the data is fresh.
  */
 export async function sendMorningBriefing(): Promise<void> {
-  const since = new Date(Date.now() - 16 * 60 * 60 * 1000).toISOString();
-  const runs = getDb()
-    .select({ status: agentRuns.status })
-    .from(agentRuns)
-    .where(gte(agentRuns.createdAt, since))
-    .all();
-
-  const succeeded = runs.filter((r) => r.status === "succeeded").length;
-  const failed = runs.filter((r) => r.status === "failed" || r.status === "timeout").length;
-  const needsReview = runs.filter((r) => r.status === "needs_review").length;
-
-  const parts: string[] = [];
-  if (runs.length === 0) parts.push("no agent runs overnight");
-  else {
-    parts.push(`${runs.length} agent run${runs.length === 1 ? "" : "s"} overnight`);
-    if (succeeded) parts.push(`${succeeded} succeeded`);
-    if (failed) parts.push(`${failed} failed`);
-    if (needsReview) parts.push(`${needsReview} need review`);
-  }
+  const { composeBriefing, renderSpoken } = await import("./briefing");
+  const briefing = composeBriefing();
 
   await notify({
-    title: "Good morning — agent briefing",
-    body: `${parts.join(", ")}.`,
+    title: "Good morning — daily briefing",
+    body: renderSpoken(briefing),
     kind: "info",
-    href: "/dashboard/agents",
+    href: "/dashboard",
   });
 }
