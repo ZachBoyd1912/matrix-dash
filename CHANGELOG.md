@@ -2,7 +2,17 @@
 
 # Changelog
 
-## 17/07/2026 @ 01:29:40 IST — "Fable 5"
+## 17/07/2026 @ 01:31:41 IST — "Fable 5"
+
+**Goal:** Jarvis v1 Task 2 — make the existing GitHub repo sync carry the two fields the portfolio briefing needs, instead of duplicating the sync with a new function.
+
+**Changed:**
+- `lib/services/github.ts` — `GitHubRepo` interface + both `syncRepos()` upsert branches now parse/persist `pushed_at` and `open_issues_count`. Cause: the briefing needs last-activity and an attention count per repo without N extra API calls; `syncRepos()` already paginates `/user/repos`, it just dropped these fields on the floor. Note: `open_issues_count` conflates issues+PRs (GitHub API semantics) — commented at both the schema and interface so it never gets presented as "issues only".
+- `github_repos` gains `pushed_at` + `open_issues_count` — Drizzle schema, CREATE DDL (fresh DBs), and `ensureColumn` migrations (existing DBs; skips fresh DBs where integration tables land later, the documented pattern).
+
+**Verification:** `pnpm typecheck` zero errors. Live-data proof lands with Task 3's end-to-end sync (this repo's connection row exists but the sync route needs a session; deferred to the `POST /api/portfolio/sync` smoke test).
+
+**Files Touched:** `lib/services/github.ts`, `lib/db/schema.ts`, `lib/db/client.ts`, `CHANGELOG.md`
 
 **Goal:** Jarvis v1 Task 1 — give the truth-sync layer its schema and stop seeding fiction. The `projects` table was one-time hardcoded seed data (8 of its 12 paths no longer existed on disk while every row claimed `active`), which would have made any briefing built on it confidently wrong.
 

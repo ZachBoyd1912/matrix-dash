@@ -596,7 +596,8 @@ function ensureIntegrationTables(sqlite: Database.Database) {
       id TEXT PRIMARY KEY, connection_id TEXT NOT NULL REFERENCES github_connections(id) ON DELETE CASCADE,
       full_name TEXT NOT NULL, owner TEXT NOT NULL, name TEXT NOT NULL, description TEXT,
       stars INTEGER DEFAULT 0, language TEXT, is_private INTEGER DEFAULT 0,
-      default_branch TEXT DEFAULT 'main', html_url TEXT NOT NULL, synced_at TEXT NOT NULL
+      default_branch TEXT DEFAULT 'main', html_url TEXT NOT NULL,
+      pushed_at TEXT, open_issues_count INTEGER NOT NULL DEFAULT 0, synced_at TEXT NOT NULL
     )`,
     "github_repos"
   );
@@ -872,6 +873,10 @@ function runColumnMigrations(sqlite: Database.Database) {
   ensureColumn("projects", "open_issues", "open_issues INTEGER NOT NULL DEFAULT 0");
   ensureColumn("projects", "last_synced_at", "last_synced_at TEXT");
   ensureColumn("projects", "is_archived", "is_archived INTEGER DEFAULT 0");
+  // github_repos exists only on DBs that have already run ensureIntegrationTables
+  // (fresh DBs get these columns from the CREATE DDL; ensureColumn skips missing tables)
+  ensureColumn("github_repos", "pushed_at", "pushed_at TEXT");
+  ensureColumn("github_repos", "open_issues_count", "open_issues_count INTEGER NOT NULL DEFAULT 0");
 
   ensureColumn("notes", "vault_rel_path", "vault_rel_path TEXT");
   ensureColumn("notes", "vault_synced_at", "vault_synced_at TEXT");

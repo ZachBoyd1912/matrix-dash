@@ -430,6 +430,12 @@ export const githubRepos = sqliteTable("github_repos", {
   isPrivate: integer("is_private", { mode: "boolean" }).default(false),
   defaultBranch: text("default_branch").default("main"),
   htmlUrl: text("html_url").notNull(),
+  // Last push timestamp from the GitHub API — feeds the portfolio briefing's
+  // "last activity" without a per-repo API call.
+  pushedAt: text("pushed_at"),
+  // NOTE: GitHub's open_issues_count conflates issues + PRs; good enough for
+  // a briefing headline, don't present it as "issues only".
+  openIssuesCount: integer("open_issues_count").notNull().default(0),
   syncedAt: text("synced_at").notNull(),
 });
 

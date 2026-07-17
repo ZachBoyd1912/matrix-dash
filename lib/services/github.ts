@@ -13,6 +13,9 @@ interface GitHubRepo {
   private: boolean;
   default_branch: string;
   html_url: string;
+  pushed_at: string;
+  // Conflates issues + PRs (GitHub API semantics) — fine for a briefing count.
+  open_issues_count: number;
 }
 
 function api(connectionId: string) {
@@ -79,6 +82,8 @@ export async function syncRepos(connectionId: string) {
           language: r.language ?? "",
           isPrivate: r.private,
           defaultBranch: r.default_branch,
+          pushedAt: r.pushed_at ?? null,
+          openIssuesCount: r.open_issues_count ?? 0,
           syncedAt: now,
         })
         .where(eq(githubRepos.id, id))
@@ -97,6 +102,8 @@ export async function syncRepos(connectionId: string) {
           isPrivate: r.private,
           defaultBranch: r.default_branch,
           htmlUrl: r.html_url,
+          pushedAt: r.pushed_at ?? null,
+          openIssuesCount: r.open_issues_count ?? 0,
           syncedAt: now,
         })
         .run();
