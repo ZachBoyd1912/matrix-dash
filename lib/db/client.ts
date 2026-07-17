@@ -845,6 +845,8 @@ function runColumnMigrations(sqlite: Database.Database) {
   ensureColumn("presets", "generation_params", "generation_params TEXT");
   ensureColumn("sessions", "parent_session_id", "parent_session_id TEXT");
   ensureColumn("sessions", "forked_from_message_id", "forked_from_message_id TEXT");
+  ensureColumn("sessions", "cc_session_id", "cc_session_id TEXT");
+  ensureColumn("sessions", "cc_fork_pending", "cc_fork_pending INTEGER DEFAULT 0");
   ensureColumn("session_messages", "variants", "variants TEXT");
   ensureColumn(
     "session_messages",

@@ -43,6 +43,10 @@ export function isRunnerTokenApi(pathname: string): boolean {
 
 export function isPublicApi(pathname: string): boolean {
   if (PUBLIC_API_PREFIXES.some((p) => pathname.startsWith(p))) return true;
+  // The Claude Code CLI subprocess calls Matrix's Anthropic-compatible proxy
+  // without a session cookie; the route authenticates via a per-process shared
+  // secret instead (see app/api/ai/proxy — NOT an open endpoint).
+  if (pathname.startsWith("/api/ai/proxy/")) return true;
   // Runner machine-credential routes carry their own Bearer-token auth.
   if (isRunnerTokenApi(pathname)) return true;
   // OAuth callbacks come from external providers before an app session exists.

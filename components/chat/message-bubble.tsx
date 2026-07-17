@@ -10,6 +10,8 @@ interface Props {
   blocks: Block[];
   streaming?: boolean;
   onApprove?: (id: string, decision: ApprovalDecision) => void;
+  /** Plan-mode gate (claude-code mode): approve or keep iterating the plan. */
+  onPlanDecision?: (approved: boolean) => void;
   /** Set when the fallback cascade served this turn from a non-primary provider. */
   fallbackNotice?: string;
   /** Which regenerated variant is currently shown (0-based). */
@@ -28,6 +30,7 @@ export function MessageBubble({
   blocks,
   streaming,
   onApprove,
+  onPlanDecision,
   fallbackNotice,
   variantIndex,
   variantCount,
@@ -62,7 +65,12 @@ export function MessageBubble({
               {blocksToText(blocks)}
             </div>
           ) : (
-            <TranscriptRenderer blocks={blocks} streaming={streaming} onApprove={onApprove} />
+            <TranscriptRenderer
+              blocks={blocks}
+              streaming={streaming}
+              onApprove={onApprove}
+              onPlanDecision={onPlanDecision}
+            />
           )}
         </div>
         {!isUser && fallbackNotice && (

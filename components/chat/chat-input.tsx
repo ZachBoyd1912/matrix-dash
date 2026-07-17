@@ -25,6 +25,21 @@ export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeh
   const setActive = useAppStore((s) => s.setActiveProviderId);
   const useClaudeCode = useAppStore((s) => s.useClaudeCode);
   const setUseClaudeCode = useAppStore((s) => s.setUseClaudeCode);
+  const planMode = useAppStore((s) => s.planMode);
+  const setPlanMode = useAppStore((s) => s.setPlanMode);
+  // Slash commands discovered from the real CLI's skills/commands dirs —
+  // fetched once per toggle-on; merged into the static palette below.
+  const [ccCommands, setCcCommands] = useState<{ name: string; description: string }[]>([]);
+  useEffect(() => {
+    if (!useClaudeCode) {
+      setCcCommands([]);
+      return;
+    }
+    fetch("/api/ai/claude-code")
+      .then((r) => r.json())
+      .then((s) => setCcCommands(Array.isArray(s.commands) ? s.commands : []))
+      .catch(() => {});
+  }, [useClaudeCode]);
   const autoSpeak = useAppStore((s) => s.autoSpeak);
   const setAutoSpeak = useAppStore((s) => s.setAutoSpeak);
   const {
@@ -40,8 +55,12 @@ export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeh
     value.startsWith("/") && !value.includes(" ") && !value.includes("\n")
       ? value.slice(1).toLowerCase()
       : null;
+  const allCommands = [
+    ...SLASH_COMMANDS,
+    ...ccCommands.filter((c) => !SLASH_COMMANDS.some((s) => s.name === c.name)),
+  ];
   const slashMatches =
-    slashQuery !== null ? SLASH_COMMANDS.filter((c) => c.name.startsWith(slashQuery)) : [];
+    slashQuery !== null ? allCommands.filter((c) => c.name.startsWith(slashQuery)) : [];
   const showSlash = slashOpen && slashMatches.length > 0;
 
   useEffect(() => {
@@ -191,10 +210,25 @@ export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeh
                   ? "border-amber-400/30 bg-amber-400/15 text-amber-300 shadow-[0_0_18px_-6px_rgba(251,191,36,0.6)]"
                   : "text-text-muted hover:text-text-secondary border-white/5"
               )}
-              title="Run the chat through the OpenClaude coding-agent engine on your active Matrix model"
+              title="Run the chat through the Claude Code CLI (or OpenClaude fallback)"
             >
               Claude Code
             </button>
+            {useClaudeCode && (
+              <button
+                type="button"
+                onClick={() => setPlanMode(!planMode)}
+                className={cn(
+                  "hidden h-6 items-center rounded-full border px-2.5 text-[10px] transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.98] sm:inline-flex",
+                  planMode
+                    ? "border-sky-400/30 bg-sky-400/15 text-sky-300 shadow-[0_0_18px_-6px_rgba(56,189,248,0.6)]"
+                    : "text-text-muted hover:text-text-secondary border-white/5"
+                )}
+                title="Plan mode: research read-only and present a plan for approval before any edits"
+              >
+                Plan
+              </button>
+            )}
             {providers.length > 0 ? (
               <>
                 <select

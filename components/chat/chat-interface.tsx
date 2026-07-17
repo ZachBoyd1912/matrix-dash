@@ -110,29 +110,44 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
   const generationParams = useAppStore((s) => s.generationParams);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [attachment, setAttachment] = useState<{ name: string; text: string } | null>(null);
-  const [ccInstalled, setCcInstalled] = useState<boolean | null>(null);
+  // Which coding-agent engine serves "Claude Code" turns: the REAL claude CLI
+  // when installed (full terminal parity: plan mode, subagents, slash commands,
+  // MCP), else the OpenClaude fallback, else neither (install banner).
+  const [ccEngine, setCcEngine] = useState<"claude-code" | "openclaude" | "none" | null>(null);
+  const setPlanMode = useAppStore((s) => s.setPlanMode);
 
-  // When the Claude Code engine is toggled on, check whether the CLI is present.
   useEffect(() => {
     if (!useClaudeCode) {
-      setCcInstalled(null);
+      setCcEngine(null);
       return;
     }
-    fetch("/api/ai/openclaude")
+    fetch("/api/ai/claude-code")
       .then((r) => r.json())
-      .then((s) => setCcInstalled(!!s.installed))
-      .catch(() => setCcInstalled(false));
+      .then((s) => {
+        if (s.installed) {
+          setCcEngine("claude-code");
+          return null;
+        }
+        return fetch("/api/ai/openclaude")
+          .then((r) => r.json())
+          .then((o) => setCcEngine(o.installed ? "openclaude" : "none"));
+      })
+      .catch(() => setCcEngine("none"));
   }, [useClaudeCode]);
 
   const ccBanner =
-    useClaudeCode && ccInstalled === false ? (
+    useClaudeCode && ccEngine === "none" ? (
       <div className="mx-auto mb-2 max-w-3xl px-4">
         <div className="rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-xs leading-relaxed text-amber-200">
-          OpenClaude isn&apos;t installed yet. Run{" "}
+          No coding-agent engine found. Install the real Claude Code CLI (
+          <code className="rounded bg-black/30 px-1 font-mono">
+            npm install -g @anthropic-ai/claude-code
+          </code>
+          ) or OpenClaude (
           <code className="rounded bg-black/30 px-1 font-mono">
             npm install -g @gitlawb/openclaude@latest
-          </code>{" "}
-          in a terminal, then reload — it runs on your active Matrix model automatically.
+          </code>
+          ), then reload.
         </div>
       </div>
     ) : null;
@@ -339,9 +354,13 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
         // it never reaches memory extraction, and the model only ever sees a single
         // leading system message (safe across every provider, incl. Gemini).
         const ctx = contextText?.();
-        // Route to the OpenClaude engine when enabled (runs the active Matrix
-        // provider natively), else Matrix's native agent.
-        const endpoint = useClaudeCode ? "/api/ai/openclaude" : "/api/ai/chat";
+        // Route to the real Claude Code CLI when installed (terminal parity),
+        // the OpenClaude fallback otherwise, else Matrix's native agent.
+        const endpoint = useClaudeCode
+          ? ccEngine === "claude-code"
+            ? "/api/ai/claude-code"
+            : "/api/ai/openclaude"
+          : "/api/ai/chat";
         const res = await fetch(endpoint, {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -353,6 +372,12 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
             systemContext: ctx && ctx.trim() ? ctx : undefined,
             modelOverride: modelOverride ?? undefined,
             reasoningEffort,
+            // Read at call time (not the hook closure): plan approval flips the
+            // flag and immediately sends — the closure value would be stale.
+            planMode:
+              useClaudeCode && ccEngine === "claude-code"
+                ? useAppStore.getState().planMode
+                : undefined,
             generationParams:
               Object.keys(generationParams).length > 0 ? generationParams : undefined,
           }),
@@ -474,6 +499,7 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
       sessionId,
       chatMode,
       useClaudeCode,
+      ccEngine,
       autoSpeak,
       attachment,
       contextText,
@@ -612,6 +638,21 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
     ]
   );
 
+  // Plan-mode gate (claude-code engine): Approve turns plan mode off and sends
+  // the go-ahead as the next turn; "Keep planning" stays in plan mode and asks
+  // for revisions, so the next user message iterates the plan.
+  const decidePlan = useCallback(
+    (approved: boolean) => {
+      if (approved) {
+        setPlanMode(false);
+        void send("The plan is approved — proceed with the implementation.");
+      } else {
+        setPlanMode(true);
+      }
+    },
+    [send, setPlanMode]
+  );
+
   // Creates a new session containing everything up to and including this
   // message, then navigates there — a snapshot branch point, not a live link.
   const forkFromMessage = useCallback(
@@ -728,6 +769,7 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
                     streaming && m.role === "assistant" && m.id === messages[messages.length - 1].id
                   }
                   onApprove={approve}
+                  onPlanDecision={!streaming ? decidePlan : undefined}
                   fallbackNotice={m.fallbackNotice}
                   variantIndex={m.variantIndex}
                   variantCount={m.variantCount}

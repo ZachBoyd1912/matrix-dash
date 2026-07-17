@@ -44,12 +44,23 @@ function toText(value: unknown): string {
 /**
  * A single tool invocation rendered as a collapsible "● Tool(arg)" card — the
  * machined-glass family used by the artifact panel, scaled down for many-per-turn.
+ *
+ * `childBlocks` (subagent/Task runs) render as an indented mini-timeline inside
+ * the card, so a subagent's tool calls are visible instead of arriving flattened
+ * into the top-level transcript.
  */
-export function ToolCallBlock({ block }: { block: ToolBlock }) {
+export function ToolCallBlock({
+  block,
+  childBlocks,
+}: {
+  block: ToolBlock;
+  childBlocks?: ToolBlock[];
+}) {
   const [open, setOpen] = useState(false);
   const arg = primaryArg(block.args);
   const body = block.error ? block.error : toText(block.result);
-  const hasBody = !!body && block.status !== "running";
+  const hasChildren = !!childBlocks && childBlocks.length > 0;
+  const hasBody = (!!body && block.status !== "running") || hasChildren;
 
   return (
     <div
@@ -93,16 +104,34 @@ export function ToolCallBlock({ block }: { block: ToolBlock }) {
           )}
         >
           <div className="overflow-hidden">
-            <pre
-              className={cn(
-                "mx-3 mb-2.5 max-h-72 overflow-y-auto rounded-lg border-l-2 bg-black/30 px-3 py-2 font-mono text-[11px] leading-relaxed break-words whitespace-pre-wrap",
-                block.status === "error"
-                  ? "border-rose-500/40 text-rose-300/90"
-                  : "text-text-muted border-emerald-400/30"
-              )}
-            >
-              {body}
-            </pre>
+            {hasChildren && (
+              <div className="mx-3 mb-2 space-y-1 border-l-2 border-sky-400/25 pl-3">
+                {childBlocks!.map((c, i) => (
+                  <div
+                    key={`${c.id}-${i}`}
+                    className="flex items-center gap-2 font-mono text-[11px]"
+                  >
+                    <StatusGlyph status={c.status} />
+                    <span className="text-text-secondary">{c.name}</span>
+                    {primaryArg(c.args) && (
+                      <span className="text-text-muted truncate">({primaryArg(c.args)})</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            {!!body && (
+              <pre
+                className={cn(
+                  "mx-3 mb-2.5 max-h-72 overflow-y-auto rounded-lg border-l-2 bg-black/30 px-3 py-2 font-mono text-[11px] leading-relaxed break-words whitespace-pre-wrap",
+                  block.status === "error"
+                    ? "border-rose-500/40 text-rose-300/90"
+                    : "text-text-muted border-emerald-400/30"
+                )}
+              >
+                {body}
+              </pre>
+            )}
           </div>
         </div>
       )}

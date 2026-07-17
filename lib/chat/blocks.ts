@@ -32,6 +32,10 @@ export type Block =
       status: ToolStatus;
       result?: unknown;
       error?: string;
+      /** Set when this call ran inside a subagent (Task) — the Task tool_use id.
+       *  The renderer nests these under their parent's card instead of the
+       *  top-level timeline. */
+      parentId?: string;
     }
   | { kind: "todo"; items: TodoItem[] }
   | {
@@ -49,8 +53,15 @@ export type StreamEvent =
   | { type: "text"; value: string }
   | { type: "reasoning"; value: string }
   | { type: "error"; value: string }
-  | { type: "tool_call"; id: string; name: string; args?: unknown }
-  | { type: "tool_result"; id: string; name?: string; result?: unknown; error?: string }
+  | { type: "tool_call"; id: string; name: string; args?: unknown; parentId?: string }
+  | {
+      type: "tool_result";
+      id: string;
+      name?: string;
+      result?: unknown;
+      error?: string;
+      parentId?: string;
+    }
   | { type: "todo"; items: TodoItem[] }
   | { type: "approval_request"; id: string; name: string; args?: unknown; summary?: string }
   | { type: "approval_resolved"; id: string; decision: ApprovalDecision }
@@ -103,6 +114,7 @@ export function appendEvent(blocks: Block[], idMap: Map<string, number>, ev: Str
         name: ev.name,
         args: ev.args,
         status: "running",
+        ...(ev.parentId ? { parentId: ev.parentId } : {}),
       });
       return blocks;
     case "tool_result": {

@@ -24,6 +24,7 @@ import {
   Calendar,
   MonitorSmartphone,
   GraduationCap,
+  Server,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
@@ -35,6 +36,7 @@ const SECTIONS = [
   { href: "/dashboard/settings/integrations", label: "Integrations", icon: Plug },
   { href: "/dashboard/settings/calendar", label: "Calendar", icon: Calendar },
   { href: "/dashboard/settings/agent-tools", label: "Agent Tools", icon: Wrench },
+  { href: "/dashboard/settings/mcp", label: "MCP Servers", icon: Server },
   { href: "/dashboard/settings/agents", label: "Agents", icon: Bot },
   { href: "/dashboard/settings/shortcuts", label: "Shortcuts", icon: Keyboard },
   { href: "/dashboard/settings/account", label: "Account", icon: User },

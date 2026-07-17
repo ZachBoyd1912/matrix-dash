@@ -18,6 +18,10 @@ interface AppState {
   /** When true, the chat runs through the real Claude Code CLI engine. */
   useClaudeCode: boolean;
   setUseClaudeCode: (on: boolean) => void;
+  /** Claude Code plan mode: turns run --permission-mode plan (read-only research
+   *  ending in a reviewable plan) until approved or toggled off. */
+  planMode: boolean;
+  setPlanMode: (on: boolean) => void;
   /** Pulsed true by the /model slash command to open the model dropdown. */
   modelSelectorOpen: boolean;
   setModelSelectorOpen: (open: boolean) => void;
@@ -58,6 +62,8 @@ export const useAppStore = create<AppState>((set) => ({
   setChatMode: (chatMode) => set({ chatMode }),
   useClaudeCode: false,
   setUseClaudeCode: (useClaudeCode) => set({ useClaudeCode }),
+  planMode: false,
+  setPlanMode: (planMode) => set({ planMode }),
   modelSelectorOpen: false,
   setModelSelectorOpen: (modelSelectorOpen) => set({ modelSelectorOpen }),
   autoSpeak: false,

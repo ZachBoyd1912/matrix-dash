@@ -59,6 +59,11 @@ export const POST = withUser(async (req: Request, ctx: Ctx) => {
       context: original.context,
       parentSessionId: id,
       forkedFromMessageId,
+      // Claude Code mode: the fork resumes the parent's CLI session ONCE with
+      // --fork-session (ccForkPending), so the CLI mints a fresh session id and
+      // the parent's CLI history is never advanced by the fork's turns.
+      ccSessionId: original.ccSessionId ?? null,
+      ccForkPending: original.ccSessionId ? true : false,
       createdAt: now,
       updatedAt: now,
     })

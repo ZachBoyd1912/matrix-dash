@@ -69,6 +69,12 @@ export const sessions = sqliteTable("sessions", {
   // The message (in the parent session) this fork branched from. Null for a
   // full duplicate (fork with no cut point).
   forkedFromMessageId: text("forked_from_message_id"),
+  // Claude Code CLI session id backing this Matrix session (claude-code mode).
+  // Persisted so --resume survives server restarts; previously an in-memory map.
+  ccSessionId: text("cc_session_id"),
+  // Set on fork: the next CLI turn adds --fork-session so the CLI mints a new
+  // session id instead of continuing (and polluting) the parent's CLI session.
+  ccForkPending: integer("cc_fork_pending", { mode: "boolean" }).default(false),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 });

@@ -111,6 +111,20 @@ const sse = (event: string, data: object) =>
   enc.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 
 export async function POST(req: Request) {
+  // The CLI subprocess can't carry a session cookie, so this path is exempt
+  // from the middleware gate — the per-process secret (sent as the CLI's
+  // ANTHROPIC_API_KEY → x-api-key header) is the auth instead. Without it,
+  // this endpoint would be an open relay burning the owner's provider keys.
+  const presented =
+    req.headers.get("x-api-key") ?? req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  const { getClaudeProxySecret } = await import("@/lib/services/claude-code");
+  if (!presented || presented !== getClaudeProxySecret()) {
+    return Response.json(
+      { type: "error", error: { type: "authentication_error", message: "Invalid proxy key" } },
+      { status: 401 }
+    );
+  }
+
   let body: AnthropicBody;
   try {
     body = (await req.json()) as AnthropicBody;

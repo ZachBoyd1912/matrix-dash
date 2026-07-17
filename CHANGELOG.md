@@ -2,6 +2,31 @@
 
 # Changelog
 
+## 18/07/2026 @ 00:15:35 IST — "Fable 5"
+
+**Goal:** Claude Code terminal parity in chat — the five gaps a terminal user would notice: plan mode, slash commands/skills, durable session resume/fork, subagent visibility, and MCP config. Plus: verified subscription OAuth works (scrubbed-env CLI turn answered as claude-sonnet-5 on the Max subscription, no API key — mechanism proven; the `claude-subscription` provider row still needs a one-time `claude setup-token` paste in Settings → Providers).
+
+**Added:**
+- **Plan mode** — `planMode` store flag + "Plan" pill in the chat input (claude-code engine only) → `--permission-mode plan`; `ExitPlanMode` tool calls render as a `PlanCard` (`components/chat/blocks/plan-card.tsx`) with Approve & build / Keep planning; approval flips the flag and sends the go-ahead (read from `useAppStore.getState()` at call time — the closure value would be stale).
+- **Slash commands** — GET `/api/ai/claude-code` now also lists user+project skills/commands from disk (`~/.claude/{skills,commands}`, `./.claude/{skills,commands}`); the existing palette in `chat-input.tsx` merges them; the CLI resolves `/name` itself.
+- **Durable resume + fork** — `sessions.cc_session_id` + `cc_fork_pending` columns (Drizzle + ensureColumn); `claude-code.ts` persists the CLI session id and resumes from the DB (was: in-memory map lost on restart); the fork route copies the id and sets the flag so the fork's first turn passes `--fork-session` (fresh CLI session, parent history never advanced).
+- **Subagent visibility** — `mapEvent` captures `parent_tool_use_id`; `tool_call` blocks/events carry `parentId`; `TranscriptRenderer` pulls children out of the top-level flow and `ToolCallBlock` renders them as an indented mini-timeline inside the parent Task card.
+- **MCP config UI** — Settings → MCP Servers (`app/dashboard/settings/mcp/page.tsx`, nav entry in settings layout): `.mcp.json`-shaped JSON validated client-side, stored as `claude_code_mcp_servers`, applied per turn via `--mcp-config` temp file.
+- **Real streaming** — `--include-partial-messages`: top-level text/thinking deltas stream live instead of arriving as whole paragraphs (subagent deltas excluded — they render via their Task card).
+
+**Changed:**
+- Engine routing: the chat's "Claude Code" toggle now probes the REAL CLI first (`/api/ai/claude-code`) and only falls back to OpenClaude, instead of always using OpenClaude; install banner covers both. `message_persisted` events now emitted on CLI turns so fork-from-message/regenerate reference real row ids.
+
+**Fixed (found by the live smoke):**
+- **Proxy auth was broken**: the middleware session-cookie gate (added after the CC pivot) 401'd the CLI subprocess calling `/api/ai/proxy` — proxy-routed Claude Code turns were silently dead. Fix: the path is exempted from the cookie gate and instead authenticated by a per-process shared secret (`getClaudeProxySecret()`, sent as the CLI's `ANTHROPIC_API_KEY` → `x-api-key`; `MATRIX_CC_PROXY_SECRET` env override for multi-process setups). Negative-tested: no-key and wrong-key both 401.
+- Whole-message text fallback: delta streaming isn't guaranteed on every path, so `mapEvent` now tracks per-message `sawDelta` and emits whole-message text only when no deltas streamed it (no drops, no duplicates).
+
+**Known limitation (pre-existing, documented not fixed):** on the *proxy* path (non-Anthropic models), the CLI stores proxy-served turns empty in its own session file, so `--resume` context is degraded — same behavior before tonight's work. On the **subscription path resume works fully** (verified: second turn recalled turn-one content exactly).
+
+**Verification:** `pnpm typecheck` 0 errors; `pnpm lint` 0 errors; `pnpm test --run` 152/152; live smokes: (a) scrubbed-env subscription turn → answered as claude-sonnet-5, no API key; (b) subscription resume recalled prior turn ("SUB-42"); (c) proxy turn streamed live deltas ("PAR"/"ITY"/" OK") and persisted `cc_session_id` to the sessions row; (d) proxy negative auth 401s.
+
+**Files Touched:** `lib/services/claude-code.ts`, `lib/chat/blocks.ts`, `lib/db/schema.ts`, `lib/db/client.ts`, `lib/stores/use-app-store.ts`, `app/api/ai/claude-code/route.ts`, `app/api/sessions/[id]/fork/route.ts`, `app/dashboard/settings/layout.tsx`, `app/dashboard/settings/mcp/page.tsx`, `components/chat/chat-interface.tsx`, `components/chat/chat-input.tsx`, `components/chat/message-bubble.tsx`, `components/chat/transcript-renderer.tsx`, `components/chat/blocks/tool-call-block.tsx`, `components/chat/blocks/plan-card.tsx`, `CHANGELOG.md`
+
 ## 17/07/2026 @ 01:40:34 IST — "Fable 5"
 
 **Goal:** Jarvis v1 Task 8 — one composer, spoken. The scheduled morning briefing and on-demand voice answers now read the same structure the Overview renders.
