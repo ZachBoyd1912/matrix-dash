@@ -20,6 +20,7 @@ const g = globalThis as unknown as {
     agentJobs: Map<string, ScheduledTask>;
     heartbeat?: ScheduledTask;
     emailPoll?: ScheduledTask;
+    portfolioSync?: ScheduledTask;
   };
 };
 
@@ -181,15 +182,34 @@ export function startDaemon() {
         })
         .catch(() => {});
     }
-    // Daily agent digest at 08:00.
+    // Daily agent digest at 08:00 — chained behind a fresh portfolio sync.
+    // The imports are fire-and-forget, so ordering only exists if we chain
+    // explicitly; a digest reading pre-sync data would defeat the point.
     if (hour === 8 && minute === 0) {
-      void import("./agent-digest").then((m) => m.sendDailyDigest()).catch(() => {});
+      void import("./portfolio-sync")
+        .then((m) => m.syncPortfolio())
+        .catch(() => {})
+        .then(() => import("./agent-digest"))
+        .then((m) => m.sendDailyDigest())
+        .catch(() => {});
     }
-    // Spoken morning briefing at the configured time (HH:MM).
+    // Spoken morning briefing at the configured time (HH:MM) — same freshness
+    // chain, because this time is user-configurable and may be ≠ 08:00.
     const briefingTime = getSetting("voice_morning_briefing_time");
     if (briefingTime && briefingTime === `${pad(hour)}:${pad(minute)}`) {
-      void import("./agent-digest").then((m) => m.sendMorningBriefing()).catch(() => {});
+      void import("./portfolio-sync")
+        .then((m) => m.syncPortfolio())
+        .catch(() => {})
+        .then(() => import("./agent-digest"))
+        .then((m) => m.sendMorningBriefing())
+        .catch(() => {});
     }
+  });
+
+  // Hourly portfolio truth-sync, offset to :30 so it never collides with the
+  // 08:00 digest tick (which runs its own chained sync).
+  s.portfolioSync = cron.schedule("30 * * * *", () => {
+    void import("./portfolio-sync").then((m) => m.syncPortfolio()).catch(() => {});
   });
 
   // Email polling every 5 minutes (no-op when no accounts configured).

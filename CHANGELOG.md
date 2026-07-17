@@ -2,7 +2,16 @@
 
 # Changelog
 
-## 17/07/2026 @ 01:36:15 IST — "Fable 5"
+## 17/07/2026 @ 01:37:07 IST — "Fable 5"
+
+**Goal:** Jarvis v1 Task 6 — schedule the truth-sync and guarantee the briefing reads fresh data.
+
+**Changed:**
+- `lib/services/daemon.ts` — (1) hourly portfolio sync at `30 * * * *` (offset from the top-of-hour digest tick); (2) the 08:00 daily digest and the configurable-time spoken briefing are now explicitly promise-chained behind `syncPortfolio()`. Cause: the existing fires are `void import(...)` fire-and-forget, so "sync before digest" only exists if chained — and the spoken briefing time is user-configurable, so it needs its own chain rather than piggybacking on 08:00.
+
+**Verification:** `pnpm typecheck` zero errors. Cron firing observed live in the end-to-end pass (daemon starts with `pnpm dev` via instrumentation.ts).
+
+**Files Touched:** `lib/services/daemon.ts`, `CHANGELOG.md`
 
 **Goal:** Jarvis v1 Task 5 — expose the composer and the sync to the UI.
 
