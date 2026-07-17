@@ -2,7 +2,17 @@
 
 # Changelog
 
-## 17/07/2026 @ 01:33:55 IST — "Fable 5"
+## 17/07/2026 @ 01:35:38 IST — "Fable 5"
+
+**Goal:** Jarvis v1 Task 4 — the single briefing composer both renderers read, so the Overview page and the spoken briefing can never drift.
+
+**Added:**
+- `lib/services/briefing.ts` — `composeBriefing()` returns a structured `Briefing` (staleness self-flagging via `portfolio_last_synced_at`, ordered attention list, projects incl. dirty/recent/missing, GitHub issue total + sync warning, site statuses, pipeline blockers + leads, agent overnight stats with the exact 16h window `sendMorningBriefing()` has always used, tasks due/overdue). `renderSpoken()` renders it for TTS with a hard ≤280-char budget (the voice announcer slices at 300; a cut-off sentence sounds broken).
+- `__tests__/lib/briefing.test.ts` — 7 tests: never-synced staleness, fresh-after-stamp, missing/overdue attention items, seeded pipeline blockers, dirty ordering, spoken budget + attention-first, all-quiet fallback.
+
+**Verification:** `pnpm typecheck` zero errors; 7/7 tests pass.
+
+**Files Touched:** `lib/services/briefing.ts`, `__tests__/lib/briefing.test.ts`, `CHANGELOG.md`
 
 **Goal:** Jarvis v1 Task 3 — the truth-sync service itself: the single writer of project rows, reconciling local git checkouts ∪ GitHub cache ∪ deployed-site probes so the briefing reads reality.
 
