@@ -2,7 +2,17 @@
 
 # Changelog
 
-## 17/07/2026 @ 01:37:07 IST — "Fable 5"
+## 17/07/2026 @ 01:38:52 IST — "Fable 5"
+
+**Goal:** Jarvis v1 Task 7 — replace the static marketing Overview with the real briefing surface.
+
+**Changed:**
+- `app/dashboard/page.tsx` — full rewrite. Hero + hardcoded quick-link cards replaced with: greeting + last-sync stamp + **Sync now** button (`POST /api/portfolio/sync` → refetch); **attention strip** (red card, ordered items from the composer incl. self-flagged staleness); **Path to first sale** card (open blockers + leads, honest zero); **Sites** card (up/down vs expected status); **Agents & tasks** card (overnight runs, needs-review, approvals link, due/overdue); **Projects** table (presence badge, visibility, branch, dirty count, last-commit age, Archive button on `missing` rows, GitHub-degraded warning). Memory StatCards kept, demoted to the bottom row. Same client-component + `useEffect` fetch idiom and `StatCard`/`ACCENT_RING` styles the file already used.
+- `app/api/projects/[id]/route.ts` — PATCH schema accepts `isArchived` (the Overview archive action; sync never deletes) and `githubRepo` (manual reconciliation override).
+
+**Verification:** `pnpm typecheck` zero errors. Visual check + Archive/Sync-now click-through in the end-to-end pass below.
+
+**Files Touched:** `app/dashboard/page.tsx`, `app/api/projects/[id]/route.ts`, `CHANGELOG.md`
 
 **Goal:** Jarvis v1 Task 6 — schedule the truth-sync and guarantee the briefing reads fresh data.
 

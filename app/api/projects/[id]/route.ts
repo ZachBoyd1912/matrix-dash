@@ -16,6 +16,10 @@ const updateSchema = z.object({
   badge: z.string().max(200).optional(),
   path: z.string().max(500).nullable().optional(),
   status: z.string().max(200).optional(),
+  // Archive action for presence:"missing" rows on the Overview — sync never
+  // deletes a project, the user retires it here.
+  isArchived: z.boolean().optional(),
+  githubRepo: z.string().max(500).nullable().optional(),
 });
 
 interface Ctx {
