@@ -2,7 +2,17 @@
 
 # Changelog
 
-## 17/07/2026 @ 01:31:41 IST — "Fable 5"
+## 17/07/2026 @ 01:33:55 IST — "Fable 5"
+
+**Goal:** Jarvis v1 Task 3 — the truth-sync service itself: the single writer of project rows, reconciling local git checkouts ∪ GitHub cache ∪ deployed-site probes so the briefing reads reality.
+
+**Added:**
+- `lib/services/portfolio-sync.ts` — `slugify()` (join key; local dir names and GitHub repo names drift, e.g. `fansly_ai_automation` vs `fansly-ai-automation`), `scanLocalRepos()` (depth-≤3 walk of `portfolio_scan_roots` setting, default `~/Desktop`; per-repo `execFileSync git` for branch/last-commit/dirty-count, same pattern as `agent-git.ts`), `reconcile()` (pure + exported for tests; manual `projects.github_repo` override beats the slug heuristic; vanished paths become `presence='missing'`, never deleted), `probeSites()` (`HEAD` + `redirect:"manual"` — 302 unfollowed IS healthy for Access-gated hosts; after 2 straight mismatches any 2xx/3xx counts as up so bot-fight challenges degrade instead of lying "down"), `syncPortfolio()` (each source independently fallible; GitHub failures recorded in `github_sync_warning` setting; stamps `portfolio_last_synced_at`).
+- `__tests__/lib/portfolio-sync.test.ts` — 7 tests: slug normalization, local+github merge, local-only/github-only split, missing-path detection, manual override, 302-manual-redirect probe contract, failure counting.
+
+**Verification:** `pnpm typecheck` zero errors; 7/7 tests pass (written failing-first).
+
+**Files Touched:** `lib/services/portfolio-sync.ts`, `__tests__/lib/portfolio-sync.test.ts`, `CHANGELOG.md`
 
 **Goal:** Jarvis v1 Task 2 — make the existing GitHub repo sync carry the two fields the portfolio briefing needs, instead of duplicating the sync with a new function.
 
