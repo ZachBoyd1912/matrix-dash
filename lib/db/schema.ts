@@ -189,8 +189,56 @@ export const projects = sqliteTable("projects", {
   badge: text("badge").notNull(),
   path: text("path"),
   status: text("status").notNull().default("active"),
+  // Truth-sync columns — written only by lib/services/portfolio-sync.ts.
+  // slug is the reconciliation join key (local dir names and GitHub repo
+  // names drift, e.g. fansly_ai_automation vs fansly-ai-automation);
+  // githubRepo ("owner/name") is a manual override for when the slug
+  // heuristic misses.
+  slug: text("slug"),
+  githubRepo: text("github_repo"),
+  visibility: text("visibility", { enum: ["public", "private", "local"] }),
+  presence: text("presence", { enum: ["local+github", "local-only", "github-only", "missing"] }),
+  lastCommitAt: text("last_commit_at"),
+  lastCommitMessage: text("last_commit_message"),
+  branch: text("branch"),
+  dirtyFiles: integer("dirty_files").notNull().default(0),
+  openIssues: integer("open_issues").notNull().default(0),
+  lastSyncedAt: text("last_synced_at"),
+  isArchived: integer("is_archived", { mode: "boolean" }).default(false),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
+});
+
+// ─── SITE HEALTH (deployed-site probes for the briefing) ──
+export const siteHealth = sqliteTable("site_health", {
+  id: text("id").primaryKey(),
+  url: text("url").notNull(),
+  label: text("label").notNull(),
+  // 302 IS the healthy status for Cloudflare-Access-gated hosts — probes
+  // must fetch with redirect:"manual" or they'd report the login page.
+  expectedStatus: integer("expected_status").notNull().default(200),
+  lastStatus: integer("last_status"),
+  lastCheckedAt: text("last_checked_at"),
+  lastOkAt: text("last_ok_at"),
+  consecutiveFailures: integer("consecutive_failures").notNull().default(0),
+});
+
+// ─── PIPELINE (path to first sale — blockers, leads, enquiries) ──
+export const pipelineItems = sqliteTable("pipeline_items", {
+  id: text("id").primaryKey(),
+  title: text("title").notNull(),
+  kind: text("kind", { enum: ["blocker", "lead", "enquiry", "action"] }).notNull(),
+  status: text("status", { enum: ["open", "done", "dropped"] })
+    .notNull()
+    .default("open"),
+  notes: text("notes"),
+  // "contact-form" is reserved for the future zbautomations.ie enquiry
+  // endpoint (monetization plan) to write leads in directly.
+  source: text("source", { enum: ["manual", "contact-form"] })
+    .notNull()
+    .default("manual"),
+  createdAt: text("created_at").notNull(),
+  resolvedAt: text("resolved_at"),
 });
 
 // ─── TASKS / TODOS ────────────────────────────────────────

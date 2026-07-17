@@ -2,6 +2,23 @@
 
 # Changelog
 
+## 17/07/2026 @ 01:29:40 IST — "Fable 5"
+
+**Goal:** Jarvis v1 Task 1 — give the truth-sync layer its schema and stop seeding fiction. The `projects` table was one-time hardcoded seed data (8 of its 12 paths no longer existed on disk while every row claimed `active`), which would have made any briefing built on it confidently wrong.
+
+**Added:**
+- `projects` truth-sync columns (`slug`, `github_repo`, `visibility`, `presence`, `last_commit_at`, `last_commit_message`, `branch`, `dirty_files`, `open_issues`, `last_synced_at`, `is_archived`) — Drizzle schema + `ensureColumn` migrations, written only by the upcoming `portfolio-sync` service. Cause: reconciliation needs a join key (local dir names and GitHub repo names drift) and per-row staleness.
+- `site_health` table + `seedSiteHealth()` — the three production sites with `expected_status` (302 IS healthy for the Cloudflare-Access-gated hosts; probes must use `redirect:"manual"`).
+- `pipeline_items` table + `seedPipeline()` — pipeline-to-first-sale blockers lifted from `monetization-plan-zbautomations.ie.md` (no sales exist yet; the briefing tracks the path to revenue, not a €0 widget). `source='contact-form'` reserved for the future enquiry endpoint.
+- `__tests__/lib/portfolio-schema.test.ts` — 4 tests: columns present, seeder neutered, site seeds with correct expected statuses, blockers open.
+
+**Changed:**
+- `seedProjects()` neutered to a documented no-op (guard meant existing DBs were already immune; fresh DBs now start empty and fill on first sync).
+
+**Verification:** `pnpm typecheck` zero errors; `pnpm test --run __tests__/lib/portfolio-schema.test.ts` 4/4 pass.
+
+**Files Touched:** `lib/db/schema.ts`, `lib/db/client.ts`, `__tests__/lib/portfolio-schema.test.ts`, `CHANGELOG.md`
+
 ## 11/07/2026 @ 21:45:40 IST — "Claude Opus 4.8"
 
 **Goal:** Raise Windows runner-service confidence to the maximum achievable without a Windows machine, after a throwaway-VM validation attempt was blocked by a closed GCP billing account (no cloud resource can be created).

@@ -158,6 +158,28 @@ CREATE TABLE IF NOT EXISTS projects (
   updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS site_health (
+  id TEXT PRIMARY KEY,
+  url TEXT NOT NULL,
+  label TEXT NOT NULL,
+  expected_status INTEGER NOT NULL DEFAULT 200,
+  last_status INTEGER,
+  last_checked_at TEXT,
+  last_ok_at TEXT,
+  consecutive_failures INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS pipeline_items (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'open',
+  notes TEXT,
+  source TEXT NOT NULL DEFAULT 'manual',
+  created_at TEXT NOT NULL,
+  resolved_at TEXT
+);
+
 CREATE TABLE IF NOT EXISTS scheduled_jobs (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
@@ -512,6 +534,8 @@ function openConn(dbPath: string): Conn {
   ensureIntegrationTables(sqlite);
   seedWelcomeEmail(sqlite);
   seedProjects(sqlite);
+  seedSiteHealth(sqlite);
+  seedPipeline(sqlite);
   seedAgents(sqlite);
   seedJarvisPreset(sqlite);
   backfillSkillsFts(sqlite);
@@ -836,6 +860,19 @@ function runColumnMigrations(sqlite: Database.Database) {
   ensureColumn("tasks", "kanban_order", "kanban_order INTEGER NOT NULL DEFAULT 0");
   ensureColumn("tasks", "kind", "kind TEXT NOT NULL DEFAULT 'task'");
 
+  // Portfolio truth-sync columns (written by lib/services/portfolio-sync.ts)
+  ensureColumn("projects", "slug", "slug TEXT");
+  ensureColumn("projects", "github_repo", "github_repo TEXT");
+  ensureColumn("projects", "visibility", "visibility TEXT");
+  ensureColumn("projects", "presence", "presence TEXT");
+  ensureColumn("projects", "last_commit_at", "last_commit_at TEXT");
+  ensureColumn("projects", "last_commit_message", "last_commit_message TEXT");
+  ensureColumn("projects", "branch", "branch TEXT");
+  ensureColumn("projects", "dirty_files", "dirty_files INTEGER NOT NULL DEFAULT 0");
+  ensureColumn("projects", "open_issues", "open_issues INTEGER NOT NULL DEFAULT 0");
+  ensureColumn("projects", "last_synced_at", "last_synced_at TEXT");
+  ensureColumn("projects", "is_archived", "is_archived INTEGER DEFAULT 0");
+
   ensureColumn("notes", "vault_rel_path", "vault_rel_path TEXT");
   ensureColumn("notes", "vault_synced_at", "vault_synced_at TEXT");
   ensureColumn("memories", "vault_rel_path", "vault_rel_path TEXT");
@@ -869,185 +906,64 @@ function seedWelcomeEmail(sqlite: Database.Database) {
     );
 }
 
-function seedProjects(sqlite: Database.Database) {
-  const count = sqlite.prepare("SELECT COUNT(*) AS c FROM projects").get() as { c: number };
+/**
+ * Historical: this used to seed a 12-project hardcoded catalog, which rotted
+ * (8 of 12 paths stopped existing on disk while every row still claimed
+ * "active"). Project rows are now authored exclusively by the truth-sync
+ * service (lib/services/portfolio-sync.ts); a fresh DB starts empty and
+ * fills on first sync. The function survives as a documented no-op so the
+ * openConn() seeder call order stays intact.
+ */
+function seedProjects(_sqlite: Database.Database) {}
+
+/**
+ * Seed the three production sites the briefing probes. Runs per account DB
+ * (openConn seeds every DB it opens) — for a personal instance that's
+ * deliberate and harmless; members just see the owner's site statuses.
+ * 302 is the HEALTHY expected status for the Cloudflare-Access-gated hosts.
+ */
+function seedSiteHealth(sqlite: Database.Database) {
+  const count = sqlite.prepare("SELECT COUNT(*) AS c FROM site_health").get() as { c: number };
+  if (count.c > 0) return;
+  const stmt = sqlite.prepare(
+    "INSERT INTO site_health (id, url, label, expected_status) VALUES (?, ?, ?, ?)"
+  );
+  stmt.run("site-landing", "https://zbautomations.ie", "zbautomations.ie", 200);
+  stmt.run("site-matrix", "https://matrix.zbautomations.ie", "matrix.zbautomations.ie", 302);
+  stmt.run("site-builder", "https://builder.zbautomations.ie", "builder.zbautomations.ie", 302);
+}
+
+/**
+ * Seed the pipeline-to-first-sale blockers taken from
+ * monetization-plan-zbautomations.ie.md — the briefing tracks the path to
+ * revenue rather than showing a decorative €0 widget. Resolved from the UI
+ * as the monetization plan gets implemented.
+ */
+function seedPipeline(sqlite: Database.Database) {
+  const count = sqlite.prepare("SELECT COUNT(*) AS c FROM pipeline_items").get() as { c: number };
   if (count.c > 0) return;
   const now = new Date().toISOString();
-  const stmt = sqlite.prepare(`
-    INSERT INTO projects (id, name, description, purpose, frontend, backend, database, badge, path, status, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)
-  `);
-  const projects: [
-    string,
-    string,
-    string,
-    string,
-    string | null,
-    string | null,
-    string | null,
-    string,
-    string | null,
-    string,
-    string,
-  ][] = [
-    [
-      "antigravity-awesome-skills",
-      "antigravity-awesome-skills",
-      "Open-source ecosystem of 1,465+ reusable agent prompt skill packages for Claude, Gemini, and Cursor AI coding assistants featuring a community CLI installer and companion skill discovery web app.",
-      "Monetizes through platform ecosystem lock-in effects, premium skill distribution marketplaces, and enterprise catalog licensing agreements. Solves fragmented AI agent capability discovery across diverse developer communities worldwide.",
-      "React 19, Vite, Tailwind CSS v4, Framer Motion",
-      "Supabase BaaS, Python validation tooling",
-      "Supabase PostgreSQL",
-      "platform",
-      "/Users/zach/Desktop/antigravity-awesome-skills",
-      now,
-      now,
-    ],
-    [
-      "bolt-new-original",
-      "bolt.new original",
-      "Browser-based AI agent from StackBlitz generating full-stack web applications entirely from natural language descriptions running inside secure WebContainer sandbox environments with real-time live preview.",
-      "Monetizes through SaaS subscription tiers and usage-based compute pricing for AI-powered app generation. Solves the fundamental accessibility gap between idea conception and functional software prototype globally.",
-      "Remix v2, Vite, UnoCSS, CodeMirror",
-      "Cloudflare Pages, AI SDK (OpenAI)",
-      "None (ephemeral / Cloudflare KV)",
-      "platform",
-      "/Users/zach/Desktop/bolt.new original",
-      now,
-      now,
-    ],
-    [
-      "bolt-new-custom",
-      "bolt.new-custom",
-      "Custom branded fork of bolt.new called Matrix Builder with full Firebase backend, multi-provider AI model integrations including Google and OpenAI, PostHog analytics, and comprehensive telemetry systems.",
-      "Monetizes through Firebase service resale margins and custom enterprise deployment contracts for AI-generated applications. Solves the critical production gap between AI prototypes and real-world shippable software.",
-      "Remix v2, React 18, Vite, UnoCSS, Radix UI",
-      "Firebase Functions, Express, AI SDK",
-      "Firestore, Realtime DB, SQLite",
-      "fullstack",
-      "/Users/zach/Desktop/bolt.new-custom",
-      now,
-      now,
-    ],
-    [
-      "bolt-projects",
-      "Bolt-Projects",
-      "Collection of nineteen individually exported bolt.new AI-generated Vite React frontend applications each containing its own project files, dependencies, and complete build history for future reuse.",
-      "Demonstrates rapid AI-assisted frontend development velocity as portfolio proof-of-work for global freelance and agency client acquisition. Serves as reusable component library accelerating future project bootstrapping.",
-      "React 18, Vite, Tailwind CSS, GSAP, Framer Motion",
-      null,
-      null,
-      "frontend",
-      "/Users/zach/Desktop/Bolt-Projects",
-      now,
-      now,
-    ],
-    [
-      "fansly-ai-automation",
-      "fansly_ai_automation",
-      "Multi-account AI-powered NSFW creator automation platform managing chat conversations, content scheduling, subscriber analytics, and earnings tracking through integrated Gemini and DeepSeek language models.",
-      "Monetizes through recurring SaaS subscription revenue models, per-creator commission percentages, and white-label platform licensing for larger agencies. Solves creator burnout by fully automating fan engagement at global scale.",
-      "Next.js 16, React 19, Tailwind CSS v4, TanStack Query",
-      "Next.js API routes, NextAuth v5, Drizzle ORM",
-      "Turso (libSQL / SQLite)",
-      "fullstack",
-      "/Users/zach/Desktop/fansly_ai_automation",
-      now,
-      now,
-    ],
-    [
-      "forevergrateful",
-      "forevergrateful",
-      "Immersive 3D interactive brand artist website built with Three.js featuring a detailed animated bear character model with GSAP-driven scroll animations, lookbook gallery, and newsletter signup system.",
-      "Monetizes as premium agency showcase portfolio piece and brand licensing asset for merchandise or NFT conversion funnels. Solves the need for memorable digital brand identity in saturated global attention markets.",
-      "React 18, Vite, Three.js (r3f/drei), GSAP",
-      null,
-      null,
-      "frontend",
-      "/Users/zach/Desktop/forevergrateful",
-      now,
-      now,
-    ],
-    [
-      "matrix-dash",
-      "matrix-dash",
-      "Comprehensive all-in-one personal productivity command center with AI copilot featuring autonomous memory management, email and calendar sync, file management, task scheduling, IDE integration, and system monitoring.",
-      "Monetizes through paid SaaS subscription model with premium feature tiers and local-first enterprise tooling deployment licenses. Solves personal information fragmentation across dozens of disconnected digital services globally.",
-      "Next.js 15, React 19, Tailwind CSS v4, GSAP, D3.js, Radix UI",
-      "Next.js API routes, Drizzle ORM, AI SDK (multi-provider)",
-      "SQLite (better-sqlite3 via Drizzle)",
-      "fullstack",
-      "/Users/zach/Desktop/matrix-dash",
-      now,
-      now,
-    ],
-    [
-      "odysseus",
-      "odysseus",
-      "Self-hosted open-source AI assistant platform with multi-LLM chat, RAG vector document search, calendar and email integration, code execution sandbox, MCP protocol support, and PWA companion phone app.",
-      "Monetizes through managed enterprise hosting tiers, white-label deployment services, and premium on-premise support and maintenance contracts. Solves data sovereignty privacy concerns of cloud-only AI for security-conscious users.",
-      "Vanilla JS SPA, PWA service workers",
-      "Python FastAPI, SQLAlchemy, ChromaDB",
-      "SQLite, ChromaDB (vector embeddings)",
-      "fullstack",
-      "/Users/zach/Desktop/odysseus",
-      now,
-      now,
-    ],
-    [
-      "youtube-pipeline",
-      "youtube-pipeline",
-      "Fully automated staged YouTube content production pipeline handling topic research via Gemini AI, script writing, OpenAI asset generation, YouTube platform upload, and scheduled weekly analytics reporting.",
-      "Monetizes through managed automated channel network agency services and recurring content production subscription packages for global creators. Solves labor-intensive content bottleneck in consistent high-volume YouTube publishing.",
-      null,
-      "Python Flask, Google APIs, Gemini, OpenAI, Twilio",
-      "Google Sheets (lightweight operational store)",
-      "automation",
-      "/Users/zach/Desktop/youtube-pipeline",
-      now,
-      now,
-    ],
-    [
-      "make-blueprints-ready",
-      "make_blueprints_ready",
-      "Set of five structured JSON blueprint configuration files defining Make.com automation workflow scenarios for daily briefing, content editing, asset generation, scheduled uploading, and weekly analytics.",
-      "Serves as deployable reusable automation templates for rapid marketing operations infrastructure across multiple distribution channels. Solves repetitive manual workflow inefficiencies in global multi-platform content distribution at scale.",
-      null,
-      null,
-      null,
-      "automation",
-      "/Users/zach/Desktop/make_blueprints_ready",
-      now,
-      now,
-    ],
-    [
-      "tgf-landing-page",
-      "TGF Landing Page",
-      "Band artist promotional landing page website featuring brutalist 3D Three.js canvas background, YouTube and Spotify video embeds, gallery lightbox, show listings, news section, and contact submission form.",
-      "Monetizes as reusable agency landing page template product and music-marketing industry vertical prototype for client acquisition. Solves indie artists' need for professional web presence without technical coding skills.",
-      "React 19, Vite 8, Three.js (r3f/drei), GSAP, Tailwind CSS v4",
-      null,
-      null,
-      "frontend",
-      "/Users/zach/Desktop/TGF Landing Page",
-      now,
-      now,
-    ],
-    [
-      "the-greater-flaw",
-      "The Greater Flaw (empty)",
-      "Currently empty project directory on disk containing no source code, configuration, or application content yet requiring strategic business direction or formal project initiation planning decision.",
-      "Pending strategic decision regarding expansion into full band management platform or complete archival deprecation of this placeholder directory. No immediate monetization model or global problem-solving purpose identified at this stage.",
-      null,
-      null,
-      null,
-      "empty",
-      "/Users/zach/Desktop/The Greater Flaw",
-      now,
-      now,
-    ],
-  ];
-  for (const p of projects) stmt.run(...p);
+  const stmt = sqlite.prepare(
+    "INSERT INTO pipeline_items (id, title, kind, notes, created_at) VALUES (?, ?, 'blocker', ?, ?)"
+  );
+  stmt.run(
+    "pipe-services-page",
+    "Services page not built",
+    "monetization-plan-zbautomations.ie.md Part 1 — services.html with 4 packages",
+    now
+  );
+  stmt.run(
+    "pipe-contact-endpoint",
+    "Contact endpoint not built",
+    "monetization-plan-zbautomations.ie.md Part 2 — self-hosted enquiry form service",
+    now
+  );
+  stmt.run(
+    "pipe-no-enquiry-path",
+    "No way for a prospect to enquire",
+    "zbautomations.ie 'Contact' still routes to GitHub; no form, no pricing, no email capture",
+    now
+  );
 }
 
 /**
