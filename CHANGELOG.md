@@ -2,7 +2,17 @@
 
 # Changelog
 
-## 17/07/2026 @ 01:35:38 IST — "Fable 5"
+## 17/07/2026 @ 01:36:15 IST — "Fable 5"
+
+**Goal:** Jarvis v1 Task 5 — expose the composer and the sync to the UI.
+
+**Added:**
+- `app/api/briefing/route.ts` — `GET`, `withUser`-wrapped, returns `composeBriefing()`.
+- `app/api/portfolio/sync/route.ts` — `POST`, `withUser`-wrapped, runs `syncPortfolio()` and returns its per-source result (powers the Overview "Sync now" button).
+
+**Verification:** `pnpm typecheck` zero errors. Live curl smoke happens in the end-to-end pass after the Overview rewrite (needs a session cookie from a running dev server).
+
+**Files Touched:** `app/api/briefing/route.ts`, `app/api/portfolio/sync/route.ts`, `CHANGELOG.md`
 
 **Goal:** Jarvis v1 Task 4 — the single briefing composer both renderers read, so the Overview page and the spoken briefing can never drift.
 
