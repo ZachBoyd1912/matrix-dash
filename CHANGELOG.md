@@ -2,6 +2,17 @@
 
 # Changelog
 
+## 30/07/2026 @ 16:37:50 IST — "Sonnet 5"
+
+**Goal:** Follow-up to the agency-homepage redesign — `about.html` was left with synced nav/footer but stale "why Matrix exists" body copy from the prior commit (explicitly out of scope at the time); now rewritten to match the agency positioning per user request.
+
+**Changed:**
+- `deploy/landing/about.html` — title/meta description rewritten (was Matrix-product framing); body replaced with Zach's own story (surveyor-to-builder, how he works, what he does, Matrix as the delivery engine, direct contact) instead of a product FAQ; links back to `/#services` and `/matrix.html`; leads contact with WhatsApp/email instead of the GitHub repo link.
+
+**Verification:** Served locally, confirmed all 5 new `<h2>` sections render; no structural/nav/CSS changes, so no re-run of the full CDP pass — reuses `.doc`/`.doc-body` styling already verified on `privacy.html`/`terms.html`.
+
+**Files Touched:** `deploy/landing/about.html`, `CHANGELOG.md`
+
 ## 30/07/2026 @ 05:29:31 IST — "Sonnet 5"
 
 **Goal:** Rewrite zbautomations.ie's homepage from a Matrix-product pitch into an agency-first front door for Zach's Instagram-driven Irish-SME client work, per the settled spec at `zbautomations-site-redesign-plan.md` — Matrix moves to `/matrix.html` as proof-of-capability, not the pitch.
