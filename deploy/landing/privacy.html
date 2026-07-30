@@ -25,14 +25,21 @@
       </svg>
       <span class="name">ZB Automations</span>
     </a>
-    <nav class="nav-links">
-      <a class="link" href="/about.html">About</a>
-      <a class="link" href="/resources/">Resources</a>
-      <a class="btn btn-primary" href="https://matrix.zbautomations.ie">
-        Open Dashboard
+    <nav class="nav-links" id="navLinks">
+      <a class="link" href="/#services">Services</a>
+      <a class="link" href="/#how">How it works</a>
+      <a class="link" href="/#about">About</a>
+      <a class="link" href="/matrix.html">Matrix</a>
+    </nav>
+    <div class="nav-actions">
+      <a class="btn btn-primary" href="https://wa.me/353832013732" target="_blank" rel="noopener">
+        WhatsApp
         <svg class="arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
       </a>
-    </nav>
+      <button class="nav-toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="navLinks" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
   </div>
 </header>
 
@@ -75,13 +82,14 @@
           </svg>
           <span class="name">ZB Automations</span>
         </a>
-        <p>A local-first AI command center. Built and self-hosted on infrastructure you own.</p>
+        <p>Websites and AI automation for Irish businesses — built, shipped, and looked after by one person.</p>
       </div>
       <div class="foot-links">
         <div class="group">
-          <h4>Platform</h4>
-          <a href="https://matrix.zbautomations.ie">Dashboard</a>
-          <a href="https://matrix.zbautomations.ie/dashboard/matrix-builder">Matrix Builder</a>
+          <h4>Services</h4>
+          <a href="/#svc-websites">Websites</a>
+          <a href="/#svc-automations">Automations</a>
+          <a href="/#how">How it works</a>
         </div>
         <div class="group">
           <h4>Company</h4>
@@ -90,15 +98,45 @@
           <a href="/privacy.html">Privacy</a>
           <a href="/terms.html">Terms</a>
         </div>
+        <div class="group">
+          <h4>Matrix</h4>
+          <a href="/matrix.html">Overview</a>
+          <a href="https://matrix.zbautomations.ie">Dashboard</a>
+          <a href="https://matrix.zbautomations.ie/dashboard/matrix-builder">Builder</a>
+        </div>
       </div>
     </div>
     <div class="foot-bottom">
       <span>© <span id="yr">2026</span> ZB Automations</span>
-      <span>Self-hosted · Private · Encrypted</span>
+      <span>Kildare, Ireland</span>
     </div>
   </div>
 </footer>
 
-<script>document.getElementById('yr').textContent = new Date().getFullYear();</script>
+<script>
+  const navToggle = document.getElementById('navToggle');
+  const navLinks = document.getElementById('navLinks');
+  if (navToggle && navLinks) {
+    const closeNav = () => {
+      navToggle.setAttribute('aria-expanded', 'false');
+      navLinks.classList.remove('open');
+      document.body.classList.remove('nav-open');
+    };
+    const openNav = () => {
+      navToggle.setAttribute('aria-expanded', 'true');
+      navLinks.classList.add('open');
+      document.body.classList.add('nav-open');
+    };
+    navToggle.addEventListener('click', () => {
+      navToggle.getAttribute('aria-expanded') === 'true' ? closeNav() : openNav();
+    });
+    navLinks.querySelectorAll('a').forEach((a) => a.addEventListener('click', closeNav));
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeNav(); });
+    document.addEventListener('click', (e) => {
+      if (navLinks.classList.contains('open') && !navLinks.contains(e.target) && !navToggle.contains(e.target)) closeNav();
+    });
+  }
+  document.getElementById('yr').textContent = new Date().getFullYear();
+</script>
 </body>
 </html>

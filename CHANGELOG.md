@@ -2,6 +2,30 @@
 
 # Changelog
 
+## 30/07/2026 @ 05:29:31 IST — "Sonnet 5"
+
+**Goal:** Rewrite zbautomations.ie's homepage from a Matrix-product pitch into an agency-first front door for Zach's Instagram-driven Irish-SME client work, per the settled spec at `zbautomations-site-redesign-plan.md` — Matrix moves to `/matrix.html` as proof-of-capability, not the pitch.
+
+**Added:**
+- `deploy/landing/matrix.html` — new page, `index.html`'s prior Matrix-pitch content moved here verbatim (hero, marquee, capabilities bento, stats, builder showcase, CTA band unchanged); own SoftwareApplication JSON-LD retained; nav/footer updated to the new site-wide pattern with a "Work with me" link back to `/#services`.
+- Mobile hamburger nav (`shared.css` `.nav-toggle`/`.nav-links.open`) across all 6 HTML pages — fixes a pre-existing bug where `.nav-links .link { display:none }` below 920px hid every nav link with zero replacement, on a domain about to receive ~100% mobile Instagram traffic.
+- `.services-grid`, `.steps`, `.about-split`/`.about-photo`/`.avatar-fallback`, `.contact-rows`, `.example-tag` component styles in `shared.css`, additive only.
+- Commented-out `<!-- WORK / PROOF -->` template block in `index.html` (two example case-study cards, `[[REPLACE: ...]]` markers) — ready to uncomment once real client work exists; never rendered live.
+
+**Changed:**
+- `deploy/landing/index.html` — full rewrite to agency-first positioning: new hero (no fabricated stat block — Zach has zero delivered clients), Services/What-I-Automate/How-it-works/Built-with-Matrix/About/FAQ/Contact sections, WhatsApp (`wa.me/353832013732`) as primary CTA throughout, email/phone secondary. `.terminal` hero card rewritten from dev-jargon agent log to a labeled client-legible example (`example · missed-call automation`, explicit "Illustration — not a real client message" caption). JSON-LD replaced with a single `ProfessionalService` node (name/url/logo/address/telephone/email/areaServed/sameAs) — cleaner than two competing `Organization` declarations across pages.
+- Nav CTA button restructured out of `.nav-links` into a `.nav-actions` sibling on all 6 pages — the button was previously a child of `.nav-links`, so any mobile-panel collapse of that element would have taken the CTA down with it; this was fixed before the hamburger CSS landed, not after.
+- `about.html`, `privacy.html`, `terms.html`, `resources/index.html` — nav/footer synced to the new site-wide pattern (Services/How it works/About/Matrix + WhatsApp, cross-page `/#anchor` links) for consistency; page bodies untouched (out of scope).
+- `sitemap.xml` — added `/matrix.html`, bumped `lastmod` on all touched pages to today.
+- `llms.txt` — summary now leads with the services business (websites + AI automation, Kildare/Ireland); Matrix repositioned as the product underneath; added `/matrix.html` and real contact details.
+- `section { scroll-margin-top: 84px }` / `.marquee` likewise — fixed-nav anchor jumps (`#services`, `#how`, `#about`, `#capabilities`, `#builder`, `#platform`) no longer land content under the 70px bar.
+
+**Verification:** Served `deploy/landing/` locally and drove the existing `claude-chrome` CDP Chrome profile (Playwright, `connectOverCDP`) across all 6 pages at 430px: zero horizontal overflow, hamburger opens/closes correctly (click, Escape, outside-click, link-click) with the CTA staying visible while the panel is open, every `.reveal` element fires, `matrix.html`'s count-up stats (the only page with `[data-count]` elements post-rewrite) animate to their real values rather than sticking at 0. Grepped final HTML for external `src`/`href` origins outside the CSP allowlist (wa.me/matrix.zbautomations.ie/github.com/instagram.com/schema.org) — none found — and for invented-proof language (testimonials, client counts, guarantees) — none found outside the commented template block. `pnpm typecheck` 0 errors. `zach.jpg` 404s confirmed as plain 404s (file intentionally doesn't exist yet — `onerror` monogram fallback renders cleanly), not CSP violations.
+
+**Not done in this pass (flagged for Zach):** production deploy — `deploy/setup-server.sh` runs a full `pnpm build` of the whole Next.js app before the `rsync` that ships this folder, on the VM with the known e2-micro OOM issue, so this needs the `matrix-dash-deploy-verify` flow, not a plain redeploy trigger. Also gated on the spec's pre-deploy checklist: a real `zach.jpg`, Zach's own copy pass, and confirming the WhatsApp number is the one he wants public.
+
+**Files Touched:** `deploy/landing/index.html`, `deploy/landing/matrix.html`, `deploy/landing/shared.css`, `deploy/landing/about.html`, `deploy/landing/privacy.html`, `deploy/landing/terms.html`, `deploy/landing/resources/index.html`, `deploy/landing/sitemap.xml`, `deploy/landing/llms.txt`, `CHANGELOG.md`
+
 ## 18/07/2026 @ 00:15:35 IST — "Fable 5"
 
 **Goal:** Claude Code terminal parity in chat — the five gaps a terminal user would notice: plan mode, slash commands/skills, durable session resume/fork, subagent visibility, and MCP config. Plus: verified subscription OAuth works (scrubbed-env CLI turn answered as claude-sonnet-5 on the Max subscription, no API key — mechanism proven; the `claude-subscription` provider row still needs a one-time `claude setup-token` paste in Settings → Providers).

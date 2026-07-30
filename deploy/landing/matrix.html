@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Matrix — Local-First AI Command Center | ZB Automations</title>
+<meta name="description" content="Matrix: a self-hosted, local-first AI command center with multi-provider chat, autonomous agents, an on-disk IDE, and an AI site builder." />
+<meta name="theme-color" content="#a8461f" />
+
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="canonical" href="https://zbautomations.ie/matrix.html" />
+
+<!-- Open Graph -->
+<meta property="og:title" content="Matrix — Local-First AI Command Center | ZB Automations" />
+<meta property="og:description" content="Matrix: your local-first AI command center. Chat, build, automate." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://zbautomations.ie/matrix.html" />
+<meta property="og:image" content="https://zbautomations.ie/og-image.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Matrix — Local-First AI Command Center | ZB Automations" />
+<meta name="twitter:description" content="Matrix: your local-first AI command center. Chat, build, automate." />
+<meta name="twitter:image" content="https://zbautomations.ie/og-image.png" />
+
+<link rel="stylesheet" href="/shared.css" />
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "name": "ZB Automations",
+      "url": "https://zbautomations.ie",
+      "logo": "https://zbautomations.ie/favicon.svg"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "name": "Matrix",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web",
+      "description": "A self-hosted, local-first AI command center: multi-provider chat, autonomous agents, an on-disk IDE, autonomous memory, deep research, and an integrated site builder — all running on infrastructure you control.",
+      "publisher": {
+        "@type": "Organization",
+        "name": "ZB Automations",
+        "url": "https://zbautomations.ie"
+      },
+      "featureList": [
+        "Multi-provider AI chat across 20+ models",
+        "Autonomous agents with 59 GitHub tools plus Slack, Gmail, Drive, and Calendar",
+        "FTS5-backed autonomous memory bank with a force-directed graph view",
+        "Deep research engine combining vector RAG and web search",
+        "Real on-disk IDE (VS Code via code-server) embedded in the browser",
+        "Email, calendar, notes, Kanban, encrypted vault, webhooks, and backups",
+        "Local-first storage with AES-256-GCM encryption at rest",
+        "Integrated AI site and dashboard builder (Matrix Builder)"
+      ]
+    }
+  ]
+}
+</script>
+
+</head>
+<body>
+
+<div class="aurora"></div>
+<div class="grid-overlay"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+<div class="cursor-glow" id="cursorGlow"></div>
+
+<!-- ───────────── NAV ───────────── -->
+<header class="nav" id="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="/" aria-label="ZB Automations home">
+      <svg class="mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="14.5" stroke="#a8461f" stroke-width="1.3"/><circle cx="16" cy="16" r="10.5" stroke="#a8461f" stroke-width="1"/><path d="M20 16 L23.5 16 M18.83 18.83 L21.3 21.3 M16 20 L16 23.5 M13.17 18.83 L10.7 21.3 M12 16 L8.5 16 M13.17 13.17 L10.7 10.7 M16 12 L16 8.5 M18.83 13.17 L21.3 10.7" stroke="#a8461f" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>
+      <span class="name">ZB Automations</span>
+    </a>
+    <nav class="nav-links" id="navLinks">
+      <a class="link" href="#capabilities">Capabilities</a>
+      <a class="link" href="#builder">Builder</a>
+      <a class="link" href="/#services">Work with me</a>
+    </nav>
+    <div class="nav-actions">
+      <a class="btn btn-primary" href="https://matrix.zbautomations.ie">
+        Open Dashboard
+        <svg class="arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+      <button class="nav-toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="navLinks" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ───────────── HERO ───────────── -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <span class="eyebrow reveal"><span class="pulse"></span> AI Automation Studio · Live</span>
+        <h1 class="reveal d1">Your entire workflow,<br><span class="tint">commanded by AI.</span></h1>
+        <p class="lede reveal d2">ZB Automations builds <b style="color:var(--text-primary);font-weight:550">Matrix</b> — a private, local-first command center. Chat across every model, run autonomous agents, edit real code, and ship agency-grade sites. One control plane for everything you automate.</p>
+        <div class="hero-cta reveal d3">
+          <a class="btn btn-primary" href="https://matrix.zbautomations.ie">
+            Enter Matrix
+            <svg class="arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+          <a class="btn btn-ghost" href="#capabilities">Explore capabilities</a>
+        </div>
+        <div class="hero-meta reveal d4">
+          <div class="item"><div class="k" data-count="20" data-suffix="+">0</div><div class="v">AI providers</div></div>
+          <div class="item"><div class="k" data-count="59" data-suffix="">0</div><div class="v">GitHub tools</div></div>
+          <div class="item"><div class="k" data-count="100" data-suffix="%">0</div><div class="v">Local-first</div></div>
+        </div>
+      </div>
+
+      <div class="hero-card reveal d2">
+        <div class="terminal">
+          <div class="term-bar">
+            <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+            <span class="title">matrix · agent session</span>
+          </div>
+          <div class="term-body" id="term">
+            <div class="row" style="animation-delay:.2s"><span class="p">matrix</span> <span class="c">›</span> <span class="o">triage inbox &amp; summarise PRs</span></div>
+            <div class="row" style="animation-delay:.7s"><span class="m">→</span> <span class="c">syncing Gmail · 48 threads</span></div>
+            <div class="row" style="animation-delay:1.2s"><span class="m">→</span> <span class="c">scanning 6 repos · 59 tools online</span></div>
+            <div class="row" style="animation-delay:1.7s"><span class="m">→</span> <span class="c">writing to memory bank · FTS5</span></div>
+            <div class="row" style="animation-delay:2.2s"><span class="p">✓</span> <span class="o">3 actions queued · 0 secrets left machine</span></div>
+            <div class="row" style="animation-delay:2.7s"><span class="p">matrix</span> <span class="c">›</span><span class="cursor"></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────── MARQUEE ───────────── -->
+  <div class="marquee reveal" id="platform">
+    <div class="marquee-track">
+      <span>Anthropic</span><span>·</span><span>OpenAI</span><span>·</span><span>Google Gemini</span><span>·</span><span>Mistral</span><span>·</span><span>xAI Grok</span><span>·</span><span>DeepSeek</span><span>·</span><span>Groq</span><span>·</span><span>OpenRouter</span><span>·</span><span>Ollama</span><span>·</span><span>LM Studio</span><span>·</span>
+      <span>Anthropic</span><span>·</span><span>OpenAI</span><span>·</span><span>Google Gemini</span><span>·</span><span>Mistral</span><span>·</span><span>xAI Grok</span><span>·</span><span>DeepSeek</span><span>·</span><span>Groq</span><span>·</span><span>OpenRouter</span><span>·</span><span>Ollama</span><span>·</span><span>LM Studio</span><span>·</span>
+    </div>
+  </div>
+
+  <!-- ───────────── CAPABILITIES ───────────── -->
+  <section id="capabilities">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <span class="eyebrow">What it does</span>
+        <h2>One private surface for<br>every kind of work.</h2>
+        <p>Matrix folds the tools you switch between all day into a single, self-hosted dashboard — with the data and keys never leaving your machine.</p>
+      </div>
+
+      <div class="bento">
+        <div class="card span-3 reveal">
+          <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+          <h3>Multi-provider AI chat</h3>
+          <p>Stream from 20+ models side by side — Claude, GPT, Gemini, Grok, DeepSeek, local Ollama. Live token streaming, collapsible thinking traces, model comparison.</p>
+          <div class="tags"><span class="tag">streaming</span><span class="tag">thinking traces</span><span class="tag">compare</span></div>
+        </div>
+        <div class="card span-3 reveal d1">
+          <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div>
+          <h3>Real on-disk IDE</h3>
+          <p>A full VS Code (code-server) embedded in the browser, opening actual project folders. Pair it with the coding agent and approval gates for hands-on builds.</p>
+          <div class="tags"><span class="tag">code-server</span><span class="tag">agent</span><span class="tag">approval gates</span></div>
+        </div>
+
+        <div class="card span-2 reveal">
+          <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/></svg></div>
+          <h3>Autonomous agents</h3>
+          <p>59 GitHub tools, Slack, Gmail, Drive &amp; Calendar — wired to a tool-calling agent that acts with your approval.</p>
+        </div>
+        <div class="card span-2 reveal d1">
+          <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg></div>
+          <h3>Autonomous memory</h3>
+          <p>An FTS5-backed memory bank with extraction, injection, a D3 force graph, and nightly decay — your AI remembers.</p>
+        </div>
+        <div class="card span-2 reveal d2">
+          <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></div>
+          <h3>Deep research</h3>
+          <p>An orchestrated research engine with vector RAG and web search that returns sourced, structured briefs.</p>
+        </div>
+
+        <div class="card span-4 reveal">
+          <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg></div>
+          <h3>Personal command suite</h3>
+          <p>Email triage, CalDAV + Google Calendar, a tasks daemon, Obsidian-style notes with backlinks, a six-column project Kanban, encrypted vault, 2FA, API tokens, webhooks and automatic backups — all in one shell.</p>
+          <div class="tags"><span class="tag">email</span><span class="tag">calendar</span><span class="tag">notes</span><span class="tag">kanban</span><span class="tag">vault</span><span class="tag">webhooks</span></div>
+        </div>
+        <div class="card span-2 reveal d1">
+          <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>
+          <h3>Local-first &amp; encrypted</h3>
+          <p>SQLite on disk, AES-256-GCM for every key &amp; token. Self-hosted on a $0 cloud VM you control.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────── STATS ───────────── -->
+  <section>
+    <div class="wrap">
+      <div class="stats">
+        <div class="stat glass reveal"><div class="num" data-count="20" data-suffix="+">0</div><div class="lbl">AI providers</div></div>
+        <div class="stat glass reveal d1"><div class="num" data-count="59" data-suffix="">0</div><div class="lbl">GitHub agent tools</div></div>
+        <div class="stat glass reveal d2"><div class="num" data-count="40" data-suffix="+">0</div><div class="lbl">Integrated modules</div></div>
+        <div class="stat glass reveal d3"><div class="num" data-count="0" data-suffix="€" data-prefix="" data-zero="€0">0</div><div class="lbl">Infra cost / month</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────── BUILDER SHOWCASE ───────────── -->
+  <section id="builder">
+    <div class="wrap showcase">
+      <div class="pane reveal">
+        <div class="pane-core">
+          <div class="gen-bar"><span class="dot g" style="width:9px;height:9px;border-radius:9999px;background:#3f6b3f;display:inline-block"></span> matrix-builder · generating</div>
+          <div class="gen-canvas">
+            <div class="skel h1"></div>
+            <div class="skel h2"></div>
+            <div class="skel h3"></div>
+            <div class="skel block"></div>
+            <div class="skel row"><div class="skel chip"></div><div class="skel chip"></div><div class="skel chip"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="showcase-copy">
+        <span class="eyebrow reveal">Matrix Builder</span>
+        <h2 class="reveal d1" style="font-family:var(--font-display);font-weight:600;font-size:clamp(2rem,4vw,2.9rem);letter-spacing:-0.03em;line-height:1.05;margin-top:18px;">Describe it once.<br>Ship an agency-grade site.</h2>
+        <p class="reveal d2" style="color:var(--text-secondary);margin-top:16px;font-size:1.05rem;max-width:48ch;">A built-in AI site builder held to an Awwwards bar — distinctive art direction, real type systems, and cinematic motion, generated from a single prompt and editable live.</p>
+        <ul class="feat">
+          <li class="reveal d2"><span class="chk"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span><b>Premium by default.</b> Curated font pairings, one confident accent, intentional negative space — never templated.</span></li>
+          <li class="reveal d3"><span class="chk"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span><b>Motion in every pixel.</b> Scroll reveals, mesh gradients and cinematic interactions baked into each build.</span></li>
+          <li class="reveal d4"><span class="chk"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span><b>Embedded in Matrix.</b> Generate, preview and iterate without leaving your dashboard.</span></li>
+        </ul>
+        <div class="reveal d4" style="margin-top:34px;">
+          <a class="btn btn-primary" href="https://matrix.zbautomations.ie/dashboard/matrix-builder">
+            Open the Builder
+            <svg class="arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────────── CTA BAND ───────────── -->
+  <section>
+    <div class="wrap">
+      <div class="cta-band reveal">
+        <span class="eyebrow" style="margin-bottom:22px;"><span class="pulse"></span> matrix.zbautomations.ie</span>
+        <h2>Run your own AI<br>command center.</h2>
+        <p>Self-hosted, private, and always on. Step into the dashboard and put your whole workflow on autopilot.</p>
+        <a class="btn btn-primary" href="https://matrix.zbautomations.ie" style="font-size:15px;padding:0.85rem 1.6rem;">
+          Enter Matrix Dashboard
+          <svg class="arrow" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ───────────── FOOTER ───────────── -->
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="col-brand">
+        <a class="brand" href="/" aria-label="ZB Automations home">
+          <svg class="mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="16" cy="16" r="14.5" stroke="#a8461f" stroke-width="1.3"/><circle cx="16" cy="16" r="10.5" stroke="#a8461f" stroke-width="1"/><path d="M20 16 L23.5 16 M18.83 18.83 L21.3 21.3 M16 20 L16 23.5 M13.17 18.83 L10.7 21.3 M12 16 L8.5 16 M13.17 13.17 L10.7 10.7 M16 12 L16 8.5 M18.83 13.17 L21.3 10.7" stroke="#a8461f" stroke-width="1.4" stroke-linecap="round"/>
+          </svg>
+          <span class="name">ZB Automations</span>
+        </a>
+        <p>Websites and AI automation for Irish businesses — built, shipped, and looked after by one person.</p>
+      </div>
+      <div class="foot-links">
+        <div class="group">
+          <h4>Services</h4>
+          <a href="/#svc-websites">Websites</a>
+          <a href="/#svc-automations">Automations</a>
+          <a href="/#how">How it works</a>
+        </div>
+        <div class="group">
+          <h4>Company</h4>
+          <a href="/about.html">About</a>
+          <a href="/resources/">Resources</a>
+          <a href="/privacy.html">Privacy</a>
+          <a href="/terms.html">Terms</a>
+        </div>
+        <div class="group">
+          <h4>Matrix</h4>
+          <a href="/matrix.html">Overview</a>
+          <a href="https://matrix.zbautomations.ie">Dashboard</a>
+          <a href="https://matrix.zbautomations.ie/dashboard/matrix-builder">Builder</a>
+        </div>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© <span id="yr">2026</span> ZB Automations</span>
+      <span>Kildare, Ireland</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Mobile nav toggle
+  const navToggle = document.getElementById('navToggle');
+  const navLinks = document.getElementById('navLinks');
+  if (navToggle && navLinks) {
+    const closeNav = () => {
+      navToggle.setAttribute('aria-expanded', 'false');
+      navLinks.classList.remove('open');
+      document.body.classList.remove('nav-open');
+    };
+    const openNav = () => {
+      navToggle.setAttribute('aria-expanded', 'true');
+      navLinks.classList.add('open');
+      document.body.classList.add('nav-open');
+    };
+    navToggle.addEventListener('click', () => {
+      navToggle.getAttribute('aria-expanded') === 'true' ? closeNav() : openNav();
+    });
+    navLinks.querySelectorAll('a').forEach((a) => a.addEventListener('click', closeNav));
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeNav(); });
+    document.addEventListener('click', (e) => {
+      if (navLinks.classList.contains('open') && !navLinks.contains(e.target) && !navToggle.contains(e.target)) closeNav();
+    });
+  }
+
+  // Nav background on scroll
+  const nav = document.getElementById('nav');
+  const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 12);
+  onScroll(); window.addEventListener('scroll', onScroll, { passive: true });
+
+  // Year
+  document.getElementById('yr').textContent = new Date().getFullYear();
+
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Scroll reveals
+  const revealEls = document.querySelectorAll('.reveal');
+  if ('IntersectionObserver' in window && !reduceMotion) {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+    revealEls.forEach((el) => io.observe(el));
+  } else {
+    revealEls.forEach((el) => el.classList.add('in'));
+  }
+
+  // Count-up numbers (run when first visible)
+  const countEls = document.querySelectorAll('[data-count]');
+  const runCount = (el) => {
+    const zero = el.getAttribute('data-zero');
+    if (zero) { el.textContent = zero; return; }
+    const target = parseFloat(el.getAttribute('data-count'));
+    const suffix = el.getAttribute('data-suffix') || '';
+    if (reduceMotion) { el.textContent = target + suffix; return; }
+    const dur = 1400; const start = performance.now();
+    const tick = (now) => {
+      const t = Math.min((now - start) / dur, 1);
+      const eased = 1 - Math.pow(1 - t, 3);
+      el.textContent = Math.round(target * eased) + suffix;
+      if (t < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  };
+  if ('IntersectionObserver' in window) {
+    const cio = new IntersectionObserver((entries) => {
+      entries.forEach((e) => { if (e.isIntersecting) { runCount(e.target); cio.unobserve(e.target); } });
+    }, { threshold: 0.6 });
+    countEls.forEach((el) => cio.observe(el));
+  } else { countEls.forEach(runCount); }
+
+  // Pointer-follow glow (desktop, pointer:fine only)
+  if (!reduceMotion && window.matchMedia('(pointer:fine)').matches) {
+    const glow = document.getElementById('cursorGlow');
+    let raf = null, x = 0, y = 0;
+    window.addEventListener('pointermove', (e) => {
+      x = e.clientX; y = e.clientY;
+      glow.style.opacity = '1';
+      if (!raf) raf = requestAnimationFrame(() => {
+        glow.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%)`;
+        raf = null;
+      });
+    }, { passive: true });
+    window.addEventListener('pointerleave', () => { glow.style.opacity = '0'; });
+  }
+</script>
+</body>
+</html>
