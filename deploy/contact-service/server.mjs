@@ -125,3 +125,24 @@ async function deliver(d) {
     ),
   });
 }
+
+// Reaches Matrix Dash on localhost, bypassing Cloudflare Access entirely —
+// Access gates at the edge, not on the loopback interface.
+async function forwardLead(d) {
+  const url = process.env.MATRIX_INGEST_URL;
+  const token = process.env.MATRIX_INGEST_TOKEN;
+  if (!url || !token) return; // optional integration; never blocks email
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 4000);
+  try {
+    const r = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify(d),
+      signal: ctrl.signal,
+    });
+    if (!r.ok) console.error("lead ingest returned", r.status);
+  } finally {
+    clearTimeout(t);
+  }
+}
