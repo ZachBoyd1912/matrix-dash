@@ -114,6 +114,25 @@ else
 HTML
 fi
 
+# ─── Contact form service ────────────────────────────────────────────────
+echo "==> Installing contact-form service"
+sudo mkdir -p /opt/contact-form
+sudo rsync -a --delete "$APP_DIR/deploy/contact-service/" /opt/contact-form/
+(cd /opt/contact-form && sudo npm install --omit=dev --no-audit --no-fund)
+
+# Bootstrap env ONLY if missing — never clobber real secrets (same pattern as
+# the app env bootstrap above, lines 48-51).
+if [ ! -f /etc/contact-form.env ]; then
+  sudo cp /opt/contact-form/contact-form.env.example /etc/contact-form.env
+  sudo chmod 600 /etc/contact-form.env
+  echo "    !! /etc/contact-form.env created from template — add real SMTP creds"
+fi
+
+sudo cp /opt/contact-form/contact-form.service /etc/systemd/system/contact-form.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now contact-form
+sudo systemctl restart contact-form
+
 echo "=== 7. Set up Caddy ==="
 cd "$APP_DIR"
 if [ -f deploy/Caddyfile ]; then
