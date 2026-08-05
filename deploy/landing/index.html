@@ -316,16 +316,26 @@
       <div class="cta-band reveal">
         <span class="eyebrow" style="margin-bottom:22px;"><span class="pulse"></span> Kildare · Ireland</span>
         <h2>Let's get your business<br>online and off your plate.</h2>
-        <p>Message me on WhatsApp — it's the fastest way to reach me. Tell me what's slowing you down and I'll tell you honestly whether I can help.</p>
-        <a class="btn btn-primary" href="https://wa.me/353832013732" target="_blank" rel="noopener" style="font-size:15px;padding:0.85rem 1.6rem;">
-          Message me on WhatsApp
-          <svg class="arrow" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-        </a>
-        <div class="contact-rows">
-          <a href="mailto:zboyd712@gmail.com">zboyd712@gmail.com</a>
-          <span style="color:var(--text-muted)">·</span>
-          <a href="tel:+353832013732">+353 83 201 3732</a>
-        </div>
+        <p>Tell me what you need and I'll come back to you <strong>within 24 hours</strong>.</p>
+        <form id="enquiry-form" class="enquiry-form" novalidate>
+          <div class="field"><label for="f-name">Name</label>
+            <input id="f-name" name="name" type="text" required maxlength="100" autocomplete="name"></div>
+          <div class="field"><label for="f-email">Email</label>
+            <input id="f-email" name="email" type="email" required maxlength="200" autocomplete="email"></div>
+          <div class="field"><label for="f-phone">Phone</label>
+            <input id="f-phone" name="phone" type="tel" required maxlength="25" autocomplete="tel"></div>
+          <div class="field"><label for="f-meeting">Prefer to meet</label>
+            <select id="f-meeting" name="meeting" required>
+              <option value="">Choose one…</option>
+              <option value="in-person">In person</option>
+              <option value="zoom">Zoom call</option>
+            </select></div>
+          <div class="field field-full"><label for="f-message">What do you need?</label>
+            <textarea id="f-message" name="message" required minlength="20" maxlength="4000" rows="4"></textarea></div>
+          <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+          <button class="btn btn-primary" type="submit">Send enquiry</button>
+          <p class="form-status" role="status" aria-live="polite"></p>
+        </form>
       </div>
     </div>
   </section>
@@ -436,6 +446,35 @@
     }, { passive: true });
     window.addEventListener('pointerleave', () => { glow.style.opacity = '0'; });
   }
+</script>
+<script>
+(function () {
+  var f = document.getElementById("enquiry-form");
+  if (!f) return;
+  var loadedAt = Date.now();
+  var status = f.querySelector(".form-status");
+  f.addEventListener("submit", async function (e) {
+    e.preventDefault();
+    if (!f.checkValidity()) { status.textContent = "Please fill in every field."; status.className = "form-status err"; return; }
+    var btn = f.querySelector("button[type=submit]");
+    btn.disabled = true; status.textContent = "Sending…"; status.className = "form-status";
+    var body = Object.fromEntries(new FormData(f).entries());
+    body.ts = loadedAt;
+    try {
+      var r = await fetch("/api/contact", {
+        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body)
+      });
+      if (!r.ok) throw new Error(r.status);
+      f.reset();
+      status.textContent = "Got it — I'll reply within 24 hours.";
+      status.className = "form-status ok";
+    } catch (err) {
+      // Only surface an email fallback when the form itself is broken.
+      status.innerHTML = 'Something went wrong. Email me directly at <a href="mailto:zboyd712@gmail.com">zboyd712@gmail.com</a>.';
+      status.className = "form-status err";
+    } finally { btn.disabled = false; }
+  });
+})();
 </script>
 </body>
 </html>

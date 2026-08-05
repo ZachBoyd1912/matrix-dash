@@ -515,3 +515,19 @@ footer { border-top: 1px solid var(--border-subtle); padding: 54px 0 40px; margi
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
   .reveal { opacity: 1; transform: none; }
 }
+
+.enquiry-form{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px;text-align:left}
+.enquiry-form .field{display:flex;flex-direction:column;gap:6px}
+.enquiry-form .field-full,.enquiry-form button,.enquiry-form .form-status{grid-column:1/-1}
+.enquiry-form label{font-size:13px;color:var(--text-muted)}
+.enquiry-form input,.enquiry-form select,.enquiry-form textarea{
+  font:inherit;font-size:15px;padding:.7rem .9rem;border-radius:10px;
+  border:1px solid rgba(36,28,20,.18);background:var(--bg-surface);color:var(--text-primary)}
+.enquiry-form input:focus,.enquiry-form select:focus,.enquiry-form textarea:focus{
+  outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+.enquiry-form textarea{resize:vertical}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.form-status{font-size:14px;min-height:1.2em;margin-top:4px}
+.form-status.ok{color:var(--accent)}
+.form-status.err{color:#b3261e}
+@media (max-width:640px){.enquiry-form{grid-template-columns:1fr}}
