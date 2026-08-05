@@ -1,4 +1,5 @@
 import http from "node:http";
+import nodemailer from "nodemailer";
 
 const MEETING = new Set(["in-person", "zoom"]);
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -103,3 +104,24 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, "127.0.0.1", () => console.log(`contact-form listening on 127.0.0.1:${PORT}`));
+
+const transport = nodemailer.createTransport({
+  host: process.env.CONTACT_SMTP_HOST,
+  port: Number(process.env.CONTACT_SMTP_PORT || 587),
+  secure: Number(process.env.CONTACT_SMTP_PORT) === 465,
+  auth: { user: process.env.CONTACT_SMTP_USER, pass: process.env.CONTACT_SMTP_PASS },
+});
+
+async function deliver(d) {
+  const meeting = d.meeting === "zoom" ? "Zoom call" : "In person";
+  await transport.sendMail({
+    // MUST be the authenticated identity so SPF/DKIM pass. Never the submitter.
+    from: process.env.CONTACT_FROM,
+    to: process.env.CONTACT_TO,
+    replyTo: d.email, // the only place user input reaches a header
+    subject: `New enquiry — ${d.name}`,
+    text: [`Name:    ${d.name}`, `Email:   ${d.email}`, `Phone:   ${d.phone}`, `Meeting: ${meeting}`, ``, d.message].join(
+      "\n"
+    ),
+  });
+}
