@@ -2,6 +2,37 @@
 
 # Changelog
 
+## 05/08/2026 @ 20:56:17 IST — "Sonnet 5"
+
+**Project completion: 62.96%** — 34 of 54 checklist steps in `plan-contact-funnel.md` done (Tasks 1–9 complete except the live-SMTP-send test, gated on the operator's Gmail app password; Tasks 10–12 — deploy, verify, resolve the three seeded pipeline blockers — not started as of this entry, gated on production access).
+
+**Goal:** Implement `plan-contact-funnel.md` — replace every existing contact route on zbautomations.ie (WhatsApp, `mailto:`, `tel:`) with a single required enquiry form (name, phone, email, message, meeting preference) that emails the operator and records a lead in Matrix Dash's own pipeline, since none of the old routes left a record anyone could work.
+
+**Added:**
+- `deploy/contact-service/` — new standalone Node `node:http` service (no framework, mirrors `lib/services/email.ts`'s transport shape): `validateSubmission()` (name/phone/email/message/meeting), honeypot + sub-3s-submit spam traps that silently 200 (never tell a bot it failed), per-IP (3/10min) and global (20/hour) rate limits, 16KB body cap, nodemailer SMTP delivery with `replyTo` set to the submitter (from/to stay the authenticated identity for SPF/DKIM), and a fire-and-forget `forwardLead()` POST to Matrix Dash that runs only after email delivery succeeds so a Matrix Dash outage can never cost the enquiry. Ships with `contact-form.env.example` and `contact-form.service` (systemd unit — not specified in the plan, written to match the existing `matrix-dash.service` pattern in `setup-server.sh`; runs as root since `/etc/contact-form.env` is root-owned/600 and the service is loopback-only on :3002).
+- `app/api/leads/ingest/route.ts` — Bearer-token machine route (`MATRIX_INGEST_TOKEN`) that writes `pipeline_items` rows with `kind: "enquiry"`, `source: "contact-form"` (the enum value that's sat unused since the schema was written). Deliberately skips `withUser`/`runWithUser`: with no ALS context, `resolveDbPath()` (`lib/db/client.ts:515`) already falls through to the primary `matrix.db` — the same mechanic `/api/hooks/*` relies on.
+- `__tests__/lib/leads-ingest.test.ts` — confirms the new path is reachable without a session cookie and that the exact-path allowlist doesn't leak the whole `/api/leads` prefix.
+- The enquiry form on `index.html`'s CTA band (`#enquire`): name/email/phone/meeting-preference/message, a hidden honeypot field, and a client-side submit script with a `mailto:` fallback shown only on network failure.
+
+**Changed:**
+- `lib/auth/constants.ts` — `/api/leads/ingest` added to `RUNNER_TOKEN_API_PATHS` (already an exact-path machine-credential allowlist); this also exempts it from the CSRF check and buckets its rate limit by token via the existing `isRunnerTokenApi()` machinery, at no extra cost.
+- `deploy/landing/index.html`, `about.html`, `privacy.html`, `terms.html`, `resources/index.html` — every `wa.me`/`mailto:`/`tel:` link removed (11/3/1 occurrences, matching the plan's pre-verified edit-surface count exactly). Nav CTAs across all five pages and the hero/service-card CTAs on the homepage now point at `#enquire` (or `/#enquire` cross-page). The homepage meta description's stale "Message on WhatsApp" line updated to match.
+- `deploy/landing/llms.txt` — Contact section rewritten to name the form as the only contact route (was stale since the redesign: still asserted WhatsApp/email/phone all worked).
+- `deploy/landing/privacy.html` — corrected the now-false "no forms" claim in the website section and added the required GDPR line: enquiry submissions are emailed to the operator and recorded in a private internal dashboard, not shared with third parties.
+- `deploy/landing/sitemap.xml` — `lastmod` bumped to 2026-08-05 on the five touched pages (`matrix.html` untouched, left at 2026-07-30) — the plan's Task 8 heading named this file but its steps never touched it; added to match the 30/07 precedent of bumping `lastmod` whenever a listed page's content changes.
+- `deploy/Caddyfile` — the `zbautomations.ie` block restructured from a flat `root`/`file_server` into `handle` blocks so `/api/contact*` reverse-proxies to `localhost:3002`, placed above the landing-page catch-all (order matters — a catch-all `handle` first would 404 the API). Validated locally: `caddy validate --config deploy/Caddyfile` → `Valid configuration` (installed `caddy` via brew for this one check; wasn't on this machine before).
+- `deploy/setup-server.sh` — new step between the landing-page sync and Caddy install: rsyncs `deploy/contact-service/` to `/opt/contact-form`, `npm install --omit=dev`, bootstraps `/etc/contact-form.env` from the template only if missing (mirrors the existing `.env.production` bootstrap pattern — never clobbers real secrets on a re-run), installs and enables the systemd unit.
+
+**Verification:** `pnpm typecheck` 0 errors; `pnpm lint` 0 errors (65 pre-existing `no-explicit-any` warnings, all outside this change's files, untouched); `pnpm test --run` 154/154 across 30 files, no regressions. Contact-service: `node --check` clean on every revision of `server.mjs`; `validateSubmission()` sanity-checked with a real payload; `/api/contact/health` verified against a running local instance (`CONTACT_PORT=3999`). `deploy/landing/` served locally over `python3 -m http.server`; grep-confirmed zero `wa.me`/`tel:` links anywhere in the landing tree (including `llms.txt`) and that the only surviving `mailto:` is the JS failure-branch fallback.
+
+**Not done in this pass (blocked on the operator, per the plan's own gating — both explicitly deferred to Task 10/deploy time, not skipped):**
+- Task 3 Step 3: sending a real test email through the SMTP transport — needs the Gmail app password.
+- Tasks 10–12: deploy to the VM, curl-verify the live endpoint and the lead landing in the dashboard, and resolve the three stale `seedPipeline()` blockers — need the Gmail app password, a free-port check on 3002, a generated shared `MATRIX_INGEST_TOKEN`, and explicit approval to touch the production VM.
+
+**Entry-granularity note:** this covers 10 commits (`376679c..88090a6` inclusive), one per plan task per the plan's own "commit after each task" instruction, plus this changelog/verification pass. Grouped into a single entry rather than ten near-identical ones — the commits are one indivisible feature (reverting any single one breaks the others) — per §9's preference for the honest, useful shape over a mechanically literal one.
+
+**Files Touched:** `deploy/contact-service/server.mjs`, `deploy/contact-service/package.json`, `deploy/contact-service/contact-form.env.example`, `deploy/contact-service/contact-form.service`, `app/api/leads/ingest/route.ts`, `__tests__/lib/leads-ingest.test.ts`, `lib/auth/constants.ts`, `deploy/landing/index.html`, `deploy/landing/about.html`, `deploy/landing/privacy.html`, `deploy/landing/terms.html`, `deploy/landing/resources/index.html`, `deploy/landing/shared.css`, `deploy/landing/llms.txt`, `deploy/landing/sitemap.xml`, `deploy/Caddyfile`, `deploy/setup-server.sh`, `CHANGELOG.md`
+
 ## 30/07/2026 @ 16:37:50 IST — "Sonnet 5"
 
 **Goal:** Follow-up to the agency-homepage redesign — `about.html` was left with synced nav/footer but stale "why Matrix exists" body copy from the prior commit (explicitly out of scope at the time); now rewritten to match the agency positioning per user request.
