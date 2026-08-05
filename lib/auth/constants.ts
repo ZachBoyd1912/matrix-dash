@@ -25,6 +25,9 @@ export const RUNNER_TOKEN_API_PATHS = [
   // Install scripts run via curl on a fresh, sessionless device; the embedded
   // one-time pair code is the credential that makes the script useful.
   "/api/runner/install",
+  // Landing-site contact service posts leads here with a Bearer token; it runs
+  // on the same VM and never has an app session.
+  "/api/leads/ingest",
 ];
 
 export function isRunnerTokenApi(pathname: string): boolean {
