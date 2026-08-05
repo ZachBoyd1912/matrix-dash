@@ -4,7 +4,7 @@
 
 ## Important context
 
-ZB Automations is a one-person agency, not a software product with a signup flow. Services (websites, AI automation) are scoped per client through a direct conversation — there is no public price list, no self-serve checkout, and no account to create on zbautomations.ie. Contact is via WhatsApp, email, or phone — see Contact below.
+ZB Automations is a one-person agency, not a software product with a signup flow. Services (websites, AI automation) are scoped per client through a direct conversation — there is no public price list, no self-serve checkout, and no account to create on zbautomations.ie. Contact is via a single enquiry form — see Contact below.
 
 ## Services
 
@@ -30,7 +30,8 @@ Matrix is the self-hosted AI platform ZB Automations built for its own workflow,
 
 ## Contact
 
-- WhatsApp: https://wa.me/353832013732
-- Email: zboyd712@gmail.com
+- Enquiry form: https://zbautomations.ie/#enquire — name, email, phone, and whether an in-person or
+  Zoom meeting suits. Replies within 24 hours.
+- This is the only contact route; there is no public phone number or WhatsApp line.
 - Website: https://zbautomations.ie
 - Source (Matrix): https://github.com/ZachBoyd1912/matrix-dash
