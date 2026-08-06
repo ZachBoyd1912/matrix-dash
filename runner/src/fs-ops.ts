@@ -1,6 +1,7 @@
 import fs from "fs";
 import os from "os";
 import path from "path";
+import { execFileSync } from "child_process";
 import { languageFromPath } from "@/lib/utils/language";
 import type { TreeEntry, FileReadResult } from "@/types/workspace";
 
@@ -51,6 +52,28 @@ function confine(p: string): string {
   return abs;
 }
 
+/** Mirrors portfolio-sync.ts's git() helper — git has to run where the repo lives. */
+function git(cwd: string, args: string[]): string | null {
+  try {
+    return execFileSync("git", args, {
+      cwd,
+      encoding: "utf-8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+  } catch {
+    return null;
+  }
+}
+
+/** Best-effort mtime lookup — a raced delete/permission error just omits it. */
+function statMtimeMs(p: string): number | undefined {
+  try {
+    return fs.statSync(p).mtimeMs;
+  } catch {
+    return undefined;
+  }
+}
+
 function walk(dir: string, depth: number, counter: { n: number }): TreeEntry[] {
   if (depth > MAX_DEPTH || counter.n >= MAX_ENTRIES) return [];
   let dirents: fs.Dirent[];
@@ -70,12 +93,24 @@ function walk(dir: string, depth: number, counter: { n: number }): TreeEntry[] {
     if (counter.n >= MAX_ENTRIES) break;
     if (IGNORED_DIRS.has(d.name)) continue;
     const full = path.join(dir, d.name);
+    const mtimeMs = statMtimeMs(full);
     if (d.isDirectory()) {
       counter.n++;
-      out.push({ name: d.name, path: full, type: "dir", children: walk(full, depth + 1, counter) });
+      out.push({
+        name: d.name,
+        path: full,
+        type: "dir",
+        children: walk(full, depth + 1, counter),
+        ...(mtimeMs !== undefined ? { mtimeMs } : {}),
+      });
     } else if (d.isFile()) {
       counter.n++;
-      out.push({ name: d.name, path: full, type: "file" });
+      out.push({
+        name: d.name,
+        path: full,
+        type: "file",
+        ...(mtimeMs !== undefined ? { mtimeMs } : {}),
+      });
     }
   }
   return out;
@@ -157,6 +192,21 @@ export async function handleFsOp(
       case "delete": {
         fs.rmSync(confine(p), { recursive: true, force: true });
         return { ok: true };
+      }
+      case "git-status": {
+        const dir = confine(p);
+        const stat = fs.statSync(dir);
+        if (!stat.isDirectory()) return { ok: false, error: "Path is not a directory" };
+        const last = git(dir, ["log", "-1", "--format=%cI%n%s"]);
+        const [lastCommitAt, ...msgLines] = last ? last.split("\n") : [null];
+        const status = git(dir, ["status", "--porcelain"]);
+        const data = {
+          branch: git(dir, ["rev-parse", "--abbrev-ref", "HEAD"]),
+          lastCommitAt: lastCommitAt ?? null,
+          lastCommitMessage: msgLines.join("\n") || null,
+          dirtyFiles: status ? status.split("\n").filter(Boolean).length : 0,
+        };
+        return { ok: true, data };
       }
       default:
         return { ok: false, error: `Unknown fs op: ${op}` };

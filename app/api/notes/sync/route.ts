@@ -7,6 +7,6 @@ export const dynamic = "force-dynamic";
 // if sync isn't enabled or no vault path is configured — that's the engine's
 // own guard, not duplicated here.
 export async function POST() {
-  const result = reconcileAll();
+  const result = await reconcileAll();
   return Response.json(result);
 }

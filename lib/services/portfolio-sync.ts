@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { projects, githubConnections, githubRepos, siteHealth } from "@/lib/db/schema";
 import { getSetting, setSetting } from "@/lib/db/settings";
+import { tryRemoteFs } from "./runner-fs";
 
 /**
  * Portfolio truth-sync — the only writer of project rows.
@@ -130,7 +131,14 @@ export function scanLocalRepos(): LocalRepo[] {
 export function reconcile(
   local: LocalRepo[],
   remote: RemoteRepo[],
-  existing: ExistingRow[]
+  existing: ExistingRow[],
+  // Injectable so callers can check existence on the OWNER'S device (via the
+  // Matrix Runner bridge) instead of this host's filesystem — production runs
+  // on a VM that can never see a Mac path, so the default here only ever
+  // reflects reality when this function runs on the machine the paths live
+  // on (local dev). Defaults to fs.existsSync to keep this pure/sync/testable
+  // for the common case and existing tests unchanged.
+  pathExists: (p: string) => boolean = fs.existsSync
 ): ReconciledProject[] {
   const overrideByPath = new Map<string, string>();
   for (const row of existing) {
@@ -186,7 +194,7 @@ export function reconcile(
   for (const row of existing) {
     const slug = row.slug ?? "";
     if (!slug || out.has(slug)) continue;
-    if (row.path && !fs.existsSync(row.path)) {
+    if (row.path && !pathExists(row.path)) {
       out.set(slug, {
         slug,
         name: slug,
@@ -336,6 +344,31 @@ export async function probeSites(onlyIds?: string[]): Promise<void> {
 }
 
 /**
+ * Resolve project-path existence on the OWNER'S device via the Matrix Runner
+ * bridge instead of this host's filesystem. Returns null when no device is
+ * paired (probed once, via the first path) so the caller falls back to
+ * reconcile()'s default fs.existsSync — this is what makes the "12 project
+ * paths no longer exist" false-positive possible in the first place: on
+ * production's VM, fs.existsSync against a Mac path is always false, so
+ * every row looked "missing" regardless of whether it actually was.
+ */
+async function resolveRemotePathExists(paths: string[]): Promise<((p: string) => boolean) | null> {
+  const unique = [...new Set(paths.filter(Boolean))];
+  if (unique.length === 0) return null;
+
+  const probe = await tryRemoteFs("list", { path: unique[0] });
+  if (!probe.handled) return null; // no paired device — caller falls back to local fs
+
+  const existing = new Set<string>();
+  if (probe.result.ok) existing.add(unique[0]);
+  for (const p of unique.slice(1)) {
+    const res = await tryRemoteFs("list", { path: p });
+    if (res.handled && res.result.ok) existing.add(p);
+  }
+  return (p: string) => existing.has(p);
+}
+
+/**
  * Full portfolio sync. Each source is independently fallible — one failure
  * degrades the picture, never blanks it. Stamps portfolio_last_synced_at so
  * the briefing can flag its own staleness.
@@ -374,7 +407,10 @@ export async function syncPortfolio(): Promise<{
       })
       .from(projects)
       .all();
-    upsertProjects(reconcile(local, remote, existing));
+    const remotePathExists = await resolveRemotePathExists(
+      existing.map((r) => r.path).filter((p): p is string => !!p)
+    );
+    upsertProjects(reconcile(local, remote, existing, remotePathExists ?? undefined));
   } catch {
     sources.local = false;
     sources.github = false;

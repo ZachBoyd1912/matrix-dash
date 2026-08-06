@@ -4,7 +4,10 @@ import os from "os";
 import path from "path";
 import { registerRunner, runnerFsRequest, resolveFsResult } from "@/lib/services/runner-bus";
 import { handleFsOp } from "@/runner/src/fs-ops";
-import type { ServerFrame } from "@/lib/runner/protocol";
+import { handleFrame } from "@/runner/src/connect";
+import type { ServerFrame, RunnerFrame } from "@/lib/runner/protocol";
+import type { EventUplink } from "@/runner/src/api";
+import type { RunnerConfig } from "@/runner/src/config";
 
 /**
  * The workspace file bridge: the server's request/reply over a device
@@ -45,6 +48,25 @@ describe("runner fs request/reply (server side)", () => {
 
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "matrix-fsops-"));
 afterAll(() => fs.rmSync(TMP, { recursive: true, force: true }));
+
+/** Minimal EventUplink stand-in: fs_op dispatch only ever calls push()/flush(). */
+function fakeUplink(): { uplink: EventUplink; nextPush: () => Promise<RunnerFrame> } {
+  const pushed: RunnerFrame[] = [];
+  const waiters: Array<(f: RunnerFrame) => void> = [];
+  const uplink = {
+    push: (frame: RunnerFrame) => {
+      const waiter = waiters.shift();
+      if (waiter) waiter(frame);
+      else pushed.push(frame);
+    },
+    flush: async () => {},
+  } as unknown as EventUplink;
+  const nextPush = () =>
+    pushed.length > 0
+      ? Promise.resolve(pushed.shift()!)
+      : new Promise<RunnerFrame>((resolve) => waiters.push(resolve));
+  return { uplink, nextPush };
+}
 
 describe("device fs-op handler", () => {
   const env = process.env.MATRIX_RUNNER_WORKSPACE;
@@ -88,5 +110,70 @@ describe("device fs-op handler", () => {
     expect(fr.language).toBe("typescript");
     expect(fr.truncated).toBe(false);
     expect(fr.bytes).toBeGreaterThan(0);
+  });
+
+  it("git-status reports branch/dirty state for a real repo checkout", async () => {
+    const repoDir = path.join(TMP, "gitrepo");
+    fs.mkdirSync(repoDir, { recursive: true });
+    fs.writeFileSync(path.join(repoDir, "a.txt"), "hi");
+
+    const { execFileSync } = await import("child_process");
+    const opts = { cwd: repoDir } as const;
+    execFileSync("git", ["init", "-q"], opts);
+    execFileSync("git", ["config", "user.email", "t@t.com"], opts);
+    execFileSync("git", ["config", "user.name", "t"], opts);
+    execFileSync("git", ["add", "a.txt"], opts);
+    execFileSync("git", ["commit", "-q", "-m", "initial"], opts);
+
+    const status = await handleFsOp("git-status", { path: "gitrepo" });
+    expect(status.ok).toBe(true);
+    const data = status.data as {
+      branch: string | null;
+      lastCommitMessage: string | null;
+      dirtyFiles: number;
+    };
+    expect(data.lastCommitMessage).toBe("initial");
+    expect(data.dirtyFiles).toBe(0);
+  });
+
+  it("forwards handleFsOp's data directly — regression for the double-wrap bug (connect.ts:134)", async () => {
+    const { uplink, nextPush } = fakeUplink();
+    handleFrame(
+      { type: "fs_op", requestId: "req-1", op: "tree", args: { root: TMP } },
+      uplink,
+      () => {},
+      {} as RunnerConfig
+    );
+    const frame = await nextPush();
+    expect(frame.type).toBe("fs_result");
+    if (frame.type !== "fs_result") throw new Error("wrong frame type");
+    expect(frame.requestId).toBe("req-1");
+    expect(frame.ok).toBe(true);
+    const data = frame.data as { root: string; tree: unknown[]; data?: unknown };
+    // Real bug shape was {ok, data: {ok, data: {root,...}, error}} — one level
+    // too deep. Assert the tree payload is directly on frame.data, and that
+    // there's no nested .data (which would mean the bug is back).
+    expect(data.root).toBe(TMP);
+    expect(Array.isArray(data.tree)).toBe(true);
+    expect(data.data).toBeUndefined();
+  });
+
+  it("still wraps the whole IdeResult in data for ide ops (unchanged, flat-shape branch)", async () => {
+    const { uplink, nextPush } = fakeUplink();
+    handleFrame(
+      { type: "fs_op", requestId: "req-2", op: "ide", args: { action: "status" } },
+      uplink,
+      () => {},
+      {} as RunnerConfig
+    );
+    const frame = await nextPush();
+    expect(frame.type).toBe("fs_result");
+    if (frame.type !== "fs_result") throw new Error("wrong frame type");
+    // IdeResult has no separate .data field — running/url/port live at the
+    // top level, so the whole result belongs in frame.data (route.ts reads
+    // remote.result.data directly as the IdeResult).
+    const data = frame.data as { ok: boolean; running?: boolean };
+    expect(data.ok).toBe(true);
+    expect(data.running).toBe(false);
   });
 });

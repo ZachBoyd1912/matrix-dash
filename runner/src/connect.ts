@@ -101,7 +101,9 @@ async function consumeFrames(
   }
 }
 
-function handleFrame(
+// Exported for tests: exercises the real frame-dispatch path (including the
+// fs_result wrapping), not just the server-side plumbing in isolation.
+export function handleFrame(
   frame: ServerFrame,
   uplink: EventUplink,
   log: (msg: string) => void,
@@ -125,15 +127,34 @@ function handleFrame(
       cancelJob(frame.jobId);
       break;
     case "fs_op": {
-      // "ide" ops control the local code-server; everything else is filesystem.
-      const work =
-        frame.op === "ide"
-          ? handleIde(String(frame.args.action ?? "status"))
-          : handleFsOp(frame.op, frame.args);
-      void Promise.resolve(work).then((result) => {
-        uplink.push({ type: "fs_result", requestId: frame.requestId, ok: result.ok, data: result });
-        void uplink.flush();
-      });
+      // "ide" ops control the local code-server and return a flat result with
+      // no separate data field (running/url/port live at the top level), so
+      // the whole IdeResult belongs in `data`. handleFsOp already returns
+      // {ok, data, error} — forwarding that object as-is here would double-wrap
+      // it as {ok, data: {ok, data, error}}, one level too deep.
+      if (frame.op === "ide") {
+        void handleIde(String(frame.args.action ?? "status")).then((result) => {
+          uplink.push({
+            type: "fs_result",
+            requestId: frame.requestId,
+            ok: result.ok,
+            data: result,
+            error: result.error,
+          });
+          void uplink.flush();
+        });
+      } else {
+        void handleFsOp(frame.op, frame.args).then((result) => {
+          uplink.push({
+            type: "fs_result",
+            requestId: frame.requestId,
+            ok: result.ok,
+            data: result.data,
+            error: result.error,
+          });
+          void uplink.flush();
+        });
+      }
       break;
     }
     case "kill_switch":

@@ -6,6 +6,8 @@ import { watch, type FSWatcher } from "chokidar";
 import { getDb } from "@/lib/db/client";
 import { notes, memories } from "@/lib/db/schema";
 import { getSetting } from "@/lib/db/settings";
+import { tryRemoteFs } from "./runner-fs";
+import type { TreeEntry } from "@/types/workspace";
 
 export const NOTES_SUBDIR = "Matrix Notes";
 export const MEMORIES_SUBDIR = "Memory Bank";
@@ -477,19 +479,59 @@ export function planBrowserSync(manifest: {
   return { push, pull: { notes: pullNotes, memories: pullMemories } };
 }
 
-export function reconcileAll(): {
+export interface ReconcileResult {
   notesToVault: number;
   notesFromVault: number;
   memoriesToVault: number;
   memoriesFromVault: number;
-} {
-  const zero = { notesToVault: 0, notesFromVault: 0, memoriesToVault: 0, memoriesFromVault: 0 };
-  if (getSetting("obsidianSyncEnabled") !== "1") return zero;
+}
+
+const RECONCILE_ZERO: ReconcileResult = {
+  notesToVault: 0,
+  notesFromVault: 0,
+  memoriesToVault: 0,
+  memoriesFromVault: 0,
+};
+
+/**
+ * Whether the configured vault is reachable at all — locally, or via a
+ * paired Matrix Runner device. Exported so daemon.ts's cron can write an
+ * honest status (vs. a silent no-op that looks identical to "ran fine,
+ * nothing to sync") without duplicating reconcileAll()'s own reachability
+ * logic.
+ */
+export async function isVaultReachable(vaultPath: string): Promise<boolean> {
+  if (fs.existsSync(vaultPath)) return true;
+  const remote = await tryRemoteFs("list", { path: vaultPath });
+  return remote.handled && remote.result.ok;
+}
+
+/**
+ * Reconcile notes + memories against the vault. Tries THIS HOST's filesystem
+ * first (unchanged local-dev behavior) and only falls back to the Matrix
+ * Runner bridge when the path isn't visible here — which is the normal case
+ * in production, where the app runs on a VM that can never see a Mac path.
+ * Without the remote branch this was a permanent no-op in production: the
+ * old fs.existsSync(vaultPath) check simply failed forever.
+ */
+export async function reconcileAll(): Promise<ReconcileResult> {
+  if (getSetting("obsidianSyncEnabled") !== "1") return RECONCILE_ZERO;
   const vaultPath = getSetting("obsidianVaultPath");
-  if (!vaultPath || !fs.existsSync(vaultPath)) return zero;
+  if (!vaultPath) return RECONCILE_ZERO;
 
   const direction = getSetting("obsidianSyncDirection") || "bidirectional";
-  const result = { ...zero };
+
+  if (fs.existsSync(vaultPath)) {
+    return reconcileAllLocal(vaultPath, direction);
+  }
+
+  const remote = await tryRemoteFs("list", { path: vaultPath });
+  if (!remote.handled || !remote.result.ok) return RECONCILE_ZERO;
+  return reconcileAllRemote(vaultPath, direction);
+}
+
+function reconcileAllLocal(vaultPath: string, direction: string): ReconcileResult {
+  const result = { ...RECONCILE_ZERO };
 
   if (direction === "bidirectional" || direction === "to-vault") {
     const pendingNotes = getDb().select().from(notes).where(isNull(notes.vaultRelPath)).all();
@@ -548,6 +590,132 @@ export function reconcileAll(): {
           result.memoriesFromVault++;
         } catch (err) {
           console.error("[obsidian-sync] syncMemoryFromVault failed", err);
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
+/** Depth-first flatten of a remote "tree" op's result down to .md files. */
+function flattenMdFiles(entries: TreeEntry[]): TreeEntry[] {
+  const out: TreeEntry[] = [];
+  for (const e of entries) {
+    if (e.type === "file" && e.name.endsWith(".md")) out.push(e);
+    else if (e.type === "dir" && e.children) out.push(...flattenMdFiles(e.children));
+  }
+  return out;
+}
+
+/**
+ * Same semantics as reconcileAllLocal, but every fs touch is a round-trip
+ * through the paired device instead of this host's fs module — see
+ * lib/services/runner-fs.ts (tryRemoteFs) and runner/src/fs-ops.ts.
+ */
+async function reconcileAllRemote(vaultPath: string, direction: string): Promise<ReconcileResult> {
+  const result = { ...RECONCILE_ZERO };
+  const now = () => new Date().toISOString();
+
+  if (direction === "bidirectional" || direction === "to-vault") {
+    const pendingNotes = getDb().select().from(notes).where(isNull(notes.vaultRelPath)).all();
+    for (const note of pendingNotes) {
+      try {
+        const { filename, content } = renderNoteForVault(note);
+        const target = path.join(vaultPath, NOTES_SUBDIR, filename);
+        const write = await tryRemoteFs("write", { path: target, content });
+        if (write.handled && write.result.ok) {
+          stampNoteSynced(note.id, filename, now());
+          result.notesToVault++;
+        } else if (write.handled) {
+          console.error("[obsidian-sync] remote write (note) failed", write.result.error);
+        }
+      } catch (err) {
+        console.error("[obsidian-sync] remote syncNoteToVault failed", err);
+      }
+    }
+
+    const pendingMemories = getDb()
+      .select()
+      .from(memories)
+      .where(isNull(memories.vaultRelPath))
+      .all();
+    for (const memory of pendingMemories) {
+      try {
+        const { filename, content } = renderMemoryForVault(memory);
+        const target = path.join(vaultPath, MEMORIES_SUBDIR, filename);
+        const write = await tryRemoteFs("write", { path: target, content });
+        if (write.handled && write.result.ok) {
+          stampMemorySynced(memory.id, filename, now());
+          result.memoriesToVault++;
+        } else if (write.handled) {
+          console.error("[obsidian-sync] remote write (memory) failed", write.result.error);
+        }
+      } catch (err) {
+        console.error("[obsidian-sync] remote syncMemoryToVault failed", err);
+      }
+    }
+  }
+
+  if (direction === "bidirectional" || direction === "from-vault") {
+    const notesDir = path.join(vaultPath, NOTES_SUBDIR);
+    const notesTree = await tryRemoteFs("tree", { root: notesDir });
+    if (notesTree.handled && notesTree.result.ok) {
+      const data = notesTree.result.data as { tree: TreeEntry[] } | undefined;
+      for (const entry of flattenMdFiles(data?.tree ?? [])) {
+        const relPath = path.relative(notesDir, entry.path);
+        const existing = getDb().select().from(notes).where(eq(notes.vaultRelPath, relPath)).get();
+        const stale =
+          !existing?.vaultSyncedAt ||
+          entry.mtimeMs === undefined ||
+          entry.mtimeMs > new Date(existing.vaultSyncedAt).getTime();
+        if (existing && !stale) continue;
+        try {
+          const read = await tryRemoteFs("read", { path: entry.path });
+          if (read.handled && read.result.ok) {
+            const fileData = read.result.data as { content: string } | undefined;
+            if (fileData) {
+              applyNoteFromVaultContent(relPath, fileData.content, now());
+              result.notesFromVault++;
+            }
+          } else if (read.handled) {
+            console.error("[obsidian-sync] remote read (note) failed", read.result.error);
+          }
+        } catch (err) {
+          console.error("[obsidian-sync] remote syncNoteFromVault failed", err);
+        }
+      }
+    }
+
+    const memoriesDir = path.join(vaultPath, MEMORIES_SUBDIR);
+    const memoriesTree = await tryRemoteFs("tree", { root: memoriesDir });
+    if (memoriesTree.handled && memoriesTree.result.ok) {
+      const data = memoriesTree.result.data as { tree: TreeEntry[] } | undefined;
+      for (const entry of flattenMdFiles(data?.tree ?? [])) {
+        const relPath = path.relative(memoriesDir, entry.path);
+        const existing = getDb()
+          .select()
+          .from(memories)
+          .where(eq(memories.vaultRelPath, relPath))
+          .get();
+        const stale =
+          !existing?.vaultSyncedAt ||
+          entry.mtimeMs === undefined ||
+          entry.mtimeMs > new Date(existing.vaultSyncedAt).getTime();
+        if (existing && !stale) continue;
+        try {
+          const read = await tryRemoteFs("read", { path: entry.path });
+          if (read.handled && read.result.ok) {
+            const fileData = read.result.data as { content: string } | undefined;
+            if (fileData) {
+              applyMemoryFromVaultContent(relPath, fileData.content, now());
+              result.memoriesFromVault++;
+            }
+          } else if (read.handled) {
+            console.error("[obsidian-sync] remote read (memory) failed", read.result.error);
+          }
+        } catch (err) {
+          console.error("[obsidian-sync] remote syncMemoryFromVault failed", err);
         }
       }
     }
