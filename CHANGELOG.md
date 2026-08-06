@@ -2,6 +2,41 @@
 
 # Changelog
 
+## 06/08/2026 @ 06:06:14 IST — "Sonnet 5"
+
+**Project completion: 100.00%** — all 54 checklist steps in `plan-contact-funnel.md` (Tasks 1–12) now done. Basis: same checklist as the previous entry; this entry closes the 20 steps (Tasks 10–12) that entry left open.
+
+**Goal:** Finish `plan-contact-funnel.md` — deploy the contact service + form to production, curl-verify the full pipeline, and resolve the three stale dashboard blockers. Continuation of the 05/08 entry, which implemented but did not yet ship Tasks 1–9.
+
+**Deployed:**
+- `/etc/contact-form.env` hand-created on the VM (chmod 600, root-owned) with the real Gmail app password supplied by the operator at deploy time, per the plan's own gating.
+- `deploy/contact-service/` installed to `/opt/contact-form`, `contact-form.service` enabled — live on `127.0.0.1:3002`.
+- `deploy/Caddyfile` deployed and reloaded — `/api/contact*` now reverse-proxies correctly (verified `caddy validate` on the VM before applying).
+- `deploy/landing/` synced to `/var/www/landing/`.
+- A shared `MATRIX_INGEST_TOKEN` (openssl rand -hex 32) written to both `/etc/contact-form.env` and Matrix Dash's env.
+
+**Incident during deploy — Next.js rebuild required, not just a targeted rsync:** Task 4's `/api/leads/ingest` route and the `lib/auth/constants.ts` middleware-allowlist change are application code baked into the Next.js build. The plan's Task 10 assumes a targeted rsync deploy (matching its own "never run full `setup-server.sh`" constraint) is sufficient — it isn't, for anything that touches `app/` or `middleware.ts`. First POST to the live ingest route 401'd: the running build predated this session's code entirely.
+- Attempted an in-place rebuild on the e2-micro first (cheapest option, no resize downtime), reasoning the documented 05/07 OOM fix (`next.config.ts` → `typescript.ignoreBuildErrors`/`eslint.ignoreDuringBuilds`, moving type-check out of the build) plus the existing 2GB swap would carry it. It didn't: `next build` ran for **2h18m** with zero forward progress past "Creating an optimized production build" (disk-I/O-bound thrashing, swap climbed past 1GB, load average >7 on 2 vCPUs), and the VM became SSH-unresponsive under the load — `zbautomations.ie` briefly 000'd. **This wasted over two hours before being caught** — a build with no progress signal for that long should have been aborted far sooner as a precaution; treating "stuck" and "OOM-fixed-so-it'll-just-be-slow" as the same thing was the actual mistake, not the choice to try in-place first.
+- Recovered via `gcloud compute instances reset` (hard reset via the GCE API — doesn't depend on the guest OS responding, unlike a `sudo reboot` over a dying SSH session). VM came back clean; `matrix-dash`/`caddy`/`contact-form` all healthy, confirmed nothing was corrupted (the failed build only ever wrote to `.next/`, never touched the live `.next/standalone/` the running service actually serves from).
+- Took a `tar czf` snapshot of the live `.next/standalone/` before any further attempt (rollback safety net — left in place on the VM at `/opt/standalone-backup-20260806-022648.tar.gz`, 24MB, not yet cleaned up).
+- Stopped the instance, `set-machine-type` → `e2-medium` (3.8GB RAM vs. e2-micro's 955MB), started, rebuilt (**this time genuinely fast, no swap use**), copied `.next/static`/`public`/`.env.production` into the standalone dir, reinstalled prod deps there, restarted `matrix-dash`. Verified the ingest route returns 200 (was 401), then stopped/resized back to `e2-micro`/started — confirmed all three services healthy afterward on the original machine type.
+
+**Verified (Task 11), in an order chosen to avoid the contact-service's own per-IP rate limit (3/10min, applied before validation) contaminating later checks — grouped by budget, with a service restart between groups where needed:**
+- `https://zbautomations.ie/` → 200, security headers present; `matrix.`/`builder.` still 302 (Cloudflare Access untouched).
+- `/api/contact/health` → `{"ok":true}`; zero `wa.me` occurrences on the live homepage.
+- 21KB body → 413; missing phone → 400 `{"error":"phone"}`; bad `meeting` value → 400 `{"error":"meeting"}`.
+- Honeypot filled → 200 (silent drop, no delivery attempted — verified structurally: the code path returns before calling `deliver()`); sub-3s `ts` → 200 (same).
+- **The test that matters** — valid POST from outside → 200; email confirmed arrived via Gmail search (correct subject/body/recipient); lead confirmed landed in `pipeline_items` (`kind: "enquiry"`, `source: "contact-form"`) via a direct read-only query against the live `matrix.db` on the VM. Ran this full loop twice (once mid-incident against the rebuilt e2-medium instance, once after the resize back down) — both landed correctly. Both test rows deleted from `pipeline_items` afterward; the two Gmail verification emails were left in the operator's inbox for them to clear.
+- 4 rapid posts → first 3 validate/process normally, 4th returns 429 `{"error":"rate limited"}` — confirmed in a fresh rate-limit window (the service restarts during the incident cleared the in-memory map, so this was re-verified after the resize-down rather than assumed carried over).
+- VM health post-recovery: `free -h` back to 955Mi total (e2-micro confirmed), all three services active, zero error-level journal entries.
+- Not done (needs the operator, not reachable by curl): real device/browser testing on a phone.
+
+**Resolved (Task 12):** all three seeded `pipeline_items` blockers (`pipe-services-page`, `pipe-contact-endpoint`, `pipe-no-enquiry-path`) updated to `status: "done"` with `resolved_at` set, via a direct read-write query against the live DB — there's no dashboard UI or API for resolving a blocker yet (`app/dashboard/page.tsx` only renders `briefing.pipeline.openBlockers` read-only), so this used the same schema fields (`status`, `resolved_at`) such an action would set, rather than inventing new UI/API surface out of scope for this plan. `pipe-services-page` resolved per the plan's own Task 12 guidance: the decision (no separate `services.html`, homepage `#services` stays the positioning surface) was already made earlier in the plan, so leaving that blocker open would just contradict a decision already taken.
+
+**Not done in this pass:** cleaning up `/opt/standalone-backup-20260806-022648.tar.gz` on the VM (left intentionally, 24MB, as a rollback point — safe to remove once the deploy has been running stably for a while) and the two Gmail verification-test emails (left for the operator, personal inbox).
+
+**Files Touched:** none in the repo — this entry documents production deploy actions only (contact-service install, Caddy reload, landing sync, VM resize/rebuild, DB writes for token/blockers/test-cleanup), all against the already-committed code from the previous entry. `CHANGELOG.md`.
+
 ## 05/08/2026 @ 20:56:17 IST — "Sonnet 5"
 
 **Project completion: 62.96%** — 34 of 54 checklist steps in `plan-contact-funnel.md` done (Tasks 1–9 complete except the live-SMTP-send test, gated on the operator's Gmail app password; Tasks 10–12 — deploy, verify, resolve the three seeded pipeline blockers — not started as of this entry, gated on production access).
