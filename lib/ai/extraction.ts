@@ -1,10 +1,12 @@
 import { randomUUID } from "crypto";
+import { eq } from "drizzle-orm";
 import { generateText, type ModelMessage } from "ai";
 import { getDb } from "@/lib/db/client";
 import { memories, memoryLinks } from "@/lib/db/schema";
 import { searchMemoriesFts } from "@/lib/db/fts";
 import { getActiveProvider, resolveModel } from "./registry";
 import { getAppSettings } from "@/lib/db/settings";
+import { syncMemoryToVault } from "@/lib/services/obsidian-sync";
 import { MEMORY_TYPES, type MemoryType } from "@/types/memory";
 
 interface ExtractedMemory {
@@ -126,6 +128,11 @@ export async function extractMemories(messages: ModelMessage[]): Promise<void> {
         })
         .run();
       autoLink(id, item.content);
+      // Auto-extracted memories are the primary way this table gets filled
+      // (per the Memory Bank page's own empty-state copy) but never synced
+      // to the vault before this — only manual create/edit did.
+      const row = db.select().from(memories).where(eq(memories.id, id)).get();
+      if (row) syncMemoryToVault(row);
     } catch (err) {
       console.error("[extraction] insert failed:", err);
     }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { BookOpen, RefreshCw, FolderCog, Save } from "lucide-react";
+import { BookOpen, RefreshCw, FolderCog, Save, Chrome, Unplug } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { toast } from "@/lib/stores/use-feedback";
 import { useGsapEntrance } from "@/lib/hooks/use-gsap-entrance";
+import { useObsidianVault } from "@/lib/hooks/use-obsidian-vault";
 
 type SyncDirection = "bidirectional" | "to-vault" | "from-vault";
 
@@ -21,6 +22,19 @@ interface SyncStatus {
   memoryCount: number;
   syncedNoteCount: number;
   syncedMemoryCount: number;
+  cronStatus: string | null;
+}
+
+function describeCronStatus(cronStatus: string | null): string {
+  if (!cronStatus) return "Hasn't run yet since the server last started.";
+  if (cronStatus === "unreachable-from-this-host")
+    return "Can't reach this path from where the server runs — pair a Matrix Runner device (Settings → Devices) to fix this, or use Quick connect above instead.";
+  if (cronStatus === "error") return "Last run failed — check server logs.";
+  if (cronStatus.startsWith("ok:")) {
+    const at = new Date(cronStatus.slice(3));
+    return `Last ran successfully ${at.toLocaleString()}.`;
+  }
+  return cronStatus;
 }
 
 interface ReconcileResult {
@@ -38,6 +52,7 @@ const DIRECTION_OPTIONS: { value: SyncDirection; label: string }[] = [
 
 export default function ObsidianIntegrationPage() {
   const ref = useGsapEntrance();
+  const vault = useObsidianVault();
 
   const [vaultPath, setVaultPath] = useState("");
   const [syncEnabled, setSyncEnabled] = useState(false);
@@ -145,7 +160,74 @@ export default function ObsidianIntegrationPage() {
         </div>
       </div>
 
+      {/* Browser connect — zero-install path */}
+      <p className="text-text-muted text-[10px] tracking-wider uppercase">
+        Quick connect (this browser)
+      </p>
+      <Card className="rounded-2xl">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/5">
+              <Chrome size={18} className="text-indigo-400" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-text-primary text-sm font-medium">
+                {vault.connected
+                  ? `Connected — ${vault.vaultName}`
+                  : vault.status === "unsupported"
+                    ? "Not available in this browser"
+                    : vault.status === "no-permission"
+                      ? "Permission needed — reconnect below"
+                      : "Not connected"}
+              </p>
+              <p className="text-text-muted mt-0.5 text-[11px]">
+                {vault.status === "unsupported"
+                  ? "Chrome or Edge only. One click, no install — grants access to a folder directly from your browser and syncs while this tab is open."
+                  : vault.connected
+                    ? `Syncs on load and every 30 min while a tab is open. ${vault.lastResult ? `Last sync: ${vault.lastResult.pushed} pushed, ${vault.lastResult.pulled} pulled.` : ""}`
+                    : "One click, no install. For always-on sync even when the dashboard is closed, pair a Matrix Runner device instead (Settings → Devices)."}
+              </p>
+            </div>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            {vault.connected ? (
+              <>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={vault.sync}
+                  disabled={vault.status === "syncing"}
+                  aria-label="Sync now"
+                >
+                  <RefreshCw
+                    size={14}
+                    className={vault.status === "syncing" ? "animate-spin" : ""}
+                  />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={vault.disconnect}
+                  aria-label="Disconnect"
+                >
+                  <Unplug size={14} />
+                </Button>
+              </>
+            ) : (
+              vault.status !== "unsupported" && (
+                <Button variant="primary" onClick={vault.connect}>
+                  <FolderCog size={14} /> Choose vault folder
+                </Button>
+              )
+            )}
+          </div>
+        </div>
+      </Card>
+
       {/* Status */}
+      <p className="text-text-muted text-[10px] tracking-wider uppercase">
+        Server-side sync (always-on once a Matrix Runner device is paired)
+      </p>
       <Card interactive className="rounded-2xl">
         <div className="flex items-center justify-between">
           <div className="flex min-w-0 items-center gap-3">
@@ -172,6 +254,11 @@ export default function ObsidianIntegrationPage() {
                   ? `Direction: ${status.direction} · ${status.syncedNoteCount}/${status.noteCount} notes synced · ${status.syncedMemoryCount}/${status.memoryCount} memories synced`
                   : "Loading status…"}
               </p>
+              {status?.enabled && (
+                <p className="text-text-muted mt-0.5 text-[11px]">
+                  {describeCronStatus(status.cronStatus)}
+                </p>
+              )}
             </div>
           </div>
           <Button
@@ -215,8 +302,10 @@ export default function ObsidianIntegrationPage() {
             />
           </div>
           <p className="text-text-muted mt-1 text-[10px]">
-            This is an absolute path on the <strong>server filesystem</strong> where Matrix Dash
-            runs — not a path in your browser or on this device. The folder must already exist.
+            This path is read on whatever machine actually runs this — the server if you pair a
+            Matrix Runner device (Settings → Devices), or your own machine if you&apos;re running
+            Matrix Dash locally. It is <strong>not</strong> read by the quick-connect option above,
+            which uses your browser directly. The folder must already exist.
           </p>
         </div>
 

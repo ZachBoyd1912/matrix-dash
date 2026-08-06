@@ -18,6 +18,7 @@ import {
 } from "@/lib/db/schema";
 import { searchMemoriesFts, searchNotesFts, searchSkillsFts } from "@/lib/db/fts";
 import { autoLink } from "@/lib/ai/extraction";
+import { syncMemoryToVault } from "@/lib/services/obsidian-sync";
 import { getSetting } from "@/lib/db/settings";
 import { fetchReadable, webSearch } from "@/lib/services/web";
 import { notify } from "@/lib/services/notify";
@@ -125,11 +126,11 @@ export function buildAgentTools() {
       }),
       execute: async ({ content, type }) => {
         const id = randomUUID();
-        getDb()
-          .insert(memories)
-          .values({ id, content, type, source: "agent", createdAt: now() })
-          .run();
+        const db = getDb();
+        db.insert(memories).values({ id, content, type, source: "agent", createdAt: now() }).run();
         autoLink(id, content);
+        const row = db.select().from(memories).where(eq(memories.id, id)).get();
+        if (row) syncMemoryToVault(row);
         return { saved: true, id };
       },
     });

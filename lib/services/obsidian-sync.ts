@@ -171,6 +171,103 @@ export function syncMemoryToVault(memory: typeof memories.$inferSelect): void {
     .run();
 }
 
+// Filesystem-agnostic merge core, shared by two callers with very different
+// ways of getting the raw content: the local-fs path below (reads via
+// fs.readFileSync — used by the chokidar watcher and a same-host reconcile
+// walk) and the browser sync path (app/api/notes/sync/browser-apply — the
+// File System Access API already read the file in the browser, so the
+// server never touches disk for that path at all). `syncedAt` is caller-
+// supplied rather than always "now" so a browser-reported post-write mtime
+// can be stamped instead of server time — see stampNoteSynced's comment.
+export function applyNoteFromVaultContent(relPath: string, raw: string, syncedAt: string): void {
+  const { frontmatter, body } = parseFrontmatter(raw);
+  const tags = frontmatter.tags ? parseArrayField(frontmatter.tags).join(",") : "";
+  const favorite = frontmatter.favorite === "true";
+
+  const existing = getDb().select().from(notes).where(eq(notes.vaultRelPath, relPath)).get();
+  if (existing) {
+    const changes: Partial<typeof notes.$inferInsert> = {};
+    if (existing.content !== body) changes.content = body;
+    if (existing.tags !== tags) changes.tags = tags;
+    if (!!existing.isFavorite !== favorite) changes.isFavorite = favorite;
+    if (Object.keys(changes).length === 0) {
+      getDb().update(notes).set({ vaultSyncedAt: syncedAt }).where(eq(notes.id, existing.id)).run();
+      return;
+    }
+    changes.vaultSyncedAt = syncedAt;
+    changes.updatedAt = syncedAt;
+    getDb().update(notes).set(changes).where(eq(notes.id, existing.id)).run();
+    return;
+  }
+
+  getDb()
+    .insert(notes)
+    .values({
+      id: randomUUID(),
+      title: path.basename(relPath, ".md"),
+      content: body,
+      tags,
+      isFavorite: favorite,
+      vaultRelPath: relPath,
+      vaultSyncedAt: syncedAt,
+      createdAt: syncedAt,
+      updatedAt: syncedAt,
+    })
+    .run();
+}
+
+export function applyMemoryFromVaultContent(relPath: string, raw: string, syncedAt: string): void {
+  const { frontmatter, body } = parseFrontmatter(raw);
+  const type: MemoryType = MEMORY_TYPES.includes(frontmatter.type as MemoryType)
+    ? (frontmatter.type as MemoryType)
+    : "global";
+  const parsedImportance = Number(frontmatter.importance);
+  const importance = Number.isFinite(parsedImportance) ? parsedImportance : 0.5;
+  const parsedUsageCount = parseInt(frontmatter.usageCount, 10);
+  const usageCount = Number.isFinite(parsedUsageCount) ? parsedUsageCount : 0;
+  const pinned = frontmatter.pinned === "true";
+  const tags = frontmatter.tags ? parseArrayField(frontmatter.tags).join(",") : "";
+
+  const existing = getDb().select().from(memories).where(eq(memories.vaultRelPath, relPath)).get();
+  if (existing) {
+    const changes: Partial<typeof memories.$inferInsert> = {};
+    if (existing.content !== body) changes.content = body;
+    if (existing.tags !== tags) changes.tags = tags;
+    if (existing.type !== type) changes.type = type;
+    if (existing.importance !== importance) changes.importance = importance;
+    if (existing.usageCount !== usageCount) changes.usageCount = usageCount;
+    if (!!existing.isPinned !== pinned) changes.isPinned = pinned;
+    if (Object.keys(changes).length === 0) {
+      getDb()
+        .update(memories)
+        .set({ vaultSyncedAt: syncedAt })
+        .where(eq(memories.id, existing.id))
+        .run();
+      return;
+    }
+    changes.vaultSyncedAt = syncedAt;
+    getDb().update(memories).set(changes).where(eq(memories.id, existing.id)).run();
+    return;
+  }
+
+  getDb()
+    .insert(memories)
+    .values({
+      id: randomUUID(),
+      content: body,
+      type,
+      tags,
+      importance,
+      usageCount,
+      source: "obsidian-vault",
+      isPinned: pinned,
+      vaultRelPath: relPath,
+      vaultSyncedAt: syncedAt,
+      createdAt: syncedAt,
+    })
+    .run();
+}
+
 export function syncNoteFromVault(absFilePath: string): void {
   const vaultPath = getSetting("obsidianVaultPath");
   if (!vaultPath) return;
@@ -186,41 +283,7 @@ export function syncNoteFromVault(absFilePath: string): void {
 
   const dir = path.join(vaultPath, NOTES_SUBDIR);
   const relPath = path.relative(dir, resolved);
-  const { frontmatter, body } = parseFrontmatter(raw);
-  const tags = frontmatter.tags ? parseArrayField(frontmatter.tags).join(",") : "";
-  const favorite = frontmatter.favorite === "true";
-  const now = new Date().toISOString();
-
-  const existing = getDb().select().from(notes).where(eq(notes.vaultRelPath, relPath)).get();
-  if (existing) {
-    const changes: Partial<typeof notes.$inferInsert> = {};
-    if (existing.content !== body) changes.content = body;
-    if (existing.tags !== tags) changes.tags = tags;
-    if (!!existing.isFavorite !== favorite) changes.isFavorite = favorite;
-    if (Object.keys(changes).length === 0) {
-      getDb().update(notes).set({ vaultSyncedAt: now }).where(eq(notes.id, existing.id)).run();
-      return;
-    }
-    changes.vaultSyncedAt = now;
-    changes.updatedAt = now;
-    getDb().update(notes).set(changes).where(eq(notes.id, existing.id)).run();
-    return;
-  }
-
-  getDb()
-    .insert(notes)
-    .values({
-      id: randomUUID(),
-      title: path.basename(resolved, ".md"),
-      content: body,
-      tags,
-      isFavorite: favorite,
-      vaultRelPath: relPath,
-      vaultSyncedAt: now,
-      createdAt: now,
-      updatedAt: now,
-    })
-    .run();
+  applyNoteFromVaultContent(relPath, raw, new Date().toISOString());
 }
 
 export function syncMemoryFromVault(absFilePath: string): void {
@@ -238,57 +301,82 @@ export function syncMemoryFromVault(absFilePath: string): void {
 
   const dir = path.join(vaultPath, MEMORIES_SUBDIR);
   const relPath = path.relative(dir, resolved);
-  const { frontmatter, body } = parseFrontmatter(raw);
+  applyMemoryFromVaultContent(relPath, raw, new Date().toISOString());
+}
 
-  const type: MemoryType = MEMORY_TYPES.includes(frontmatter.type as MemoryType)
-    ? (frontmatter.type as MemoryType)
-    : "global";
-  const parsedImportance = Number(frontmatter.importance);
-  const importance = Number.isFinite(parsedImportance) ? parsedImportance : 0.5;
-  const parsedUsageCount = parseInt(frontmatter.usageCount, 10);
-  const usageCount = Number.isFinite(parsedUsageCount) ? parsedUsageCount : 0;
-  const pinned = frontmatter.pinned === "true";
-  const tags = frontmatter.tags ? parseArrayField(frontmatter.tags).join(",") : "";
-  const now = new Date().toISOString();
-
-  const existing = getDb().select().from(memories).where(eq(memories.vaultRelPath, relPath)).get();
-  if (existing) {
-    const changes: Partial<typeof memories.$inferInsert> = {};
-    if (existing.content !== body) changes.content = body;
-    if (existing.tags !== tags) changes.tags = tags;
-    if (existing.type !== type) changes.type = type;
-    if (existing.importance !== importance) changes.importance = importance;
-    if (existing.usageCount !== usageCount) changes.usageCount = usageCount;
-    if (!!existing.isPinned !== pinned) changes.isPinned = pinned;
-    if (Object.keys(changes).length === 0) {
-      getDb()
-        .update(memories)
-        .set({ vaultSyncedAt: now })
-        .where(eq(memories.id, existing.id))
-        .run();
-      return;
-    }
-    changes.vaultSyncedAt = now;
-    getDb().update(memories).set(changes).where(eq(memories.id, existing.id)).run();
-    return;
-  }
-
+/**
+ * Marks a DB row as freshly pushed to the vault by a caller that did the
+ * actual write itself (the browser, via the File System Access API — the
+ * server has no filesystem access to the browser's chosen directory at
+ * all). Stamps vaultSyncedAt with the CALLER-reported post-write mtime
+ * rather than server "now": the next manifest diff compares a vault file's
+ * mtime against this value to decide whether it looks like an external
+ * edit, so if we stamped server time instead, clock skew or the round-trip
+ * delay could make an untouched file look stale and get re-imported as if
+ * the user had edited it.
+ */
+export function stampNoteSynced(id: string, relPath: string, syncedAt: string): void {
   getDb()
-    .insert(memories)
-    .values({
-      id: randomUUID(),
-      content: body,
-      type,
-      tags,
-      importance,
-      usageCount,
-      source: "obsidian-vault",
-      isPinned: pinned,
-      vaultRelPath: relPath,
-      vaultSyncedAt: now,
-      createdAt: now,
-    })
+    .update(notes)
+    .set({ vaultRelPath: relPath, vaultSyncedAt: syncedAt })
+    .where(eq(notes.id, id))
     .run();
+}
+
+export function stampMemorySynced(id: string, relPath: string, syncedAt: string): void {
+  getDb()
+    .update(memories)
+    .set({ vaultRelPath: relPath, vaultSyncedAt: syncedAt })
+    .where(eq(memories.id, id))
+    .run();
+}
+
+/** Vault-relative filename + rendered content for a DB row that needs to be
+ * pushed to the vault — used by the browser sync manifest endpoint to hand
+ * the browser exactly what syncNoteToVault/syncMemoryToVault would have
+ * written to local disk, without this module touching fs at all. */
+export function renderNoteForVault(note: typeof notes.$inferSelect): {
+  filename: string;
+  content: string;
+} {
+  let filename = sanitizeFilename(note.title || note.id);
+  const conflict = getDb().select().from(notes).where(eq(notes.vaultRelPath, filename)).get();
+  if (conflict && conflict.id !== note.id) {
+    filename = filename.replace(/\.md$/, ` (${note.id.slice(0, 4)}).md`);
+  }
+  const tags = note.tags
+    ? note.tags
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean)
+    : [];
+  const frontmatter = buildFrontmatter({ tags, favorite: !!note.isFavorite });
+  return { filename, content: frontmatter + note.content };
+}
+
+export function renderMemoryForVault(memory: typeof memories.$inferSelect): {
+  filename: string;
+  content: string;
+} {
+  let filename = sanitizeFilename(memory.content.slice(0, 60) || memory.id);
+  const conflict = getDb().select().from(memories).where(eq(memories.vaultRelPath, filename)).get();
+  if (conflict && conflict.id !== memory.id) {
+    filename = filename.replace(/\.md$/, ` (${memory.id.slice(0, 4)}).md`);
+  }
+  const tags = memory.tags
+    ? memory.tags
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean)
+    : [];
+  const frontmatter = buildFrontmatter({
+    type: memory.type,
+    importance: memory.importance,
+    usageCount: memory.usageCount,
+    pinned: !!memory.isPinned,
+    tags,
+  });
+  return { filename, content: frontmatter + memory.content };
 }
 
 function isStale(absPath: string, syncedAt: string | null): boolean {
@@ -317,6 +405,76 @@ function walkMdFiles(dir: string): string[] {
   };
   walk(dir);
   return out;
+}
+
+export interface VaultManifestEntry {
+  relPath: string;
+  mtimeMs: number;
+}
+
+/**
+ * Same diff `reconcileAll()`'s local-fs walk does, but driven by a manifest
+ * the BROWSER reports (via the File System Access API) instead of an
+ * `fs.readdirSync` walk — this is what makes browser-based sync possible at
+ * all when the server process can't see the user's chosen directory (e.g.
+ * production running on a VM, vault living on the user's own machine).
+ * Mirrors reconcileAll()'s own semantics: to-vault only considers rows with
+ * no vaultRelPath yet (isNull), matching what the existing reconcile does
+ * today rather than adding a new "modified since" comparison.
+ */
+export function planBrowserSync(manifest: {
+  notes: VaultManifestEntry[];
+  memories: VaultManifestEntry[];
+}): {
+  push: {
+    notes: { id: string; relPath: string; content: string }[];
+    memories: { id: string; relPath: string; content: string }[];
+  };
+  pull: { notes: string[]; memories: string[] };
+} {
+  const pendingNotes = getDb().select().from(notes).where(isNull(notes.vaultRelPath)).all();
+  const pendingMemories = getDb()
+    .select()
+    .from(memories)
+    .where(isNull(memories.vaultRelPath))
+    .all();
+
+  const push = {
+    notes: pendingNotes.map((n) => {
+      const { filename, content } = renderNoteForVault(n);
+      return { id: n.id, relPath: filename, content };
+    }),
+    memories: pendingMemories.map((m) => {
+      const { filename, content } = renderMemoryForVault(m);
+      return { id: m.id, relPath: filename, content };
+    }),
+  };
+
+  const pullNotes: string[] = [];
+  for (const entry of manifest.notes) {
+    const existing = getDb()
+      .select()
+      .from(notes)
+      .where(eq(notes.vaultRelPath, entry.relPath))
+      .get();
+    if (!existing) pullNotes.push(entry.relPath);
+    else if (!existing.vaultSyncedAt || entry.mtimeMs > new Date(existing.vaultSyncedAt).getTime())
+      pullNotes.push(entry.relPath);
+  }
+
+  const pullMemories: string[] = [];
+  for (const entry of manifest.memories) {
+    const existing = getDb()
+      .select()
+      .from(memories)
+      .where(eq(memories.vaultRelPath, entry.relPath))
+      .get();
+    if (!existing) pullMemories.push(entry.relPath);
+    else if (!existing.vaultSyncedAt || entry.mtimeMs > new Date(existing.vaultSyncedAt).getTime())
+      pullMemories.push(entry.relPath);
+  }
+
+  return { push, pull: { notes: pullNotes, memories: pullMemories } };
 }
 
 export function reconcileAll(): {

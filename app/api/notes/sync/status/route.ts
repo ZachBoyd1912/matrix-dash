@@ -26,5 +26,9 @@ export const GET = withUser(async () => {
     memoryCount,
     syncedNoteCount,
     syncedMemoryCount,
+    // Written by the 10-min cron in lib/services/daemon.ts — "ok:<iso>",
+    // "unreachable-from-this-host", "error", or unset if the cron hasn't
+    // ticked yet since server start.
+    cronStatus: getSetting("obsidianCronStatus"),
   });
 });

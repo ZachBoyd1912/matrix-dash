@@ -1,3 +1,4 @@
+import fs from "fs";
 import cron, { type ScheduledTask } from "node-cron";
 import { and, eq, lte, isNotNull } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
@@ -9,7 +10,7 @@ import { notify, fireWebhooks } from "./notify";
 import { decayMemories } from "@/lib/ai/consolidation";
 import { syncAllAccounts } from "./email";
 import { writeBackup } from "./backup";
-import { getSetting } from "@/lib/db/settings";
+import { getSetting, setSetting } from "@/lib/db/settings";
 
 // The daemon is a singleton background loop, cached on globalThis so Next.js
 // HMR / multiple route imports don't spawn duplicates.
@@ -21,6 +22,7 @@ const g = globalThis as unknown as {
     heartbeat?: ScheduledTask;
     emailPoll?: ScheduledTask;
     portfolioSync?: ScheduledTask;
+    obsidianSync?: ScheduledTask;
   };
 };
 
@@ -215,6 +217,28 @@ export function startDaemon() {
   // Email polling every 5 minutes (no-op when no accounts configured).
   s.emailPoll = cron.schedule("*/5 * * * *", () => {
     void syncAllAccounts().catch(() => {});
+  });
+
+  // Obsidian vault reconcile, every 10 minutes. Previously this only ran when
+  // a human clicked "Sync now" — auto-extracted memories (the primary way
+  // that table fills) would sit unsynced indefinitely otherwise. Checks
+  // reachability itself (rather than just calling reconcileAll(), which
+  // already no-ops the same way) so it can write an HONEST status instead of
+  // a silent no-op — obsidianCronStatus is what the settings page's
+  // "Always-on sync" card reads. Local-fs only for now; Phase 4 routes this
+  // through the Matrix Runner bridge when a device is paired, at which point
+  // this reachability check gets replaced, not this cron registration.
+  s.obsidianSync = cron.schedule("*/10 * * * *", () => {
+    if (getSetting("obsidianSyncEnabled") !== "1") return;
+    const vaultPath = getSetting("obsidianVaultPath");
+    if (!vaultPath || !fs.existsSync(vaultPath)) {
+      setSetting("obsidianCronStatus", "unreachable-from-this-host");
+      return;
+    }
+    void import("./obsidian-sync")
+      .then((m) => m.reconcileAll())
+      .then(() => setSetting("obsidianCronStatus", `ok:${new Date().toISOString()}`))
+      .catch(() => setSetting("obsidianCronStatus", "error"));
   });
 
   syncScheduledJobs();
