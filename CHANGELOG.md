@@ -2,6 +2,36 @@
 
 # Changelog
 
+## 06/08/2026 @ 07:51:37 IST — "Sonnet 5"
+
+**Project completion: 25.00%** — 1 of 4 phases done in the approved command-center redesign plan (`~/.claude/plans/okay-it-works-perfect-fluffy-quiche.md`): Phase 1 (nav/IA simplification) shipped; Phase 2 (Overview/pipeline UI), Phase 3 (Obsidian sync via File System Access API), and Phase 4 (Matrix Runner bridge extensions + project-paths fix) not started.
+
+**Goal:** Phase 1 of a four-phase plan the user requested after noticing the sidebar had grown unmanageable (18 top-level + 29 settings pages) and that Matrix Runner/Obsidian sync/project-path tracking were all silently broken in production. This entry covers only Phase 1 — nav/IA simplification — which was scoped as fully independent of the other three so it could ship and be reviewed on its own.
+
+**Added:**
+- `components/layout/nav-group.tsx` — new collapsible nav-section component (localStorage-persisted expand state per group, auto-opens when the active route is inside it), shared by the main sidebar and the settings sub-nav.
+- `app/dashboard/playground/layout.tsx` — shared tab-bar layout for the new merged Research/Compare/Images pages.
+
+**Changed:**
+- `components/layout/nav-items.ts` is now the single source of truth for the main sidebar, mobile nav, command palette, and topbar breadcrumbs — all four previously kept their own hardcoded copy of the nav list and had already drifted apart (confirmed live: the command palette could only reach 7 of 18 top-level pages; mobile's bottom-tab bar hardcoded `NAV_ITEMS.slice(0,4)`, which pinned the dead "Chat" redirect stub to a permanent tab slot).
+- Top-level sidebar restructured into collapsible groups (Playground, Knowledge, Work, Agents & Skills, Communication, Dev Tools) plus 3 standalone items (Overview, Chat & Sessions, Settings) — capped at 7 real destinations instead of 18 flat rows, per verified UX best practice (5–7 top-level cap, collapsible grouped sections). The original design doc (`matrix-dash-plan.md`) specified 6 nav items in the first place; nothing had ever been pruned as features were added since.
+- `app/dashboard/settings/layout.tsx`'s 24 flat items grouped the same way: AI & Agents, Communication, Security & Keys, System & Data, Appearance & Help, plus standalone Memory, Integrations, My Profile, Team & Members.
+- `app/dashboard/settings/account` and `.../accounts` renamed in the nav (label-only, no route/DB change) to "My Profile" and "Team & Members" — the old labels ("Account" vs "Accounts") were a real, confusing near-collision between two unrelated pages (local single-user profile vs. multi-user team admin).
+- `components/layout/command-palette.tsx`'s "Navigate" group now maps over the shared nav list instead of a hardcoded 7-item block — all 17 top-level destinations are now reachable via ⌘K, not 7.
+- `components/layout/mobile-nav.tsx`'s bottom-tab bar now uses an explicit curated `MOBILE_PRIMARY_HREFS` list (Overview, Sessions, Tasks, Settings) instead of a positional `.slice(0,4)` that happened to include the dead Chat stub.
+- `components/layout/topbar.tsx`'s breadcrumb `TITLES` map is now generated from the shared nav list instead of a separate hardcoded map that only covered 10 of 18 pages.
+- `lib/stores/use-tour.ts`: the onboarding tour's "Chat" step now targets `/dashboard/sessions`/`nav-sessions` instead of the deleted Chat page. Also fixed a pre-existing, unrelated-to-this-session break: the tour's "Accounts" step has always targeted a `data-tour="nav-accounts"` attribute that nothing in the app actually set (the settings sub-nav links never carried `data-tour` at all) — now fixed as part of restructuring that file.
+
+**Removed:**
+- `app/dashboard/chat/page.tsx` — an 18-line client-side redirect stub (`window.location.href = "/dashboard/sessions?new=1"`) with no content of its own; per its own comment, any message sent through it before the redirect fired was silently dropped (no `sessionId`, so no persistence, cost tracking, or regenerate/fork). Replaced with a proper `next.config.ts` redirect so bookmarks/external links still resolve.
+- Research/Compare/Images as separate top-level sidebar entries — moved to nested routes under `/dashboard/playground/{research,compare,images}` with a shared tab layout (bookmarkable, unlike a client-tab approach); their backing APIs are untouched, only the page location moved.
+
+**Verification:** `pnpm typecheck` 0 errors, `pnpm lint` 0 errors (66 pre-existing warnings, unrelated to this change, untouched), `pnpm test --run` 154/154, no regressions. Live-verified via a Playwright pass against a fresh local dev account (CDP-connected to the already-running `claude-chrome` profile): sidebar groups render collapsed by default with the correct 6 labels in the correct order, standalone items (Overview/Chat & Sessions/Settings) render outside any group, expanding "Playground" reveals exactly the 3 expected children at their new `/dashboard/playground/*` routes, settings groups render with the correct 5 labels and the currently-active group ("AI & Agents", since AI Providers is the settings root) auto-expands correctly, the command palette now lists all 17 destinations instead of 7, and mobile's bottom tabs show the real Sessions page instead of the dead Chat stub. One real UI bug caught and fixed during this pass: "Security & Credentials" truncated awkwardly in the 220px settings rail — shortened to "Security & Keys".
+
+**Not done in this pass (by design — Phases 2–4 of the approved plan):** Overview page pipeline/blocker/lead management UI; Obsidian vault two-way sync (File System Access API + Matrix Runner paths); the project-paths bug's actual root-cause fix (needs Matrix Runner device pairing, not yet done — zero devices paired in production as of this entry). See the plan file for full scope.
+
+**Files Touched:** `components/layout/nav-items.ts`, `components/layout/nav-group.tsx`, `components/layout/sidebar.tsx`, `components/layout/mobile-nav.tsx`, `components/layout/command-palette.tsx`, `components/layout/topbar.tsx`, `lib/stores/use-tour.ts`, `app/dashboard/chat/page.tsx` (deleted), `app/dashboard/playground/layout.tsx`, `app/dashboard/playground/{research,compare,images}/page.tsx` (moved), `app/dashboard/settings/layout.tsx`, `next.config.ts`, `CHANGELOG.md`
+
 ## 06/08/2026 @ 06:06:14 IST — "Sonnet 5"
 
 **Project completion: 100.00%** — all 54 checklist steps in `plan-contact-funnel.md` (Tasks 1–12) now done. Basis: same checklist as the previous entry; this entry closes the 20 steps (Tasks 10–12) that entry left open.
