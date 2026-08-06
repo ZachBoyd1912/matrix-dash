@@ -18,8 +18,10 @@ import {
   Check,
   X as XIcon,
   ChevronDown,
+  Link2,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { useGsapEntrance } from "@/lib/hooks/use-gsap-entrance";
 import { LeadDetailDialog } from "@/components/pipeline/lead-detail-dialog";
 
@@ -97,6 +99,8 @@ export default function Overview() {
   const [leadsOpen, setLeadsOpen] = useState(false);
   const [leadRows, setLeadRows] = useState<LeadRow[] | null>(null);
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+  const [relinkingId, setRelinkingId] = useState<string | null>(null);
+  const [relinkValue, setRelinkValue] = useState("");
 
   const refresh = useCallback(() => {
     fetch("/api/briefing")
@@ -134,6 +138,22 @@ export default function Overview() {
       body: JSON.stringify({ isArchived: true }),
     }).catch(() => {});
     refresh();
+  };
+
+  const relink = async (id: string) => {
+    const newPath = relinkValue.trim();
+    if (!newPath) return;
+    await fetch(`/api/projects/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: newPath }),
+    }).catch(() => {});
+    setRelinkingId(null);
+    setRelinkValue("");
+    // Re-reconcile now rather than waiting for the hourly cron, so presence
+    // reflects the corrected path immediately (confirms the new path via the
+    // paired device when there is one, not just trusts what was typed).
+    await syncNow();
   };
 
   const resolveBlocker = async (id: string, status: "done" | "dropped") => {
@@ -371,35 +391,76 @@ export default function Overview() {
         ) : (
           <div className="divide-y divide-white/5">
             {visible.map((p) => (
-              <div key={p.id} className="flex items-center gap-3 py-2.5 text-sm">
-                <span
-                  className={`rounded-md px-2 py-0.5 text-[10px] ring-1 ${PRESENCE_BADGE[p.presence ?? ""] ?? "text-text-muted ring-white/10"}`}
-                >
-                  {p.presence ?? "unsynced"}
-                </span>
-                <span className="text-text-primary min-w-0 flex-1 truncate font-medium">
-                  {p.name}
-                </span>
-                {p.visibility && <span className="text-text-muted text-xs">{p.visibility}</span>}
-                {p.branch && (
-                  <span className="text-text-muted hidden items-center gap-1 text-xs sm:flex">
-                    <GitBranch size={11} /> {p.branch}
-                  </span>
-                )}
-                {(p.dirtyFiles ?? 0) > 0 && (
-                  <span className="text-xs text-amber-400">{p.dirtyFiles} dirty</span>
-                )}
-                <span className="text-text-muted w-16 text-right text-xs">
-                  {timeAgo(p.lastCommitAt)}
-                </span>
-                {p.presence === "missing" && (
-                  <button
-                    onClick={() => archive(p.id)}
-                    title="Archive (path no longer exists)"
-                    className="text-text-muted hover:text-rose-400"
+              <div key={p.id} className="py-2.5 text-sm">
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`rounded-md px-2 py-0.5 text-[10px] ring-1 ${PRESENCE_BADGE[p.presence ?? ""] ?? "text-text-muted ring-white/10"}`}
                   >
-                    <Archive size={14} />
-                  </button>
+                    {p.presence ?? "unsynced"}
+                  </span>
+                  <span className="text-text-primary min-w-0 flex-1 truncate font-medium">
+                    {p.name}
+                  </span>
+                  {p.visibility && <span className="text-text-muted text-xs">{p.visibility}</span>}
+                  {p.branch && (
+                    <span className="text-text-muted hidden items-center gap-1 text-xs sm:flex">
+                      <GitBranch size={11} /> {p.branch}
+                    </span>
+                  )}
+                  {(p.dirtyFiles ?? 0) > 0 && (
+                    <span className="text-xs text-amber-400">{p.dirtyFiles} dirty</span>
+                  )}
+                  <span className="text-text-muted w-16 text-right text-xs">
+                    {timeAgo(p.lastCommitAt)}
+                  </span>
+                  {p.presence === "missing" && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setRelinkingId(relinkingId === p.id ? null : p.id);
+                          setRelinkValue("");
+                        }}
+                        title="Relink (point at the corrected path)"
+                        className="text-text-muted hover:text-sky-400"
+                      >
+                        <Link2 size={14} />
+                      </button>
+                      <button
+                        onClick={() => archive(p.id)}
+                        title="Archive (path no longer exists)"
+                        className="text-text-muted hover:text-rose-400"
+                      >
+                        <Archive size={14} />
+                      </button>
+                    </>
+                  )}
+                </div>
+                {relinkingId === p.id && (
+                  <div className="mt-2 flex items-center gap-2 pl-1">
+                    <Input
+                      autoFocus
+                      value={relinkValue}
+                      onChange={(e) => setRelinkValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") void relink(p.id);
+                        if (e.key === "Escape") setRelinkingId(null);
+                      }}
+                      placeholder="/new/path/to/project"
+                      className="h-8 min-w-0 flex-1 text-xs"
+                    />
+                    <button
+                      onClick={() => void relink(p.id)}
+                      className="rounded-md bg-sky-400/10 px-2 py-1 text-xs text-sky-400 hover:bg-sky-400/20"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => setRelinkingId(null)}
+                      className="text-text-muted hover:text-text-primary px-1 text-xs"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 )}
               </div>
             ))}
