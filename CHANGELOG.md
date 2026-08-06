@@ -2,6 +2,28 @@
 
 # Changelog
 
+## 06/08/2026 @ 08:07:41 IST — "Sonnet 5"
+
+**Project completion: 50.00%** — 2 of 4 phases done in the approved command-center redesign plan (`~/.claude/plans/okay-it-works-perfect-fluffy-quiche.md`): Phase 1 (nav/IA) and Phase 2 (Overview/pipeline UI) shipped; Phase 3 (Obsidian sync) and Phase 4 (Matrix Runner bridge + project-paths fix) not started.
+
+**Goal:** Phase 2 of the four-phase plan — give the Overview page's "Path to first sale" pipeline card real functionality. There was no UI anywhere in the app to resolve a blocker or see a lead's details; `pipeline_items` had zero API routes.
+
+**Added:**
+- `app/api/pipeline/route.ts` (GET, list, optional `kind`/`status` filters) and `app/api/pipeline/[id]/route.ts` (GET single row, PATCH `{status}`) — modeled on `app/api/projects/[id]/route.ts`'s existing `withUser` + zod pattern.
+- `components/pipeline/lead-detail-dialog.tsx` — modal showing a lead's email/phone/message, built on the existing generic `Dialog` primitive. Re-splits the `notes` column back into fields using the exact delimiter `app/api/leads/ingest/route.ts` writes (`${email} · ${phone}\n\n${message}`); both sides are commented as coupled so a future format change updates both.
+
+**Changed:**
+- `lib/services/briefing.ts`: `Briefing.pipeline.openBlockers` changed from `string[]` (titles only — nothing to address) to `{id, title}[]`. Traced both real consumers before changing: `renderSpoken` only reads `.length` (unaffected), the Overview page needed updating (below). Also fixed a stale docstring that omitted the pending-approvals attention line already present in the actual code.
+- `app/dashboard/page.tsx`: each blocker in the "Path to first sale" list now gets a hover-revealed resolve (✓) / dismiss (✗) action, PATCHing `/api/pipeline/[id]` and refreshing; the leads count is now an expandable list (lazy-fetches `/api/pipeline?status=open` on first open, filtered to `kind` lead/enquiry client-side since the existing GET route only filters one kind at a time and the pipeline table is small enough that this doesn't need a heavier query). Clicking a lead opens the new detail dialog. Also dropped a hardcoded, non-dynamic `monetization-plan-zbautomations.ie.md` reference next to the leads count — it wasn't sourced from anywhere real.
+
+**Verification:** `pnpm typecheck` 0 errors, `pnpm lint` 0 errors (66 pre-existing warnings, unrelated, untouched), `pnpm test --run` 154/154, no regressions. Live-verified via Playwright against a fresh local dev account with a real seeded blocker plus a manually-inserted test lead row: resolving a blocker (both "Services page not built" and "Contact endpoint not built" independently) correctly removed it from the open list; the lead list correctly showed the test lead; the detail dialog correctly parsed and rendered email/phone/message/received-at.
+
+**One real bug caught and fixed during this verification pass, not shipped:** immediately after the `openBlockers` shape change, the page crashed with "Objects are not valid as a React child (found: object with keys {id, title})" — looked like a genuine regression at first. Root cause turned out to be the app's PWA service worker serving a stale cached JS bundle (compiled from the code *before* this change, still expecting `string[]`) against the *new* `/api/briefing` response shape — a version mismatch between an old cached bundle and fresh data, not a code defect. Confirmed by explicitly unregistering the service worker and clearing its caches (`matrix-static-v2`, `matrix-api-v2`) via a Playwright `page.evaluate`, then reproducing a clean load with the exact same source. Worth remembering for any future dashboard change: this app is a PWA, and a hard-reload alone doesn't guarantee a fresh bundle — the service worker needs clearing too when verifying a change locally.
+
+**Not done in this pass (by design — Phases 3–4 of the approved plan):** Obsidian vault two-way sync; Matrix Runner bridge extensions; the project-paths bug's root-cause fix (still needs Matrix Runner device pairing — zero devices paired in production as of this entry).
+
+**Files Touched:** `app/api/pipeline/route.ts`, `app/api/pipeline/[id]/route.ts`, `components/pipeline/lead-detail-dialog.tsx`, `lib/services/briefing.ts`, `app/dashboard/page.tsx`, `CHANGELOG.md`
+
 ## 06/08/2026 @ 07:51:37 IST — "Sonnet 5"
 
 **Project completion: 25.00%** — 1 of 4 phases done in the approved command-center redesign plan (`~/.claude/plans/okay-it-works-perfect-fluffy-quiche.md`): Phase 1 (nav/IA simplification) shipped; Phase 2 (Overview/pipeline UI), Phase 3 (Obsidian sync via File System Access API), and Phase 4 (Matrix Runner bridge extensions + project-paths fix) not started.
