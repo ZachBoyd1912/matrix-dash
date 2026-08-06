@@ -2,6 +2,60 @@
 
 # Changelog
 
+## 06/08/2026 @ 18:11:04 IST — "Sonnet 5"
+
+**Project completion: 75.00%** — still 3 of 4 phases fully shipped; this entry documents the last piece of Phase 4's file checklist (the plan at `~/.claude/plans/okay-it-works-perfect-fluffy-quiche.md`). Phase 4 itself doesn't cross to done until deploy + live verification, logged separately below once that's confirmed.
+
+**Goal:** Give the Overview page a way to fix a "missing" project without retiring it. Archive existed; nothing let the user correct a path that had just moved or been recorded wrong, even when the repo was still there under a different location.
+
+**Added:**
+- `app/dashboard/page.tsx` — a Relink button next to Archive on `presence:"missing"` rows. Opens an inline path input; on save, PATCHes the corrected path via the existing `/api/projects/[id]` route (it already accepted `path` — zero backend changes needed) and immediately triggers a re-sync so presence reflects reality right away rather than waiting for the hourly cron.
+
+**Verification:** `pnpm typecheck` 0 errors, `pnpm lint` 0 errors (66 pre-existing warnings untouched), `pnpm test --run` 158/158. Could not click-test the interaction live — local dev sits behind the app's own login and no credentials were available in this session; production wasn't yet running this code at the time this entry was written. Verified by close pattern match against the already-shipped, already-tested Archive button (identical fetch/PATCH/refresh shape) plus a clean typecheck/lint pass.
+
+**Files Touched:** `app/dashboard/page.tsx`, `CHANGELOG.md`
+
+## 06/08/2026 @ 18:11:04 IST — "Sonnet 5"
+
+**Project completion: 75.00%** — still 3 of 4 phases fully shipped; this is the largest single piece of Phase 4's remaining file checklist.
+
+**Goal:** Make the Matrix Runner bridge (built in an earlier session, never exercised — zero devices had ever paired) actually carry real traffic, and fix the two Phase-4 root-cause bugs it was blocking: Obsidian sync being a permanent no-op in production, and the "12 project paths no longer exist" false positive.
+
+**Prerequisite work, not a code change but worth recording:** Phase 4 was blocked on two things outside the repo — whether Cloudflare Access would let the runner's traffic through, and pairing an actual device. The Cloudflare Access policy for `matrix.zbautomations.ie/api/runner/*` was in a broken state (Action: Bypass, but the Include rule still targeted a specific Service Token from an earlier abandoned attempt — meaning only requests bearing that exact token bypassed Access; everyone else, including the runner itself using a different auth scheme, hit the default-deny "Forbidden"). Fixed by changing the Include rule to Everyone via direct browser automation (the operator's explicit instruction, after several rounds of back-and-forth manual instructions had left the policy in this broken state) — confirmed via `curl` that `/api/runner/connect` now returns the app's own 401 JSON (not a Cloudflare block page) while `/dashboard` still correctly redirects to Cloudflare login. Then generated a pair code and ran the installer directly on the operator's Mac, confirmed online in Settings → Devices.
+
+**Fixed:**
+- `runner/src/connect.ts` — the fs_op frame handler wrapped `handleFsOp`'s already-`{ok,data,error}` result as `data` again, producing `{ok, data:{ok,data,error}}` one level too deep on every real round trip. Never caught before now because no device had ever exercised the path — the existing test called the server-side resolver directly with a hand-built object, bypassing the real wrapping logic entirely. Split the fs-op and ide-op branches: ide results are flat (no separate data field) so the whole result still belongs in `data`; fs-op results now forward `result.data` directly.
+- `lib/services/portfolio-sync.ts` — the actual "12 project paths no longer exist" bug. `reconcile()`'s missing-path check called `fs.existsSync` directly, which is always false in production (a VM checking for a Mac path). `reconcile()` now takes an injectable existence check (default unchanged: `fs.existsSync`, so this is invisible to local dev and existing tests); `syncPortfolio()` builds a remote-aware one via the paired device when one exists.
+
+**Added:**
+- `types/workspace.ts` — optional `mtimeMs` on `TreeEntry`; `runner/src/fs-ops.ts`'s `walk()` now populates it, so a remote tree diff can tell whether a vault file changed without a stat-per-file round trip. Missing on an older unpatched runner degrades to "can't tell," not a crash.
+- `runner/src/fs-ops.ts` — new `git-status` op (branch/last-commit/dirty-count for a repo dir), mirroring the git() helper `portfolio-sync.ts` already had, for on-device repo scans.
+- `lib/services/obsidian-sync.ts` — `reconcileAll()` now tries this host's filesystem first (unchanged local-dev behavior), then falls back to the paired device via the runner bridge when the vault path isn't visible here. Previously it only ever checked `fs.existsSync` on the vault path, which is why sync had only ever worked once, during local dev over a month ago — production could never see the path and the whole thing silently no-opped every 10 minutes since the cron was added.
+- `__tests__/lib/runner-fs-bridge.test.ts` — a new `git-status` test, and a real frame-dispatch regression test that calls the exported `handleFrame` directly (not just the server-side plumbing) to lock in the double-wrap fix; a companion test confirms the ide-op branch's flat-shape behavior is unchanged.
+
+**Changed:**
+- `lib/services/daemon.ts` — the portfolio and obsidian sync crons now run inside `runWithUser({..., isOwner: true}, ...)`, matching the existing pattern in `runner-dispatch.ts`/`runner-approvals.ts`/the tool-call route. `tryRemoteFs()` resolves its target device from `getContextUserId()`, which is unset outside a request/session — a cron tick has no session to inherit one from. Also dropped the obsidian cron's now-stale `fs.existsSync`-only reachability pre-check in favor of a shared `isVaultReachable()` helper that checks both local and remote, so the honest-status reporting (`obsidianCronStatus`, read by the settings page) stays accurate now that the remote path can actually succeed.
+- `app/api/notes/sync/route.ts` — `await`s `reconcileAll()`, now async.
+
+**Deliberately out of scope, not silently dropped:** full remote repo *discovery* (a paired device's filesystem being walked to find NEW repos, not just confirm known ones) is still local-only. The path-resolution semantics across server/device hosts (whose home directory does `~/Desktop` resolve against, how to keep DB-stored paths absolute and consistent either way) need more design than this pass covers, and getting it wrong risks corrupting the whole projects table with mismatched relative/absolute paths. Only the existence check for already-known paths is remote-aware — which is exactly what the reported bug needed.
+
+**Verification:** `pnpm typecheck` 0 errors, `pnpm lint` 0 errors, `pnpm test --run` 158/158 (up from 154 — the new git-status and frame-dispatch regression tests). The remote code paths themselves (reconcileAllRemote, the git-status op, the fixed connect.ts wrapping under real device traffic) are exercised for the first time ever once this deploys and the freshly-paired device pulls the fix — logged as its own entry once that's confirmed live, not claimed here.
+
+**Files Touched:** `runner/src/connect.ts`, `runner/src/fs-ops.ts`, `types/workspace.ts`, `lib/services/obsidian-sync.ts`, `lib/services/portfolio-sync.ts`, `lib/services/daemon.ts`, `app/api/notes/sync/route.ts`, `__tests__/lib/runner-fs-bridge.test.ts`, `CHANGELOG.md`
+
+## 06/08/2026 @ 18:11:04 IST — "Sonnet 5"
+
+**Project completion: 75.00%** — still 3 of 4 phases fully shipped; this is the first, independently-shippable piece of Phase 4.
+
+**Goal:** Fix the null-path overwrite bug in `portfolio-sync.ts` flagged during Phase 4 planning — pure logic, no runner dependency, safe to ship on its own ahead of the rest of Phase 4.
+
+**Fixed:**
+- `lib/services/portfolio-sync.ts`'s `upsertProjects()` set a project's `path` unconditionally from the reconciled row. `reconcile()` emits `path:null` for a github-only row (local scan didn't find it this run) — for a slug with a pre-existing row that had a real local path, that null silently overwrote it on the next sync. A transient scan miss could erase a project's known-good path for no reason. Now falls back to the existing row's path when the reconciled path is null, so only an actual local-scan hit can change it.
+
+**Verification:** `pnpm typecheck` 0 errors, `pnpm lint` 0 errors, `pnpm test --run` 155/155 (new regression test: seeds a row with a real path, runs `upsertProjects` with a null-path reconciled row for the same slug, asserts the real path survives).
+
+**Files Touched:** `lib/services/portfolio-sync.ts`, `__tests__/lib/portfolio-sync.test.ts`, `CHANGELOG.md`
+
 ## 06/08/2026 @ 08:35:41 IST — "Sonnet 5"
 
 **Project completion: 75.00%** — 3 of 4 phases done in the approved command-center redesign plan (`~/.claude/plans/okay-it-works-perfect-fluffy-quiche.md`): Phase 1 (nav/IA), Phase 2 (Overview/pipeline UI), Phase 3 (Obsidian browser sync) shipped; Phase 4 (Matrix Runner bridge + project-paths fix) not started — it has real blocking prerequisites (Cloudflare Access check, physical device pairing) that need the operator directly, not something committable from here.
