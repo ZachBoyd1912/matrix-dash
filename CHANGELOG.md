@@ -2,6 +2,35 @@
 
 # Changelog
 
+## 06/08/2026 @ 18:51:22 IST — "Sonnet 5"
+
+**Project completion: 100.00%** — 4 of 4 phases of the approved command-center redesign plan (`~/.claude/plans/okay-it-works-perfect-fluffy-quiche.md`) now shipped, deployed, and live-verified against production. This entry closes Phase 4 — the code landed in the previous three entries; this one is the deploy + the live verification that proves it actually works, not just that it typechecks.
+
+**Goal:** Deploy Phase 4 to production and prove — with real traffic through the real paired device against the real Obsidian vault, not just unit tests — that the two-way sync and the project-paths fix actually work. Both had been broken in production since they were first built (sync: over a month, only ever worked once in local dev; project-paths: unknown duration, discovered this session).
+
+**Deploy prerequisites resolved this session, not code but worth recording here since they gated everything else:** the Cloudflare Access policy for `matrix.zbautomations.ie/api/runner/*` was left in a broken state by an earlier abandoned attempt (Bypass action, but the Include rule still targeted a specific Service Token — meaning everyone except that exact token hit the default-deny Forbidden, including the runner itself). Fixed directly via browser automation per the operator's explicit instruction to stop handing back manual click-by-click steps. Then generated a pair code and ran the installer on the operator's Mac — the first Matrix Runner device ever paired in this project's history (`runner_devices` had zero rows before this session).
+
+**Deployed:**
+- Full resize-cycle deploy (e2-micro → e2-standard-2 → build → standalone swap → e2-micro), all three domains + the runner bundle confirmed healthy afterward.
+- `runner/src/version.ts` bumped 0.1.0 → 0.1.1 — without this the self-updater's version comparison would never have fired, since the already-paired device and the freshly-built bundle both reported 0.1.0.
+
+**Fixed, discovered live during THIS deploy (the download route bug, not previously known):** `app/api/runner/download`'s `bundlePath()` checked `runner/dist/matrix-runner.cjs` (relative to cwd) before the deploy-copied `matrix-runner.cjs` standalone-root path. `next build`'s standalone file-tracer statically detects that literal path string and copies whatever happens to exist on disk at BUILD time into the standalone output — which is reliably older than the deploy's actual `pnpm build:runner` run, since that runs after `next build`. Every future deploy would have silently served that stale trace-time snapshot regardless of how fresh the real copy was — caught only because the paired device kept reporting v0.1.0 after a deploy that bumped `RUNNER_VERSION` to 0.1.1. Fixed by checking the deploy-copied path first; required a second build+swap+redeploy cycle within the same VM resize window before scaling back down.
+
+**Live-verified, not just typechecked:**
+- Self-update end-to-end: `RUNNER_VERSION` bump → server manifest reflects it → forced an immediate check via `launchctl kickstart` on the device → runner detected v0.1.0 → v0.1.1, downloaded, swapped, exited → `KeepAlive` restarted it on the new binary → confirmed via both the runner's own log and a fresh `node matrix-runner.cjs version`.
+- Two-way Obsidian sync, both directions, against the operator's REAL vault (`~/Desktop/Obsidian Vault`, already enabled in production settings with 1 real note + 21 real memories): created a temporary test file directly in the vault, triggered reconcile, confirmed it imported as a genuinely new note with correct parsed content — then created a temporary note via the real API, triggered reconcile, confirmed it pushed to the vault as a real `.md` file with correct frontmatter. Both test artifacts deleted immediately after (vault file removed by hand — see gap noted below) and DB counts confirmed back to exactly the pre-test 1 note / 21 memories, no duplicates, no corruption.
+- A real mid-verification finding, resolved: the device briefly showed `online: false` in the live connection registry right after the deploy's rapid-fire restart/rebuild/self-update sequence (three reconnects inside under a minute), which made the first two sync attempts silently no-op (indistinguishable from "nothing to sync" without directly checking `/api/runner/devices`). Confirmed it wasn't a standing bug by forcing one clean reconnect and polling online status for 60+ seconds — stayed `online: true` throughout with `lastSeenAt` refreshing every ~20s as designed. Root cause was connection churn from the deploy's own turbulence, not a defect in `runner-bus.ts`'s liveness tracking (pre-existing code, untouched this session).
+- Relink UI: opened live on the real Overview page against the real 12 `presence:"missing"` rows from the original reported bug, confirmed the inline path input renders and Cancel closes it cleanly. Did not submit a real path — guessing at the operator's actual project locations isn't this session's call to make.
+
+**Known gaps, not silently dropped:**
+- `app/api/notes/[id]/route.ts`'s DELETE handler still calls local `fs.rmSync` directly, not routed through `tryRemoteFs()` — deleting a note whose file lives in the real vault (production, VM host) silently no-ops on the vault-file removal the same way writes used to. Found while cleaning up this session's own test note. Unlike the create/reconcile path, there's no self-healing cron for deletes, so this one will need the same rewire treatment.
+- Runner device version display goes stale after a self-update — `appVersion` is only reported once, at initial pairing, never again. The Settings → Devices page still shows "v0.1.0" for a device now actually running v0.1.1 (confirmed directly via the runner's own logs and `version` command). Purely cosmetic — doesn't affect function — but worth a follow-up frame that reports version on each connect.
+- Full remote repo *discovery* (portfolio-sync's `scanLocalRepos()` walking a device's filesystem to find NEW repos) remains local-only, as scoped in the previous entry.
+
+**Verification:** `pnpm typecheck` 0 errors, `pnpm lint` 0 errors, `pnpm test --run` 158/158 (re-run after all deploy-driven investigation, no regressions). All three domains confirmed healthy post-deploy: `matrix`/`builder` → 302 Cloudflare Access login (correctly gated), `zbautomations.ie` → 200. `matrix-builder` service untouched and healthy throughout (confirmed before and after both restarts).
+
+**Files Touched:** `app/api/runner/download/route.ts`, `runner/src/version.ts`, `CHANGELOG.md`
+
 ## 06/08/2026 @ 18:11:04 IST — "Sonnet 5"
 
 **Project completion: 75.00%** — still 3 of 4 phases fully shipped; this entry documents the last piece of Phase 4's file checklist (the plan at `~/.claude/plans/okay-it-works-perfect-fluffy-quiche.md`). Phase 4 itself doesn't cross to done until deploy + live verification, logged separately below once that's confirmed.
