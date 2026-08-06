@@ -15,6 +15,25 @@ const nextConfig: NextConfig = {
   // just stops the redundant in-build recheck from crashing the deploy.
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
+  // Chat was a dead client-side redirect stub (deleted); Research/Compare/Images
+  // moved under /playground with a shared tab layout. Redirects (not the old
+  // stub-page pattern) so bookmarks and external links keep working.
+  async redirects() {
+    return [
+      { source: "/dashboard/chat", destination: "/dashboard/sessions?new=1", permanent: true },
+      {
+        source: "/dashboard/research",
+        destination: "/dashboard/playground/research",
+        permanent: true,
+      },
+      {
+        source: "/dashboard/compare",
+        destination: "/dashboard/playground/compare",
+        permanent: true,
+      },
+      { source: "/dashboard/images", destination: "/dashboard/playground/images", permanent: true },
+    ];
+  },
 };
 
 export default nextConfig;

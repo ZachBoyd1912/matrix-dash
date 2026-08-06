@@ -42,8 +42,8 @@ export const TOUR_CHAPTERS: TourChapter[] = [
     title: "Chat & providers",
     steps: [
       {
-        route: "/dashboard/chat",
-        target: "nav-chat",
+        route: "/dashboard/sessions",
+        target: "nav-sessions",
         title: "Chat",
         body: "Talk to any model here. Add your own API keys — or your Claude subscription — in Settings → AI Providers; each account uses its own.",
       },

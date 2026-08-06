@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
-import { NAV_ITEMS, isNavActive } from "./nav-items";
+import { NAV_ITEMS, MOBILE_PRIMARY_HREFS, isNavActive } from "./nav-items";
 import { LogoMark } from "./logo";
 import { useAppStore } from "@/lib/stores/use-app-store";
 import { cn } from "@/lib/utils/cn";
@@ -14,7 +14,9 @@ export function MobileNav() {
   const open = useAppStore((s) => s.mobileNavOpen);
   const setOpen = useAppStore((s) => s.setMobileNavOpen);
 
-  const primary = NAV_ITEMS.slice(0, 4);
+  const primary = MOBILE_PRIMARY_HREFS.map((href) => NAV_ITEMS.find((i) => i.href === href)).filter(
+    (i): i is NonNullable<typeof i> => Boolean(i)
+  );
 
   return (
     <>

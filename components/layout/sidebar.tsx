@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation";
 import { PanelLeft } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { LogoMark } from "./logo";
-import { NAV_ITEMS, isNavActive } from "./nav-items";
+import { NAV_ITEMS, NAV_GROUP_META, isNavActive, isGroupActive, type NavItem } from "./nav-items";
+import { NavGroup } from "./nav-group";
 import { useAppStore } from "@/lib/stores/use-app-store";
 
 export function Sidebar() {
@@ -50,38 +51,45 @@ export function Sidebar() {
         </div>
 
         <nav className="min-h-0 flex-1 space-y-0.5 overflow-y-auto overscroll-contain px-2.5 py-3">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const active = isNavActive(item, pathname);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                data-tour={`nav-${item.href.split("/").pop()}`}
-                title={collapsed ? item.label : undefined}
-                className={cn(
-                  "group relative flex h-9 items-center gap-3 rounded-lg px-3 text-sm transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
-                  active
-                    ? "text-text-primary bg-gradient-to-r from-emerald-400/[0.14] via-emerald-400/[0.05] to-transparent"
-                    : "text-text-secondary hover:text-text-primary hover:bg-white/[0.04]"
-                )}
-              >
-                {active && (
-                  <span className="absolute top-1/2 left-0 h-5 w-[2.5px] -translate-y-1/2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.7)]" />
-                )}
-                <Icon
-                  size={16}
-                  className={cn(
-                    "shrink-0 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
-                    active
-                      ? "scale-110 text-emerald-400"
-                      : "group-hover:scale-105 group-hover:text-emerald-400/80"
-                  )}
+          {(() => {
+            const renderedGroups = new Set<string>();
+            return NAV_ITEMS.map((item) => {
+              if (item.groupId) {
+                if (renderedGroups.has(item.groupId)) return null;
+                renderedGroups.add(item.groupId);
+                const meta = NAV_GROUP_META.find((g) => g.id === item.groupId);
+                if (!meta) return null;
+                const groupItems = NAV_ITEMS.filter((i) => i.groupId === item.groupId);
+                return (
+                  <NavGroup
+                    key={meta.id}
+                    id={meta.id}
+                    label={meta.label}
+                    icon={meta.icon}
+                    active={isGroupActive(meta.id, pathname)}
+                    iconOnly={collapsed}
+                  >
+                    {groupItems.map((groupItem) => (
+                      <NavLink
+                        key={groupItem.href}
+                        item={groupItem}
+                        active={isNavActive(groupItem, pathname)}
+                        collapsed={collapsed}
+                      />
+                    ))}
+                  </NavGroup>
+                );
+              }
+              return (
+                <NavLink
+                  key={item.href}
+                  item={item}
+                  active={isNavActive(item, pathname)}
+                  collapsed={collapsed}
                 />
-                {!collapsed && <span className="truncate">{item.label}</span>}
-              </Link>
-            );
-          })}
+              );
+            });
+          })()}
         </nav>
 
         {!collapsed && (
@@ -116,5 +124,44 @@ export function Sidebar() {
         )}
       </div>
     </aside>
+  );
+}
+
+function NavLink({
+  item,
+  active,
+  collapsed,
+}: {
+  item: NavItem;
+  active: boolean;
+  collapsed: boolean;
+}) {
+  const Icon = item.icon;
+  return (
+    <Link
+      href={item.href}
+      data-tour={`nav-${item.href.split("/").pop()}`}
+      title={collapsed ? item.label : undefined}
+      className={cn(
+        "group relative flex h-9 items-center gap-3 rounded-lg px-3 text-sm transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
+        active
+          ? "text-text-primary bg-gradient-to-r from-emerald-400/[0.14] via-emerald-400/[0.05] to-transparent"
+          : "text-text-secondary hover:text-text-primary hover:bg-white/[0.04]"
+      )}
+    >
+      {active && (
+        <span className="absolute top-1/2 left-0 h-5 w-[2.5px] -translate-y-1/2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.7)]" />
+      )}
+      <Icon
+        size={16}
+        className={cn(
+          "shrink-0 transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]",
+          active
+            ? "scale-110 text-emerald-400"
+            : "group-hover:scale-105 group-hover:text-emerald-400/80"
+        )}
+      />
+      {!collapsed && <span className="truncate">{item.label}</span>}
+    </Link>
   );
 }

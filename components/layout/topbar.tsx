@@ -4,24 +4,16 @@ import { Search, Sparkles, Menu, WifiOff, Download } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useAppStore } from "@/lib/stores/use-app-store";
 import { useOnlineStatus } from "@/lib/hooks/use-online-status";
+import { NAV_ITEMS } from "./nav-items";
 import { ThemeToggle } from "./theme-toggle";
 import { NotificationBell } from "./notification-bell";
 import { ApprovalBadge } from "./approval-badge";
 import { VoiceOrb } from "./voice-orb";
 import { VoiceAnnouncer } from "./voice-announcer";
 
-const TITLES: Record<string, string> = {
-  "/dashboard": "Overview",
-  "/dashboard/chat": "Chat",
-  "/dashboard/memory-bank": "Memory Bank",
-  "/dashboard/notes": "Notes",
-  "/dashboard/email": "Email",
-  "/dashboard/sessions": "Sessions",
-  "/dashboard/ide": "IDE",
-  "/dashboard/matrix-builder": "Matrix Builder",
-  "/dashboard/console": "Console",
-  "/dashboard/settings": "Settings",
-};
+const TITLES: Record<string, string> = Object.fromEntries(
+  NAV_ITEMS.map((item) => [item.href, item.label])
+);
 
 export function Topbar() {
   const pathname = usePathname();

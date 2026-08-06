@@ -3,20 +3,9 @@
 import { Command } from "cmdk";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import {
-  Sparkles,
-  MessageSquare,
-  BrainCircuit,
-  FileText,
-  Layers,
-  Code2,
-  Settings,
-  Plus,
-  BookOpen,
-  BarChart3,
-  RotateCw,
-} from "lucide-react";
+import { BrainCircuit, FileText, Plus, BookOpen, BarChart3, RotateCw } from "lucide-react";
 import { restartOnboarding } from "@/components/onboarding/onboarding-wizard";
+import { NAV_ITEMS } from "./nav-items";
 import { useAppStore } from "@/lib/stores/use-app-store";
 import { useShortcut } from "@/lib/hooks/use-shortcut";
 import { useDebounce } from "@/lib/hooks/use-debounce";
@@ -104,48 +93,17 @@ export function CommandPalette() {
             heading="Navigate"
             className="text-text-muted px-2 py-1 text-[10px] tracking-wider uppercase"
           >
-            <PaletteItem
-              onSelect={() => go("/dashboard")}
-              icon={<Sparkles size={14} />}
-              label="Overview"
-              hint="dashboard"
-            />
-            <PaletteItem
-              onSelect={() => go("/dashboard/chat")}
-              icon={<MessageSquare size={14} />}
-              label="Chat"
-              hint="ask AI"
-            />
-            <PaletteItem
-              onSelect={() => go("/dashboard/memory-bank")}
-              icon={<BrainCircuit size={14} />}
-              label="Memory Bank"
-              hint="autonomous memory"
-            />
-            <PaletteItem
-              onSelect={() => go("/dashboard/notes")}
-              icon={<FileText size={14} />}
-              label="Notes"
-              hint="wiki notes"
-            />
-            <PaletteItem
-              onSelect={() => go("/dashboard/sessions")}
-              icon={<Layers size={14} />}
-              label="Sessions"
-              hint="conversation log"
-            />
-            <PaletteItem
-              onSelect={() => go("/dashboard/ide")}
-              icon={<Code2 size={14} />}
-              label="IDE"
-              hint="code editor"
-            />
-            <PaletteItem
-              onSelect={() => go("/dashboard/settings")}
-              icon={<Settings size={14} />}
-              label="Settings"
-              hint="config"
-            />
+            {NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              return (
+                <PaletteItem
+                  key={item.href}
+                  onSelect={() => go(item.href)}
+                  icon={<Icon size={14} />}
+                  label={item.label}
+                />
+              );
+            })}
           </Command.Group>
 
           {hits.memories.length > 0 && (
