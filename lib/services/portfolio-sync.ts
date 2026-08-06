@@ -206,17 +206,20 @@ export function reconcile(
   return [...out.values()];
 }
 
-function upsertProjects(rows: ReconciledProject[]) {
+export function upsertProjects(rows: ReconciledProject[]) {
   const db = getDb();
   const now = new Date().toISOString();
   for (const p of rows) {
     const existing = db
-      .select({ id: projects.id })
+      .select({ id: projects.id, path: projects.path })
       .from(projects)
       .where(eq(projects.slug, p.slug))
       .get();
     const common = {
-      path: p.path,
+      // A reconciled row with no path (github-only this run) must never blank
+      // out a previously-known local path — that path only ever came from a
+      // real scan, so losing it here would be silent data loss, not a refresh.
+      path: p.path ?? existing?.path ?? null,
       githubRepo: p.githubRepo,
       visibility: p.visibility,
       presence: p.presence,

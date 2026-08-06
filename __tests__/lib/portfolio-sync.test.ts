@@ -3,6 +3,7 @@ import {
   slugify,
   reconcile,
   probeSites,
+  upsertProjects,
   type LocalRepo,
   type RemoteRepo,
 } from "@/lib/services/portfolio-sync";
@@ -94,6 +95,47 @@ describe("reconcile", () => {
     );
     const merged = rows.find((r) => r.githubRepo === "ZachBoyd1912/totally-different");
     expect(merged?.presence).toBe("local+github");
+  });
+});
+
+describe("upsertProjects", () => {
+  it("never lets a null reconciled path overwrite an existing non-null path", () => {
+    const sqlite = getSqlite();
+    const now = new Date().toISOString();
+    sqlite
+      .prepare(
+        `INSERT OR REPLACE INTO projects
+           (id, name, description, purpose, badge, status, slug, path, github_repo,
+            visibility, presence, created_at, updated_at)
+         VALUES
+           ('null-path-guard', 'null-path-guard', '', '', 'code', 'active',
+            'null-path-guard', '/tmp/real-checkout', NULL,
+            'local', 'local-only', ?, ?)`
+      )
+      .run(now, now);
+
+    // Simulates a run where the local scan missed the repo (e.g. transient fs
+    // hiccup) but the GitHub cache still has it — reconcile() emits path:null.
+    upsertProjects([
+      {
+        slug: "null-path-guard",
+        name: "null-path-guard",
+        path: null,
+        githubRepo: "ZachBoyd1912/null-path-guard",
+        visibility: "public",
+        presence: "github-only",
+        branch: null,
+        lastCommitAt: null,
+        lastCommitMessage: null,
+        dirtyFiles: 0,
+        openIssues: 0,
+      },
+    ]);
+
+    const row = sqlite.prepare("SELECT path FROM projects WHERE id = 'null-path-guard'").get() as {
+      path: string | null;
+    };
+    expect(row.path).toBe("/tmp/real-checkout");
   });
 });
 
