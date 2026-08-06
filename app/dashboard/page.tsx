@@ -15,9 +15,13 @@ import {
   Banknote,
   Archive,
   GitBranch,
+  Check,
+  X as XIcon,
+  ChevronDown,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { useGsapEntrance } from "@/lib/hooks/use-gsap-entrance";
+import { LeadDetailDialog } from "@/components/pipeline/lead-detail-dialog";
 
 interface MemoryStats {
   total: number;
@@ -38,7 +42,7 @@ interface Briefing {
   };
   github: { openIssues: number; warning: string | null };
   sites: { label: string; ok: boolean; lastStatus: number | null; lastOkAt: string | null }[];
-  pipeline: { openBlockers: string[]; leads: number };
+  pipeline: { openBlockers: { id: string; title: string }[]; leads: number };
   agents: {
     overnightRuns: number;
     succeeded: number;
@@ -77,12 +81,22 @@ const PRESENCE_BADGE: Record<string, string> = {
   missing: "text-rose-400 ring-rose-400/25",
 };
 
+interface LeadRow {
+  id: string;
+  title: string;
+  kind: string;
+  status: string;
+}
+
 export default function Overview() {
   const ref = useGsapEntrance();
   const [stats, setStats] = useState<MemoryStats | null>(null);
   const [briefing, setBriefing] = useState<Briefing | null>(null);
   const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [syncing, setSyncing] = useState(false);
+  const [leadsOpen, setLeadsOpen] = useState(false);
+  const [leadRows, setLeadRows] = useState<LeadRow[] | null>(null);
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
 
   const refresh = useCallback(() => {
     fetch("/api/briefing")
@@ -120,6 +134,26 @@ export default function Overview() {
       body: JSON.stringify({ isArchived: true }),
     }).catch(() => {});
     refresh();
+  };
+
+  const resolveBlocker = async (id: string, status: "done" | "dropped") => {
+    await fetch(`/api/pipeline/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    }).catch(() => {});
+    refresh();
+  };
+
+  const toggleLeads = async () => {
+    const next = !leadsOpen;
+    setLeadsOpen(next);
+    if (next && leadRows === null) {
+      const rows: LeadRow[] = await fetch("/api/pipeline?status=open")
+        .then((r) => r.json())
+        .catch(() => []);
+      setLeadRows(rows.filter((r) => r.kind === "lead" || r.kind === "enquiry"));
+    }
   };
 
   const visible = projects.filter((p) => !p.isArchived);
@@ -186,16 +220,65 @@ export default function Overview() {
               </div>
               <ul className="mt-3 space-y-1.5">
                 {briefing.pipeline.openBlockers.map((b) => (
-                  <li key={b} className="text-text-secondary flex items-start gap-2 text-xs">
-                    <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-amber-400" />
-                    {b}
+                  <li
+                    key={b.id}
+                    className="text-text-secondary group flex items-start justify-between gap-2 text-xs"
+                  >
+                    <span className="flex items-start gap-2">
+                      <span className="mt-1 h-1 w-1 shrink-0 rounded-full bg-amber-400" />
+                      {b.title}
+                    </span>
+                    <span className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                      <button
+                        onClick={() => resolveBlocker(b.id, "done")}
+                        title="Resolve"
+                        className="text-text-muted rounded p-0.5 hover:bg-emerald-400/10 hover:text-emerald-400"
+                      >
+                        <Check size={12} />
+                      </button>
+                      <button
+                        onClick={() => resolveBlocker(b.id, "dropped")}
+                        title="Dismiss"
+                        className="text-text-muted rounded p-0.5 hover:bg-rose-400/10 hover:text-rose-400"
+                      >
+                        <XIcon size={12} />
+                      </button>
+                    </span>
                   </li>
                 ))}
               </ul>
-              <p className="text-text-muted mt-3 text-xs">
-                {briefing.pipeline.leads} lead{briefing.pipeline.leads === 1 ? "" : "s"} · plan:{" "}
-                <span className="font-mono">monetization-plan-zbautomations.ie.md</span>
-              </p>
+              <button
+                onClick={toggleLeads}
+                className="text-text-muted hover:text-text-primary mt-3 flex items-center gap-1 text-xs transition-colors"
+              >
+                {briefing.pipeline.leads} lead{briefing.pipeline.leads === 1 ? "" : "s"}
+                {briefing.pipeline.leads > 0 && (
+                  <ChevronDown
+                    size={12}
+                    className={`transition-transform ${leadsOpen ? "rotate-180" : ""}`}
+                  />
+                )}
+              </button>
+              {leadsOpen && (
+                <ul className="mt-2 space-y-1 border-t border-white/5 pt-2">
+                  {leadRows === null ? (
+                    <li className="text-text-muted text-xs">Loading…</li>
+                  ) : leadRows.length === 0 ? (
+                    <li className="text-text-muted text-xs">No leads yet.</li>
+                  ) : (
+                    leadRows.map((l) => (
+                      <li key={l.id}>
+                        <button
+                          onClick={() => setSelectedLeadId(l.id)}
+                          className="text-text-secondary text-left text-xs transition-colors hover:text-emerald-400"
+                        >
+                          {l.title}
+                        </button>
+                      </li>
+                    ))
+                  )}
+                </ul>
+              )}
             </>
           ) : (
             <p className="text-text-muted text-xs">Loading…</p>
@@ -351,6 +434,8 @@ export default function Overview() {
           accent="emerald"
         />
       </div>
+
+      <LeadDetailDialog id={selectedLeadId} onClose={() => setSelectedLeadId(null)} />
     </div>
   );
 }

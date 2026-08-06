@@ -18,7 +18,7 @@ import { getSetting } from "@/lib/db/settings";
 export interface Briefing {
   generatedAt: string;
   staleness: { lastSyncedAt: string | null; isStale: boolean };
-  /** Red items, ordered: sites down → overdue tasks → needs_review runs → missing paths → stale sync. */
+  /** Red items, ordered: sites down → overdue tasks → needs_review runs → pending approvals → missing paths → stale sync. */
   attention: string[];
   projects: {
     active: number;
@@ -28,7 +28,7 @@ export interface Briefing {
   };
   github: { openIssues: number; warning: string | null };
   sites: { label: string; ok: boolean; lastStatus: number | null; lastOkAt: string | null }[];
-  pipeline: { openBlockers: string[]; leads: number };
+  pipeline: { openBlockers: { id: string; title: string }[]; leads: number };
   agents: {
     overnightRuns: number;
     succeeded: number;
@@ -88,7 +88,9 @@ export function composeBriefing(): Briefing {
     .from(pipelineItems)
     .where(eq(pipelineItems.status, "open"))
     .all();
-  const openBlockers = pipelineRows.filter((p) => p.kind === "blocker").map((p) => p.title);
+  const openBlockers = pipelineRows
+    .filter((p) => p.kind === "blocker")
+    .map((p) => ({ id: p.id, title: p.title }));
   const leads = pipelineRows.filter((p) => p.kind === "lead" || p.kind === "enquiry").length;
 
   // Same window/semantics the spoken briefing has always used (16h overnight)
