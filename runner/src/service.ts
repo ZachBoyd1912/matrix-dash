@@ -23,6 +23,35 @@ function nodePath(): string {
   return process.execPath;
 }
 
+/**
+ * Both launchd and a systemd --user unit start with a minimal PATH
+ * (`/usr/bin:/bin:/usr/sbin:/sbin`) — none of the common places a tool like
+ * code-server actually gets installed (Homebrew on Apple Silicon vs. Intel,
+ * the code-server standalone installer's `~/.local/bin`, npm/yarn/bun global
+ * bins). Without this, `which code-server` inside the runner process reports
+ * "not installed" even when it plainly is and works fine from a terminal —
+ * and critically, `spawn("code-server", ...)` would ALSO fail to find it, so
+ * this has to be fixed at the process environment, not just the detection
+ * check in ide-manager.ts.
+ */
+function broadPath(): string {
+  const home = os.homedir();
+  return [
+    "/opt/homebrew/bin",
+    "/opt/homebrew/sbin",
+    "/usr/local/bin",
+    "/usr/local/sbin",
+    `${home}/.local/bin`,
+    `${home}/.npm-global/bin`,
+    `${home}/.yarn/bin`,
+    `${home}/.bun/bin`,
+    "/usr/bin",
+    "/bin",
+    "/usr/sbin",
+    "/sbin",
+  ].join(":");
+}
+
 interface ServicePaths {
   nodePath: string;
   selfPath: string;
@@ -44,6 +73,9 @@ export function launchdPlist(p: ServicePaths): string {
   </array>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>
+  <key>EnvironmentVariables</key><dict>
+    <key>PATH</key><string>${broadPath()}</string>
+  </dict>
   <key>StandardOutPath</key><string>${p.logFile}</string>
   <key>StandardErrorPath</key><string>${p.logFile}</string>
 </dict></plist>
@@ -60,6 +92,7 @@ After=network-online.target
 ExecStart=${p.nodePath} ${p.selfPath} run
 Restart=always
 RestartSec=5
+Environment="PATH=${broadPath()}"
 StandardOutput=append:${p.logFile}
 StandardError=append:${p.logFile}
 

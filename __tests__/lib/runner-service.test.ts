@@ -28,6 +28,12 @@ describe("macOS launchd plist", () => {
     // Balanced plist/dict tags.
     expect((plist.match(/<dict>/g) || []).length).toBe((plist.match(/<\/dict>/g) || []).length);
   });
+
+  it("sets a broadened PATH covering Homebrew — launchd's default PATH is /usr/bin:/bin:/usr/sbin:/sbin, which hides code-server and any other Homebrew/local tool from the runner process", () => {
+    expect(plist).toContain("<key>EnvironmentVariables</key>");
+    expect(plist).toContain("/opt/homebrew/bin"); // Apple Silicon Homebrew
+    expect(plist).toContain("/usr/local/bin"); // Intel Homebrew + generic local installs
+  });
 });
 
 describe("Linux systemd user unit", () => {
@@ -39,6 +45,10 @@ describe("Linux systemd user unit", () => {
     expect(unit).toContain("[Unit]");
     expect(unit).toContain("[Service]");
     expect(unit).toContain("[Install]");
+  });
+
+  it("sets a broadened PATH — systemd --user units have the same minimal-PATH trap as launchd", () => {
+    expect(unit).toMatch(/Environment="PATH=.*\/usr\/local\/bin.*"/);
   });
 });
 
