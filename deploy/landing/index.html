@@ -317,20 +317,20 @@
         <h2>Let's get your business<br>online and off your plate.</h2>
         <p>Tell me what you need and I'll come back to you <strong>within 24 hours</strong>.</p>
         <form id="enquiry-form" class="enquiry-form" novalidate>
-          <div class="field"><label for="f-name">Name</label>
-            <input id="f-name" name="name" type="text" required maxlength="100" autocomplete="name"></div>
-          <div class="field"><label for="f-email">Email</label>
-            <input id="f-email" name="email" type="email" required maxlength="200" autocomplete="email"></div>
-          <div class="field"><label for="f-phone">Phone</label>
-            <input id="f-phone" name="phone" type="tel" required maxlength="25" autocomplete="tel"></div>
-          <div class="field"><label for="f-meeting">Prefer to meet</label>
+          <div class="field"><label for="f-name">Name <span class="req">*</span></label>
+            <input id="f-name" name="name" type="text" required maxlength="100" autocomplete="name" placeholder="Jane Murphy"></div>
+          <div class="field"><label for="f-email">Email <span class="req">*</span></label>
+            <input id="f-email" name="email" type="email" required maxlength="200" autocomplete="email" placeholder="you@example.com"></div>
+          <div class="field"><label for="f-phone">Phone <span class="req">*</span></label>
+            <input id="f-phone" name="phone" type="tel" required maxlength="25" autocomplete="tel" placeholder="+353 87 123 4567"></div>
+          <div class="field"><label for="f-meeting">Prefer to meet <span class="req">*</span></label>
             <select id="f-meeting" name="meeting" required>
               <option value="">Choose one…</option>
               <option value="in-person">In person</option>
               <option value="zoom">Zoom call</option>
             </select></div>
-          <div class="field field-full"><label for="f-message">What do you need?</label>
-            <textarea id="f-message" name="message" required minlength="20" maxlength="4000" rows="4"></textarea></div>
+          <div class="field field-full"><label for="f-message">What do you need? <span class="req">*</span></label>
+            <textarea id="f-message" name="message" required minlength="20" maxlength="4000" rows="4" placeholder="Tell me what you're looking for — websites, automation, or both (minimum 20 characters)"></textarea></div>
           <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
           <button class="btn btn-primary" type="submit">Send enquiry</button>
           <p class="form-status" role="status" aria-live="polite"></p>
@@ -452,6 +452,11 @@
   if (!f) return;
   var loadedAt = Date.now();
   var status = f.querySelector(".form-status");
+  // A stale result from a previous submit attempt shouldn't linger once the
+  // person starts changing what they typed — clear it on the next edit.
+  function clearStatus() { status.textContent = ""; status.className = "form-status"; }
+  f.addEventListener("input", clearStatus);
+  f.addEventListener("change", clearStatus);
   f.addEventListener("submit", async function (e) {
     e.preventDefault();
     if (!f.checkValidity()) { status.textContent = "Please fill in every field."; status.className = "form-status err"; return; }
