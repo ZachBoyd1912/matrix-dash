@@ -32,6 +32,16 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       { source: "/dashboard/images", destination: "/dashboard/playground/images", permanent: true },
+      // Notes and Memory Bank merged into one unified vault page (list/graph
+      // across Matrix Notes + Memory Bank + Claude Code). ?focus=/?new=1 on
+      // the old routes forward through automatically (Next.js appends
+      // unmatched source query params to the destination).
+      { source: "/dashboard/notes", destination: "/dashboard/vault?vault=notes", permanent: true },
+      {
+        source: "/dashboard/memory-bank",
+        destination: "/dashboard/vault?vault=memory-bank",
+        permanent: true,
+      },
     ];
   },
 };

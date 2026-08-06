@@ -13,33 +13,27 @@ import {
   type SimulationNodeDatum,
   type SimulationLinkDatum,
 } from "d3-force";
-import { MEMORY_TYPE_META, type MemoryType } from "@/types/memory";
+import type { MemoryType } from "@/types/memory";
+import type { VaultGraphData, VaultGraphLink, VaultGraphNode, VaultSource } from "@/types/vault";
 
-interface NodeIn {
-  id: string;
-  label: string;
-  type: MemoryType;
-  importance: number;
-  usageCount: number;
-  isPinned: boolean;
-}
+interface Node extends VaultGraphNode, SimulationNodeDatum {}
+type Link = SimulationLinkDatum<Node> & VaultGraphLink;
 
-interface LinkIn {
-  id: string;
-  source: string;
-  target: string;
-  strength: number;
-}
+const SOURCE_COLOR: Record<VaultSource, string> = {
+  note: "#a78bfa",
+  memory: "#38bdf8", // overridden per-node by MEMORY_TYPE_HEX when memoryType is set
+  "claude-code": "#fb923c",
+};
 
-interface GraphData {
-  nodes: NodeIn[];
-  links: LinkIn[];
-}
+const SOURCE_LABEL: Record<VaultSource, string> = {
+  note: "Matrix Notes",
+  memory: "Memory Bank",
+  "claude-code": "Claude Code (read-only)",
+};
 
-interface Node extends NodeIn, SimulationNodeDatum {}
-type Link = SimulationLinkDatum<Node> & LinkIn;
-
-const TYPE_COLOR: Record<MemoryType, string> = {
+// MEMORY_TYPE_META stores Tailwind classes, not hex — mirror memory-graph.tsx's
+// own hardcoded hex table instead of trying to parse a Tailwind class name.
+const MEMORY_TYPE_HEX: Record<MemoryType, string> = {
   identity: "#34d399",
   project: "#38bdf8",
   global: "#fbbf24",
@@ -47,11 +41,12 @@ const TYPE_COLOR: Record<MemoryType, string> = {
 };
 
 interface Props {
-  data: GraphData;
+  data: VaultGraphData;
   onSelect?: (id: string) => void;
 }
 
-export function MemoryGraph({ data, onSelect }: Props) {
+/** Unified vault graph — notes (violet), memories (colored by type), Claude Code (orange). */
+export function VaultGraph({ data, onSelect }: Props) {
   const ref = useRef<SVGSVGElement | null>(null);
 
   useEffect(() => {
@@ -59,11 +54,9 @@ export function MemoryGraph({ data, onSelect }: Props) {
     const svg = d3.select(ref.current);
     const { width, height } = ref.current.getBoundingClientRect();
     svg.selectAll("*").remove();
-
     if (data.nodes.length === 0) return;
 
     const g = svg.append("g");
-
     svg.call(
       zoom<SVGSVGElement, unknown>()
         .scaleExtent([0.2, 4])
@@ -77,14 +70,19 @@ export function MemoryGraph({ data, onSelect }: Props) {
       .filter((l) => nodes.some((n) => n.id === l.source) && nodes.some((n) => n.id === l.target))
       .map((l) => ({ ...l }));
 
+    const nodeColor = (d: Node): string =>
+      d.source === "memory" && d.memoryType
+        ? MEMORY_TYPE_HEX[d.memoryType]
+        : SOURCE_COLOR[d.source];
+
     const link = g
       .append("g")
       .attr("stroke", "#ffffff")
-      .attr("stroke-opacity", 0.12)
+      .attr("stroke-opacity", 0.15)
       .selectAll<SVGLineElement, Link>("line")
       .data(links)
       .join("line")
-      .attr("stroke-width", (d) => 0.5 + d.strength * 1.5);
+      .attr("stroke-width", 1);
 
     const node = g
       .append("g")
@@ -94,24 +92,26 @@ export function MemoryGraph({ data, onSelect }: Props) {
       .attr("cursor", "pointer")
       .on("click", (_e, d) => onSelect?.(d.id));
 
+    const radius = (d: Node) => 5 + (d.isPinned || d.isFavorite ? 3 : 0);
+
     node
       .append("circle")
-      .attr("r", (d) => 4 + d.importance * 8)
-      .attr("fill", (d) => TYPE_COLOR[d.type])
-      .attr("fill-opacity", 0.7)
-      .attr("stroke", (d) => TYPE_COLOR[d.type])
+      .attr("r", radius)
+      .attr("fill", nodeColor)
+      .attr("fill-opacity", 0.75)
+      .attr("stroke", nodeColor)
       .attr("stroke-opacity", 0.9)
-      .attr("stroke-width", (d) => (d.isPinned ? 2 : 0.8));
+      .attr("stroke-width", (d) => (d.isPinned || d.isFavorite ? 2 : 0.8));
 
-    node.append("title").text((d) => `${d.label}\n(${d.type} · used ${d.usageCount}×)`);
+    node.append("title").text((d) => `${d.label}\n(${SOURCE_LABEL[d.source]})`);
 
     node
       .append("text")
-      .text((d) => d.label.slice(0, 28) + (d.label.length > 28 ? "…" : ""))
+      .text((d) => d.label.slice(0, 26) + (d.label.length > 26 ? "…" : ""))
       .attr("font-size", 9)
       .attr("font-family", "var(--font-sans), sans-serif")
       .attr("fill", "#888")
-      .attr("dx", (d) => 6 + d.importance * 8)
+      .attr("dx", (d) => radius(d) + 6)
       .attr("dy", 3)
       .attr("pointer-events", "none");
 
@@ -120,14 +120,14 @@ export function MemoryGraph({ data, onSelect }: Props) {
         "link",
         forceLink<Node, Link>(links)
           .id((d) => d.id)
-          .distance((l) => 60 + (1 - l.strength) * 60)
-          .strength((l) => 0.2 + l.strength * 0.6)
+          .distance(80)
+          .strength(0.4)
       )
-      .force("charge", forceManyBody<Node>().strength(-160))
+      .force("charge", forceManyBody<Node>().strength(-170))
       .force("center", forceCenter(width / 2, height / 2))
       .force(
         "collide",
-        forceCollide<Node>().radius((d) => 8 + d.importance * 10)
+        forceCollide<Node>().radius((d) => radius(d) + 8)
       )
       .on("tick", () => {
         link
@@ -165,10 +165,10 @@ export function MemoryGraph({ data, onSelect }: Props) {
     <div className="relative h-full w-full">
       <svg ref={ref} className="absolute inset-0 h-full w-full" />
       <div className="absolute top-3 left-3 flex flex-col gap-1 text-[10px]">
-        {(Object.keys(TYPE_COLOR) as MemoryType[]).map((t) => (
-          <div key={t} className="text-text-muted flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full" style={{ background: TYPE_COLOR[t] }} />
-            {MEMORY_TYPE_META[t].label}
+        {(["note", "memory", "claude-code"] as VaultSource[]).map((s) => (
+          <div key={s} className="text-text-muted flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full" style={{ background: SOURCE_COLOR[s] }} />
+            {SOURCE_LABEL[s]}
           </div>
         ))}
       </div>

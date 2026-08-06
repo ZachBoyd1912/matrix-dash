@@ -2,6 +2,32 @@
 
 # Changelog
 
+## 06/08/2026 @ 21:24:09 IST — "Sonnet 5"
+
+**Project completion: 86.67%** — 13 of 15 planned items done for this pass (all new/modified files, doc updates, and retirements from `~/.claude/plans/okay-it-works-perfect-fluffy-quiche.md`'s "Unified Vault Page" plan); deploy + live verification are the remaining two, both running immediately after this commit in the same session.
+
+**Goal:** After the Phase 4 work shipped (previous three entries), the user asked for two more things: (1) fix a live bug found while testing the runner — opening the IDE from Settings → Devices failed with "code-server isn't installed" despite it genuinely being installed (root cause found and fixed in `runner/src/service.ts` in a prior commit today — see the entry above this one); (2) unify Memory Bank, Matrix Notes, and Claude Code's own memory folder (previously invisible to matrix-dash entirely) into one Obsidian-styled browsable page, in the user's own words: "combine every subfolder into the memory system... down the left side will show each sub-vault." A literal embedded Obsidian app was investigated and ruled out — no code-server equivalent exists for Obsidian (closed-source Electron, no official server mode).
+
+**Fixed:**
+- `runner/src/version.ts` bumped 0.1.1 → 0.1.2 — the IDE PATH fix landed in a prior commit today, but production hasn't served it yet; this is what makes the self-updater treat this deploy's bundle as newer once it goes out (same reasoning as the earlier 0.1.0 → 0.1.1 bump this session).
+- `app/api/vault/claude-code/route.ts` + `.../file/route.ts` — new, but worth flagging as a fix-shaped decision: **GET-only, no POST/PUT/DELETE exported at all** is what actually enforces read-only access to Claude Code's folder (Next.js 405s anything else automatically) — not a separate permission check that could be forgotten or bypassed.
+
+**Added:**
+- `app/dashboard/vault/page.tsx` (+ `components/vault/*`) — one page replacing the two separate Memory Bank and Notes pages: a persistent left sidebar with three collapsible sections (Matrix Notes, Memory Bank, Claude Code — the last additionally nested by project folder), and a List/Graph toggle in the main pane. List mode reuses the existing `NoteEditor`/`MemoryDetail` components verbatim for notes/memories, and a new read-only `ClaudeCodeViewer` (frontmatter badges + a visible "read-only" notice) for Claude Code files. Graph mode is a new unified force-directed graph combining notes+memories (their existing DB-backed link tables) with Claude Code files (parsed `[[wikilink]]` references, since there's no DB table for them) — Claude Code nodes are scoped to one project at a time via a picker, not all five loaded simultaneously, because reading every file in every project on every render would be 150+ serial round-trips through the runner bridge.
+- `lib/services/claude-code-vault.ts` — read-only browse of Claude Code's `Memory/` subfolder specifically (not the sibling `Sessions/`/`README.md`), reusing the exact local-fs-then-Matrix-Runner-bridge pattern `obsidian-sync.ts` already established this session, and `parseFrontmatter` as-is for display.
+- `app/api/vault/graph/route.ts` — composes `notes`+`noteLinks` and `memories`+`memoryLinks` (same queries as the two now-retired graph routes) with an in-module mtime-keyed cache for the Claude Code file reads, avoiding a full re-read on every render when nothing changed.
+
+**Changed:**
+- `next.config.ts` — `/dashboard/notes` and `/dashboard/memory-bank` are now permanent redirects to `/dashboard/vault?vault=notes`/`?vault=memory-bank` (Next.js forwards unmatched query params automatically, so the command palette's existing `?focus=<id>`/`?new=1` deep links and `chat-interface.tsx`'s push to `/dashboard/memory-bank` all keep working unchanged, confirmed via a live redirect check: `?focus=abc123` → `/dashboard/vault?focus=abc123&vault=notes`). The old page components are deleted outright rather than left as client-side stubs, matching the existing `/dashboard/chat` redirect precedent from Phase 1 — a real HTTP redirect, not a mount-then-push component.
+- `components/layout/nav-items.ts` — "Memory Bank" and "Notes" collapse into one "Vault" nav entry.
+- `docs/obsidian-vault-layer.md` — Claude Code's folder is no longer documented as "nothing reads it back"; also caught and fixed two other stale claims left over from the Phase 4 entries (the Matrix Runner sync path was still described as "not yet wired," and the cron section still described the pre-fix always-unreachable-in-production behavior).
+
+**Retired:** `components/notes/notes-graph.tsx` + `-lazy.tsx`, `components/memory-bank/memory-graph.tsx` + `-lazy.tsx` — both fully superseded by the one new `VaultGraph`, deleted rather than left as dead code.
+
+**Verification:** `pnpm typecheck` 0 errors (after clearing stale `.next/types` from the two page deletions — same known gotcha as Phase 1), `pnpm lint` 0 errors (66 pre-existing warnings untouched, one new real issue caught and fixed: unescaped apostrophes in `ClaudeCodeViewer`'s JSX), `pnpm test --run` 160/160. Live-compiled locally: `/dashboard/vault` compiles cleanly (3118 modules, no errors), all three new API routes return a real 401 (auth-required) rather than a 500 crash, both redirects confirmed via `curl -I` returning 308 with the expected forwarded query params. Full click-through against real logged-in production and the actual deploy are the next step in this same session.
+
+**Files Touched:** `types/vault.ts`, `lib/services/claude-code-vault.ts`, `app/api/vault/claude-code/route.ts`, `.../file/route.ts`, `app/api/vault/graph/route.ts`, `components/vault/vault-sidebar.tsx`, `claude-code-viewer.tsx`, `vault-graph.tsx`, `vault-graph-lazy.tsx`, `app/dashboard/vault/page.tsx`, `next.config.ts`, `components/layout/nav-items.ts`, `docs/obsidian-vault-layer.md`, `runner/src/version.ts`, plus deletions of `app/dashboard/notes/page.tsx`, `app/dashboard/memory-bank/page.tsx`, and the four retired graph components, `CHANGELOG.md`
+
 ## 06/08/2026 @ 18:51:22 IST — "Sonnet 5"
 
 **Project completion: 100.00%** — 4 of 4 phases of the approved command-center redesign plan (`~/.claude/plans/okay-it-works-perfect-fluffy-quiche.md`) now shipped, deployed, and live-verified against production. This entry closes Phase 4 — the code landed in the previous three entries; this one is the deploy + the live verification that proves it actually works, not just that it typechecks.

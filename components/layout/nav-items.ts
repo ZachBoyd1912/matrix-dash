@@ -5,7 +5,6 @@ import {
   Blocks,
   Code2,
   Settings,
-  FileText,
   Sparkles,
   Mail,
   Wand2,
@@ -17,6 +16,7 @@ import {
   FolderKanban,
   SquareTerminal,
   Bot,
+  Vault,
   type LucideIcon,
 } from "lucide-react";
 
@@ -73,12 +73,11 @@ export const NAV_ITEMS: NavItem[] = [
     groupId: "playground",
   },
   {
-    href: "/dashboard/memory-bank",
-    label: "Memory Bank",
-    icon: BrainCircuit,
+    href: "/dashboard/vault",
+    label: "Vault",
+    icon: Vault,
     groupId: "knowledge",
   },
-  { href: "/dashboard/notes", label: "Notes", icon: FileText, groupId: "knowledge" },
   { href: "/dashboard/tasks", label: "Tasks", icon: CheckSquare, groupId: "work" },
   {
     href: "/dashboard/projects",
