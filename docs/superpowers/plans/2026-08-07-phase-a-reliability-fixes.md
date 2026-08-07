@@ -797,57 +797,131 @@ git commit -m "fix(runner): watchdog reconnects a silently-dropped connection"
 Both delete routes call `fs.rmSync` directly, which silently no-ops on the VM. The vault file survives and is re-imported as a brand new note on the next reconcile — a deleted note resurrects itself.
 
 **Files:**
+- Modify: `lib/services/obsidian-sync.ts`
 - Modify: `app/api/notes/[id]/route.ts`
 - Modify: `app/api/memories/[id]/route.ts`
+- Test: `__tests__/lib/obsidian-sync.test.ts`
 
 **Interfaces:**
-- Consumes: `tryRemoteFs` from `lib/services/runner-fs.ts`.
-- Produces: nothing consumed by later tasks.
+- Consumes: `tryRemoteFs` from `lib/services/runner-fs.ts`; `getSetting` from `lib/db/settings.ts`.
+- Produces: `export async function deleteVaultFile(subdir: string, relPath: string): Promise<boolean>` in `lib/services/obsidian-sync.ts` — returns `true` when the file was removed (locally or on the device), `false` when it could not be.
 
-- [ ] **Step 1: Update the notes DELETE handler**
+> **Ruling (human partner, pre-flight):** the delete logic lives in ONE place and both routes call it. An earlier draft of this task duplicated the block into both routes; two hand-synced copies is how the original bug survived unnoticed, so a shared helper governs.
 
-In `app/api/notes/[id]/route.ts`, add the import:
+- [ ] **Step 1: Write the failing test**
+
+Add to `__tests__/lib/obsidian-sync.test.ts` (create the file if absent, with the imports shown):
 
 ```ts
-import { tryRemoteFs } from "@/lib/services/runner-fs";
+import { describe, it, expect, afterAll } from "vitest";
+import fs from "fs";
+import os from "os";
+import path from "path";
+import { deleteVaultFile, NOTES_SUBDIR } from "@/lib/services/obsidian-sync";
+import { setSetting } from "@/lib/db/settings";
+
+const VAULT = fs.mkdtempSync(path.join(os.tmpdir(), "matrix-vaultdel-"));
+afterAll(() => fs.rmSync(VAULT, { recursive: true, force: true }));
+
+describe("deleteVaultFile", () => {
+  it("removes the file from the local vault when no device is paired", async () => {
+    setSetting("obsidianVaultPath", VAULT);
+    const dir = path.join(VAULT, NOTES_SUBDIR);
+    fs.mkdirSync(dir, { recursive: true });
+    const file = path.join(dir, "doomed.md");
+    fs.writeFileSync(file, "bye");
+
+    await expect(deleteVaultFile(NOTES_SUBDIR, "doomed.md")).resolves.toBe(true);
+    expect(fs.existsSync(file)).toBe(false);
+  });
+
+  it("returns false rather than throwing when no vault is configured", async () => {
+    setSetting("obsidianVaultPath", "");
+    await expect(deleteVaultFile(NOTES_SUBDIR, "whatever.md")).resolves.toBe(false);
+  });
+});
 ```
 
-Replace the vault-cleanup block inside `DELETE` with:
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `pnpm test --run __tests__/lib/obsidian-sync.test.ts`
+Expected: FAIL — no export named `deleteVaultFile`.
+
+- [ ] **Step 3: Implement the shared helper**
+
+In `lib/services/obsidian-sync.ts`, add (all four imports it needs — `fs`, `path`, `getSetting`, `tryRemoteFs` — are already present in this file):
+
+```ts
+/**
+ * Remove a file from the vault, one implementation shared by every caller.
+ * Prefers the paired device: in production the vault lives on the owner's Mac,
+ * where a local rmSync silently no-ops — leaving the file behind to be
+ * re-imported as a brand new note on the next reconcile, so a deleted note
+ * appears to resurrect itself.
+ *
+ * Returns true when the file was actually removed somewhere.
+ */
+export async function deleteVaultFile(subdir: string, relPath: string): Promise<boolean> {
+  const vaultPath = getSetting("obsidianVaultPath");
+  if (!vaultPath) return false;
+  const abs = path.join(vaultPath, subdir, relPath);
+
+  const remote = await tryRemoteFs("delete", { path: abs });
+  if (remote.handled) {
+    if (!remote.result.ok) {
+      console.error("[obsidian-sync] remote vault delete failed:", remote.result.error);
+    }
+    return remote.result.ok;
+  }
+
+  try {
+    fs.rmSync(abs, { force: true });
+    return true;
+  } catch (err) {
+    console.error("[obsidian-sync] local vault delete failed:", err);
+    return false;
+  }
+}
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `pnpm test --run __tests__/lib/obsidian-sync.test.ts`
+Expected: PASS (2 tests).
+
+- [ ] **Step 5: Call it from the notes route**
+
+In `app/api/notes/[id]/route.ts`, add `deleteVaultFile` to the existing `@/lib/services/obsidian-sync` import, then replace the vault-cleanup block inside `DELETE` with:
 
 ```ts
   if (existing?.vaultRelPath) {
-    try {
-      const vaultPath = getSetting("obsidianVaultPath");
-      if (vaultPath) {
-        const abs = path.join(vaultPath, NOTES_SUBDIR, existing.vaultRelPath);
-        // Prefer the device — in production the vault is on the owner's Mac,
-        // and a local rmSync here silently no-ops, leaving the file to be
-        // re-imported as a new note on the next reconcile.
-        const remote = await tryRemoteFs("delete", { path: abs });
-        if (!remote.handled) fs.rmSync(abs, { force: true });
-        else if (!remote.result.ok) {
-          console.error("[notes] remote vault delete failed:", remote.result.error);
-        }
-      }
-    } catch (err) {
-      console.error("[notes] failed to delete vault file:", err);
-    }
+    await deleteVaultFile(NOTES_SUBDIR, existing.vaultRelPath);
   }
 ```
 
-- [ ] **Step 2: Apply the identical change to memories**
+If `fs`, `path` or `getSetting` are now unused in this file, remove those imports — `pnpm lint` will flag them.
 
-In `app/api/memories/[id]/route.ts`, add the same `tryRemoteFs` import and replace its vault-cleanup block with the same code, substituting `MEMORIES_SUBDIR` for `NOTES_SUBDIR` and `[memories]` for `[notes]` in the log messages.
+- [ ] **Step 6: Call it from the memories route**
 
-- [ ] **Step 3: Verify**
+In `app/api/memories/[id]/route.ts`, add `deleteVaultFile` to the existing `@/lib/services/obsidian-sync` import, then replace its vault-cleanup block with:
+
+```ts
+  if (existing?.vaultRelPath) {
+    await deleteVaultFile(MEMORIES_SUBDIR, existing.vaultRelPath);
+  }
+```
+
+Remove any imports this leaves unused.
+
+- [ ] **Step 7: Run the full gate**
 
 Run: `pnpm typecheck && pnpm lint && pnpm test --run`
-Expected: 0 errors, 160+ tests pass.
+Expected: 0 type errors, 0 lint errors, all tests pass (162+).
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add app/api/notes/\[id\]/route.ts app/api/memories/\[id\]/route.ts
+git add lib/services/obsidian-sync.ts app/api/notes/\[id\]/route.ts app/api/memories/\[id\]/route.ts __tests__/lib/obsidian-sync.test.ts
 git commit -m "fix(vault): delete vault files through the device bridge"
 ```
 
