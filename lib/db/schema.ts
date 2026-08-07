@@ -800,3 +800,30 @@ export const runnerJobs = sqliteTable("runner_jobs", {
   dispatchedAt: text("dispatched_at"),
   completedAt: text("completed_at"),
 });
+
+// ─── VAULT INDEX (see docs/obsidian-vault-layer.md) ──────
+// A persisted mirror of the Obsidian vault so the Vault page stays browsable
+// and searchable while the owner's Mac is asleep. Written only by
+// lib/services/vault-index.ts.
+export const vaultFiles = sqliteTable("vault_files", {
+  relPath: text("rel_path").primaryKey(),
+  name: text("name").notNull(),
+  ext: text("ext").notNull().default(""),
+  dirPath: text("dir_path").notNull().default(""),
+  mtimeMs: integer("mtime_ms"),
+  isText: integer("is_text", { mode: "boolean" }).notNull().default(true),
+  // Stored for text files only — this is what makes offline search possible.
+  content: text("content").notNull().default(""),
+  indexedAt: text("indexed_at").notNull(),
+});
+
+export const vaultLinks = sqliteTable("vault_links", {
+  id: text("id").primaryKey(),
+  sourcePath: text("source_path").notNull(),
+  // Null when the [[target]] resolves to nothing — rendered as a ghost node.
+  targetPath: text("target_path"),
+  targetRaw: text("target_raw").notNull(),
+  kind: text("kind", { enum: ["wikilink", "embed"] })
+    .notNull()
+    .default("wikilink"),
+});

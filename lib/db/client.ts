@@ -487,6 +487,41 @@ CREATE TRIGGER IF NOT EXISTS skills_au AFTER UPDATE ON skills BEGIN
   INSERT INTO skills_fts(skills_fts, rowid, name, description, instructions) VALUES('delete', old.rowid, old.name, old.description, old.instructions);
   INSERT INTO skills_fts(rowid, name, description, instructions) VALUES (new.rowid, new.name, new.description, new.instructions);
 END;
+
+CREATE TABLE IF NOT EXISTS vault_files (
+  rel_path TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  ext TEXT NOT NULL DEFAULT '',
+  dir_path TEXT NOT NULL DEFAULT '',
+  mtime_ms INTEGER,
+  is_text INTEGER NOT NULL DEFAULT 1,
+  content TEXT NOT NULL DEFAULT '',
+  indexed_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS vault_links (
+  id TEXT PRIMARY KEY,
+  source_path TEXT NOT NULL,
+  target_path TEXT,
+  target_raw TEXT NOT NULL,
+  kind TEXT NOT NULL DEFAULT 'wikilink'
+);
+CREATE INDEX IF NOT EXISTS vault_links_source ON vault_links(source_path);
+CREATE INDEX IF NOT EXISTS vault_links_target ON vault_links(target_path);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS vault_files_fts USING fts5(
+  rel_path, name, content, content=vault_files, content_rowid=rowid
+);
+CREATE TRIGGER IF NOT EXISTS vault_files_ai AFTER INSERT ON vault_files BEGIN
+  INSERT INTO vault_files_fts(rowid, rel_path, name, content) VALUES (new.rowid, new.rel_path, new.name, new.content);
+END;
+CREATE TRIGGER IF NOT EXISTS vault_files_ad AFTER DELETE ON vault_files BEGIN
+  INSERT INTO vault_files_fts(vault_files_fts, rowid, rel_path, name, content) VALUES('delete', old.rowid, old.rel_path, old.name, old.content);
+END;
+CREATE TRIGGER IF NOT EXISTS vault_files_au AFTER UPDATE ON vault_files BEGIN
+  INSERT INTO vault_files_fts(vault_files_fts, rowid, rel_path, name, content) VALUES('delete', old.rowid, old.rel_path, old.name, old.content);
+  INSERT INTO vault_files_fts(rowid, rel_path, name, content) VALUES (new.rowid, new.rel_path, new.name, new.content);
+END;
 `;
 
 type DB = BetterSQLite3Database<typeof schema>;
