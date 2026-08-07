@@ -171,6 +171,11 @@ export function startDaemon() {
 
   // Heartbeat every minute: reminders + (once a day) memory decay.
   s.heartbeat = cron.schedule("* * * * *", () => {
+    // Device liveness first — a silently dead runner is what makes every other
+    // sync below quietly produce stale or wrong data.
+    runAsOwner(() => {
+      void import("./runner-health").then((m) => m.checkDeviceHealth()).catch(() => {});
+    });
     void processReminders();
     const minute = new Date().getMinutes();
     const hour = new Date().getHours();

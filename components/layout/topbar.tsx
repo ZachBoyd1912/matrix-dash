@@ -7,6 +7,7 @@ import { useOnlineStatus } from "@/lib/hooks/use-online-status";
 import { NAV_ITEMS } from "./nav-items";
 import { ThemeToggle } from "./theme-toggle";
 import { NotificationBell } from "./notification-bell";
+import { DeviceStatus } from "./device-status";
 import { ApprovalBadge } from "./approval-badge";
 import { VoiceOrb } from "./voice-orb";
 import { VoiceAnnouncer } from "./voice-announcer";
@@ -91,6 +92,7 @@ export function Topbar() {
           <VoiceOrb />
           <VoiceAnnouncer />
           <ApprovalBadge />
+          <DeviceStatus />
           <NotificationBell />
           <div className="relative grid h-8 w-8 place-items-center rounded-full border border-white/10 bg-gradient-to-br from-emerald-400/30 to-sky-400/30 shadow-[0_0_16px_-4px_rgba(52,211,153,0.5)]">
             <Sparkles size={13} className="text-emerald-300" />
