@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { projects, githubConnections, githubRepos, siteHealth } from "@/lib/db/schema";
 import { getSetting, setSetting } from "@/lib/db/settings";
+import { tryRemoteFs } from "@/lib/services/runner-fs";
 
 /**
  * Portfolio truth-sync — the only writer of project rows.
@@ -79,6 +80,45 @@ export function localPathStatus(p: string): PathStatus {
   const parent = path.dirname(p);
   if (parent === p) return "unknown";
   return fs.existsSync(parent) ? "gone" : "unknown";
+}
+
+/** Map a device fs-op outcome onto a PathStatus. Only a real ENOENT means gone. */
+export function classifyRemoteFsResult(handled: boolean, ok: boolean, error?: string): PathStatus {
+  if (!handled) return "unknown";
+  if (ok) return "exists";
+  const msg = (error ?? "").toLowerCase();
+  return msg.includes("enoent") || msg.includes("no such file") ? "gone" : "unknown";
+}
+
+/**
+ * Resolve path existence on the OWNER'S device. Returns null when no device is
+ * reachable at all, so the caller falls back to localPathStatus. Probes run
+ * concurrently — serially this was 12 paths x a 15s timeout ceiling.
+ */
+async function resolveRemotePathStatus(
+  paths: string[]
+): Promise<((p: string) => PathStatus) | null> {
+  const unique = [...new Set(paths.filter(Boolean))];
+  if (unique.length === 0) return null;
+
+  const probe = await tryRemoteFs("list", { path: unique[0] });
+  if (!probe.handled) return null; // no online device — caller uses local fs
+
+  const status = new Map<string, PathStatus>();
+  status.set(unique[0], classifyRemoteFsResult(probe.handled, probe.result.ok, probe.result.error));
+
+  const rest = await Promise.all(
+    unique.slice(1).map(async (p) => {
+      const res = await tryRemoteFs("list", { path: p });
+      const s = res.handled
+        ? classifyRemoteFsResult(res.handled, res.result.ok, res.result.error)
+        : classifyRemoteFsResult(res.handled, false, undefined);
+      return [p, s] as const;
+    })
+  );
+  for (const [p, s] of rest) status.set(p, s);
+
+  return (p: string) => status.get(p) ?? "unknown";
 }
 
 export function slugify(name: string): string {
@@ -428,7 +468,10 @@ export async function syncPortfolio(): Promise<{
       })
       .from(projects)
       .all();
-    upsertProjects(reconcile(local, remote, existing));
+    const remotePathStatus = await resolveRemotePathStatus(
+      existing.map((r) => r.path).filter((p): p is string => !!p)
+    );
+    upsertProjects(reconcile(local, remote, existing, remotePathStatus ?? undefined));
   } catch {
     sources.local = false;
     sources.github = false;

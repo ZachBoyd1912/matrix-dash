@@ -8,6 +8,7 @@ import {
   probeSites,
   upsertProjects,
   localPathStatus,
+  classifyRemoteFsResult,
   type LocalRepo,
   type RemoteRepo,
 } from "@/lib/services/portfolio-sync";
@@ -42,6 +43,27 @@ describe("localPathStatus", () => {
   it("reports unknown when the parent itself is not visible from this host", () => {
     // Exactly the production case: a VM asked about a Mac path.
     expect(localPathStatus("/Users/someone/Desktop/whatever")).toBe("unknown");
+  });
+});
+
+describe("classifyRemoteFsResult", () => {
+  it("treats a successful listing as exists", () => {
+    expect(classifyRemoteFsResult(true, true)).toBe("exists");
+  });
+
+  it("treats ENOENT from the device as genuinely gone", () => {
+    expect(
+      classifyRemoteFsResult(true, false, "ENOENT: no such file or directory, scandir '/x'")
+    ).toBe("gone");
+  });
+
+  it("treats any other device error as unknown, not gone", () => {
+    // A sandbox rejection must never be read as "the user deleted this".
+    expect(classifyRemoteFsResult(true, false, "Path escapes the workspace root")).toBe("unknown");
+  });
+
+  it("treats an unreachable device as unknown", () => {
+    expect(classifyRemoteFsResult(false, false)).toBe("unknown");
   });
 });
 
