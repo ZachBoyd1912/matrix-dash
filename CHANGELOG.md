@@ -2,6 +2,25 @@
 
 # Changelog
 
+## 07/08/2026 @ 20:02:30 IST — "Sonnet 5"
+
+**Project completion: 92.86%** — unchanged from the previous entry: 13 of 14 planned tasks. Phase B Task 5 (deploy and live verification) is still the one open item, because running it is what produced this entry. The deploy itself succeeded; verifying it found two real bugs, both fixed here, and the verification finishes after this.
+
+**Goal:** Deploy Phase B and confirm it live. Everything below was found by actually running the deploy and looking at production — none of it was visible from the code, and all of it passed typecheck, lint and 230 tests.
+
+**Fixed:**
+- `runner/src/api.ts` — **a hung uplink flush silenced the device permanently.** After the deploy restarted the service, the runner logged "connected" and the server showed the device offline for eight minutes. The Vault page's scan came back `unreachable`, and only a process restart cleared it. `EventUplink.flush()` had no timeout on its fetch, and `flushing` is a latch: a request that never settles leaves it `true` forever, so every later flush returns immediately and the device goes silent. **The downlink watchdog shipped this morning cannot catch this** — pings keep arriving and keep resetting it, so from the client's side everything looks healthy. Failures were swallowed whole as well (no log on a non-2xx, none on a network error), which is why the outage produced no evidence at all. Now: a 20s abort per flush, plus failure reporting (first failure, then every 30th, and a recovery line). Runner bumped to 0.1.4.
+  - An explicit `AbortController` rather than `AbortSignal.timeout()`, deliberately: that helper is backed by a native timer no test clock can advance, and this needed a test that exercises the hang for real. Removing the signal fails that test.
+- `components/vault/vault-graph.tsx` — **the graph's 94 edges were invisible in production.** The component drew them in hardcoded `#ffffff`, inherited from when every theme was dark. Paper Signal is the default now, so white edges on cream render as nothing — which reads as "the graph still has no connecting lines", the exact complaint this work exists to answer. Caught by taking a screenshot of the live page; the API returning 94 edges is not evidence anyone can see 94 lines.
+  - The first attempt at that fix was itself wrong and worth recording: `d3.attr("stroke", "var(--color-text-secondary)")` writes an SVG *presentation attribute*, where `var()` is never substituted — the browser drops the value and the edges get **no stroke at all**, worse than the white they replaced. `.style()` writes a CSS declaration, where `var()` does resolve. Caught in review before it shipped.
+
+**Verification:** deployed `cbb5ae9` via `./deploy/deploy.sh` (CI artifact, no VM resize — service restarted, all three domains answered). Live, with the device online: **95 files indexed through the device bridge**, `unreachable=false`; all three top-level folders including `Claude Code/Sessions/` (3 files) which the old sidebar could not display at all; **103 graph nodes, 94 edges, 8 ghosts**; search returned 9 hits for a phrase living only inside Claude Code files; `matrix-runner-platform.md` opened with 4 real backlinks; `/dashboard/notes` and `/dashboard/memory-bank` both still redirect. `pnpm typecheck` 0, `pnpm lint` 0 errors / 66 warnings, **233 tests passing**.
+
+**Also confirmed working by accident:** while the device was offline, the Vault page listed 22 files — the note and memory rows that have no vault file cached — with `unreachable: true`. That is the `notInVault` fallback doing exactly its job: the page never went blank, and it never claimed the vault was empty.
+
+**Files touched:** `runner/src/api.ts`, `runner/src/connect.ts`, `runner/src/version.ts`, `components/vault/vault-graph.tsx`, `__tests__/lib/runner-uplink.test.ts` (new).
+
+
 ## 07/08/2026 @ 19:43:33 IST — "Sonnet 5"
 
 **Project completion: 92.86%** — 13 of the 14 tasks across the two plans written for this work are complete: all 9 in `docs/superpowers/plans/2026-08-07-phase-a-reliability-fixes.md` (shipped and live-verified earlier today) and 4 of 5 in `docs/superpowers/plans/2026-08-07-phase-b-vault-index.md`. The one still open is Phase B Task 5 — deploy and live verification — which runs immediately after this entry. Nothing else in either plan is outstanding.
