@@ -8,7 +8,7 @@ import { vaultFiles, vaultLinks } from "@/lib/db/schema";
 import { getSetting, setSetting } from "@/lib/db/settings";
 import { tryRemoteFs } from "./runner-fs";
 import type { TreeEntry } from "@/types/workspace";
-import type { VaultScanEntry, VaultScanResult } from "@/types/vault";
+import type { VaultFreshness, VaultScanEntry, VaultScanResult } from "@/types/vault";
 
 /**
  * The persisted mirror of the Obsidian vault. This module is the ONLY writer of
@@ -433,7 +433,34 @@ async function runScan(): Promise<VaultScanResult> {
   return { indexed, skipped, failed, removed, partial, unreachable: false };
 }
 
+/**
+ * The vault's own name — its directory basename, which is exactly what
+ * Obsidian uses in an `obsidian://open?vault=<name>` URI. Null when no vault
+ * is configured, so the UI can omit the link rather than build a broken one.
+ */
+export function getVaultName(): string | null {
+  const vaultPath = getSetting("obsidianVaultPath")?.trim();
+  if (!vaultPath) return null;
+  return path.basename(vaultPath.replace(/[\\/]+$/, "")) || null;
+}
+
 /** When the index was last successfully refreshed — drives the stale banner. */
 export function getVaultIndexedAt(): string | null {
   return getSetting("vaultIndexedAt");
+}
+
+/**
+ * Refresh the index and report how much to trust what comes back. Every vault
+ * route calls this before reading, so a page load always reflects reality when
+ * reality is reachable — and says so plainly when it is not, rather than
+ * presenting a stale index as current.
+ */
+export async function refreshVault(): Promise<VaultFreshness> {
+  const result = await scanVault();
+  return {
+    indexedAt: getVaultIndexedAt(),
+    stale: result.unreachable,
+    unreachable: result.unreachable,
+    partial: result.partial,
+  };
 }

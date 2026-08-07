@@ -13,39 +13,26 @@ import {
   type SimulationNodeDatum,
   type SimulationLinkDatum,
 } from "d3-force";
-import type { MemoryType } from "@/types/memory";
-import type { VaultGraphData, VaultGraphLink, VaultGraphNode, VaultSource } from "@/types/vault";
+import type { VaultGraphData, VaultGraphLink, VaultGraphNode } from "@/types/vault";
 
 interface Node extends VaultGraphNode, SimulationNodeDatum {}
 type Link = SimulationLinkDatum<Node> & VaultGraphLink;
 
-const SOURCE_COLOR: Record<VaultSource, string> = {
-  note: "#a78bfa",
-  memory: "#38bdf8", // overridden per-node by MEMORY_TYPE_HEX when memoryType is set
-  "claude-code": "#fb923c",
-};
-
-const SOURCE_LABEL: Record<VaultSource, string> = {
-  note: "Matrix Notes",
-  memory: "Memory Bank",
-  "claude-code": "Claude Code (read-only)",
-};
-
-// MEMORY_TYPE_META stores Tailwind classes, not hex — mirror memory-graph.tsx's
-// own hardcoded hex table instead of trying to parse a Tailwind class name.
-const MEMORY_TYPE_HEX: Record<MemoryType, string> = {
-  identity: "#34d399",
-  project: "#38bdf8",
-  global: "#fbbf24",
-  lesson: "#f43f5e",
-};
-
 interface Props {
   data: VaultGraphData;
-  onSelect?: (id: string) => void;
+  /** Receives a vault-relative path; ghost nodes are not selectable. */
+  onSelect?: (relPath: string) => void;
 }
 
-/** Unified vault graph — notes (violet), memories (colored by type), Claude Code (orange). */
+/**
+ * The whole vault as one force graph — every indexed file, coloured by its
+ * top-level folder, with a real edge for every [[link]] and ![[embed]].
+ *
+ * The previous version drew notes and memories from their own DB link tables
+ * plus one hand-picked Claude Code project, which is why the graph looked
+ * almost edgeless: nothing resolved links across folders. Everything here
+ * comes from `vault_links`, resolved once at scan time.
+ */
 export function VaultGraph({ data, onSelect }: Props) {
   const ref = useRef<SVGSVGElement | null>(null);
 
@@ -59,29 +46,26 @@ export function VaultGraph({ data, onSelect }: Props) {
     const g = svg.append("g");
     svg.call(
       zoom<SVGSVGElement, unknown>()
-        .scaleExtent([0.2, 4])
+        .scaleExtent([0.1, 4])
         .on("zoom", (event: D3ZoomEvent<SVGSVGElement, unknown>) => {
           g.attr("transform", event.transform.toString());
         })
     );
 
     const nodes: Node[] = data.nodes.map((n) => ({ ...n }));
+    const ids = new Set(nodes.map((n) => n.id));
     const links: Link[] = data.links
-      .filter((l) => nodes.some((n) => n.id === l.source) && nodes.some((n) => n.id === l.target))
+      .filter((l) => ids.has(l.source as string) && ids.has(l.target as string))
       .map((l) => ({ ...l }));
-
-    const nodeColor = (d: Node): string =>
-      d.source === "memory" && d.memoryType
-        ? MEMORY_TYPE_HEX[d.memoryType]
-        : SOURCE_COLOR[d.source];
 
     const link = g
       .append("g")
-      .attr("stroke", "#ffffff")
-      .attr("stroke-opacity", 0.15)
       .selectAll<SVGLineElement, Link>("line")
       .data(links)
       .join("line")
+      .attr("stroke", "#ffffff")
+      // Embeds read as a weaker relationship than an explicit link.
+      .attr("stroke-opacity", (d) => (d.kind === "embed" ? 0.1 : 0.2))
       .attr("stroke-width", 1);
 
     const node = g
@@ -89,28 +73,34 @@ export function VaultGraph({ data, onSelect }: Props) {
       .selectAll<SVGGElement, Node>("g")
       .data(nodes)
       .join("g")
-      .attr("cursor", "pointer")
-      .on("click", (_e, d) => onSelect?.(d.id));
+      .attr("cursor", (d) => (d.isGhost ? "default" : "pointer"))
+      .on("click", (_e, d) => {
+        if (d.relPath) onSelect?.(d.relPath);
+      });
 
-    const radius = (d: Node) => 5 + (d.isPinned || d.isFavorite ? 3 : 0);
+    // Well-connected files read as hubs, the way they do in Obsidian.
+    const radius = (d: Node) => (d.isGhost ? 3.5 : 4 + Math.min(6, Math.sqrt(d.degree) * 2));
 
     node
       .append("circle")
       .attr("r", radius)
-      .attr("fill", nodeColor)
-      .attr("fill-opacity", 0.75)
-      .attr("stroke", nodeColor)
-      .attr("stroke-opacity", 0.9)
-      .attr("stroke-width", (d) => (d.isPinned || d.isFavorite ? 2 : 0.8));
+      .attr("fill", (d) => d.color)
+      .attr("fill-opacity", (d) => (d.isGhost ? 0.18 : 0.75))
+      .attr("stroke", (d) => d.color)
+      .attr("stroke-opacity", (d) => (d.isGhost ? 0.35 : 0.9))
+      .attr("stroke-width", (d) => (d.isGhost ? 1 : 0.8))
+      .attr("stroke-dasharray", (d) => (d.isGhost ? "2 2" : null));
 
-    node.append("title").text((d) => `${d.label}\n(${SOURCE_LABEL[d.source]})`);
+    node
+      .append("title")
+      .text((d) => (d.isGhost ? `${d.label}\n(not in the vault)` : d.relPath || d.label));
 
     node
       .append("text")
       .text((d) => d.label.slice(0, 26) + (d.label.length > 26 ? "…" : ""))
       .attr("font-size", 9)
       .attr("font-family", "var(--font-sans), sans-serif")
-      .attr("fill", "#888")
+      .attr("fill", (d) => (d.isGhost ? "#555" : "#888"))
       .attr("dx", (d) => radius(d) + 6)
       .attr("dy", 3)
       .attr("pointer-events", "none");
@@ -120,10 +110,10 @@ export function VaultGraph({ data, onSelect }: Props) {
         "link",
         forceLink<Node, Link>(links)
           .id((d) => d.id)
-          .distance(80)
-          .strength(0.4)
+          .distance(70)
+          .strength(0.35)
       )
-      .force("charge", forceManyBody<Node>().strength(-170))
+      .force("charge", forceManyBody<Node>().strength(nodes.length > 300 ? -70 : -170))
       .force("center", forceCenter(width / 2, height / 2))
       .force(
         "collide",
@@ -161,17 +151,31 @@ export function VaultGraph({ data, onSelect }: Props) {
     };
   }, [data, onSelect]);
 
+  const ghostCount = data.nodes.filter((n) => n.isGhost).length;
+
   return (
     <div className="relative h-full w-full">
       <svg ref={ref} className="absolute inset-0 h-full w-full" />
       <div className="absolute top-3 left-3 flex flex-col gap-1 text-[10px]">
-        {(["note", "memory", "claude-code"] as VaultSource[]).map((s) => (
-          <div key={s} className="text-text-muted flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full" style={{ background: SOURCE_COLOR[s] }} />
-            {SOURCE_LABEL[s]}
+        {data.folders.map((f) => (
+          <div key={f.name} className="text-text-muted flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full" style={{ background: f.color }} />
+            {f.name}
+            <span className="tabular-nums opacity-60">{f.count}</span>
           </div>
         ))}
+        {ghostCount > 0 && (
+          <div className="text-text-muted flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full border border-dashed border-slate-400/60" />
+            Unresolved <span className="tabular-nums opacity-60">{ghostCount}</span>
+          </div>
+        )}
       </div>
+      {data.truncated && (
+        <div className="text-text-muted absolute right-3 bottom-3 rounded-md border border-amber-400/20 bg-amber-400/[0.08] px-2 py-1 text-[10px] text-amber-300/90">
+          Showing the first {data.nodes.filter((n) => !n.isGhost).length} of {data.total} files
+        </div>
+      )}
     </div>
   );
 }

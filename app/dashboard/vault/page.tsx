@@ -1,12 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Plus, Network, List as ListIcon, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty";
-import { Select } from "@/components/ui/select";
 import { VaultSidebar } from "@/components/vault/vault-sidebar";
-import { ClaudeCodeViewer } from "@/components/vault/claude-code-viewer";
+import { VaultFileViewer } from "@/components/vault/vault-file-viewer";
 import { VaultGraph } from "@/components/vault/vault-graph-lazy";
 import { NoteEditor } from "@/components/notes/note-editor";
 import { MemoryDetail } from "@/components/memory-bank/memory-detail";
@@ -15,44 +14,106 @@ import { useDebounce } from "@/lib/hooks/use-debounce";
 import { useGsapEntrance } from "@/lib/hooks/use-gsap-entrance";
 import type { Note, NoteBacklinks } from "@/types/note";
 import type { LinkedMemory, Memory } from "@/types/memory";
-import type { ClaudeCodeFileContent, ClaudeCodeTree, VaultGraphData } from "@/types/vault";
+import type {
+  VaultFileDetail,
+  VaultGraphData,
+  VaultIndexResponse,
+  VaultSearchHit,
+  VaultTreeFile,
+  VaultTreeFolder,
+} from "@/types/vault";
 
 type Detail =
   | { source: "note"; note: Note; backlinks: NoteBacklinks }
   | { source: "memory"; memory: Memory; links: LinkedMemory[] }
-  | { source: "claude-code"; file: ClaudeCodeFileContent };
+  | { source: "file"; file: VaultFileDetail };
 
-/** Parses the `cc:<project>/<relPath>` node-id shape used throughout this page. */
-function parseCcId(id: string): { project: string; file: string } | null {
-  const rest = id.slice("cc:".length);
-  const slash = rest.indexOf("/");
-  if (slash === -1) return null;
-  return { project: rest.slice(0, slash), file: rest.slice(slash + 1) };
+/** How often the index refreshes while the page sits open. */
+const REFRESH_INTERVAL_MS = 10 * 60_000;
+
+function walkFiles(folders: VaultTreeFolder[], out: VaultTreeFile[]): VaultTreeFile[] {
+  for (const folder of folders) {
+    out.push(...folder.files);
+    walkFiles(folder.folders, out);
+  }
+  return out;
 }
 
 export default function VaultPage() {
   const ref = useGsapEntrance();
-  const [notes, setNotes] = useState<Note[] | null>(null);
-  const [memories, setMemories] = useState<Memory[] | null>(null);
-  const [ccTree, setCcTree] = useState<ClaudeCodeTree | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [index, setIndex] = useState<VaultIndexResponse | null>(null);
+  const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [revealPath, setRevealPath] = useState<string | null>(null);
   const [detail, setDetail] = useState<Detail | null>(null);
   const [view, setView] = useState<"list" | "graph">("list");
   const [graph, setGraph] = useState<VaultGraphData | null>(null);
-  const [ccGraphProject, setCcGraphProject] = useState<string>("");
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebounce(query, 250);
+  const [searchResults, setSearchResults] = useState<VaultSearchHit[] | null>(null);
+  const [searching, setSearching] = useState(false);
   const [newMemoryOpen, setNewMemoryOpen] = useState(false);
 
-  // Honor ?vault=notes|memory-bank + ?focus=<rawId> + ?new=1 (redirect stubs
-  // from the old /dashboard/notes and /dashboard/memory-bank routes, and any
-  // other deep link e.g. the command palette).
+  const refreshIndex = useCallback(async () => {
+    try {
+      const res = await fetch("/api/vault/index");
+      if (res.ok) setIndex(await res.json());
+    } catch {
+      /* keep whatever is already rendered rather than blanking the sidebar */
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshIndex();
+    const timer = setInterval(() => void refreshIndex(), REFRESH_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [refreshIndex]);
+
+  // Everything in the tree, flattened once, so a selected path can be mapped
+  // back to its DB row (if any) without walking the tree on every render.
+  const filesByPath = useRef(new Map<string, VaultTreeFile>());
+  useEffect(() => {
+    if (!index) return;
+    const all = walkFiles(index.folders, [...index.rootFiles]);
+    filesByPath.current = new Map(all.map((f) => [f.relPath, f]));
+  }, [index]);
+
+  const createNote = useCallback(
+    async (title?: string) => {
+      const res = await fetch("/api/notes", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: title ?? "Untitled note", content: "" }),
+      });
+      const data = await res.json();
+      setDetail(null);
+      setSelectedPath(null);
+      // The vault file does not exist until the Obsidian sync writes it, so open
+      // the note by id straight away rather than waiting for the next scan.
+      const detailRes = await fetch(`/api/notes/${data.id}`);
+      if (detailRes.ok) setDetail({ source: "note", ...(await detailRes.json()) });
+      void refreshIndex();
+    },
+    [refreshIndex]
+  );
+
+  // Honor ?vault=notes|memory-bank + ?focus=<rawId> + ?new=1 — the redirect
+  // stubs at /dashboard/notes and /dashboard/memory-bank and the command
+  // palette both deep-link this way.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const vault = params.get("vault");
     const focus = params.get("focus");
-    if (focus && vault === "notes") setSelectedId(`note:${focus}`);
-    else if (focus && vault === "memory-bank") setSelectedId(`memory:${focus}`);
+    if (focus && vault === "notes") {
+      fetch(`/api/notes/${focus}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => data && setDetail({ source: "note", ...data }))
+        .catch(() => {});
+    } else if (focus && vault === "memory-bank") {
+      fetch(`/api/memories/${focus}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => data && setDetail({ source: "memory", ...data }))
+        .catch(() => {});
+    }
     if (params.get("new") === "1") {
       if (vault === "memory-bank") setNewMemoryOpen(true);
       else void createNote();
@@ -60,141 +121,131 @@ export default function VaultPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const refreshNotes = useCallback(async () => {
-    const params = new URLSearchParams();
-    if (debouncedQuery.trim()) params.set("q", debouncedQuery.trim());
-    const res = await fetch(`/api/notes?${params}`);
-    setNotes(await res.json());
+  useEffect(() => {
+    const q = debouncedQuery.trim();
+    if (!q) {
+      setSearchResults(null);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    let cancelled = false;
+    fetch(`/api/vault/search?q=${encodeURIComponent(q)}`)
+      .then((r) => (r.ok ? r.json() : { results: [] }))
+      .then((data) => {
+        if (cancelled) return;
+        setSearchResults(data.results ?? []);
+        setSearching(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setSearchResults([]);
+        setSearching(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [debouncedQuery]);
-
-  const refreshMemories = useCallback(async () => {
-    const params = new URLSearchParams();
-    if (debouncedQuery.trim()) params.set("q", debouncedQuery.trim());
-    const res = await fetch(`/api/memories?${params}`);
-    setMemories(await res.json());
-  }, [debouncedQuery]);
-
-  useEffect(() => {
-    void refreshNotes();
-  }, [refreshNotes]);
-  useEffect(() => {
-    void refreshMemories();
-  }, [refreshMemories]);
-
-  useEffect(() => {
-    fetch("/api/vault/claude-code")
-      .then((r) => r.json())
-      .then(setCcTree)
-      .catch(() => setCcTree({ projects: [], unreachable: true }));
-  }, []);
 
   useEffect(() => {
     if (view !== "graph") return;
-    const params = new URLSearchParams();
-    if (ccGraphProject) params.set("ccProject", ccGraphProject);
-    fetch(`/api/vault/graph?${params}`)
-      .then((r) => r.json())
+    fetch("/api/vault/graph")
+      .then((r) => (r.ok ? r.json() : null))
       .then(setGraph)
       .catch(() => setGraph(null));
-  }, [view, ccGraphProject, notes, memories]);
+  }, [view, index]);
 
+  // A vault file that matrix-dash owns opens in its real editor; everything
+  // else opens read-only. The mapping lives in the index, not in the path.
   useEffect(() => {
-    if (!selectedId) {
-      setDetail(null);
-      return;
-    }
-    if (selectedId.startsWith("note:")) {
-      const id = selectedId.slice("note:".length);
-      fetch(`/api/notes/${id}`)
-        .then((r) => (r.ok ? r.json() : null))
-        .then((data) => setDetail(data ? { source: "note", ...data } : null))
-        .catch(() => setDetail(null));
-    } else if (selectedId.startsWith("memory:")) {
-      const id = selectedId.slice("memory:".length);
-      fetch(`/api/memories/${id}`)
-        .then((r) => (r.ok ? r.json() : null))
-        .then((data) => setDetail(data ? { source: "memory", ...data } : null))
-        .catch(() => setDetail(null));
-    } else if (selectedId.startsWith("cc:")) {
-      const parsed = parseCcId(selectedId);
-      if (!parsed) {
+    if (!selectedPath) return;
+    const known = filesByPath.current.get(selectedPath);
+    let cancelled = false;
+    const load = async () => {
+      if (known?.noteId) {
+        const res = await fetch(`/api/notes/${known.noteId}`);
+        if (!cancelled && res.ok) setDetail({ source: "note", ...(await res.json()) });
+        return;
+      }
+      if (known?.memoryId) {
+        const res = await fetch(`/api/memories/${known.memoryId}`);
+        if (!cancelled && res.ok) setDetail({ source: "memory", ...(await res.json()) });
+        return;
+      }
+      const res = await fetch(`/api/vault/file?path=${encodeURIComponent(selectedPath)}`);
+      if (cancelled) return;
+      if (!res.ok) {
         setDetail(null);
         return;
       }
-      fetch(
-        `/api/vault/claude-code/file?project=${encodeURIComponent(parsed.project)}&file=${encodeURIComponent(parsed.file)}`
-      )
-        .then((r) => (r.ok ? r.json() : null))
-        .then((data) => setDetail(data ? { source: "claude-code", file: data } : null))
-        .catch(() => setDetail(null));
-    }
-  }, [selectedId]);
+      const file: VaultFileDetail = await res.json();
+      // The index route and the file route agree on backing, so prefer the
+      // file route's answer when the flattened tree is momentarily stale.
+      if (file.noteId) {
+        const noteRes = await fetch(`/api/notes/${file.noteId}`);
+        if (!cancelled && noteRes.ok) setDetail({ source: "note", ...(await noteRes.json()) });
+        return;
+      }
+      if (file.memoryId) {
+        const memRes = await fetch(`/api/memories/${file.memoryId}`);
+        if (!cancelled && memRes.ok) setDetail({ source: "memory", ...(await memRes.json()) });
+        return;
+      }
+      setDetail({ source: "file", file });
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPath]);
 
-  const createNote = async (title?: string) => {
-    const res = await fetch("/api/notes", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ title: title ?? "Untitled note", content: "" }),
-    });
-    const data = await res.json();
-    setSelectedId(`note:${data.id}`);
-    await refreshNotes();
-  };
+  const selectPath = useCallback((relPath: string) => {
+    setSelectedPath(relPath);
+    setRevealPath(relPath);
+  }, []);
 
   const navigateNoteTitle = async (title: string) => {
-    const match = (notes ?? []).find((n) => n.title === title);
+    const res = await fetch(`/api/notes?q=${encodeURIComponent(title)}`);
+    const found: Note[] = res.ok ? await res.json() : [];
+    const match = found.find((n) => n.title.toLowerCase() === title.toLowerCase());
     if (match) {
-      setSelectedId(`note:${match.id}`);
+      const detailRes = await fetch(`/api/notes/${match.id}`);
+      if (detailRes.ok) setDetail({ source: "note", ...(await detailRes.json()) });
       return;
     }
     await createNote(title);
   };
 
-  // [[slug]] inside a Claude Code file resolves to another file in the SAME
-  // project — the confirmed on-disk convention (basename sans .md).
-  const navigateCcTitle = (title: string) => {
-    if (!detail || detail.source !== "claude-code") return;
-    const project = ccTree?.projects.find((p) => p.name === detail.file.project);
-    const match = project?.files.find((f) => f.name.toLowerCase() === title.toLowerCase());
-    if (match) setSelectedId(`cc:${match.project}/${match.relPath}`);
+  const openNoteById = async (id: string) => {
+    const res = await fetch(`/api/notes/${id}`);
+    if (res.ok) setDetail({ source: "note", ...(await res.json()) });
   };
 
-  const refreshAfterMemoryChange = () => {
-    void refreshMemories();
+  const openMemoryById = async (id: string) => {
+    const res = await fetch(`/api/memories/${id}`);
+    if (res.ok) setDetail({ source: "memory", ...(await res.json()) });
   };
-
-  const ccProjectOptions = useMemo(() => ccTree?.projects.map((p) => p.name) ?? [], [ccTree]);
 
   return (
     <div ref={ref} className="page-h grid grid-cols-1 md:grid-cols-[320px_1fr]">
       <VaultSidebar
-        notes={notes}
-        memories={memories}
-        ccTree={ccTree}
-        selectedId={selectedId}
-        onSelect={setSelectedId}
+        index={index}
+        searchResults={searchResults}
+        searching={searching}
+        selectedPath={selectedPath}
+        onSelectPath={selectPath}
         query={query}
         onQueryChange={setQuery}
         onNewNote={() => void createNote()}
         onNewMemory={() => setNewMemoryOpen(true)}
+        revealPath={revealPath}
       />
 
       <section className="flex min-w-0 flex-col">
-        <div className="flex items-center justify-end gap-2 border-b border-white/5 px-4 py-2">
-          {view === "graph" && ccProjectOptions.length > 0 && (
-            <Select
-              value={ccGraphProject}
-              onChange={(e) => setCcGraphProject(e.target.value)}
-              className="h-8 text-xs"
-            >
-              <option value="">Claude Code: none loaded</option>
-              {ccProjectOptions.map((p) => (
-                <option key={p} value={p}>
-                  Claude Code: {p}
-                </option>
-              ))}
-            </Select>
-          )}
+        <div className="flex items-center justify-between gap-2 border-b border-white/5 px-4 py-2">
+          <span className="text-text-muted truncate text-[11px]">
+            {index ? `${index.fileCount} files` : ""}
+          </span>
           <div className="glass-input flex items-center gap-1 rounded-md p-0.5">
             <button
               onClick={() => setView("list")}
@@ -220,8 +271,8 @@ export default function VaultPage() {
                 {graph && graph.nodes.length > 0 ? (
                   <VaultGraph
                     data={graph}
-                    onSelect={(id) => {
-                      setSelectedId(id);
+                    onSelect={(relPath) => {
+                      selectPath(relPath);
                       setView("list");
                     }}
                   />
@@ -230,7 +281,7 @@ export default function VaultPage() {
                     <EmptyState
                       icon={<Network size={16} />}
                       title="No graph yet"
-                      description="Add notes/memories and connect them with [[wiki links]], or pick a Claude Code project above."
+                      description="Nothing in the vault is indexed yet, or nothing links to anything. Connect files with [[wiki links]]."
                     />
                   </div>
                 )}
@@ -241,27 +292,32 @@ export default function VaultPage() {
               key={detail.note.id}
               note={detail.note}
               backlinks={detail.backlinks}
-              onChange={refreshNotes}
+              onChange={refreshIndex}
               onNavigateTitle={navigateNoteTitle}
-              onNavigateId={(id) => setSelectedId(`note:${id}`)}
+              onNavigateId={(id) => void openNoteById(id)}
             />
           ) : detail?.source === "memory" ? (
             <div className="mx-auto max-w-2xl p-4 md:p-6">
               <MemoryDetail
                 memory={detail.memory}
                 links={detail.links}
-                onChange={refreshAfterMemoryChange}
-                onSelectLinked={(id) => setSelectedId(`memory:${id}`)}
+                onChange={refreshIndex}
+                onSelectLinked={(id) => void openMemoryById(id)}
               />
             </div>
-          ) : detail?.source === "claude-code" ? (
-            <ClaudeCodeViewer file={detail.file} onNavigateTitle={navigateCcTitle} />
+          ) : detail?.source === "file" ? (
+            <VaultFileViewer
+              key={detail.file.relPath}
+              file={detail.file}
+              vaultName={index?.vaultName ?? null}
+              onSelectPath={selectPath}
+            />
           ) : (
             <div className="grid h-full place-items-center p-8">
               <EmptyState
                 icon={<FileText size={16} />}
                 title="Nothing selected"
-                description="Pick a note, memory, or Claude Code file from the sidebar."
+                description="Pick a file from the vault on the left, or search across every folder."
                 action={
                   <Button variant="primary" size="sm" onClick={() => void createNote()}>
                     <Plus size={13} /> New note
@@ -276,7 +332,7 @@ export default function VaultPage() {
       <NewMemoryDialog
         open={newMemoryOpen}
         onClose={() => setNewMemoryOpen(false)}
-        onCreated={refreshAfterMemoryChange}
+        onCreated={refreshIndex}
       />
     </div>
   );

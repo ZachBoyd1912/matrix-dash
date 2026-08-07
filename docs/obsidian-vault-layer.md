@@ -10,7 +10,7 @@ Don't try to merge the underlying storage; keep this convention instead.
 |---|---|---|
 | `Matrix Notes/` | Matrix Dashboard (`lib/services/obsidian-sync.ts`, `NOTES_SUBDIR`) | The `notes` table — manual wiki-style docs, two-way synced. |
 | `Memory Bank/` | Matrix Dashboard (`MEMORIES_SUBDIR`) | The `memories` table — facts extracted from chat, agent-saved memories, and manually created ones. Two-way synced. |
-| `Claude Code/Memory/<project>/` | Claude Code sessions on this Mac (per a `~/.claude/CLAUDE.md` instruction, not code in this repo) | Claude Code's own file-based memory system, mirrored into the vault whenever a new memory file is written in a session. Still one-way for WRITES (Claude Code → vault; matrix-dash never writes here — see below), but as of the unified Vault page (`app/dashboard/vault`), matrix-dash now READS it: `lib/services/claude-code-vault.ts` browses it read-only via the same local-fs-then-Matrix-Runner-bridge pattern `obsidian-sync.ts` uses. |
+| `Claude Code/Memory/<project>/`, `Claude Code/Sessions/` | Claude Code sessions on this Mac (per a `~/.claude/CLAUDE.md` instruction, not code in this repo) | Claude Code's own file-based memory system, mirrored into the vault whenever a new memory file is written in a session. Still one-way for WRITES (Claude Code → vault; matrix-dash never writes here — see below). matrix-dash READS it, along with every other folder in the vault, through the persisted index described below — there is no Claude-Code-specific read path any more. |
 | Wherever `agentmemory`'s `memory_obsidian_export` tool is pointed | The `agentmemory` MCP server (an entirely separate local daemon on `localhost:3111`, used by `/recall`/`/remember`/`/recap`) | A one-shot export of that server's own LevelDB-backed store. One-way, on-demand only — nothing schedules it and nothing imports back from the vault. Point its `vaultDir` argument at this same vault if you want its content living alongside everything else. |
 
 Any AI agent — Matrix Dashboard's own agents, or Claude Code — can read
@@ -57,34 +57,86 @@ means neither path currently works, not that the feature is unimplemented.
 ## The unified Vault page
 
 `app/dashboard/vault` (formerly two separate pages, `/dashboard/notes` and
-`/dashboard/memory-bank`, both now redirect here) browses all three matrix-dash-
-visible subfolders together: a left sidebar lists Matrix Notes, Memory Bank,
-and Claude Code as three collapsible sections, and a List/Graph toggle
-switches between reading one item and a combined force-directed graph.
+`/dashboard/memory-bank`, both now redirected in `next.config.ts`) browses the
+**whole vault** — every folder, at any depth, discovered from the data. A left
+sidebar renders the real folder tree (`Matrix Notes` and `Memory Bank` pinned
+to the top because matrix-dash owns them, everything else alphabetical below),
+and a List/Graph toggle switches between reading one file and a force-directed
+graph of the entire vault.
 
-Claude Code's folder is **read-only** in this UI — `lib/services/claude-code-
-vault.ts` only exports read functions, and its two API routes
-(`app/api/vault/claude-code/route.ts`, `.../file/route.ts`) export `GET`
-only, which is what actually enforces it (Next.js 405s anything else). Notes
-and memories keep their existing full read/write behavior, reusing the
-`NoteEditor`/`MemoryDetail` components unchanged.
+### The persisted index is the single source
 
-**Graph cross-linking asymmetry, by design, not a bug:** notes and Claude
-Code files are both authored with `[[wikilink]]` references (`lib/utils/wiki.ts`'s
-`extractWikiLinks`), so the unified graph (`app/api/vault/graph/route.ts`)
-can resolve links between them by title match. Memories don't — their
-`memoryLinks` are AI/embedding-derived from extracted prose that essentially
-never contains `[[...]]`, so expect memory nodes to mostly only link to other
-memories, not across sources.
+`vault_files` + `vault_links` + the `vault_files_fts` FTS5 table hold a mirror
+of the vault. **`lib/services/vault-index.ts` is the only writer**;
+`lib/services/vault-query.ts` is the only reader, and every surface — sidebar
+tree, file viewer, search, graph — is answered from it. Nothing else scans.
 
-**Claude Code graph nodes are scoped to one project at a time**
-(`?ccProject=`), not all five loaded simultaneously — reading every file in
-every project on every graph render would be 150+ serial `tryRemoteFs`
-round-trips through the runner bridge when a device is paired, which is too
-slow to be a real render path. A batched runner-side read op (reading a
-whole directory's file contents in one round trip, not one request per file)
-would be the real fix if a whole-vault graph is ever needed; today's design
-deliberately doesn't attempt it.
+This exists for one reason: in production the app runs on a GCE VM and the
+vault lives on the owner's Mac. When that Mac sleeps, a filesystem-backed page
+has nothing to show. With the index, the page stays browsable and searchable
+and says plainly that it is showing the last indexed copy
+(`stale`/`unreachable`/`partial` on every response).
+
+Scanning is incremental: one tree op lists everything with mtimes, and only
+text files whose mtime changed are re-read, in parallel chunks of 20 (each
+remote read is a full bridge round-trip). Three rules are load-bearing and
+each one is protected by a test:
+
+- **Links are rebuilt from the index, never from the files re-read this pass.**
+  Because unchanged files are skipped, their content is not in memory; sourcing
+  links from the current pass would delete everything else and collapse the
+  graph to a handful of edges.
+- **A failed read is not an empty file.** Writing `""` would wipe that file's
+  links and its full-text row while looking like success.
+- **An unreachable vault leaves the index untouched.** A stale index beats an
+  empty one, and "cannot verify" must never be recorded as a fact.
+
+Reachability mirrors `obsidian-sync.ts`: this host's filesystem first, the
+paired Matrix Runner device second. A 20-second budget and a per-user
+single-flight keep an awaited scan from blocking a page load behind a device
+that is paired but wedged.
+
+### Reading vs. writing
+
+Files matrix-dash owns (a `vault_files` row whose path maps to a `notes` or
+`memories` row) open in `NoteEditor`/`MemoryDetail` with full read/write.
+Everything else — Claude Code's memory, session write-ups, the vault README,
+anything the operator adds later — opens in `VaultFileViewer`: frontmatter
+badges, rendered body, a backlinks panel, an `obsidian://open` link, and no
+edit affordances at all. `app/api/vault/*` exports `GET` only, which is what
+actually enforces that (Next.js 405s anything else).
+
+Notes and memories with no vault file yet (Obsidian sync off, or not yet run)
+are still listed in their usual folder, flagged `notInVault`. Without that, a
+pure mirror of the vault would hide the user's own notes from the page whose
+job is to show them.
+
+### Links, ghosts and the graph
+
+Link extraction is one regex covering both `[[link]]` and `![[embed]]`,
+deliberately not `lib/utils/wiki.ts`'s `extractWikiLinks` — that regex also
+matches the `[[b]]` inside `![[b]]`, so a separate embed pass emits two rows
+for one reference and draws a doubled edge.
+
+Resolution matches Obsidian: an explicit vault-relative path wins, otherwise
+basename, case-insensitively, with `#heading` and `^block` anchors stripped.
+Collisions are real (two projects each have a `MEMORY.md`), so the tie-break is
+deterministic at every step — same folder, then shallowest path, then
+lexicographic — never left to Map insertion order.
+
+A `[[target]]` that resolves to nothing is stored with a null `target_path` and
+rendered as a faded ghost node, the way Obsidian shows a dangling link, rather
+than being dropped.
+
+The graph caps at 1500 nodes, sorted by path before truncation so the cut is
+deterministic, and reports `truncated` with the real total — it never silently
+shows a subset. Colour is assigned by position in the *sorted* list of
+top-level folders, so a folder keeps its colour when another appears.
+
+**Superseded:** the earlier design read Claude Code files live through the
+bridge and therefore had to scope the graph to one project at a time via
+`?ccProject=`. The index removed the round-trips that constraint existed for;
+the parameter and `lib/services/claude-code-vault.ts` are both gone.
 
 ## Known gap: no real-time push
 
