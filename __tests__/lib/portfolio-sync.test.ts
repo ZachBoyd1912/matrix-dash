@@ -1,13 +1,22 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach, afterAll } from "vitest";
+import fs from "fs";
+import os from "os";
+import path from "path";
 import {
   slugify,
   reconcile,
   probeSites,
   upsertProjects,
+  localPathStatus,
   type LocalRepo,
   type RemoteRepo,
 } from "@/lib/services/portfolio-sync";
 import { getSqlite } from "@/lib/db/client";
+
+const TMP_REAL_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "matrix-pathstatus-"));
+afterAll(() => {
+  fs.rmSync(TMP_REAL_DIR, { recursive: true, force: true });
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -18,6 +27,21 @@ describe("slugify", () => {
     expect(slugify("fansly_ai_automation")).toBe("fansly-ai-automation");
     expect(slugify("TGF Landing Page")).toBe("tgf-landing-page");
     expect(slugify("bolt.new-custom")).toBe("bolt-new-custom");
+  });
+});
+
+describe("localPathStatus", () => {
+  it("reports exists for a real directory", () => {
+    expect(localPathStatus(TMP_REAL_DIR)).toBe("exists");
+  });
+
+  it("reports gone when the parent is readable but the child is absent", () => {
+    expect(localPathStatus(path.join(TMP_REAL_DIR, "definitely-not-here"))).toBe("gone");
+  });
+
+  it("reports unknown when the parent itself is not visible from this host", () => {
+    // Exactly the production case: a VM asked about a Mac path.
+    expect(localPathStatus("/Users/someone/Desktop/whatever")).toBe("unknown");
   });
 });
 
@@ -71,7 +95,7 @@ describe("reconcile", () => {
         {
           id: "p1",
           slug: "youtube-pipeline",
-          path: "/nonexistent/youtube-pipeline",
+          path: path.join(TMP_REAL_DIR, "vanished"),
           githubRepo: null,
         },
       ]
@@ -95,6 +119,23 @@ describe("reconcile", () => {
     );
     const merged = rows.find((r) => r.githubRepo === "ZachBoyd1912/totally-different");
     expect(merged?.presence).toBe("local+github");
+  });
+
+  it("never marks a project missing when the path cannot be verified (the VM case)", () => {
+    const rows = reconcile(
+      [],
+      [],
+      [
+        {
+          id: "p1",
+          slug: "matrix-dash",
+          path: "/Users/zach/Desktop/matrix-dash",
+          githubRepo: null,
+        },
+      ],
+      () => "unknown"
+    );
+    expect(rows.find((r) => r.slug === "matrix-dash")).toBeUndefined();
   });
 });
 
