@@ -4,7 +4,7 @@ import { runJob, cancelJob, cancelAllJobs } from "./jobs";
 import { recordPushedDecision } from "./approvals";
 import { handleFsOp } from "./fs-ops";
 import { handleIde } from "./ide-manager";
-import type { ServerFrame } from "@/lib/runner/protocol";
+import { OFFLINE_AFTER_MS, type ServerFrame } from "@/lib/runner/protocol";
 
 /**
  * The runner's main loop: hold GET /api/runner/connect open, act on each
@@ -16,8 +16,15 @@ import type { ServerFrame } from "@/lib/runner/protocol";
 const BACKOFF_MIN_MS = 1_000;
 const BACKOFF_MAX_MS = 60_000;
 
-/** Server pings every HEARTBEAT_MS (20s); three missed pings means dead. */
-export const STALE_AFTER_MS = 60_000;
+// Derived, not independently chosen: the client must give up on a silent
+// connection no later than the server does. The server (runner-bus.ts,
+// isRunnerOnline) marks a device offline — and skips it for job dispatch —
+// after OFFLINE_AFTER_MS (45s) of silence. If the client's own threshold
+// were a separate literal, tuning one without the other would reopen the
+// exact gap this watchdog exists to close: server says offline, client
+// still thinks it's connected and never reconnects. Still >= 2 missed
+// 20s heartbeats of margin, so no flap risk.
+export const STALE_AFTER_MS = OFFLINE_AFTER_MS;
 const WATCHDOG_TICK_MS = 5_000;
 
 export function isStreamStale(lastFrameAt: number, now: number, staleAfterMs: number): boolean {
