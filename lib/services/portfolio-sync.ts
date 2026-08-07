@@ -435,10 +435,13 @@ export async function probeSites(onlyIds?: string[]): Promise<void> {
  */
 async function scanReposViaDevice(): Promise<LocalRepo[] | null> {
   const rootsRaw = getSetting("portfolio_scan_roots") ?? "~/Desktop";
-  // Strip a leading "~/" — confine() on the device resolves relative paths
-  // against the device's own home directory, which is exactly what "~/Desktop"
-  // means. A literal "~" character sent as-is would be treated as a directory
-  // named "~" instead of being expanded.
+  // Strip a leading "~/" — confine() on the device resolves a relative path
+  // against its workspace root (MATRIX_RUNNER_WORKSPACE, defaulting to the
+  // device's home directory), which is what "~/Desktop" means in the normal
+  // case. A literal "~" sent as-is would be read as a directory named "~".
+  // Note: a device with MATRIX_RUNNER_WORKSPACE set elsewhere resolves these
+  // roots under that directory instead — correct confinement behaviour, but
+  // it means scan roots are workspace-relative, not strictly home-relative.
   const roots = rootsRaw
     .split(",")
     .map((r) => r.trim().replace(/^~\//, ""))
