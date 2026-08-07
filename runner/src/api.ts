@@ -1,10 +1,18 @@
 import type { RunnerConfig } from "./config";
 import type { RunnerFrame, EventsRequestBody } from "@/lib/runner/protocol";
 import { PROTOCOL_VERSION } from "@/lib/runner/protocol";
+import { RUNNER_VERSION } from "./version";
 
 /** Auth + CF Access headers for every call to the control plane. */
 export function authHeaders(cfg: RunnerConfig): Record<string, string> {
-  const h: Record<string, string> = { authorization: `Bearer ${cfg.runnerToken}` };
+  const h: Record<string, string> = {
+    authorization: `Bearer ${cfg.runnerToken}`,
+    // Reported on every request so the server can keep runner_devices.app_version
+    // current. It was previously written only at pair time, so a device that
+    // self-updated kept showing its original version in Settings → Devices
+    // forever — actively misleading when diagnosing whether a fix had landed.
+    "x-runner-version": RUNNER_VERSION,
+  };
   if (cfg.cfAccessClientId && cfg.cfAccessClientSecret) {
     h["CF-Access-Client-Id"] = cfg.cfAccessClientId;
     h["CF-Access-Client-Secret"] = cfg.cfAccessClientSecret;

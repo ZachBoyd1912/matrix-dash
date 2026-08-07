@@ -53,6 +53,30 @@ export function resolveRunnerToken(req: Request): RunnerIdentity | null {
 }
 
 /** Route guard: 401 Response or the resolved identity. */
+/**
+ * Keep runner_devices.app_version current from the version the runner reports
+ * on every request. It used to be written only at pair time, so a device that
+ * self-updated still showed its original version in Settings → Devices — which
+ * is actively misleading precisely when you are checking whether a fix landed.
+ * Only writes on change, so this is a no-op on the overwhelming majority of
+ * requests. An older runner sends no header and simply keeps its stored value.
+ */
+function recordReportedVersion(req: Request, device: DeviceRow): void {
+  const reported = req.headers.get("x-runner-version");
+  if (!reported || reported === device.appVersion) return;
+  if (!/^[0-9]+\.[0-9]+\.[0-9]+$/.test(reported)) return; // ignore anything malformed
+  try {
+    getSystemDb()
+      .update(runnerDevices)
+      .set({ appVersion: reported })
+      .where(eq(runnerDevices.id, device.id))
+      .run();
+    device.appVersion = reported;
+  } catch {
+    /* version display is cosmetic — never fail a request over it */
+  }
+}
+
 export function requireRunner(req: Request): RunnerIdentity | { response: Response } {
   const identity = resolveRunnerToken(req);
   if (!identity) {
@@ -60,5 +84,6 @@ export function requireRunner(req: Request): RunnerIdentity | { response: Respon
       response: Response.json({ error: "Invalid or revoked runner token" }, { status: 401 }),
     };
   }
+  recordReportedVersion(req, identity.device);
   return identity;
 }
