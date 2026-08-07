@@ -198,7 +198,12 @@ export function reconcile(
   // reflects reality when this function runs on the machine the paths live
   // on (local dev). Defaults to localPathStatus to keep this pure/sync/testable
   // for the common case and existing tests unchanged.
-  pathStatus: (p: string) => PathStatus = localPathStatus
+  pathStatus: (p: string) => PathStatus = localPathStatus,
+  // Whether the local repo scan actually ran this pass. False when the device
+  // was offline and this host cannot see the project paths — in which case an
+  // empty `local` means "could not look", not "nothing is checked out", and we
+  // must not downgrade known-local rows to github-only.
+  localScanRan = true
 ): ReconciledProject[] {
   const overrideByPath = new Map<string, string>();
   for (const row of existing) {
@@ -230,22 +235,38 @@ export function reconcile(
     });
   }
 
+  const byExistingSlug = new Map(existing.filter((e) => e.slug).map((e) => [e.slug!, e]));
+
   for (const r of remote) {
     if (claimedRemotes.has(r.fullName)) continue;
     const slug = slugify(r.name);
     if (out.has(slug)) continue;
+
+    // "github-only" asserts this repo is NOT checked out locally. We may only
+    // say that when the local scan actually ran. If it could not (device
+    // offline, and this host cannot see the paths), a row with a previously
+    // recorded path keeps its local standing rather than being downgraded —
+    // otherwise a brief disconnect silently rewrites real local projects into
+    // github-only. Same rule as the path checks: never assert what we could
+    // not verify this run.
+    const prior = byExistingSlug.get(slug);
+    const unverifiableLocal = !localScanRan && !!prior?.path;
+
     out.set(slug, {
       slug,
       name: r.name,
-      path: null,
+      path: unverifiableLocal ? prior!.path : null,
       githubRepo: r.fullName,
       visibility: r.isPrivate ? "private" : "public",
-      presence: "github-only",
+      presence: unverifiableLocal ? "local+github" : "github-only",
       branch: null,
       lastCommitAt: r.pushedAt,
       lastCommitMessage: null,
       dirtyFiles: 0,
       openIssues: r.openIssuesCount,
+      // Don't overwrite real branch/commit data with the nulls above when we
+      // are only preserving a prior local standing.
+      ...(unverifiableLocal ? { presenceOnly: true } : {}),
     });
   }
 
@@ -433,6 +454,20 @@ export async function probeSites(onlyIds?: string[]): Promise<void> {
  * Scan the configured roots on the owner's device. Returns null when no device
  * answered, so the caller falls back to the local execFileSync scan.
  */
+/**
+ * Whether this host can actually see the configured scan roots. Distinguishes
+ * "scanned and found nothing" from "could not look" — on the VM the roots are
+ * Mac paths that never resolve, so an empty scan there means nothing at all.
+ */
+function localScanRootsVisible(): boolean {
+  const rootsRaw = getSetting("portfolio_scan_roots") ?? "~/Desktop";
+  return rootsRaw
+    .split(",")
+    .map((r) => r.trim().replace(/^~(?=$|\/)/, os.homedir()))
+    .filter(Boolean)
+    .some((root) => fs.existsSync(root));
+}
+
 async function scanReposViaDevice(): Promise<LocalRepo[] | null> {
   const rootsRaw = getSetting("portfolio_scan_roots") ?? "~/Desktop";
   // Strip a leading "~/" — confine() on the device resolves a relative path
@@ -466,14 +501,25 @@ export async function syncPortfolio(): Promise<{
   const sources = { local: false, github: false, sites: false };
 
   let local: LocalRepo[] = [];
+  // An empty `local` is ambiguous: it means either "nothing is checked out" or
+  // "we could not look". reconcile() needs to tell those apart, or a moment of
+  // device downtime rewrites real local projects as github-only.
+  let localScanRan = false;
   try {
     // Prefer the device — in production it is the only host that can see these
     // paths at all. Falls back to this host's own disk (local dev).
     const remoteRepos = await scanReposViaDevice();
-    local = remoteRepos ?? scanLocalRepos();
-    sources.local = true;
+    if (remoteRepos) {
+      local = remoteRepos;
+      localScanRan = true;
+    } else {
+      local = scanLocalRepos();
+      // Only authoritative if this host can actually see the scan roots.
+      localScanRan = local.length > 0 || localScanRootsVisible();
+    }
+    sources.local = localScanRan;
   } catch {
-    /* degraded */
+    /* degraded — localScanRan stays false, so nothing gets downgraded */
   }
 
   let remote: RemoteRepo[] = [];
@@ -499,7 +545,7 @@ export async function syncPortfolio(): Promise<{
     const remotePathStatus = await resolveRemotePathStatus(
       existing.map((r) => r.path).filter((p): p is string => !!p)
     );
-    upsertProjects(reconcile(local, remote, existing, remotePathStatus ?? undefined));
+    upsertProjects(reconcile(local, remote, existing, remotePathStatus ?? undefined, localScanRan));
   } catch {
     sources.local = false;
     sources.github = false;

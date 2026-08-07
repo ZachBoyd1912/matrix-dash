@@ -161,6 +161,43 @@ describe("reconcile", () => {
   });
 });
 
+describe("reconcile — local scan availability", () => {
+  const ghRepo = {
+    fullName: "ZachBoyd1912/matrix-dash",
+    name: "matrix-dash",
+    isPrivate: false,
+    pushedAt: "2026-08-01T00:00:00Z",
+    openIssuesCount: 0,
+  };
+  const knownLocalRow = {
+    id: "p1",
+    slug: "matrix-dash",
+    path: "/Users/zach/Desktop/matrix-dash",
+    githubRepo: null,
+  };
+
+  it("does NOT downgrade a known-local project to github-only when the scan could not run", () => {
+    // Exactly what happened in production: the device dropped for ~20s during a
+    // deploy, the local scan returned [], and every real local project was
+    // rewritten as github-only. An empty scan there meant "could not look".
+    const rows = reconcile([], [ghRepo], [knownLocalRow], () => "unknown", false);
+    const row = rows.find((r) => r.slug === "matrix-dash");
+    expect(row?.presence).toBe("local+github");
+    expect(row?.path).toBe("/Users/zach/Desktop/matrix-dash");
+    expect(row?.presenceOnly).toBe(true); // must not null out real git metadata
+  });
+
+  it("DOES mark github-only when the scan genuinely ran and found nothing local", () => {
+    const rows = reconcile([], [ghRepo], [knownLocalRow], () => "unknown", true);
+    expect(rows.find((r) => r.slug === "matrix-dash")?.presence).toBe("github-only");
+  });
+
+  it("treats a repo with no prior local path as github-only even when the scan did not run", () => {
+    const rows = reconcile([], [ghRepo], [], () => "unknown", false);
+    expect(rows.find((r) => r.slug === "matrix-dash")?.presence).toBe("github-only");
+  });
+});
+
 describe("upsertProjects", () => {
   it("never lets a null reconciled path overwrite an existing non-null path", () => {
     const sqlite = getSqlite();
