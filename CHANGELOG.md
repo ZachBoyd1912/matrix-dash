@@ -2,6 +2,39 @@
 
 # Changelog
 
+## 07/08/2026 @ 19:43:33 IST — "Sonnet 5"
+
+**Project completion: 92.86%** — 13 of the 14 tasks across the two plans written for this work are complete: all 9 in `docs/superpowers/plans/2026-08-07-phase-a-reliability-fixes.md` (shipped and live-verified earlier today) and 4 of 5 in `docs/superpowers/plans/2026-08-07-phase-b-vault-index.md`. The one still open is Phase B Task 5 — deploy and live verification — which runs immediately after this entry. Nothing else in either plan is outstanding.
+
+**Goal:** Make the Vault page actually mirror the Obsidian vault. The user's complaint was specific and correct: the graph drew no connecting lines, and it showed one subfolder when it should show every markdown file in every folder — "just like how it does with Obsidian". Underneath that were two separate causes, and neither was a rendering bug.
+
+**Added:**
+- `lib/services/vault-index.ts` — a persisted mirror of the vault (`vault_files` + `vault_links` + an FTS5 table). This is the only writer; nothing else scans. It exists because of a production shape that the previous design could not survive: the app runs on a GCE VM and the vault lives on the owner's Mac, so when that Mac sleeps a filesystem-backed page has nothing at all to show. With the index the page stays browsable and searchable and says out loud that it is showing the last indexed copy, rather than presenting an empty sidebar as the truth.
+- `lib/services/vault-query.ts` — the read side. Sidebar tree, file viewer, search and graph are all answered from the index, never from the filesystem.
+- Three routes — `GET /api/vault/index` (the real folder tree), `/api/vault/file` (frontmatter, body, backlinks), `/api/vault/search` (full-text across every indexed file, which replaces the old split behaviour of full-text for notes and filename-only for everything else).
+
+**Fixed:**
+- **The graph had almost no edges** because notes and memories came from their own DB link tables and nothing resolved a `[[link]]` across folders — a Claude Code memory referencing another Claude Code memory produced no edge at all unless both happened to be in the one project that was loaded. Every edge now comes from `vault_links`, resolved once at scan time. Measured against the real vault: **95 files, 94 edges, 8 dangling references** shown as ghost nodes. Before, the same vault drew a handful.
+- **The graph showed one subfolder** because it could only ever load one hand-picked Claude Code project (`?ccProject=`). That parameter was not laziness — reading every file in every project on every render was 150+ serial round-trips through the device bridge, genuinely too slow to be a render path. The index removed the round-trips the constraint existed for, so the parameter, `lib/services/claude-code-vault.ts` and both `claude-code` routes are deleted rather than left as dead code.
+- **The sidebar could not show `Claude Code/Sessions/` or the vault README at all** — its three sections were hardcoded. It now renders the real folder tree at any depth, discovered from the data, so anything added to the vault later appears with no code change. Matrix Notes and Memory Bank pin to the top because matrix-dash owns them; everything else sorts alphabetically below.
+- `lib/services/portfolio-sync.ts` — a bug found while verifying the GitHub connection live. A sync ran while the device was briefly offline during a deploy restart, and projects stored as `local-only` were **downgraded to `github-only`** — asserting "not checked out locally" when the scan merely could not run. Same class as the path-verification bug fixed this morning, in the same file, one branch further along.
+
+**Three plan bugs caught before they shipped**, each now protected by a test that fails when the guard is removed (verified by removing it):
+- The plan rebuilt links from the files re-read in the current pass. Scanning is incremental, so from the second scan onward almost nothing is in memory — this would have deleted every other link and collapsed the graph to a handful of edges. It would have reproduced the exact symptom this work exists to fix, and would not have shown up on a first scan.
+- The plan wrote `contents[n] ?? ""` for a failed read. That wipes the file's links and its full-text row while reporting success, and is indistinguishable from an empty file. Failures are counted separately now and the previous row is left intact — the same "cannot verify is not a fact" rule that produced four separate bugs earlier in this work.
+- `extractWikiLinks`' regex also matches the `[[b]]` inside `![[b]]`, so the plan's separate embed pass would have emitted two rows for one reference and drawn a doubled edge. One regex with an optional leading `!` instead.
+
+**Changed:**
+- Link resolution matches Obsidian: an explicit vault-relative path wins, otherwise basename, case-insensitively, with `#heading` and `^block` anchors stripped. Collisions are real — two projects each have a `MEMORY.md` — so the tie-break is deterministic at every step (same folder, then shallowest path, then lexicographic) and never left to Map insertion order.
+- The graph caps at 1500 nodes and **reports the truncation with the real total**; the cut is taken after sorting by path so it is deterministic rather than an arbitrary scatter. Folder colour is assigned by position in the *sorted* folder list, so adding a folder does not repaint the whole legend.
+- Notes and memories with no vault file yet (Obsidian sync off, or not yet run) are still listed in their usual folder, flagged. A pure mirror of the vault would have hidden the user's own notes behind an integration they may not have enabled.
+- Sidebar expansion persists in an effect rather than inside the state updater — React may call an updater more than once, and a writer running on a discarded render would save expansion the user never chose.
+
+**Verification:** `pnpm typecheck` 0 errors, `pnpm lint` 0 errors / 66 pre-existing warnings, **230 tests passing** (up from 187 at the start of Phase B). Dry-run against the operator's real vault: 95 files indexed in 96ms, a second scan skipping all 95 in 6ms (incremental works), 94 edges, all three top-level folders including the two Claude Code subfolders the old sidebar could not reach, search and backlinks both returning real results.
+
+**Files touched:** `lib/services/vault-index.ts`, `lib/services/vault-query.ts` (both new), `lib/services/portfolio-sync.ts`, `types/vault.ts`, `app/api/vault/index/route.ts`, `app/api/vault/file/route.ts`, `app/api/vault/search/route.ts`, `app/api/vault/graph/route.ts`, `app/dashboard/vault/page.tsx`, `components/vault/vault-sidebar.tsx`, `components/vault/vault-file-viewer.tsx` (new), `components/vault/vault-graph.tsx`, `docs/obsidian-vault-layer.md`, `__tests__/lib/vault-index.test.ts`, `__tests__/lib/vault-query.test.ts`. Deleted: `lib/services/claude-code-vault.ts`, `app/api/vault/claude-code/route.ts`, `app/api/vault/claude-code/file/route.ts`, `components/vault/claude-code-viewer.tsx`.
+
+
 ## 07/08/2026 @ 13:27:10 IST — "Sonnet 5"
 
 **Project completion: 88.89%** — 8 of 9 tasks in the Phase A plan (`docs/superpowers/plans/2026-08-07-phase-a-reliability-fixes.md`) are code-complete, reviewed and committed. The ninth is deploy-and-verify, running immediately after this entry. Phase B (persisted vault index, FTS search, dynamic sidebar, vault-wide graph) is spec'd but its plan is not yet written.
