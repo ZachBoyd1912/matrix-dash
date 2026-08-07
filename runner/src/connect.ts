@@ -16,6 +16,14 @@ import type { ServerFrame } from "@/lib/runner/protocol";
 const BACKOFF_MIN_MS = 1_000;
 const BACKOFF_MAX_MS = 60_000;
 
+/** Server pings every HEARTBEAT_MS (20s); three missed pings means dead. */
+export const STALE_AFTER_MS = 60_000;
+const WATCHDOG_TICK_MS = 5_000;
+
+export function isStreamStale(lastFrameAt: number, now: number, staleAfterMs: number): boolean {
+  return now - lastFrameAt > staleAfterMs;
+}
+
 export interface ConnectLoopOptions {
   cfg: RunnerConfig;
   log: (msg: string) => void;
@@ -25,6 +33,8 @@ export interface ConnectLoopOptions {
   onUpdateSignal?: () => void;
   /** Test hook: resolve to stop the loop after the current connection drops. */
   stopSignal?: AbortSignal;
+  /** Test seam — silence threshold before assuming the stream is dead. */
+  staleAfterMs?: number;
 }
 
 export async function connectLoop(opts: ConnectLoopOptions): Promise<void> {
@@ -39,21 +49,41 @@ export async function connectLoop(opts: ConnectLoopOptions): Promise<void> {
 
   while (!stopped) {
     try {
-      const res = await fetch(new URL("/api/runner/connect", cfg.serverUrl), {
-        headers: authHeaders(cfg),
-        signal: opts.stopSignal,
-      });
-      if (res.status === 401) {
-        log("token rejected (revoked?) — stopping");
-        opts.onAuthError();
-        break;
-      }
-      if (!res.ok || !res.body) throw new Error(`connect failed: HTTP ${res.status}`);
+      const staleAfterMs = opts.staleAfterMs ?? STALE_AFTER_MS;
+      const watchdog = new AbortController();
+      let lastFrameAt = Date.now();
+      // AbortSignal.any() requires a real array — [undefined] throws.
+      const signals: AbortSignal[] = [watchdog.signal];
+      if (opts.stopSignal) signals.push(opts.stopSignal);
+      const timer = setInterval(() => {
+        if (isStreamStale(lastFrameAt, Date.now(), staleAfterMs)) {
+          log(`no frames for ${Math.round(staleAfterMs / 1000)}s — assuming dead, reconnecting`);
+          watchdog.abort();
+        }
+      }, WATCHDOG_TICK_MS);
 
-      log("connected");
-      backoff = BACKOFF_MIN_MS;
-      await consumeFrames(res.body, uplink, log, cfg, opts.onUpdateSignal);
-      log("connection closed by server");
+      try {
+        const res = await fetch(new URL("/api/runner/connect", cfg.serverUrl), {
+          headers: authHeaders(cfg),
+          signal: AbortSignal.any(signals),
+        });
+        if (res.status === 401) {
+          log("token rejected (revoked?) — stopping");
+          opts.onAuthError();
+          break;
+        }
+        if (!res.ok || !res.body) throw new Error(`connect failed: HTTP ${res.status}`);
+
+        log("connected");
+        backoff = BACKOFF_MIN_MS;
+        await consumeFrames(res.body, uplink, log, cfg, opts.onUpdateSignal, () => {
+          lastFrameAt = Date.now();
+        });
+        log("connection closed by server");
+      } finally {
+        // Must clear, or every reconnect leaks a timer for the process lifetime.
+        clearInterval(timer);
+      }
     } catch (err) {
       if (stopped) break;
       log(`connection error: ${err instanceof Error ? err.message : String(err)}`);
@@ -76,7 +106,8 @@ async function consumeFrames(
   uplink: EventUplink,
   log: (msg: string) => void,
   cfg: RunnerConfig,
-  onUpdateSignal?: () => void
+  onUpdateSignal?: () => void,
+  onFrame?: () => void
 ): Promise<void> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
@@ -96,6 +127,7 @@ async function consumeFrames(
       } catch {
         continue; // never die on a malformed line
       }
+      onFrame?.();
       handleFrame(frame, uplink, log, cfg, onUpdateSignal);
     }
   }
