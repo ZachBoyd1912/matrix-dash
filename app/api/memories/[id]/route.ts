@@ -1,11 +1,8 @@
-import fs from "fs";
-import path from "path";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb, getSqlite } from "@/lib/db/client";
 import { memories } from "@/lib/db/schema";
-import { syncMemoryToVault, MEMORIES_SUBDIR } from "@/lib/services/obsidian-sync";
-import { getSetting } from "@/lib/db/settings";
+import { syncMemoryToVault, MEMORIES_SUBDIR, deleteVaultFile } from "@/lib/services/obsidian-sync";
 import { MEMORY_TYPES, type Memory, type LinkedMemory } from "@/types/memory";
 import { withUser } from "@/lib/auth/with-user";
 
@@ -128,14 +125,7 @@ export const DELETE = withUser(async (_req: Request, ctx: Ctx) => {
   getDb().delete(memories).where(eq(memories.id, id)).run();
 
   if (existing?.vaultRelPath) {
-    try {
-      const vaultPath = getSetting("obsidianVaultPath");
-      if (vaultPath) {
-        fs.rmSync(path.join(vaultPath, MEMORIES_SUBDIR, existing.vaultRelPath), { force: true });
-      }
-    } catch (err) {
-      console.error("[memories] failed to delete vault file:", err);
-    }
+    await deleteVaultFile(MEMORIES_SUBDIR, existing.vaultRelPath);
   }
 
   return Response.json({ ok: true });

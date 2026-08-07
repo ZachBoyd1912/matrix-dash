@@ -14,6 +14,37 @@ export const MEMORIES_SUBDIR = "Memory Bank";
 const MEMORY_TYPES = ["identity", "project", "global", "lesson"] as const;
 type MemoryType = (typeof MEMORY_TYPES)[number];
 
+/**
+ * Remove a file from the vault, one implementation shared by every caller.
+ * Prefers the paired device: in production the vault lives on the owner's Mac,
+ * where a local rmSync silently no-ops — leaving the file behind to be
+ * re-imported as a brand new note on the next reconcile, so a deleted note
+ * appears to resurrect itself.
+ *
+ * Returns true when the file was actually removed somewhere.
+ */
+export async function deleteVaultFile(subdir: string, relPath: string): Promise<boolean> {
+  const vaultPath = getSetting("obsidianVaultPath");
+  if (!vaultPath) return false;
+  const abs = path.join(vaultPath, subdir, relPath);
+
+  const remote = await tryRemoteFs("delete", { path: abs });
+  if (remote.handled) {
+    if (!remote.result.ok) {
+      console.error("[obsidian-sync] remote vault delete failed:", remote.result.error);
+    }
+    return remote.result.ok;
+  }
+
+  try {
+    fs.rmSync(abs, { force: true });
+    return true;
+  } catch (err) {
+    console.error("[obsidian-sync] local vault delete failed:", err);
+    return false;
+  }
+}
+
 function sha256(content: string): string {
   return crypto.createHash("sha256").update(content, "utf-8").digest("hex");
 }

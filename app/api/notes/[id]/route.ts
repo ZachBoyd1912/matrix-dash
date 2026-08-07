@@ -1,13 +1,10 @@
-import fs from "fs";
-import path from "path";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { randomUUID } from "crypto";
 import { getDb } from "@/lib/db/client";
 import { notes, noteLinks } from "@/lib/db/schema";
 import { extractWikiLinks } from "@/lib/utils/wiki";
-import { syncNoteToVault, NOTES_SUBDIR } from "@/lib/services/obsidian-sync";
-import { getSetting } from "@/lib/db/settings";
+import { syncNoteToVault, NOTES_SUBDIR, deleteVaultFile } from "@/lib/services/obsidian-sync";
 import type { Note, NoteBacklinks } from "@/types/note";
 import { withUser } from "@/lib/auth/with-user";
 
@@ -136,14 +133,7 @@ export const DELETE = withUser(async (_req: Request, ctx: Ctx) => {
   getDb().delete(notes).where(eq(notes.id, id)).run();
 
   if (existing?.vaultRelPath) {
-    try {
-      const vaultPath = getSetting("obsidianVaultPath");
-      if (vaultPath) {
-        fs.rmSync(path.join(vaultPath, NOTES_SUBDIR, existing.vaultRelPath), { force: true });
-      }
-    } catch (err) {
-      console.error("[notes] failed to delete vault file:", err);
-    }
+    await deleteVaultFile(NOTES_SUBDIR, existing.vaultRelPath);
   }
 
   return Response.json({ ok: true });
