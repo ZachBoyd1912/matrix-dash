@@ -2,6 +2,25 @@
 
 # Changelog
 
+## 07/08/2026 @ 20:17:05 IST — "Sonnet 5"
+
+**Project completion: 100.00%** — all 14 tasks across the two plans written for this work are complete and verified live: 9 in `docs/superpowers/plans/2026-08-07-phase-a-reliability-fixes.md` and 5 in `docs/superpowers/plans/2026-08-07-phase-b-vault-index.md`. **A caveat on that number, because the raw count disagrees:** both plan files still contain 92 unticked `- [ ]` step checkboxes. They were never ticked during execution, so counting them would report 0%. The task-level count is the honest figure — each task's deliverable was gated on typecheck, lint, tests and, for Task 5, live production checks recorded below. This figure covers **these two plans only**; it is not a claim about the product. Still open elsewhere: 9 of 19 roadmap plans remain implemented-but-not-real-tested, and member login is still hard-gated behind the local-first runner.
+
+**Goal:** Close Phase B Task 5 — prove the Vault work on production rather than inferring it from a green test suite.
+
+**Verified live** (matrix.zbautomations.ie, device paired and online, runner 0.1.4):
+- **95 files indexed through the device bridge**, `unreachable=false`. All top-level folders present, including `Claude Code/Sessions/` (3 files), which the previous hardcoded sidebar could not display at all.
+- **The graph draws real connecting lines.** 103 nodes, 94 edges, 8 ghost nodes, confirmed both in the DOM (94 `<line>` elements inside the graph SVG) and by looking at a screenshot. Checked on **both** themes, because the bug was theme-specific: paper renders `rgb(92,81,66)` on cream, matrix renders `rgb(136,136,136)` on near-black — visible on each.
+- **The file viewer works.** `matrix-runner-platform.md` opens read-only with its frontmatter as badges, rendered markdown, an `obsidian://open?vault=Obsidian%20Vault&file=Claude%20Code%2F…` link (both components correctly encoded — vault name and path each contain spaces), and a **"5 links here"** backlinks panel listing all five real referrers.
+- **Search reaches the whole vault.** Typing `matrix-runner-platform` returned FTS snippets from three separate files, including one written minutes earlier — the incremental scanner picked it up without a restart. The file count moved 95 → 98 in the same session, live.
+- **The offline case, which is the entire reason the index is persisted.** With the runner stopped and the server confirming the device offline: the sidebar still listed **95 files across all three folders**, search still returned 9 hits, and the banner read "Vault unreachable — showing the last indexed copy."
+- `/dashboard/notes` and `/dashboard/memory-bank` both still redirect with their query params intact.
+
+**Confirmed en route:** the runner self-updated 0.1.3 → 0.1.4 through the existing `/api/runner/update` path — downloaded, swapped, exited, and the service brought it back up reporting the new version in Settings → Devices. That is what puts the uplink timeout on the device rather than only in the repo.
+
+**Files touched:** `CHANGELOG.md` only.
+
+
 ## 07/08/2026 @ 20:02:30 IST — "Sonnet 5"
 
 **Project completion: 92.86%** — unchanged from the previous entry: 13 of 14 planned tasks. Phase B Task 5 (deploy and live verification) is still the one open item, because running it is what produced this entry. The deploy itself succeeded; verifying it found two real bugs, both fixed here, and the verification finishes after this.
