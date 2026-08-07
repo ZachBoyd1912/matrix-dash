@@ -136,6 +136,30 @@ describe("device fs-op handler", () => {
     expect(data.dirtyFiles).toBe(0);
   });
 
+  it("scan-repos finds git checkouts under a root and returns their status", async () => {
+    const root = path.join(TMP, "scanroot");
+    const repo = path.join(root, "proj-a");
+    fs.mkdirSync(repo, { recursive: true });
+    fs.writeFileSync(path.join(repo, "a.txt"), "hi");
+
+    const { execFileSync } = await import("child_process");
+    const opts = { cwd: repo } as const;
+    execFileSync("git", ["init", "-q"], opts);
+    execFileSync("git", ["config", "user.email", "t@t.com"], opts);
+    execFileSync("git", ["config", "user.name", "t"], opts);
+    execFileSync("git", ["add", "a.txt"], opts);
+    execFileSync("git", ["commit", "-q", "-m", "initial"], opts);
+
+    const res = await handleFsOp("scan-repos", { roots: [root] });
+    expect(res.ok).toBe(true);
+    const data = res.data as {
+      repos: { name: string; path: string; lastCommitMessage: string | null }[];
+    };
+    const found = data.repos.find((r) => r.name === "proj-a");
+    expect(found).toBeTruthy();
+    expect(found!.lastCommitMessage).toBe("initial");
+  });
+
   it("forwards handleFsOp's data directly — regression for the double-wrap bug (connect.ts:134)", async () => {
     const { uplink, nextPush } = fakeUplink();
     handleFrame(

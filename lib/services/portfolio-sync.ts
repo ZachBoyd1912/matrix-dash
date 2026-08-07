@@ -430,6 +430,28 @@ export async function probeSites(onlyIds?: string[]): Promise<void> {
 }
 
 /**
+ * Scan the configured roots on the owner's device. Returns null when no device
+ * answered, so the caller falls back to the local execFileSync scan.
+ */
+async function scanReposViaDevice(): Promise<LocalRepo[] | null> {
+  const rootsRaw = getSetting("portfolio_scan_roots") ?? "~/Desktop";
+  // Strip a leading "~/" — confine() on the device resolves relative paths
+  // against the device's own home directory, which is exactly what "~/Desktop"
+  // means. A literal "~" character sent as-is would be treated as a directory
+  // named "~" instead of being expanded.
+  const roots = rootsRaw
+    .split(",")
+    .map((r) => r.trim().replace(/^~\//, ""))
+    .filter(Boolean);
+  if (roots.length === 0) return null;
+
+  const res = await tryRemoteFs("scan-repos", { roots });
+  if (!res.handled || !res.result.ok) return null;
+  const data = res.result.data as { repos?: LocalRepo[] } | undefined;
+  return data?.repos ?? [];
+}
+
+/**
  * Full portfolio sync. Each source is independently fallible — one failure
  * degrades the picture, never blanks it. Stamps portfolio_last_synced_at so
  * the briefing can flag its own staleness.
@@ -442,7 +464,10 @@ export async function syncPortfolio(): Promise<{
 
   let local: LocalRepo[] = [];
   try {
-    local = scanLocalRepos();
+    // Prefer the device — in production it is the only host that can see these
+    // paths at all. Falls back to this host's own disk (local dev).
+    const remoteRepos = await scanReposViaDevice();
+    local = remoteRepos ?? scanLocalRepos();
     sources.local = true;
   } catch {
     /* degraded */

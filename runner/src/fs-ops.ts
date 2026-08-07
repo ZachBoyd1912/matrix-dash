@@ -116,6 +116,41 @@ function walk(dir: string, depth: number, counter: { n: number }): TreeEntry[] {
   return out;
 }
 
+/**
+ * Walk a root looking for git checkouts. Mirrors scanLocalRepos() in
+ * lib/services/portfolio-sync.ts — same depth limit, same "don't descend into
+ * a repo" rule — but runs on the device, which is the only host that can
+ * actually see these paths in production.
+ */
+function walkRepos(dir: string, depth: number, out: Record<string, unknown>[]): void {
+  if (depth > 3) return;
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  if (entries.some((e) => e.name === ".git")) {
+    const last = git(dir, ["log", "-1", "--format=%cI%n%s"]);
+    const [lastCommitAt, ...msg] = last ? last.split("\n") : [null];
+    const status = git(dir, ["status", "--porcelain"]);
+    out.push({
+      name: path.basename(dir),
+      path: dir,
+      branch: git(dir, ["rev-parse", "--abbrev-ref", "HEAD"]),
+      lastCommitAt: lastCommitAt ?? null,
+      lastCommitMessage: msg.join("\n") || null,
+      dirtyFiles: status ? status.split("\n").filter(Boolean).length : 0,
+    });
+    return; // don't descend into a repo
+  }
+  for (const e of entries) {
+    if (e.isDirectory() && !e.name.startsWith(".") && e.name !== "node_modules") {
+      walkRepos(path.join(dir, e.name), depth + 1, out);
+    }
+  }
+}
+
 export async function handleFsOp(
   op: string,
   args: Record<string, unknown>
@@ -207,6 +242,16 @@ export async function handleFsOp(
           dirtyFiles: status ? status.split("\n").filter(Boolean).length : 0,
         };
         return { ok: true, data };
+      }
+      case "scan-repos": {
+        const roots = Array.isArray(args.roots)
+          ? args.roots.filter((r) => typeof r === "string")
+          : [];
+        const repos: Record<string, unknown>[] = [];
+        for (const root of roots as string[]) {
+          walkRepos(confine(root), 0, repos);
+        }
+        return { ok: true, data: { repos } };
       }
       default:
         return { ok: false, error: `Unknown fs op: ${op}` };
