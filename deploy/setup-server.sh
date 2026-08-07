@@ -89,6 +89,10 @@ Environment=PORT=3000
 ExecStart=$(which node) server.js
 Restart=always
 RestartSec=5
+# Without this systemd waits its 90s default for the app to exit on every stop,
+# then SIGKILLs it anyway — observed hitting that timeout on real deploys and
+# adding a minute and a half to each one.
+TimeoutStopSec=10
 StandardOutput=journal
 StandardError=journal
 

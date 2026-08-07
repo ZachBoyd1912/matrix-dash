@@ -8,7 +8,29 @@ date_added: "2026-07-08"
 
 # matrix-dash Deploy & Verify
 
-There is **no CI/CD** for production deploys — `git push` alone does nothing to the live site. A real SSH redeploy is always required, and a deploy script exiting 0 is **not** evidence the live site changed. This skill exists because that exact false-positive has happened repeatedly (7 stacked bugs found in one session; a second session found 2 more the following day) and the only thing that reliably caught them was actually running the pipeline and curling the live domains, not trusting exit codes.
+`git push` alone does nothing to the live site — a real redeploy is always required, and a deploy script exiting 0 is **not** evidence the live site changed. This skill exists because that exact false-positive has happened repeatedly (7 stacked bugs found in one session; a second session found 2 more the following day) and the only thing that reliably caught them was actually running the pipeline and curling the live domains, not trusting exit codes.
+
+## Deploying — current procedure
+
+```bash
+./deploy/deploy.sh          # deploy origin/main HEAD
+./deploy/deploy.sh <sha>    # deploy a specific commit
+```
+
+Run it from the Mac. CI already builds every push on a 16GB runner; this
+downloads that artifact and swaps it in. **No resize cycle — the e2-micro never
+builds anything.** Takes ~2-3 minutes instead of ~40.
+
+Prerequisite: the commit's CI run must have completed successfully, and its
+artifact is kept for 14 days. `deploy.sh` exits rather than half-deploying if
+the artifact is missing.
+
+**The resize procedure documented further down is now the break-glass fallback**
+— for when CI is unavailable, the artifact has expired, or you need to build
+from a state that was never pushed. Do not reach for it by default; it costs
+~40 minutes and two VM restarts.
+
+Post-deploy verification below is unchanged and still mandatory either way.
 
 ## Topology (all on one GCE e2-micro VM, us-east1-b, project `matrix-dashboard-id`, IP `34.26.105.23`)
 

@@ -44,3 +44,25 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: Build runner bundle
+        run: pnpm build:runner
+
+      # The VM cannot build this itself — an e2-micro OOMs on `next build` and
+      # has to be resized up and back down, which costs ~40 minutes per deploy.
+      # CI has already built it on a 16GB runner, so ship that instead of
+      # rebuilding identical output on hardware that struggles to do it.
+      - name: Package deploy artifact
+        run: |
+          set -euo pipefail
+          cp -r .next/static .next/standalone/.next/static
+          cp -r public .next/standalone/public
+          cp runner/dist/matrix-runner.cjs .next/standalone/matrix-runner.cjs
+          tar -czf deploy-artifact.tar.gz -C .next standalone
+
+      - name: Upload deploy artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: standalone-${{ github.sha }}
+          path: deploy-artifact.tar.gz
+          retention-days: 14
