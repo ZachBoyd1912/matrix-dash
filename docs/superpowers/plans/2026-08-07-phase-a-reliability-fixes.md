@@ -1,6 +1,8 @@
 # Phase A — Reliability Fixes Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use `subagent-driven-development` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+>
+> Note: there is no `superpowers:` skill namespace on this machine — the skill is unprefixed. `executing-plans`, `using-git-worktrees`, `requesting-code-review` and `finishing-a-development-branch` are **not installed**; do not route to them. Worktrees are deliberately disabled for this repo (multiple models share one checkout), and it commits direct to `main`.
 
 **Goal:** Stop Matrix Dashboard reporting data it cannot actually verify — fix the Overview marking all 12 projects "missing", make the Matrix Runner reconnect when its connection silently dies, and move production builds to CI artifacts so deploys stop costing a VM resize cycle.
 
