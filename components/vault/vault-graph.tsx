@@ -60,13 +60,22 @@ export function VaultGraph({ data, onSelect }: Props) {
 
     const link = g
       .append("g")
+      // Theme-derived, NOT a hardcoded white: this app ships light themes
+      // (Paper Signal is the default, --color-text-secondary #5c5142), and
+      // white edges on cream are invisible — which reads as "the graph has no
+      // connecting lines", the exact complaint this rewrite exists to answer.
+      //
+      // .style(), never .attr(): var() is substituted only in CSS
+      // declarations. As an SVG presentation attribute the browser cannot
+      // parse it and drops the value entirely, leaving the edges unstroked —
+      // worse than the white they replaced, and invisible to typecheck.
+      .style("stroke", "var(--color-text-secondary)")
       .selectAll<SVGLineElement, Link>("line")
       .data(links)
       .join("line")
-      .attr("stroke", "#ffffff")
       // Embeds read as a weaker relationship than an explicit link.
-      .attr("stroke-opacity", (d) => (d.kind === "embed" ? 0.1 : 0.2))
-      .attr("stroke-width", 1);
+      .attr("stroke-opacity", (d) => (d.kind === "embed" ? 0.3 : 0.55))
+      .attr("stroke-width", 1.2);
 
     const node = g
       .append("g")
@@ -100,7 +109,8 @@ export function VaultGraph({ data, onSelect }: Props) {
       .text((d) => d.label.slice(0, 26) + (d.label.length > 26 ? "…" : ""))
       .attr("font-size", 9)
       .attr("font-family", "var(--font-sans), sans-serif")
-      .attr("fill", (d) => (d.isGhost ? "#555" : "#888"))
+      // .style() for the same reason as the edge stroke above.
+      .style("fill", (d) => (d.isGhost ? "var(--color-text-muted)" : "var(--color-text-secondary)"))
       .attr("dx", (d) => radius(d) + 6)
       .attr("dy", 3)
       .attr("pointer-events", "none");

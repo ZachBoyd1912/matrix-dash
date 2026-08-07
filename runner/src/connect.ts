@@ -46,7 +46,7 @@ export interface ConnectLoopOptions {
 
 export async function connectLoop(opts: ConnectLoopOptions): Promise<void> {
   const { cfg, log } = opts;
-  const uplink = new EventUplink(cfg, opts.onAuthError);
+  const uplink = new EventUplink(cfg, opts.onAuthError, log);
   uplink.start();
   let backoff = BACKOFF_MIN_MS;
   let stopped = false;
