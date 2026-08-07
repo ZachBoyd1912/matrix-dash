@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { runInSessionContext } from "@/lib/auth/session-context";
-import { verifyOAuthState } from "@/lib/services/oauth";
+import { verifyOAuthState, publicOrigin } from "@/lib/services/oauth";
 import { encrypt } from "@/lib/utils/crypto";
 import { getDb } from "@/lib/db/client";
 import { slackWorkspaces } from "@/lib/db/schema";
@@ -35,7 +35,7 @@ export const GET = (req: Request) =>
           client_id: process.env.SLACK_CLIENT_ID,
           client_secret: process.env.SLACK_CLIENT_SECRET,
           code,
-          redirect_uri: `${url.origin}/api/oauth/slack/callback`,
+          redirect_uri: `${publicOrigin(req)}/api/oauth/slack/callback`,
         }),
       });
       const data = await tokenRes.json();

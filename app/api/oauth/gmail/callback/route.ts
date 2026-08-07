@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import { runInSessionContext } from "@/lib/auth/session-context";
 import { eq } from "drizzle-orm";
-import { verifyOAuthState } from "@/lib/services/oauth";
+import { verifyOAuthState, publicOrigin } from "@/lib/services/oauth";
 import { encrypt } from "@/lib/utils/crypto";
 import { getDb } from "@/lib/db/client";
 import { gmailConnections, emailAccounts } from "@/lib/db/schema";
@@ -32,7 +32,7 @@ export const GET = (req: Request) =>
         code,
         client_id: process.env.GOOGLE_CLIENT_ID || "",
         client_secret: process.env.GOOGLE_CLIENT_SECRET || "",
-        redirect_uri: `${url.origin}/api/oauth/gmail/callback`,
+        redirect_uri: `${publicOrigin(req)}/api/oauth/gmail/callback`,
         grant_type: "authorization_code",
       });
 

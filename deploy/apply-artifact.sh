@@ -60,10 +60,25 @@ sudo mkdir -p "$APP_DIR/.next"
 sudo mv /tmp/md-extract/standalone "$STANDALONE"
 
 # The standalone server runs with cwd=.next/standalone and reads its env from
-# THERE, not the app root — miss this and OAuth secrets fall back to placeholders.
+# THERE, not the app root — miss this and every secret silently becomes "".
+#
+# Ownership is load-bearing: the service runs as SVC_USER, so a root-owned 0600
+# env file is unreadable BY THE APP. Next.js's loadEnvConfig fails silently in
+# that case — the process starts fine, serves pages fine, and every
+# process.env.* lookup just returns empty. That shipped once and broke GitHub
+# OAuth (client_id=""), with nothing in any log to indicate why.
+SVC_USER="$(grep '^User=' /etc/systemd/system/matrix-dash.service | cut -d= -f2)"
+[ -n "$SVC_USER" ] || { echo "could not determine service User=" >&2; exit 1; }
+
 sudo cp "$APP_DIR/.env.production" "$STANDALONE/.env.production"
+sudo chown "$SVC_USER:$SVC_USER" "$STANDALONE/.env.production"
 sudo chmod 600 "$STANDALONE/.env.production"
+sudo -u "$SVC_USER" test -r "$STANDALONE/.env.production" \
+  || { echo "env file not readable by $SVC_USER — every secret would be empty" >&2; exit 1; }
+
 sudo cp "$APP_DIR/package.json" "$APP_DIR/pnpm-lock.yaml" "$STANDALONE/"
+# The app also needs to own the tree it runs from (node_modules install, caches).
+sudo chown -R "$SVC_USER:$SVC_USER" "$STANDALONE"
 
 echo "=== production install (native modules) ==="
 cd "$STANDALONE"
