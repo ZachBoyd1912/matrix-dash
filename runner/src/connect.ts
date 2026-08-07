@@ -62,6 +62,12 @@ export async function connectLoop(opts: ConnectLoopOptions): Promise<void> {
       // AbortSignal.any() requires a real array — [undefined] throws.
       const signals: AbortSignal[] = [watchdog.signal];
       if (opts.stopSignal) signals.push(opts.stopSignal);
+      // AbortSignal.any() only exists on Node >= 20.3, but the installer
+      // advertises "Node 20+", so a device on 20.0-20.2 is inside the
+      // supported range. stopSignal is test-only — production always has
+      // exactly one signal — so skip the combinator entirely when there is
+      // nothing to combine, and real devices never reach it.
+      const signal = signals.length === 1 ? signals[0] : AbortSignal.any(signals);
       const timer = setInterval(() => {
         if (isStreamStale(lastFrameAt, Date.now(), staleAfterMs)) {
           log(`no frames for ${Math.round(staleAfterMs / 1000)}s — assuming dead, reconnecting`);
@@ -72,7 +78,7 @@ export async function connectLoop(opts: ConnectLoopOptions): Promise<void> {
       try {
         const res = await fetch(new URL("/api/runner/connect", cfg.serverUrl), {
           headers: authHeaders(cfg),
-          signal: AbortSignal.any(signals),
+          signal,
         });
         if (res.status === 401) {
           log("token rejected (revoked?) — stopping");
