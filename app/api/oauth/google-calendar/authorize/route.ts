@@ -1,4 +1,5 @@
-import { generateOAuthState, publicOrigin } from "@/lib/services/oauth";
+import { getSiteUrl } from "@/lib/utils/site-url";
+import { generateOAuthState } from "@/lib/services/oauth";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ export async function GET(req: Request) {
   authorizeUrl.searchParams.set("client_id", clientId);
   authorizeUrl.searchParams.set(
     "redirect_uri",
-    `${publicOrigin(req)}/api/oauth/google-calendar/callback`
+    `${getSiteUrl(req)}/api/oauth/google-calendar/callback`
   );
   authorizeUrl.searchParams.set("response_type", "code");
   authorizeUrl.searchParams.set(

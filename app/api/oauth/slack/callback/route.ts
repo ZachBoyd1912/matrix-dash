@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { runInSessionContext } from "@/lib/auth/session-context";
-import { verifyOAuthState, publicOrigin } from "@/lib/services/oauth";
+import { verifyOAuthState } from "@/lib/services/oauth";
 import { encrypt } from "@/lib/utils/crypto";
 import { getDb } from "@/lib/db/client";
 import { slackWorkspaces } from "@/lib/db/schema";
@@ -17,12 +17,16 @@ export const GET = (req: Request) =>
       const error = url.searchParams.get("error");
 
       if (error || !code || !state) {
-        return Response.redirect("/dashboard/settings/integrations/slack?error=oauth_denied");
+        return Response.redirect(
+          new URL("/dashboard/settings/integrations/slack?error=oauth_denied", getSiteUrl(req))
+        );
       }
 
       const redirectTo = verifyOAuthState(state, "slack");
       if (!redirectTo) {
-        return Response.redirect("/dashboard/settings/integrations/slack?error=invalid_state");
+        return Response.redirect(
+          new URL("/dashboard/settings/integrations/slack?error=invalid_state", getSiteUrl(req))
+        );
       }
 
       const tokenRes = await fetch("https://slack.com/api/oauth.v2.access", {
@@ -35,7 +39,7 @@ export const GET = (req: Request) =>
           client_id: process.env.SLACK_CLIENT_ID,
           client_secret: process.env.SLACK_CLIENT_SECRET,
           code,
-          redirect_uri: `${publicOrigin(req)}/api/oauth/slack/callback`,
+          redirect_uri: `${getSiteUrl(req)}/api/oauth/slack/callback`,
         }),
       });
       const data = await tokenRes.json();
@@ -55,7 +59,9 @@ export const GET = (req: Request) =>
         })
         .run();
 
-      return Response.redirect(`${redirectTo}?connected=slack&team=${data.team.name}`);
+      return Response.redirect(
+        new URL(`${redirectTo}?connected=slack&team=${data.team.name}`, getSiteUrl(req))
+      );
     } catch (e) {
       console.error("[slack/callback]", e);
       return Response.redirect(

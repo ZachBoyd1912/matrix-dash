@@ -17,12 +17,16 @@ export const GET = (req: Request) =>
       const error = url.searchParams.get("error");
 
       if (error || !code || !state) {
-        return Response.redirect("/dashboard/settings/integrations/github?error=oauth_denied");
+        return Response.redirect(
+          new URL("/dashboard/settings/integrations/github?error=oauth_denied", getSiteUrl(req))
+        );
       }
 
       const redirectTo = verifyOAuthState(state, "github");
       if (!redirectTo) {
-        return Response.redirect("/dashboard/settings/integrations/github?error=invalid_state");
+        return Response.redirect(
+          new URL("/dashboard/settings/integrations/github?error=invalid_state", getSiteUrl(req))
+        );
       }
 
       // Exchange code for access token
@@ -60,7 +64,9 @@ export const GET = (req: Request) =>
         })
         .run();
 
-      return Response.redirect(`${redirectTo}?connected=github&user=${user.login}`);
+      return Response.redirect(
+        new URL(`${redirectTo}?connected=github&user=${user.login}`, getSiteUrl(req))
+      );
     } catch (e) {
       console.error("[github/callback]", e);
       return Response.redirect(

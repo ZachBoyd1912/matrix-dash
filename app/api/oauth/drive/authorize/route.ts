@@ -1,4 +1,5 @@
-import { generateOAuthState, publicOrigin } from "@/lib/services/oauth";
+import { getSiteUrl } from "@/lib/utils/site-url";
+import { generateOAuthState } from "@/lib/services/oauth";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export async function GET(req: Request) {
 
   const authorizeUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   authorizeUrl.searchParams.set("client_id", clientId);
-  authorizeUrl.searchParams.set("redirect_uri", `${publicOrigin(req)}/api/oauth/drive/callback`);
+  authorizeUrl.searchParams.set("redirect_uri", `${getSiteUrl(req)}/api/oauth/drive/callback`);
   authorizeUrl.searchParams.set("response_type", "code");
   authorizeUrl.searchParams.set(
     "scope",

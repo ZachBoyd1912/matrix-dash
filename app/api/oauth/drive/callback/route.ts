@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { runInSessionContext } from "@/lib/auth/session-context";
-import { verifyOAuthState, publicOrigin } from "@/lib/services/oauth";
+import { verifyOAuthState } from "@/lib/services/oauth";
 import { encrypt } from "@/lib/utils/crypto";
 import { getDb } from "@/lib/db/client";
 import { driveConnections } from "@/lib/db/schema";
@@ -34,7 +34,7 @@ export const GET = (req: Request) =>
         code,
         client_id: process.env.GOOGLE_CLIENT_ID || "",
         client_secret: process.env.GOOGLE_CLIENT_SECRET || "",
-        redirect_uri: `${publicOrigin(req)}/api/oauth/drive/callback`,
+        redirect_uri: `${getSiteUrl(req)}/api/oauth/drive/callback`,
         grant_type: "authorization_code",
       });
 
