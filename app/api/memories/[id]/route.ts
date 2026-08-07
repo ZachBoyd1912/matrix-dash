@@ -124,9 +124,12 @@ export const DELETE = withUser(async (_req: Request, ctx: Ctx) => {
   const existing = getDb().select().from(memories).where(eq(memories.id, id)).get();
   getDb().delete(memories).where(eq(memories.id, id)).run();
 
+  // See the notes route: a surviving vault file gets re-imported on the next
+  // reconcile, so report whether it was actually removed rather than a blanket ok.
+  let vaultFileRemoved = true;
   if (existing?.vaultRelPath) {
-    await deleteVaultFile(MEMORIES_SUBDIR, existing.vaultRelPath);
+    vaultFileRemoved = await deleteVaultFile(MEMORIES_SUBDIR, existing.vaultRelPath);
   }
 
-  return Response.json({ ok: true });
+  return Response.json({ ok: true, vaultFileRemoved });
 });

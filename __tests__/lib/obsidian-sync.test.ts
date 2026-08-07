@@ -24,4 +24,21 @@ describe("deleteVaultFile", () => {
     setSetting("obsidianVaultPath", "");
     await expect(deleteVaultFile(NOTES_SUBDIR, "whatever.md")).resolves.toBe(false);
   });
+
+  it("reports failure — not false success — when the vault is not visible from this host", async () => {
+    // The exact production case: app on the GCE VM, vault on the owner's Mac,
+    // device offline. `rmSync({force:true})` does NOT throw for a path that
+    // simply does not exist here, so a naive local fallback would return true
+    // while the real file survives and gets re-imported as a new note on the
+    // next reconcile — reintroducing the very bug this helper exists to fix.
+    setSetting("obsidianVaultPath", "/Users/someone-else/Desktop/Obsidian Vault");
+    await expect(deleteVaultFile(NOTES_SUBDIR, "ghost.md")).resolves.toBe(false);
+  });
+
+  it("still reports success for a file already absent from a vault it CAN see", async () => {
+    // Distinguishes "already gone" (fine, idempotent) from "cannot see the
+    // vault at all" (not fine) — the two must not collapse into one answer.
+    setSetting("obsidianVaultPath", VAULT);
+    await expect(deleteVaultFile(NOTES_SUBDIR, "never-existed.md")).resolves.toBe(true);
+  });
 });

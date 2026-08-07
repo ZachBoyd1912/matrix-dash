@@ -36,6 +36,20 @@ export async function deleteVaultFile(subdir: string, relPath: string): Promise<
     return remote.result.ok;
   }
 
+  // No device answered. Only trust a local delete if this host can actually SEE
+  // the vault. Otherwise rmSync({force:true}) returns silently for a path that
+  // simply does not exist here — so we would report success while the real file
+  // survives on the owner's machine and gets re-imported as a brand new note on
+  // the next reconcile. That is the very bug this helper exists to fix, and it
+  // is the same "cannot act is not success" trap as the project-path checks.
+  if (!fs.existsSync(vaultPath)) {
+    console.error(
+      "[obsidian-sync] vault not reachable from this host and no device online — " +
+        `leaving ${subdir}/${relPath} in place rather than reporting a false delete`
+    );
+    return false;
+  }
+
   try {
     fs.rmSync(abs, { force: true });
     return true;

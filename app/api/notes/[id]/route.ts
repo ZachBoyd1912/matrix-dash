@@ -132,9 +132,14 @@ export const DELETE = withUser(async (_req: Request, ctx: Ctx) => {
   const existing = getDb().select().from(notes).where(eq(notes.id, id)).get();
   getDb().delete(notes).where(eq(notes.id, id)).run();
 
+  // Report honestly when the vault file could not be removed (device offline
+  // and the vault not visible from this host). The row is gone either way, but
+  // a surviving file gets re-imported as a new note on the next reconcile, so
+  // the caller should not be told this was a clean delete.
+  let vaultFileRemoved = true;
   if (existing?.vaultRelPath) {
-    await deleteVaultFile(NOTES_SUBDIR, existing.vaultRelPath);
+    vaultFileRemoved = await deleteVaultFile(NOTES_SUBDIR, existing.vaultRelPath);
   }
 
-  return Response.json({ ok: true });
+  return Response.json({ ok: true, vaultFileRemoved });
 });
