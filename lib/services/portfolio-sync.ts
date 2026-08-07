@@ -58,6 +58,12 @@ export interface ReconciledProject {
   lastCommitMessage: string | null;
   dirtyFiles: number;
   openIssues: number;
+  /**
+   * Update presence + sync timestamps ONLY. Set when we know a project still
+   * exists but could not scan it from here, so we have no fresh branch/commit
+   * data — writing the full row would null out real stored metadata.
+   */
+  presenceOnly?: boolean;
 }
 
 export type PathStatus = "exists" | "gone" | "unknown";
@@ -203,24 +209,44 @@ export function reconcile(
     });
   }
 
-  // Rows whose recorded path we can actually confirm is gone become "missing".
-  // An unverifiable path is left completely alone — never guessed at.
   for (const row of existing) {
     const slug = row.slug ?? "";
     if (!slug || out.has(slug) || !row.path) continue;
-    if (pathStatus(row.path) !== "gone") continue;
+    const status = pathStatus(row.path);
+    if (status === "unknown") continue; // cannot verify — leave the row untouched
+
+    if (status === "gone") {
+      out.set(slug, {
+        slug,
+        name: slug,
+        path: row.path,
+        githubRepo: row.githubRepo,
+        visibility: "local",
+        presence: "missing",
+        branch: null,
+        lastCommitAt: null,
+        lastCommitMessage: null,
+        dirtyFiles: 0,
+        openIssues: 0,
+      });
+      continue;
+    }
+
+    // Confirmed to exist but no local scan matched it — this host cannot see
+    // the repo itself (production VM). Repair presence, touch nothing else.
     out.set(slug, {
       slug,
       name: slug,
       path: row.path,
       githubRepo: row.githubRepo,
       visibility: "local",
-      presence: "missing",
+      presence: row.githubRepo ? "local+github" : "local-only",
       branch: null,
       lastCommitAt: null,
       lastCommitMessage: null,
       dirtyFiles: 0,
       openIssues: 0,
+      presenceOnly: true,
     });
   }
 
@@ -253,7 +279,14 @@ export function upsertProjects(rows: ReconciledProject[]) {
       updatedAt: now,
     };
     if (existing) {
-      db.update(projects).set(common).where(eq(projects.id, existing.id)).run();
+      if (p.presenceOnly) {
+        db.update(projects)
+          .set({ presence: p.presence, lastSyncedAt: now, updatedAt: now })
+          .where(eq(projects.id, existing.id))
+          .run();
+      } else {
+        db.update(projects).set(common).where(eq(projects.id, existing.id)).run();
+      }
     } else {
       db.insert(projects)
         .values({

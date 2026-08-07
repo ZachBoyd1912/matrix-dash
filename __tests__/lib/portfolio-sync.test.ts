@@ -178,6 +178,68 @@ describe("upsertProjects", () => {
     };
     expect(row.path).toBe("/tmp/real-checkout");
   });
+
+  it("repairs a row stuck at missing when its path is confirmed to exist", () => {
+    const rows = reconcile(
+      [],
+      [],
+      [{ id: "p1", slug: "matrix-dash", path: "/x/matrix-dash", githubRepo: null }],
+      () => "exists"
+    );
+    const row = rows.find((r) => r.slug === "matrix-dash");
+    expect(row?.presence).toBe("local-only");
+    expect(row?.presenceOnly).toBe(true);
+  });
+
+  it("repairs to local+github when the row already has a github repo", () => {
+    const rows = reconcile(
+      [],
+      [],
+      [{ id: "p2", slug: "thing", path: "/x/thing", githubRepo: "ZachBoyd1912/thing" }],
+      () => "exists"
+    );
+    expect(rows.find((r) => r.slug === "thing")?.presence).toBe("local+github");
+  });
+
+  it("presence-only repair does not overwrite stored git metadata with nulls", () => {
+    const sqlite = getSqlite();
+    const now = new Date().toISOString();
+    sqlite
+      .prepare(
+        `INSERT OR REPLACE INTO projects
+           (id, name, description, purpose, badge, status, slug, path, presence,
+            branch, dirty_files, created_at, updated_at)
+         VALUES ('repair-me','repair-me','','','code','active','repair-me',
+                 '/x/repair-me','missing','main',7,?,?)`
+      )
+      .run(now, now);
+
+    upsertProjects([
+      {
+        slug: "repair-me",
+        name: "repair-me",
+        path: "/x/repair-me",
+        githubRepo: null,
+        visibility: "local",
+        presence: "local-only",
+        branch: null,
+        lastCommitAt: null,
+        lastCommitMessage: null,
+        dirtyFiles: 0,
+        openIssues: 0,
+        presenceOnly: true,
+      },
+    ]);
+
+    const row = sqlite
+      .prepare(
+        "SELECT presence, branch, dirty_files AS dirtyFiles FROM projects WHERE id='repair-me'"
+      )
+      .get() as { presence: string; branch: string | null; dirtyFiles: number };
+    expect(row.presence).toBe("local-only");
+    expect(row.branch).toBe("main"); // preserved, not nulled
+    expect(row.dirtyFiles).toBe(7);
+  });
 });
 
 describe("probeSites", () => {
