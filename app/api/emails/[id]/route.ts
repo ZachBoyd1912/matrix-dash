@@ -4,7 +4,7 @@ import { getDb } from "@/lib/db/client";
 import { emails } from "@/lib/db/schema";
 import { withUser } from "@/lib/auth/with-user";
 import { toEmailDetail } from "@/lib/services/email-dto";
-import { repairEmailHtml } from "@/lib/services/gmail";
+import { repairEmailMessage } from "@/lib/services/gmail";
 
 export const dynamic = "force-dynamic";
 
@@ -31,18 +31,23 @@ export const GET = withUser(async (_req: Request, ctx: Ctx) => {
   if (!row) return Response.json({ error: "not found" }, { status: 404 });
 
   let html = row.bodyHtml;
-  // Mail synced before HTML was stored kept ONLY the text/plain alternative,
-  // and re-syncing skips messages already present — so the markup can only be
+  let attachments = row.attachments;
+  // Mail synced before HTML and attachments were stored kept only the plain
+  // text, and re-syncing skips messages already present — so both can only be
   // recovered by refetching this one message. Done on open, once, then cached.
-  if (!html && row.messageId) {
+  // The two are tracked separately: `attachments IS NULL` means never checked,
+  // which is not the same as checked-and-empty.
+  if ((!html || attachments === null) && row.messageId) {
     try {
-      html = await repairEmailHtml(id);
+      const repaired = await repairEmailMessage(id);
+      html = repaired.bodyHtml;
+      if (repaired.attachments) attachments = JSON.stringify(repaired.attachments);
     } catch (err) {
       // A dead token or offline Gmail must still show the text body.
-      console.error("[emails] HTML repair failed", err);
+      console.error("[emails] message repair failed", err);
     }
   }
-  return Response.json(toEmailDetail(row, html));
+  return Response.json(toEmailDetail({ ...row, attachments }, html));
 });
 
 export const PATCH = withUser(async (req: Request, ctx: Ctx) => {

@@ -17,6 +17,7 @@ import {
 import { classifyEmailPaint, buildDocumentCss } from "@/lib/utils/email-theme";
 import { blockRemoteImages } from "@/components/email/email-body";
 import { listEmails, PREVIEW_CHARS } from "@/lib/services/email-list";
+import { parseAttachments } from "@/lib/services/email-dto";
 import { htmlToText, looksLikeHtml, sanitizeEmailHtml } from "@/lib/utils/sanitize";
 
 const b64 = (s: string) => Buffer.from(s, "utf-8").toString("base64url");
@@ -516,6 +517,11 @@ describe("listEmails payload", () => {
     expect(JSON.stringify(row).length).toBeLessThan(1_000);
   });
 
+  it("shows no paperclip for a message checked and found to have none", () => {
+    insert({ attachments: "[]" });
+    expect(listEmails({ folder: "inbox" })[0].hasAttachments).toBeUndefined();
+  });
+
   it("reports attachment presence without shipping the metadata", () => {
     insert({
       attachments: JSON.stringify([
@@ -538,5 +544,37 @@ describe("listEmails payload", () => {
     insert({ folder: "inbox", subject: "fav", isStarred: true });
     expect(listEmails({ folder: "sent" }).map((r) => r.subject)).toEqual(["out"]);
     expect(listEmails({ starred: true }).map((r) => r.subject)).toEqual(["fav"]);
+  });
+});
+
+describe("attachment recovery is independent of HTML recovery", () => {
+  beforeEach(() => {
+    getDb().delete(emails).run();
+  });
+
+  it("distinguishes never-checked from checked-and-empty", () => {
+    // The bug this guards: repair returned early whenever bodyHtml was already
+    // set, so the ~6,895 rows the local backfill had just given a bodyHtml to
+    // could never recover their attachments — exactly the messages that needed
+    // it, since the old sync discarded attachment metadata entirely.
+    // NULL must therefore mean "never looked", not "has none".
+    expect(parseAttachments(null)).toBeUndefined();
+    expect(parseAttachments("[]")).toEqual([]);
+  });
+
+  it("reports no attachments for a checked-and-empty row", () => {
+    getDb()
+      .insert(emails)
+      .values({
+        id: randomUUID(),
+        folder: "inbox",
+        body: "x",
+        attachments: "[]",
+        createdAt: new Date().toISOString(),
+      })
+      .run();
+    // '[]' is a marker meaning "checked, none found", not a finding — it must
+    // not light up the paperclip on every message the repair pass has seen.
+    expect(listEmails({ folder: "inbox" })[0].hasAttachments).toBeUndefined();
   });
 });

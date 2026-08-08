@@ -32,9 +32,13 @@ const LIST_COLUMNS = {
   body: sql<string>`substr(${emails.body}, 1, ${PREVIEW_CHARS})`.as("body"),
   // Presence only — the list draws a paperclip, and the reading pane fetches
   // real metadata per message.
-  hasAttachments: sql<number>`CASE WHEN ${emails.attachments} IS NULL THEN 0 ELSE 1 END`.as(
-    "has_attachments"
-  ),
+  // NULL means never checked and '[]' means checked-with-none: both must read
+  // as "no paperclip". Testing only for NULL put a paperclip on every message
+  // the repair pass had looked at.
+  hasAttachments:
+    sql<number>`CASE WHEN ${emails.attachments} IS NULL OR ${emails.attachments} = '[]' THEN 0 ELSE 1 END`.as(
+      "has_attachments"
+    ),
   isRead: emails.isRead,
   isStarred: emails.isStarred,
   createdAt: emails.createdAt,

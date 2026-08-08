@@ -281,8 +281,9 @@ export async function syncGmailEmails(maxTotal = 100): Promise<number> {
       const subject = getHeader(headers, "Subject") || "(No subject)";
       const to = getHeader(headers, "To") || conn.googleEmail;
       const { body, bodyHtml } = bodiesToColumns(extractBodies(msg.payload));
-      const found = extractAttachments(msg.payload);
-      const attachments = found.length ? JSON.stringify(found) : null;
+      // Always stored, empty array included: NULL means "never checked" and is
+      // what triggers the on-open recovery for older mail.
+      const attachments = JSON.stringify(extractAttachments(msg.payload));
       const labels = msg.labelIds ?? [];
       const isRead = !labels.includes("UNREAD");
       const isStarred = labels.includes("STARRED");
@@ -588,37 +589,74 @@ export function backfillEmailHtml(
  * tolerate re-asking; a plain-text mail is cheap to re-check and stays correct
  * if the sender's mail is ever re-synced properly.
  */
-export async function repairEmailHtml(emailId: string): Promise<string | null> {
+export async function repairEmailMessage(
+  emailId: string
+): Promise<{ bodyHtml: string | null; attachments: AttachmentMeta[] | null }> {
   const db = getDb();
   const row = db
-    .select({ id: emails.id, messageId: emails.messageId, bodyHtml: emails.bodyHtml })
+    .select({
+      id: emails.id,
+      messageId: emails.messageId,
+      bodyHtml: emails.bodyHtml,
+      attachments: emails.attachments,
+    })
     .from(emails)
     .where(eq(emails.id, emailId))
     .get();
-  if (!row?.messageId || row.bodyHtml) return row?.bodyHtml ?? null;
+  if (!row?.messageId) {
+    return { bodyHtml: row?.bodyHtml ?? null, attachments: parseStored(row?.attachments) };
+  }
+
+  // Two INDEPENDENT gaps, and conflating them was a real bug: an early return
+  // on `bodyHtml` already being set meant attachment recovery never ran for the
+  // ~6,895 rows the local backfill had just given a bodyHtml to. Those are
+  // precisely the messages that most need it, since the old sync discarded
+  // attachment metadata entirely.
+  //
+  // `attachments IS NULL` means "never looked"; an empty array means "looked,
+  // found none". Without that distinction there is no way to stop re-asking
+  // Gmail about every attachment-less message forever.
+  const needsHtml = !row.bodyHtml;
+  const needsAttachments = row.attachments === null;
+  if (!needsHtml && !needsAttachments) {
+    return { bodyHtml: row.bodyHtml, attachments: parseStored(row.attachments) };
+  }
 
   const res = await gmailApi(`/messages/${row.messageId}?format=full`);
-  if (!res.ok) return null;
+  if (!res.ok) return { bodyHtml: row.bodyHtml, attachments: parseStored(row.attachments) };
   const msg: GmailMessage = await res.json();
+
   const { body, bodyHtml } = bodiesToColumns(extractBodies(msg.payload));
   const found = extractAttachments(msg.payload);
-  // The payload is already in hand, so recover attachment metadata in the same
-  // round trip rather than making the user open the message twice.
-  if (found.length) {
-    db.update(emails)
-      .set({ attachments: JSON.stringify(found) })
-      .where(eq(emails.id, row.id))
-      .run();
-  }
-  if (!bodyHtml) return null;
 
-  // Refresh the text too: the stored copy came from the same message, but the
-  // derived version is consistent with what the new sync path would write.
-  db.update(emails)
-    .set({ bodyHtml, ...(body ? { body } : {}) })
-    .where(eq(emails.id, row.id))
-    .run();
-  return bodyHtml;
+  const changes: Partial<typeof emails.$inferInsert> = {};
+  // Always record the attachment result, including the empty case — that is
+  // what marks the message as checked.
+  if (needsAttachments) changes.attachments = JSON.stringify(found);
+  if (needsHtml && bodyHtml) {
+    changes.bodyHtml = bodyHtml;
+    // The stored text came from the same message, but the derived version is
+    // consistent with what the current sync path would write.
+    if (body) changes.body = body;
+  }
+  if (Object.keys(changes).length > 0) {
+    db.update(emails).set(changes).where(eq(emails.id, row.id)).run();
+  }
+
+  return {
+    bodyHtml: bodyHtml ?? row.bodyHtml,
+    attachments: needsAttachments ? found : parseStored(row.attachments),
+  };
+}
+
+function parseStored(raw: string | null | undefined): AttachmentMeta[] | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as AttachmentMeta[]) : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
