@@ -2,6 +2,36 @@
 
 # Changelog
 
+## 08/08/2026 @ 21:20:22 IST — "DeepSeek v4 Pro"
+
+**Project completion: 0.00%** — design approved, zero of 13 files implemented. Basis: the 8-section design spec is complete; 13 files identified (3 create, 10 modify), not a single line of code written yet. This entry gates the plan before any code touches disk.
+
+**Goal:** Design the iOS PWA near-100% experience for Matrix Dashboard — installable from Safari's "Add to Home Screen" with true standalone mode, splash screen, safe area support, standalone-mode UI adaptations, mobile-optimized login, touch-optimized interactions, enhanced offline caching, badge API, Web Share integration, and orientation freedom — everything achievable without an Apple Developer account or native wrapper.
+
+**Added — Design Spec (8 sections):**
+
+1. **iOS Meta Layer & Splash Screen** — `apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style` (`black-translucent`), `viewport-fit=cover`, `format-detection`, light/dark `theme-color` meta tags, and device-specific `apple-touch-startup-image` splash screens generated via a new API route. The manifest loses its `portrait-primary` lock and gains `display_override`, `categories`, and `screenshots` for a richer install dialog.
+
+2. **Safe Area & Edge-to-Edge Layout** — CSS custom properties (`--safe-area-*`) using `env(safe-area-inset-*)`, applied to the dashboard shell, topbar, mobile nav (bottom tab bar), and any fixed-position overlays. Prevents the home indicator from overlapping navigation.
+
+3. **Standalone Mode Detection & Adaptations** — A new `useStandalone()` hook (iOS `navigator.standalone` + Chromium `display-mode` media query) feeds a `.standalone-mode` class on `<html>`. In standalone: a custom back button appears in the topbar (no browser chrome), overscroll bounce is disabled, and the More drawer accounts for the status bar.
+
+4. **Mobile-Optimized Login** — Autofill attributes on every field: `autocomplete="username"`, `autocomplete="current-password"`, `autocomplete="one-time-code"`. All inputs get `font-size: 16px` minimum to prevent iOS auto-zoom, `inputmode` hints for the correct keyboard, and `visualViewport`-aware positioning so the keyboard never hides the active field. The login page reflows vertically on mobile with `min-h-dvh` centering.
+
+5. **Touch Optimization** — Every interactive target gets `min-h-[44px] min-w-[44px]` (Apple HIG minimum), `active:scale-[0.96]` tactile feedback, `-webkit-tap-highlight-color: transparent`, and `touch-action: manipulation` to prevent double-tap zoom. Hover-dependent UI is replaced with long-press/tap alternatives on mobile.
+
+6. **Enhanced Offline Experience** — The service worker precaches the dashboard shell (layout, nav, offline page) plus auto-detected `/_next/static/` chunks on first load. API strategy shifts from NetworkFirst to StaleWhileRevalidate for instant loads with background refresh. Offline state shows a persistent banner in standalone mode.
+
+7. **PWA Polish** — Badge API (`setAppBadge`/`clearAppBadge`) on push notifications and notification click. Web Share API button in the topbar (only when `navigator.share` is available). Manifest gains proper `screenshots` array and `display_override`.
+
+8. **Testing & Verification** — Playwright tests covering meta tag presence, service worker registration, offline page rendering, manifest validity, 44px touch target enforcement, standalone hook behavior, and splash API output. Manual verification flow: Safari → Share → "Add to Home Screen" → launch.
+
+**Files touched (planned, not yet written):**
+- Modify: `app/layout.tsx`, `app/manifest.ts`, `app/globals.css`, `components/layout/dashboard-shell.tsx`, `components/layout/mobile-nav.tsx`, `components/layout/topbar.tsx`, `components/layout/pwa-register.tsx`, `app/login/page.tsx`, `public/sw.js`, `lib/hooks/use-online-status.ts`
+- Create: `lib/hooks/use-standalone.ts`, `app/api/pwa/splash/route.ts`, `e2e/pwa.spec.ts`
+
+**Verification:** None yet — this is a design gate, not an implementation. `pnpm typecheck` will be run after each task.
+
 ## 08/08/2026 @ 02:49:23 IST — "Sonnet 5"
 
 **Project completion: 100.00%** — 12 of 12 tasks, every one verified in production rather than inferred. Basis is the agreed task list for this change.
