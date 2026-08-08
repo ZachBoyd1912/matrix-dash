@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Sparkles, Menu, WifiOff, Download } from "lucide-react";
+import { Search, Sparkles, Menu, WifiOff, Download, ArrowLeft, Share2 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useAppStore } from "@/lib/stores/use-app-store";
 import { useOnlineStatus } from "@/lib/hooks/use-online-status";
@@ -24,6 +24,7 @@ export function Topbar() {
   const online = useOnlineStatus();
   const installPromptEvent = useAppStore((s) => s.installPromptEvent);
   const setInstallPromptEvent = useAppStore((s) => s.setInstallPromptEvent);
+  const isStandalone = useAppStore((s) => s.isStandalone);
 
   const install = async () => {
     if (!installPromptEvent) return;
@@ -31,6 +32,20 @@ export function Topbar() {
     await installPromptEvent.userChoice;
     setInstallPromptEvent(null);
   };
+
+  /** Share the current page via the Web Share API (available in standalone PWA). */
+  const share = async () => {
+    if (typeof navigator === "undefined" || !navigator.share) return;
+    try {
+      await navigator.share({
+        title: document.title,
+        url: window.location.href,
+      });
+    } catch {
+      /* user cancelled — intentionally empty */
+    }
+  };
+  const canShare = typeof navigator !== "undefined" && !!navigator.share;
 
   const title =
     TITLES[pathname] ||
@@ -45,6 +60,17 @@ export function Topbar() {
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-emerald-400/20 to-transparent" />
       <div className="flex h-full items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-3">
+          {/* In standalone (installed PWA) mode, there's no browser back button,
+              so provide one. */}
+          {isStandalone && (
+            <button
+              onClick={() => window.history.back()}
+              className="text-text-muted hover:text-text-primary grid h-8 w-8 place-items-center rounded-md transition-colors hover:bg-white/5"
+              aria-label="Go back"
+            >
+              <ArrowLeft size={16} />
+            </button>
+          )}
           <button
             onClick={() => setMobileNavOpen(!mobileNavOpen)}
             className="text-text-muted hover:text-text-primary grid h-8 w-8 place-items-center rounded-md transition-colors hover:bg-white/5 md:hidden"
@@ -62,9 +88,20 @@ export function Topbar() {
             <div
               className="flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-1 text-[11px] text-amber-200"
               role="status"
+              aria-live="polite"
             >
               <WifiOff size={11} /> Offline
             </div>
+          )}
+          {canShare && (
+            <button
+              onClick={share}
+              className="text-text-muted hover:text-text-primary grid h-8 w-8 place-items-center rounded-md transition-colors hover:bg-white/5"
+              aria-label="Share"
+              title="Share"
+            >
+              <Share2 size={14} />
+            </button>
           )}
           {installPromptEvent && (
             <button

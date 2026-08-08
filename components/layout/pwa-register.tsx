@@ -2,34 +2,56 @@
 
 import { useEffect } from "react";
 import { useAppStore } from "@/lib/stores/use-app-store";
+import { useStandalone } from "@/lib/hooks/use-standalone";
 import type { BeforeInstallPromptEvent } from "@/types/pwa";
 
+/**
+ * Side-effects-only component rendered inside `DashboardShell`:
+ * 1. Registers the service worker for offline support and push notifications.
+ * 2. Captures the Chromium `beforeinstallprompt` event so the topbar's install
+ *    button can trigger it later (the browser only fires it once).
+ * 3. Detects standalone (installed PWA) mode via `useStandalone()` and pushes
+ *    the flag into the Zustand store for the rest of the UI.
+ */
 export function PwaRegister() {
   const setInstallPromptEvent = useAppStore((s) => s.setInstallPromptEvent);
+  const setIsStandalone = useAppStore((s) => s.setIsStandalone);
+  const { isStandalone } = useStandalone();
 
-  useEffect(() => {
+  // Sync standalone flag into Zustand so the topbar / mobile-nav can adapt.
+  useEffect(
+    function syncStandaloneToStore() {
+      setIsStandalone(isStandalone);
+    },
+    [isStandalone, setIsStandalone]
+  );
+
+  useEffect(function registerServiceWorker() {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
     navigator.serviceWorker.register("/sw.js").catch(() => {
       /* silently fail in dev */
     });
   }, []);
 
-  useEffect(() => {
-    // Fires when Chromium decides the app is installable — capture it so a
-    // UI button can trigger the native prompt later, since the browser only
-    // dispatches this once and won't show its own install UI once prevented.
-    const onBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setInstallPromptEvent(e as BeforeInstallPromptEvent);
-    };
-    const onInstalled = () => setInstallPromptEvent(null);
-    window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
-    window.addEventListener("appinstalled", onInstalled);
-    return () => {
-      window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
-      window.removeEventListener("appinstalled", onInstalled);
-    };
-  }, [setInstallPromptEvent]);
+  useEffect(
+    function captureInstallPrompt() {
+      // Fires when Chromium decides the app is installable — capture it so a
+      // UI button can trigger the native prompt later, since the browser only
+      // dispatches this once and won't show its own install UI once prevented.
+      const onBeforeInstallPrompt = (e: Event) => {
+        e.preventDefault();
+        setInstallPromptEvent(e as BeforeInstallPromptEvent);
+      };
+      const onInstalled = () => setInstallPromptEvent(null);
+      window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+      window.addEventListener("appinstalled", onInstalled);
+      return function cleanupInstallListeners() {
+        window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+        window.removeEventListener("appinstalled", onInstalled);
+      };
+    },
+    [setInstallPromptEvent]
+  );
 
   return null;
 }

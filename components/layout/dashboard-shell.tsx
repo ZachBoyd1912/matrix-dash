@@ -18,19 +18,28 @@ import type { AiProviderPublic } from "@/types/ai-provider";
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const setProviders = useAppStore((s) => s.setProviders);
 
-  useEffect(() => {
-    fetch("/api/providers")
-      .then((r) => r.json())
-      .then((data: AiProviderPublic[]) => {
-        if (Array.isArray(data)) setProviders(data);
-      })
-      .catch(() => {
-        /* fine — sidebar will show "+ Add provider" */
-      });
-  }, [setProviders]);
+  useEffect(
+    function loadProviders() {
+      fetch("/api/providers")
+        .then((r) => r.json())
+        .then((data: AiProviderPublic[]) => {
+          if (Array.isArray(data)) setProviders(data);
+        })
+        .catch(() => {
+          /* fine — sidebar will show "+ Add provider" */
+        });
+    },
+    [setProviders]
+  );
 
   return (
-    <div className="flex min-h-screen">
+    <div
+      className="flex min-h-dvh"
+      style={{
+        paddingTop: "var(--safe-area-top)",
+        paddingBottom: "var(--safe-area-bottom)",
+      }}
+    >
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:rounded-lg focus:bg-emerald-400 focus:px-3 focus:py-2 focus:text-xs focus:font-semibold focus:text-black"

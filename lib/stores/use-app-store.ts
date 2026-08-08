@@ -49,6 +49,11 @@ interface AppState {
    *  considers the app installable and hasn't been asked yet. */
   installPromptEvent: BeforeInstallPromptEvent | null;
   setInstallPromptEvent: (event: BeforeInstallPromptEvent | null) => void;
+
+  /** True when running as an installed PWA (iOS standalone or Chromium display-mode).
+   *  Set by `pwa-register.tsx` via `useStandalone()`. */
+  isStandalone: boolean;
+  setIsStandalone: (v: boolean) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -87,4 +92,7 @@ export const useAppStore = create<AppState>((set) => ({
 
   installPromptEvent: null,
   setInstallPromptEvent: (installPromptEvent) => set({ installPromptEvent }),
+
+  isStandalone: false,
+  setIsStandalone: (isStandalone) => set({ isStandalone }),
 }));

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, LogIn, ShieldCheck } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,8 +18,9 @@ export default function LoginPage() {
   const [mfaRequired, setMfaRequired] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
-  useEffect(() => {
+  useEffect(function checkAuthState() {
     (async () => {
       try {
         const res = await fetch("/api/auth/me");
@@ -33,6 +34,22 @@ export default function LoginPage() {
         setMode("login");
       }
     })();
+  }, []);
+
+  // iOS keyboard handling: when the virtual keyboard opens, `visualViewport`
+  // shrinks. Scroll the active input into view so it isn't hidden.
+  useEffect(function handleIOSKeyboard() {
+    if (typeof window === "undefined" || !window.visualViewport) return;
+    const onResize = () => {
+      const active = document.activeElement;
+      if (active instanceof HTMLElement) {
+        active.scrollIntoView({ block: "center", behavior: "smooth" });
+      }
+    };
+    window.visualViewport.addEventListener("resize", onResize);
+    return function cleanupKeyboardHandler() {
+      window.visualViewport?.removeEventListener("resize", onResize);
+    };
   }, []);
 
   async function submit(e: React.FormEvent) {
@@ -73,7 +90,7 @@ export default function LoginPage() {
 
   if (mode === "loading") {
     return (
-      <div className="grid min-h-screen place-items-center">
+      <div className="grid min-h-dvh place-items-center">
         <Loader2 className="text-text-muted h-6 w-6 animate-spin" />
       </div>
     );
@@ -82,7 +99,7 @@ export default function LoginPage() {
   const isBootstrap = mode === "bootstrap";
 
   return (
-    <div className="grid min-h-screen place-items-center p-4">
+    <div className="grid min-h-dvh place-items-center p-4">
       <Card className="w-full max-w-sm p-6">
         <div className="mb-5 flex items-center gap-2">
           <span className="h-5 w-[3px] rounded-full bg-gradient-to-b from-emerald-400 to-sky-400" />
@@ -94,7 +111,7 @@ export default function LoginPage() {
           </p>
         )}
 
-        <form onSubmit={submit} className="flex flex-col gap-3">
+        <form ref={formRef} onSubmit={submit} className="flex flex-col gap-3">
           <div className="grid gap-1.5">
             <Label>Email</Label>
             <Input
@@ -102,6 +119,9 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="username"
+              autoCapitalize="off"
+              autoCorrect="off"
+              inputMode="email"
               required
             />
           </div>
@@ -112,6 +132,7 @@ export default function LoginPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Optional"
+                autoComplete="name"
               />
             </div>
           )}
@@ -133,6 +154,7 @@ export default function LoginPage() {
               <Label>2FA code</Label>
               <Input
                 inputMode="numeric"
+                autoComplete="one-time-code"
                 maxLength={6}
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}

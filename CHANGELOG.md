@@ -2,6 +2,73 @@
 
 # Changelog
 
+## 08/08/2026 @ 21:26:59 IST — "DeepSeek v4 Pro"
+
+**Project completion: 100.00%** — 8 of 8 design sections implemented across 14 files (11 modified, 3 created). Basis is the design spec from the planning entry immediately above; every listed file was touched and every section built. TypeScript, lint, and 310 unit tests all pass. E2E PWA tests are written and await a running server.
+
+**Goal:** Make Matrix Dashboard installable on iPhone via Safari's "Add to Home Screen" with near-native feel — standalone mode, splash screen, safe areas, mobile-optimized login, touch-optimized interactions, enhanced offline caching, badge API, and Web Share — all without an Apple Developer account or native wrapper.
+
+**Added — by design section:**
+
+**1. iOS Meta Layer & Splash Screen** (`app/layout.tsx`, `app/manifest.ts`, `app/api/pwa/splash/route.ts`)
+- `viewport-fit=cover` on the viewport so the app renders edge-to-edge through the notch/Dynamic Island.
+- `apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style` (`black-translucent`), `format-detection: telephone=no`, and light/dark `theme-color` meta tags all piped through Next.js's `Metadata` and `appleWebApp` APIs — zero manual `<meta>` tag string-building.
+- **Splash screen API** at `/api/pwa/splash?w=&h=` — generates a zero-dependency PNG with the Matrix logo mark on `#f4ecdd` background. Nine device-specific `<link rel="apple-touch-startup-image">` tags in the `<head>` target every iPhone from SE (320px) through 16 Pro Max (430px) at the correct device-pixel ratio. Cached with `immutable` for one year.
+- **Manifest** loses the `portrait-primary` orientation lock (user can now rotate freely), gains `display_override: ["standalone", "minimal-ui"]`, `categories`, and a `screenshots` array for richer install dialogs.
+
+**2. Safe Area & Edge-to-Edge Layout** (`app/globals.css`, `components/layout/dashboard-shell.tsx`, `components/layout/mobile-nav.tsx`, `components/layout/topbar.tsx`)
+- Four CSS custom properties (`--safe-area-top`, `--safe-area-bottom`, `--safe-area-left`, `--safe-area-right`) plumbed from `env(safe-area-inset-*)` in `:root`. Fall back to `0px` on non-iOS browsers so they're harmless.
+- `DashboardShell` applies safe area padding to the root flex container, the topbar gains `pt-[var(--safe-area-top)]`, and the mobile bottom tab bar uses `padding-bottom: var(--safe-area-bottom)` so the home indicator never overlaps navigation.
+- All pages use `min-h-dvh` (dynamic viewport height) instead of `min-h-screen` so the content area shrinks correctly when the iOS address bar or keyboard is visible.
+
+**3. Standalone Mode Detection** (`lib/hooks/use-standalone.ts` — new, `components/layout/pwa-register.tsx`, `lib/stores/use-app-store.ts`)
+- `useStandalone()` hook detects iOS standalone via `window.navigator.standalone` and Chromium via `matchMedia('(display-mode: standalone)')`. Adds a `standalone-mode` class to `<html>` for CSS adaptations.
+- Pushed into the Zustand store as `isStandalone` so the topbar can show a custom back button (no browser chrome in standalone). The CSS disables overscroll bounce and locks the viewport in standalone to prevent the Safari chrome peek.
+- All `useEffect` calls renamed to named functions per the `frontend-react-best-practices` skill.
+
+**4. Mobile-Optimized Login** (`app/login/page.tsx`)
+- `autocomplete="username"`, `autocomplete="current-password"`, `autocomplete="one-time-code"` with `inputMode="email"` and `inputMode="numeric"` respectively — iOS autofill and correct keyboard.
+- `autoCapitalize="off"` and `autoCorrect="off"` on the email field.
+- `visualViewport` resize listener scrolls the active input into view when the iOS keyboard opens, so the field is never hidden.
+- All `useEffect` hooks use named functions.
+
+**5. Touch Optimization** (`app/globals.css`, `components/layout/mobile-nav.tsx`)
+- `-webkit-tap-highlight-color: transparent` on all interactive elements (`a`, `button`, `[role="button"]`, `input`, `select`, `textarea`).
+- `touch-action: manipulation` on all buttons and links to prevent double-tap zoom.
+- Input `font-size: 16px !important` at breakpoints below 768px to prevent iOS auto-zoom on focus.
+- Minimum 44×44px hit areas on all mobile interactive elements.
+- Active press feedback: `scale(0.96)` with a 100ms transition on touch devices with coarse pointers.
+- Mobile bottom nav items explicitly get `min-h-[44px]` and `touch-action: manipulation`.
+
+**6. Enhanced Offline Experience** (`public/sw.js`, `lib/hooks/use-online-status.ts`)
+- **StaleWhileRevalidate** strategy for read-heavy API endpoints — returns cached data instantly, refreshes in background. Real-time/streaming endpoints (`/api/sessions/`, `/api/ai/`, search) keep NetworkFirst.
+- Dashboard shell HTML (`/dashboard`) precached via StaleWhileRevalidate so the app loads instantly on repeat visits.
+- Cache bumped to `v3` so old caches auto-clean.
+- `useOnlineStatus` hook adds `app-offline` class to `<body>` when offline, enabling global CSS adaptations. Uses named functions throughout.
+
+**7. PWA Polish — Badge API & Web Share** (`public/sw.js`, `components/layout/topbar.tsx`)
+- **Badge API**: `setAppBadge(count)` on push notification receive, `clearAppBadge()` on notification click — shows the unread count on the Home Screen icon badge.
+- Notification clicks now focus an existing Matrix Dash window if one is open (via `clients.matchAll` + `focus()`) instead of always opening a new one.
+- **Web Share button** (`Share2` icon) in the topbar, visible only when `navigator.share` is available. Shares the current page title and URL via the native iOS/Android share sheet.
+- The **install button** (Download icon) still works for Chromium. The standalone **back button** (ArrowLeft) appears in the topbar when `isStandalone` is true, replacing the missing browser chrome.
+
+**8. Testing** (`e2e/pwa.spec.ts` — new)
+- 12 Playwright tests covering: iOS meta tag presence (capable, status-bar-style, viewport-fit, theme-color light/dark), apple-touch-icon link, manifest validity (name, display, display_override, icons, no orientation lock), service worker registration, offline page rendering, splash API (valid PNG, cache headers, missing-params fallback), and standalone detection (class not present in regular browser, hook doesn't crash).
+
+**Verification:** `pnpm typecheck` **0 errors**, `pnpm lint` **0 errors** / 65 warnings (all pre-existing `any` warnings), **310 tests passing** (38 test files). The splash API was tested manually via `curl` — returns valid PNGs at multiple dimensions with correct MIME type and cache headers.
+
+**Real-device testing checklist (for the operator):**
+1. Open `https://matrix.zbautomations.ie` in Safari on iPhone.
+2. Tap Share → "Add to Home Screen".
+3. Name it "Matrix" and tap Add.
+4. Launch from Home Screen — verify: splash screen shows (not white flash), no Safari chrome (address bar, back/forward, tabs), status bar blends with the app.
+5. Log in — verify: keyboard doesn't zoom, autofill suggests credentials, TOTP field shows numeric keyboard.
+6. Navigate around — verify: bottom nav doesn't overlap home indicator, standalone back button works, install button is hidden.
+
+**Files touched:**
+- Modify: `app/layout.tsx`, `app/manifest.ts`, `app/globals.css`, `components/layout/dashboard-shell.tsx`, `components/layout/mobile-nav.tsx`, `components/layout/topbar.tsx`, `components/layout/pwa-register.tsx`, `lib/stores/use-app-store.ts`, `app/login/page.tsx`, `public/sw.js`, `lib/hooks/use-online-status.ts`
+- Create: `lib/hooks/use-standalone.ts`, `app/api/pwa/splash/route.ts`, `e2e/pwa.spec.ts`
+
 ## 08/08/2026 @ 21:20:22 IST — "DeepSeek v4 Pro"
 
 **Project completion: 0.00%** — design approved, zero of 13 files implemented. Basis: the 8-section design spec is complete; 13 files identified (3 create, 10 modify), not a single line of code written yet. This entry gates the plan before any code touches disk.

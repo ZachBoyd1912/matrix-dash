@@ -20,8 +20,11 @@ export function MobileNav() {
 
   return (
     <>
-      {/* Bottom tab bar */}
-      <nav className="glass-strong fixed inset-x-0 bottom-0 z-40 border-t border-white/5 md:hidden">
+      {/* Bottom tab bar — safe-area-aware so the home indicator never overlaps. */}
+      <nav
+        className="glass-strong fixed inset-x-0 bottom-0 z-40 border-t border-white/5 md:hidden"
+        style={{ paddingBottom: "var(--safe-area-bottom)" }}
+      >
         <div className="grid h-14 grid-cols-5">
           {primary.map((item) => {
             const Icon = item.icon;
@@ -32,9 +35,10 @@ export function MobileNav() {
                 href={item.href}
                 onClick={() => setOpen(false)}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-0.5 text-[9px] transition-colors",
+                  "flex min-h-[44px] flex-col items-center justify-center gap-0.5 text-[9px] transition-colors",
                   active ? "text-emerald-400" : "text-text-muted"
                 )}
+                style={{ touchAction: "manipulation" }}
               >
                 <Icon size={17} />
                 {item.label.split(" ")[0]}
@@ -44,9 +48,10 @@ export function MobileNav() {
           <button
             onClick={() => setOpen(!open)}
             className={cn(
-              "flex flex-col items-center justify-center gap-0.5 text-[9px] transition-colors",
+              "flex min-h-[44px] flex-col items-center justify-center gap-0.5 text-[9px] transition-colors",
               open ? "text-emerald-400" : "text-text-muted"
             )}
+            style={{ touchAction: "manipulation" }}
             aria-label="More navigation"
           >
             <span className="grid h-[17px] place-items-center">

@@ -41,6 +41,13 @@
     --border-default: rgba(255, 255, 255, 0.1);
     --border-strong: rgba(255, 255, 255, 0.18);
     --bottom-nav-h: 3.5rem;
+
+    /* Safe area insets — populated by iOS in standalone mode.
+       Fall back to 0px everywhere else so these are harmless. */
+    --safe-area-top: env(safe-area-inset-top, 0px);
+    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-area-left: env(safe-area-inset-left, 0px);
+    --safe-area-right: env(safe-area-inset-right, 0px);
   }
 
   @media (min-width: 768px) {
@@ -56,7 +63,18 @@
     font-family: var(--font-sans);
     font-feature-settings: "ss01", "cv11";
     min-height: 100vh;
+    min-height: 100dvh;
     -webkit-font-smoothing: antialiased;
+  }
+
+  /* In standalone mode, prevent the iOS overscroll bounce (which reveals
+     blank Safari chrome behind the app). */
+  html.standalone-mode,
+  html.standalone-mode body {
+    overscroll-behavior: none;
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
   }
 
   body {
@@ -98,6 +116,53 @@
   }
   ::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.16);
+  }
+
+  /* ── Touch & mobile optimisations ────────────────────────────────── */
+
+  /* Prevent iOS tap highlight flash on all interactive elements. */
+  a,
+  button,
+  [role="button"],
+  input,
+  select,
+  textarea {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Prevent double-tap zoom on buttons and interactive surfaces. */
+  button,
+  [role="button"],
+  a {
+    touch-action: manipulation;
+  }
+
+  /* Prevent iOS auto-zoom when focusing inputs (font-size < 16px triggers it). */
+  @media (max-width: 767px) {
+    input,
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
+  }
+
+  /* Minimum 44×44px hit area on small interactive elements — Apple HIG. */
+  @media (max-width: 767px) {
+    button:not(.no-min-hit),
+    [role="button"]:not(.no-min-hit),
+    a:not(.no-min-hit) {
+      min-height: 44px;
+      min-width: 44px;
+    }
+  }
+
+  /* Active press feedback — subtle scale-down on touch. */
+  @media (hover: none) and (pointer: coarse) {
+    button:active:not(.no-press),
+    [role="button"]:active:not(.no-press) {
+      transform: scale(0.96);
+      transition: transform 0.1s ease;
+    }
   }
 }
 
