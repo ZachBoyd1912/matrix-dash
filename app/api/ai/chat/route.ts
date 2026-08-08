@@ -4,7 +4,7 @@ import { z } from "zod";
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { searchSkillsFts } from "@/lib/db/fts";
-import { sessionMessages, skills, presets } from "@/lib/db/schema";
+import { sessionMessages, sessions, skills, presets } from "@/lib/db/schema";
 import {
   getProvider,
   getActiveProvider,
@@ -421,6 +421,26 @@ export const POST = withUser(async (req: Request) => {
           createdAt: new Date().toISOString(),
         })
         .run();
+
+      // Auto-name the session if it's still the default "New Session".
+      try {
+        const sess = getDb()
+          .select({ name: sessions.name })
+          .from(sessions)
+          .where(eq(sessions.id, sessionId))
+          .get();
+        if (sess && sess.name === "New Session") {
+          const short = lastUser.content!.slice(0, 60);
+          const autoName = short + (lastUser.content!.length > 60 ? "…" : "");
+          getDb()
+            .update(sessions)
+            .set({ name: autoName, updatedAt: new Date().toISOString() })
+            .where(eq(sessions.id, sessionId))
+            .run();
+        }
+      } catch {
+        /* non-critical — session just keeps the default name */
+      }
     } catch (err) {
       console.error("[chat] failed to persist user message:", err);
       persistedUserMessageId = null;

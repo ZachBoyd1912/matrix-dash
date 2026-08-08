@@ -164,6 +164,13 @@
       transition: transform 0.1s ease;
     }
   }
+
+  /* Also fire on desktop/mouse for consistency. */
+  button:not(.no-press):active,
+  [role="button"]:not(.no-press):active {
+    transform: scale(0.97);
+    transition: transform 0.1s ease;
+  }
 }
 
 @layer components {
@@ -209,7 +216,17 @@
 
   /* Full viewport height minus topbar minus mobile bottom nav. */
   .page-h {
-    height: calc(100vh - 3.5rem - var(--bottom-nav-h, 0px));
+    height: calc(100dvh - 3.5rem - var(--bottom-nav-h, 0px));
+  }
+
+  /* ── Mobile: opaque bars override glass transparency ───────────────── */
+  @media (max-width: 767px) {
+    .glass-strong.fixed,
+    .glass.fixed {
+      background: var(--color-bg-surface);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
   }
 }
 

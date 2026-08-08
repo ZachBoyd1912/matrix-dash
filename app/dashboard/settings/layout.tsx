@@ -143,7 +143,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-[220px_1fr]">
-      <aside className="min-h-[calc(100vh-3.5rem)] border-r border-white/5 bg-white/[0.01] p-4">
+      <aside className="border-r border-white/5 bg-white/[0.01] p-4 md:min-h-[calc(100vh-3.5rem)]">
         <p className="text-text-muted mb-3 px-2 text-[10px] tracking-wider uppercase">Settings</p>
         <nav className="space-y-0.5">
           {SECTIONS.map((section) => {

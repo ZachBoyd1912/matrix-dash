@@ -19,6 +19,7 @@ import {
 import { searchMemoriesFts, searchNotesFts, searchSkillsFts } from "@/lib/db/fts";
 import { autoLink } from "@/lib/ai/extraction";
 import { syncMemoryToVault } from "@/lib/services/obsidian-sync";
+import { searchVault, getVaultFile } from "@/lib/services/vault-query";
 import { getSetting } from "@/lib/db/settings";
 import { fetchReadable, webSearch } from "@/lib/services/web";
 import { notify } from "@/lib/services/notify";
@@ -190,6 +191,36 @@ export function buildAgentTools() {
           .values({ id, title, content, createdAt: now(), updatedAt: now() })
           .run();
         return { created: true, id };
+      },
+    });
+  }
+
+  if (enabled("vault")) {
+    toolset.searchVault = tool({
+      description:
+        "Search the user's vault (Markdown notes, memory files, all indexed content) by keyword. Returns matching file paths and content snippets.",
+      inputSchema: z.object({ query: z.string() }),
+      execute: async ({ query }) =>
+        searchVault(query, 10).map((h) => ({
+          relPath: h.relPath,
+          name: h.name,
+          snippet: h.snippet,
+        })),
+    });
+    toolset.readVaultFile = tool({
+      description:
+        "Read the full content of a vault file by its relative path (as returned by searchVault). Includes frontmatter, body, and backlinks.",
+      inputSchema: z.object({ relPath: z.string() }),
+      execute: async ({ relPath }) => {
+        const file = getVaultFile(relPath);
+        return file
+          ? {
+              name: file.name,
+              body: file.body,
+              frontmatter: file.frontmatter,
+              backlinks: file.backlinks?.map((b) => b.relPath) ?? [],
+            }
+          : { error: `File not found: ${relPath}` };
       },
     });
   }

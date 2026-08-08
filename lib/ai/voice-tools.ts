@@ -6,6 +6,8 @@ import { getDb } from "@/lib/db/client";
 import { agents, agentRuns } from "@/lib/db/schema";
 import { startRun } from "@/lib/services/agent-runner";
 import { getSetting } from "@/lib/db/settings";
+import { searchMemoriesFts } from "@/lib/db/fts";
+import { searchVault } from "@/lib/services/vault-query";
 
 /**
  * Agent-control tools for the voice/Jarvis chat pipeline. Let Jarvis trigger
@@ -148,6 +150,24 @@ export function buildVoiceTools(): ToolSet {
         name,
         note: "Created disabled — enable it in the dashboard to run it.",
       };
+    },
+  });
+
+  toolset.searchMemories = tool({
+    description:
+      "Search the user's long-term memory (vault) for relevant facts, notes, and past context.",
+    inputSchema: z.object({ query: z.string() }),
+    execute: async ({ query }) => {
+      const memories = searchMemoriesFts(query, 6).map((m) => ({
+        type: m.type,
+        content: m.content,
+      }));
+      const vaultHits = searchVault(query, 6).map((h) => ({
+        name: h.name,
+        snippet: h.snippet,
+        relPath: h.relPath,
+      }));
+      return { memories, vaultFiles: vaultHits };
     },
   });
 

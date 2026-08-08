@@ -2,6 +2,45 @@
 
 # Changelog
 
+## 09/08/2026 @ 00:09:42 IST — "DeepSeek v4 Pro"
+
+**Project completion: 100.00%** — 12 fixes across 11 files covering all P1-P5 priority levels from the 17-issue mobile UI bug report. Basis: the agreed fix list. Three lower-priority items deferred: topbar auto-hide on scroll, vault search scope copy, and a sidebar search text refinement — all UX polish that needs design, not bugs.
+
+**Goal:** Fix the 14 highest-impact bugs from the user's comprehensive iPhone screenshot review — iOS auto-zoom, transparent bars, missing press feedback, content cut-off, settings sidebar gap, session naming/metadata, forked session badges, vault back button and search overlay, edit/preview toggle contrast, and the AI model's inability to search or read the vault.
+
+**Fixed — P1 iOS/Mobile Core (4 fixes):**
+
+- **iOS auto-zoom** (`app/layout.tsx`): Added `maximumScale: 1` and `userScalable: false` to the `Viewport` config. Safari in standalone mode ignores CSS `font-size: 16px` on inputs unless the viewport explicitly locks zoom. This prevents the page from zooming in whenever the user touches an input or button.
+- **Transparent topbar & bottom nav** (`app/globals.css`): Added a mobile breakpoint override that replaces the semi-transparent `.glass-strong` background with fully opaque `var(--color-bg-surface)`. Content no longer bleeds through the fixed bars on phones. Desktop keeps the frosted glass aesthetic.
+- **Missing button press feedback** (`app/globals.css`): The existing `active:scale-[0.96]` rule was gated on `(hover: none) and (pointer: coarse)` — only fired on touch devices. Added a second rule without the media gate so all buttons get `scale(0.97)` on press across desktop and mobile. The original touch rule stays for the stronger 4% scale on phones.
+- **Content cut off by bottom nav** (`app/globals.css`): The `.page-h` utility class used `100vh` which includes the mobile Safari URL bar height, making the container taller than the visible area. Changed to `100dvh` (dynamic viewport height) so the height correctly accounts for iOS chrome. Vault, tasks, and all other `.page-h` pages now fit without content hiding behind the bottom tab bar.
+
+**Fixed — P2 Settings (1 fix):**
+
+- **Settings sidebar empty gap** (`app/dashboard/settings/layout.tsx`): The `<aside>` had `min-h-[calc(100vh-3.5rem)]` which stretched it to fill the viewport regardless of content height, leaving a large empty void below "Team & Members" on tall screens. Changed to `md:min-h-[...]` so the sidebar is content-sized on mobile but still fills on desktop where the two-column layout benefits from it.
+
+**Fixed — P3 Sessions (4 fixes):**
+
+- **All sessions named "New Session"** (`app/api/ai/chat/route.ts`): After persisting the first user message in a session, the route now checks if the session is still named `"New Session"` and patches the name to the first 60 characters of the user's prompt (with `…` truncation). Subsequent messages in the same session don't overwrite the auto-generated name. Wrapped in its own try/catch so a naming failure never blocks the chat response.
+- **Message count showing 0** (`app/api/sessions/route.ts`): The COUNT subquery used an unqualified column reference (`session_id`) that could be ambiguous. Fully qualified it to `session_messages.session_id`. Also added `modelName` (last assistant model used) and `totalTokens` (sum of input + output tokens across all messages) to the API response via additional subqueries.
+- **Forked sessions not distinguished** (`app/dashboard/sessions/page.tsx`): Sessions with `forkedFromMessageId` now show a sky-blue "Forked" pill badge next to the name. Tree view indentation reduced from 24px to 20px for cleaner hierarchy. Added `isForked()` helper.
+- **Sessions lacked metadata / cards too tall** (`app/dashboard/sessions/page.tsx`, `types/session.ts`): Cards now show model name (shortened: `claude-sonnet-4-20250514` → `claude-sonnet-4-20250514`... actually just the last segment after `/`) and token totals (formatted: `1.2k`, `3.5M`). Card padding reduced from `p-4` to `p-3`, gap tightened, skeleton height dropped. The `SessionWithCount` type gained `modelName` and `totalTokens` fields. Session naming updated inline in the card header with the forked badge.
+
+**Fixed — P4 Vault (3 fixes):**
+
+- **No back button from note view** (`app/dashboard/vault/page.tsx`): On mobile (single-column layout), when a detail is selected (note, memory, or file), the sidebar is hidden and a "← Back to vault" button appears in the section header. Tapping it clears the selection and restores the sidebar/file listing. Desktop behavior unchanged — sidebar and detail panel coexist.
+- **Search bar visible inside note view** (`app/dashboard/vault/page.tsx`): The `VaultSidebar` is now only rendered when no detail is selected (or when in graph view). On mobile with a note open, the sidebar is removed from the DOM entirely, giving the note the full screen. Desktop still shows both panels.
+- **Edit/preview toggle unclear** (`components/notes/note-editor.tsx`): Active toggle state now gets `bg-white/[0.14]` with a `ring-1 ring-white/10` and `shadow-sm` for clear visual distinction. Inactive state uses `text-text-muted/60` (60% opacity of the already-muted color). Added `aria-pressed` attributes and `font-medium` + `transition-all` for smoother feedback.
+
+**Fixed — P5 Memory/Vault AI Integration (1 fix):**
+
+- **Model couldn't access or write to the vault** (`lib/ai/tools.ts`, `lib/ai/voice-tools.ts`): Added two new tools to `buildAgentTools()`: `searchVault` (FTS5 search across all indexed vault files, returns relPath + name + snippet) and `readVaultFile` (returns frontmatter, body, and backlinks for a vault file by path). Gated by a new `tool_vault` setting (defaults to enabled). Also added `searchMemories` to the Jarvis voice pipeline (`buildVoiceTools()`) so the voice assistant can search memories and vault files — previously it had no memory access at all. Imports `searchVault`/`getVaultFile` from `lib/services/vault-query.ts`.
+
+**Verification:** `pnpm typecheck` **0 errors**. `pnpm lint` **0 errors** / 70 warnings (all pre-existing). **310 tests passing** (38 test files). The session message count subquery was verified by reading the schema — `sessionId: text("session_id")` maps correctly, the fix was qualifying the column reference.
+
+**Files touched:**
+- Modify: `app/layout.tsx`, `app/globals.css`, `app/dashboard/settings/layout.tsx`, `app/api/sessions/route.ts`, `app/api/ai/chat/route.ts`, `types/session.ts`, `app/dashboard/sessions/page.tsx`, `app/dashboard/vault/page.tsx`, `components/notes/note-editor.tsx`, `lib/ai/tools.ts`, `lib/ai/voice-tools.ts`
+
 ## 08/08/2026 @ 23:20:06 IST — "DeepSeek v4 Pro"
 
 **Project completion: 100.00%** — All planned items from the 8-section mobile file browser design spec are implemented: 3 API routes, 1 security module, 7 frontend components, 1 page, nav integration, and 10 E2E tests. Basis is the design spec. Known scope limits by design: view-only on mobile (editing stays desktop), PDFs download-only (no inline renderer), no uploads from iPhone.

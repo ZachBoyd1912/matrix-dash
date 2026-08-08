@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Plus, Network, List as ListIcon, FileText } from "lucide-react";
+import { Plus, Network, List as ListIcon, FileText, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty";
 import { VaultSidebar } from "@/components/vault/vault-sidebar";
@@ -228,24 +228,40 @@ export default function VaultPage() {
 
   return (
     <div ref={ref} className="page-h grid grid-cols-1 md:grid-cols-[320px_1fr]">
-      <VaultSidebar
-        index={index}
-        searchResults={searchResults}
-        searching={searching}
-        selectedPath={selectedPath}
-        onSelectPath={selectPath}
-        query={query}
-        onQueryChange={setQuery}
-        onNewNote={() => void createNote()}
-        onNewMemory={() => setNewMemoryOpen(true)}
-        revealPath={revealPath}
-      />
+      {/* Hide sidebar on mobile when a detail is open — show back button instead. */}
+      {(!detail || view === "graph") && (
+        <VaultSidebar
+          index={index}
+          searchResults={searchResults}
+          searching={searching}
+          selectedPath={selectedPath}
+          onSelectPath={selectPath}
+          query={query}
+          onQueryChange={setQuery}
+          onNewNote={() => void createNote()}
+          onNewMemory={() => setNewMemoryOpen(true)}
+          revealPath={revealPath}
+        />
+      )}
 
       <section className="flex min-w-0 flex-col">
         <div className="flex items-center justify-between gap-2 border-b border-white/5 px-4 py-2">
-          <span className="text-text-muted truncate text-[11px]">
-            {index ? `${index.fileCount} files` : ""}
-          </span>
+          {/* Mobile back button when viewing a detail */}
+          {detail ? (
+            <button
+              onClick={() => {
+                setDetail(null);
+                setSelectedPath("");
+              }}
+              className="text-text-secondary hover:text-text-primary flex items-center gap-1 text-xs transition-colors md:hidden"
+            >
+              <ArrowLeft size={13} /> Back to vault
+            </button>
+          ) : (
+            <span className="text-text-muted truncate text-[11px]">
+              {index ? `${index.fileCount} files` : ""}
+            </span>
+          )}
           <div className="glass-input flex items-center gap-1 rounded-md p-0.5">
             <button
               onClick={() => setView("list")}

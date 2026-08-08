@@ -10,6 +10,8 @@ export interface Session {
 
 export interface SessionWithCount extends Session {
   messageCount: number;
+  modelName: string | null;
+  totalTokens: number;
 }
 
 export type MessageRole = "user" | "assistant" | "system";

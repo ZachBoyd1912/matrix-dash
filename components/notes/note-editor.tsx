@@ -93,24 +93,26 @@ export function NoteEditor({ note, backlinks, onChange, onNavigateTitle, onNavig
           <button
             onClick={() => setTab("edit")}
             className={cn(
-              "h-7 rounded-[5px] px-2 transition-colors",
+              "h-7 rounded-[5px] px-2 text-xs font-medium transition-all",
               tab === "edit"
-                ? "text-text-primary bg-white/10"
-                : "text-text-muted hover:text-text-secondary"
+                ? "text-text-primary bg-white/[0.14] shadow-sm ring-1 ring-white/10"
+                : "text-text-muted/60 hover:text-text-secondary hover:bg-white/[0.04]"
             )}
             aria-label="Edit mode"
+            aria-pressed={tab === "edit"}
           >
             <Edit2 size={12} />
           </button>
           <button
             onClick={() => setTab("preview")}
             className={cn(
-              "h-7 rounded-[5px] px-2 transition-colors",
+              "h-7 rounded-[5px] px-2 text-xs font-medium transition-all",
               tab === "preview"
-                ? "text-text-primary bg-white/10"
-                : "text-text-muted hover:text-text-secondary"
+                ? "text-text-primary bg-white/[0.14] shadow-sm ring-1 ring-white/10"
+                : "text-text-muted/60 hover:text-text-secondary hover:bg-white/[0.04]"
             )}
             aria-label="Preview mode"
+            aria-pressed={tab === "preview"}
           >
             <Eye size={12} />
           </button>

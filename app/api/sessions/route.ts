@@ -23,7 +23,11 @@ export const GET = withUser(async () => {
       forkedFromMessageId: sessions.forkedFromMessageId,
       createdAt: sessions.createdAt,
       updatedAt: sessions.updatedAt,
-      messageCount: sql<number>`(SELECT COUNT(*) FROM session_messages WHERE session_id = ${sessions.id})`,
+      messageCount: sql<number>`(SELECT COUNT(*) FROM session_messages WHERE session_messages.session_id = ${sessions.id})`,
+      modelName: sql<
+        string | null
+      >`(SELECT model_name FROM session_messages WHERE session_messages.session_id = ${sessions.id} AND role = 'assistant' ORDER BY created_at DESC LIMIT 1)`,
+      totalTokens: sql<number>`(SELECT COALESCE(SUM(input_tokens + output_tokens), 0) FROM session_messages WHERE session_messages.session_id = ${sessions.id})`,
     })
     .from(sessions)
     .orderBy(desc(sessions.updatedAt))

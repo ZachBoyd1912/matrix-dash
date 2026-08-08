@@ -23,6 +23,19 @@ import { toast, confirm } from "@/lib/stores/use-feedback";
 import { cn } from "@/lib/utils/cn";
 import type { SessionWithCount } from "@/types/session";
 
+function fmtTokens(n: number): string {
+  if (n < 1000) return String(n);
+  if (n < 1_000_000) return `${(n / 1000).toFixed(1)}k`;
+  return `${(n / 1_000_000).toFixed(1)}M`;
+}
+
+function shortModel(name: string | null): string {
+  if (!name) return "";
+  // Strip long prefixes like "anthropic/" or "openai/"
+  const parts = name.split("/");
+  return parts[parts.length - 1] || name;
+}
+
 /** Root sessions (no parent, or whose parent was deleted) with their forks nested beneath. */
 function buildTree(sessions: SessionWithCount[]): Map<string | null, SessionWithCount[]> {
   const ids = new Set(sessions.map((s) => s.id));
@@ -41,17 +54,20 @@ export default function SessionsPage() {
   const [sessions, setSessions] = useState<SessionWithCount[] | null>(null);
   const [viewMode, setViewMode] = useState<"flat" | "tree">("flat");
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async function loadSessions() {
     const res = await fetch("/api/sessions");
     setSessions(await res.json());
   }, []);
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  useEffect(
+    function fetchInitialSessions() {
+      refresh();
+    },
+    [refresh]
+  );
 
   // ?new=1 deep link from the command palette.
-  useEffect(() => {
+  useEffect(function handleNewDeepLink() {
     const params = new URLSearchParams(window.location.search);
     if (params.get("new") === "1") {
       window.history.replaceState(null, "", "/dashboard/sessions");
@@ -59,7 +75,7 @@ export default function SessionsPage() {
     }
   }, []);
 
-  const create = async () => {
+  const create = async function createNewSession() {
     const res = await fetch("/api/sessions", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -69,7 +85,7 @@ export default function SessionsPage() {
     window.location.href = `/dashboard/sessions/${data.id}`;
   };
 
-  const remove = async (id: string) => {
+  const remove = async function deleteSession(id: string) {
     const ok = await confirm({
       title: "Delete this session?",
       description: "All of its messages will be deleted too.",
@@ -87,32 +103,54 @@ export default function SessionsPage() {
     [sessions]
   );
 
+  const isForked = (s: SessionWithCount) => !!s.forkedFromMessageId;
+
   const renderCard = (s: SessionWithCount, depth = 0) => (
-    <Card key={s.id} interactive className="group rounded-2xl">
-      <Link href={`/dashboard/sessions/${s.id}`} className="block">
-        <div className="flex items-start justify-between gap-3">
+    <Card key={s.id} interactive className="group rounded-xl">
+      <Link href={`/dashboard/sessions/${s.id}`} className="block p-3">
+        <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <h3 className="text-text-primary flex items-center gap-1.5 truncate text-sm font-semibold">
               {depth > 0 && <CornerDownRight size={11} className="text-text-muted shrink-0" />}
               {s.name}
+              {isForked(s) && (
+                <span className="ml-1 shrink-0 rounded-full bg-sky-400/15 px-1.5 py-0.5 text-[9px] font-medium text-sky-300">
+                  Forked
+                </span>
+              )}
             </h3>
-            <p className="text-text-muted mt-1 text-[11px]">
-              {s.messageCount} {s.messageCount === 1 ? "message" : "messages"} ·{" "}
-              {timeAgo(s.updatedAt)}
-            </p>
+            <div className="text-text-muted mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px]">
+              <span>
+                {s.messageCount} {s.messageCount === 1 ? "message" : "messages"}
+              </span>
+              <span>·</span>
+              <span>{timeAgo(s.updatedAt)}</span>
+              {s.modelName && (
+                <>
+                  <span>·</span>
+                  <span className="text-text-muted/70">{shortModel(s.modelName)}</span>
+                </>
+              )}
+              {s.totalTokens > 0 && (
+                <>
+                  <span>·</span>
+                  <span className="text-text-muted/70">{fmtTokens(s.totalTokens)} tokens</span>
+                </>
+              )}
+            </div>
           </div>
           <ArrowRight
-            size={14}
-            className="island-icon text-text-muted mt-1 shrink-0 transition-colors group-hover:text-emerald-400"
+            size={12}
+            className="island-icon text-text-muted mt-0.5 shrink-0 transition-colors group-hover:text-emerald-400"
           />
         </div>
       </Link>
-      <div className="mt-3 flex justify-end border-t border-white/5 pt-3">
+      <div className="flex justify-end border-t border-white/5 px-3 py-2">
         <button
           onClick={() => remove(s.id)}
-          className="text-text-muted flex items-center gap-1 text-[11px] transition-colors hover:text-rose-400"
+          className="text-text-muted flex items-center gap-1 text-[10px] transition-colors hover:text-rose-400"
         >
-          <Trash2 size={11} /> Delete
+          <Trash2 size={10} /> Delete
         </button>
       </div>
     </Card>
@@ -122,8 +160,8 @@ export default function SessionsPage() {
   const renderBranch = (s: SessionWithCount, depth: number) => (
     <div
       key={s.id}
-      style={depth > 0 ? { marginLeft: depth * 24 } : undefined}
-      className="space-y-3"
+      style={depth > 0 ? { marginLeft: depth * 20 } : undefined}
+      className="space-y-2"
     >
       {renderCard(s, depth)}
       {(byParent.get(s.id) ?? []).map((child) => renderBranch(child, depth + 1))}
@@ -131,7 +169,7 @@ export default function SessionsPage() {
   );
 
   return (
-    <div ref={ref} className="mx-auto max-w-5xl space-y-8 px-4 py-10 md:px-8">
+    <div ref={ref} className="mx-auto max-w-5xl space-y-6 px-4 py-8 md:px-8">
       <div className="relative">
         <div className="orb -top-16 left-10 h-52 w-52 bg-emerald-500/20" />
         <div
@@ -185,9 +223,9 @@ export default function SessionsPage() {
       </div>
 
       {sessions === null ? (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 rounded-2xl" />
+            <Skeleton key={i} className="h-20 rounded-xl" />
           ))}
         </div>
       ) : sessions.length === 0 ? (
@@ -202,14 +240,14 @@ export default function SessionsPage() {
           }
         />
       ) : viewMode === "tree" ? (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {(byParent.get(null) ?? []).map((root) => renderBranch(root, 0))}
         </div>
       ) : (
         <VirtuosoGrid
           useWindowScroll
           data={sessions}
-          listClassName="grid grid-cols-1 gap-4 md:grid-cols-2"
+          listClassName="grid grid-cols-1 gap-3 md:grid-cols-2"
           itemContent={(_, s) => renderCard(s)}
         />
       )}
