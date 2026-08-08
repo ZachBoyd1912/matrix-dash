@@ -202,6 +202,14 @@ export const notifications = sqliteTable("notifications", {
   createdAt: text("created_at").notNull(),
 });
 
+// Clipboard bridge — one-way iPhone → MacBook text transfer
+export const clipboardEntries = sqliteTable("clipboard_entries", {
+  id: text("id").primaryKey(),
+  text: text("text").notNull(),
+  fetchedAt: text("fetched_at"),
+  createdAt: text("created_at").notNull(),
+});
+
 // ─── PROJECTS (portfolio catalog) ─────────────────────────
 export const projects = sqliteTable("projects", {
   id: text("id").primaryKey(),

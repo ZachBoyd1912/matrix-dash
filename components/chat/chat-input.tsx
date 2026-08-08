@@ -274,7 +274,7 @@ export function ChatInput({ onSubmit, onCancel, onAttach, busy, disabled, placeh
           </div>
         </div>
       </div>
-      <p className="text-text-muted mt-2 text-center text-[10px]">
+      <p className="text-text-muted mt-2 hidden text-center text-[10px] md:block">
         Matrix Dash extracts memories silently after every reply.
       </p>
     </div>

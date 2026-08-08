@@ -11,6 +11,7 @@ import { DeviceStatus } from "./device-status";
 import { ApprovalBadge } from "./approval-badge";
 import { VoiceOrb } from "./voice-orb";
 import { VoiceAnnouncer } from "./voice-announcer";
+import { ClipboardSend } from "./clipboard-send";
 
 const TITLES: Record<string, string> = Object.fromEntries(
   NAV_ITEMS.map((item) => [item.href, item.label])
@@ -103,6 +104,7 @@ export function Topbar() {
               <Share2 size={14} />
             </button>
           )}
+          <ClipboardSend />
           {installPromptEvent && (
             <button
               onClick={install}

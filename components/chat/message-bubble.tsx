@@ -77,7 +77,7 @@ export function MessageBubble({
           <p className="text-text-muted mt-1.5 pl-1 text-[11px]">{fallbackNotice}</p>
         )}
         {(showActions || showVariantPicker) && (
-          <div className="mt-1.5 flex items-center gap-2 pl-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+          <div className="mt-1.5 flex items-center gap-2 pl-1 opacity-40 transition-opacity duration-200 md:opacity-0 md:group-hover:opacity-100">
             {showVariantPicker && (
               <div className="text-text-muted flex items-center gap-1 text-[11px]">
                 <button

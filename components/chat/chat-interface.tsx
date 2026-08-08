@@ -243,6 +243,37 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
   const send = useCallback(
     async (text: string) => {
       setError(null);
+
+      // Offline: queue the message locally, show pending bubble, return.
+      if (typeof navigator !== "undefined" && !navigator.onLine && sessionId) {
+        const queue = (() => {
+          try {
+            return JSON.parse(localStorage.getItem("matrix_offline_queue") || "[]") as {
+              sessionId: string;
+              content: string;
+              timestamp: string;
+            }[];
+          } catch {
+            return [];
+          }
+        })();
+        queue.push({ sessionId, content: text, timestamp: new Date().toISOString() });
+        try {
+          localStorage.setItem("matrix_offline_queue", JSON.stringify(queue));
+        } catch {
+          /* quota */
+        }
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: uid(),
+            role: "user" as const,
+            blocks: [{ kind: "text" as const, text: text + " ⏳" }],
+          },
+        ]);
+        return;
+      }
+
       // Slash commands → Matrix UI actions. compact/init/review fall through to the engine.
       const t = text.trim();
       if (t.startsWith("/")) {
@@ -709,6 +740,35 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
   const empty = messages.length === 0;
   const noProvider = providers.length === 0;
 
+  // Flush offline message queue on reconnect
+  useEffect(
+    function flushOfflineQueueOnReconnect() {
+      async function handleOnline() {
+        try {
+          const raw = localStorage.getItem("matrix_offline_queue");
+          if (!raw) return;
+          const queue = JSON.parse(raw) as {
+            sessionId: string;
+            content: string;
+            timestamp: string;
+          }[];
+          if (queue.length === 0) return;
+          localStorage.removeItem("matrix_offline_queue");
+          for (const item of queue) {
+            await send(item.content);
+          }
+        } catch {
+          /* queue corrupted or send failed */
+        }
+      }
+      window.addEventListener("online", handleOnline);
+      return function cleanupReconnectListener() {
+        window.removeEventListener("online", handleOnline);
+      };
+    },
+    [send]
+  );
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       {empty && !embedded ? (
@@ -759,7 +819,7 @@ export function ChatInterface({ sessionId, initialMessages, embedded, contextTex
             ref={scrollRef}
             className="flex-1 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.12)_transparent] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb:hover]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent"
           >
-            <div className="mx-auto max-w-3xl space-y-6 px-4 py-8 md:px-6">
+            <div className="mx-auto max-w-full space-y-6 px-3 py-4 md:max-w-3xl md:px-6 md:py-8">
               {messages.map((m) => (
                 <MessageBubble
                   key={m.id}

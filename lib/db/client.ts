@@ -126,6 +126,13 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS clipboard_entries (
+  id TEXT PRIMARY KEY,
+  text TEXT NOT NULL,
+  fetched_at TEXT,
+  created_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS tasks (
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
