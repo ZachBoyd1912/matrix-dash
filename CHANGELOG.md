@@ -2,6 +2,31 @@
 
 # Changelog
 
+## 08/08/2026 @ 02:35:15 IST — "Sonnet 5"
+
+**Project completion: 100.00%** — all 12 tasks tracked for this change are complete and verified in production. Basis is the task list agreed with the operator: the core HTML-rendering fix, the four reading-pane additions they chose, and the bugs found while shipping it. Covers this change only. Known residue, deliberately not chased: 7 of 8,722 inbox previews still show markup (`<o:OfficeDocumentSettings`, a bare `<img>` fragment) — 0.08%, and each needs its own special case rather than a rule.
+
+**Goal:** Close out the email work by verifying it against the operator's real mailbox instead of a fixture. Four bugs surfaced that way, two of them severe, and none were visible from the code.
+
+**Fixed — production outage, self-inflicted:**
+- **The email page OOM-killed the VM.** `GET /api/emails` returns an ENTIRE folder, and this mailbox has 8,722 inbox messages with bodies up to 20,000 characters — roughly 240MB of strings before serialisation, on a machine with 955MB. systemd restarted the service twice. The body is now truncated in SQL with `substr()` to the 300 characters the list actually renders, so SQLite never hands the rest to Node; attachment metadata became a presence flag for the same reason. Measured after: **5.2MB**. The query moved to `lib/services/email-list.ts` so the bound is testable rather than buried in a route.
+- **The repair pass ran inside that same request**, competing for heap at the worst moment. It is a daemon task now — every 2 minutes, bounded by batch count and wall clock, resumable by cursor. A slow repair costs nobody a page load.
+
+**Fixed — the backfill could not see most of its own candidates:**
+- `looksLikeHtml` matched a hand-picked list of tag names, so a body opening `<meta http-equiv` — how a great deal of real mail starts — was judged plain text. Any well-formed opening tag counts now; the letter-first rule still keeps `<3`, `a < b` and a quoted `<zach@example.com>` out, each with a test.
+- The SQL prefilter used `trim()`, and **SQLite's one-argument `trim()` strips spaces only** — so a body beginning `\r\n\r\n<!doctype html>` was never even a candidate. `ltrim()` with tab, newline and carriage return named explicitly. Mutation-checked: reverting to `trim()` fails the new test. Backfill settings keys are versioned as a result, so widening the detection retires the completed pass instead of leaving those rows unreachable forever.
+
+**Fixed — reading pane:**
+- Opening a message called `refresh()` to flip its read flag, refetching the whole 5MB folder. It also raced the detail fetch: a late refresh replaced the message being read with the list row that has no HTML body, blanking the pane and resetting image blocking. The row is patched in local state.
+- **The white frame.** A dark-designed email sat inside white padding, framed in a white border against the dark dashboard — visibly "not themed", which is what the operator asked to avoid. The two-way split had a defect at each end, so it is three-way now: `own-background` leaves the sender's content untouched and themes only the surround; `assumes-white` (text colours but no background) gets the white it was written against, because themed onto a dark surface it would be invisible; `themed` is a bare body with no opinion, painted entirely in the dashboard's colours and following theme switches live.
+
+**Verified in production**, with screenshots read rather than inferred: the PU Prime message from the operator's own reference renders with its banner image, headings, the blue "Verify Now" button and correct spacing — 17 images blocked on open, 17 loaded after one click, selection stable. Sender shows as a coloured initial with name and address. Reply / Reply-all / Forward present. Message-list previews are clean prose: **7 of 8,722 still markup, down from 1,209+**; another 96 legitimately begin with a URL because that is the email's actual first line.
+
+**Verification:** `pnpm typecheck` 0 errors, `pnpm lint` 0 errors / 65 warnings, **293 tests passing** (64 for email).
+
+**Files touched:** `lib/services/gmail.ts`, `lib/services/email-list.ts` (new), `lib/services/email-dto.ts` (new), `lib/services/daemon.ts`, `lib/utils/sanitize.ts`, `lib/utils/email-theme.ts` (new), `lib/utils/email-address.ts` (new), `lib/hooks/use-theme-tokens.ts` (new), `lib/db/schema.ts`, `lib/db/client.ts`, `types/email.ts`, `app/api/emails/route.ts`, `app/api/emails/[id]/route.ts`, `app/api/emails/[id]/attachments/[attachmentId]/route.ts` (new), `app/dashboard/email/page.tsx`, `components/email/*` (3 new), `__tests__/lib/email-html.test.ts` (new).
+
+
 ## 08/08/2026 @ 01:26:21 IST — "Sonnet 5"
 
 **Project completion: 91.67%** — 11 of the 12 tasks tracked for this change are done; the twelfth is deploy-and-verify, running immediately after this entry. Basis is the task list agreed with the operator: the core HTML-rendering fix, the four reading-pane additions they asked for, and two bugs found while building it. This figure covers this change only, not the product.
