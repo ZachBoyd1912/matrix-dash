@@ -40,9 +40,11 @@ const LEGACY_BODY_CAP = 20_000;
  *
  * v2: the original matched a hand-picked list of tag names, so mail opening
  * with `<meta http-equiv` was missed and kept showing raw markup in the list.
+ * v3: the SQL prefilter used trim(), which in SQLite strips spaces only, so a
+ * body starting with a blank line was never even a candidate.
  */
-const BACKFILL_DONE = "emailHtmlBackfilled_v2";
-const BACKFILL_CURSOR = "emailHtmlBackfillCursor_v2";
+const BACKFILL_DONE = "emailHtmlBackfilled_v3";
+const BACKFILL_CURSOR = "emailHtmlBackfillCursor_v3";
 
 // ─── Helpers ──────────────────────────────────────────
 
@@ -521,10 +523,14 @@ export function backfillEmailHtml(
   // (34,916 messages): it exhausted a 2GB heap and killed the process. The VM
   // this deploys to has 955MB total, so that would have taken production down.
   //
-  // `trim(body) LIKE '<%'` is a coarser test than looksLikeHtml — it misses a
-  // body that opens with a comment or stray text — but it is an index-free
-  // scan SQLite does without materialising anything, and looksLikeHtml still
-  // makes the final call below. Anything it misses simply stays as text.
+  // The ltrim character set is not decoration: SQLite's one-argument trim()
+  // strips SPACES ONLY, so a body beginning "\r\n\r\n<!doctype html>" — which
+  // is how a large share of real mail arrives — never matched and stayed raw
+  // markup in the message list. Tabs, newlines and carriage returns have to be
+  // named explicitly.
+  //
+  // Still coarser than looksLikeHtml, which makes the final call below;
+  // anything this misses simply stays as text rather than being corrupted.
   //
   // The `id > afterId` cursor guarantees forward progress. Without it a row
   // that matches the SQL filter but fails looksLikeHtml below is never updated
@@ -534,7 +540,7 @@ export function backfillEmailHtml(
     .select({ id: emails.id, body: emails.body })
     .from(emails)
     .where(
-      sql`${emails.bodyHtml} IS NULL AND trim(${emails.body}) LIKE '<%' AND ${emails.id} > ${afterId}`
+      sql`${emails.bodyHtml} IS NULL AND ltrim(${emails.body}, ' ' || char(9) || char(10) || char(13)) LIKE '<%' AND ${emails.id} > ${afterId}`
     )
     .orderBy(emails.id)
     .limit(limit)

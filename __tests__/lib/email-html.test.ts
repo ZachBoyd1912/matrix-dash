@@ -278,6 +278,18 @@ describe("backfillEmailHtml", () => {
     expect(row.body.startsWith("<")).toBe(false);
   });
 
+  it("repairs a body that starts with a blank line", () => {
+    // SQLite's one-argument trim() strips spaces only, so a body beginning
+    // "\r\n\r\n<!doctype html>" — a large share of real mail — was never
+    // selected as a candidate and stayed raw markup in the message list.
+    insert("\r\n\r\n<!doctype html><html><body><p>Receipt</p></body></html>");
+
+    expect(backfillEmailHtml().repaired).toBe(1);
+    const row = getDb().select().from(emails).all()[0];
+    expect(row.bodyHtml).toContain("<p>Receipt</p>");
+    expect(row.body).toBe("Receipt");
+  });
+
   it("stays within its batch size", () => {
     for (let i = 0; i < 5; i++) insert(`<p>message ${i}</p>`);
     expect(backfillEmailHtml(2, "").scanned).toBe(2);
