@@ -12,40 +12,31 @@ await page.goto("https://matrix.zbautomations.ie/dashboard/email", {
   waitUntil: "domcontentloaded",
   timeout: 90000,
 });
+await page.waitForTimeout(10000);
 
-// The first load also runs a slice of the backfill, so give the list time.
-await page
-  .waitForFunction(
-    () =>
-      document.querySelectorAll('[data-testid="virtuoso-item-list"] button, [data-index] button')
-        .length > 0,
-    { timeout: 120000 }
-  )
-  .catch(() => console.log("(list selector did not resolve; continuing)"));
-await page.waitForTimeout(4000);
-
+const t0 = Date.now();
 const info = await page.evaluate(async () => {
   const res = await fetch("/api/emails?folder=inbox");
-  const rows = await res.json();
+  const text = await res.text();
+  const rows = JSON.parse(text);
   return {
+    status: res.status,
+    payloadKB: Math.round(text.length / 1024),
     count: rows.length,
-    withAttachments: rows.filter((r) => r.attachments?.length).length,
-    previews: rows.slice(0, 5).map((r) => ({
-      from: r.fromAddr.slice(0, 40),
-      preview: (r.body || "").replace(/\s+/g, " ").slice(0, 70),
-    })),
+    maxBody: Math.max(...rows.map((r) => (r.body || "").length)),
+    withAttachments: rows.filter((r) => r.hasAttachments).length,
     stillMarkup: rows.filter((r) => (r.body || "").trim().startsWith("<")).length,
+    sample: rows
+      .slice(0, 4)
+      .map(
+        (r) =>
+          `${r.fromAddr.slice(0, 34).padEnd(36)}${JSON.stringify((r.body || "").replace(/\s+/g, " ").slice(0, 58))}`
+      ),
   };
 });
 console.log(
-  "INBOX:",
-  info.count,
-  "messages |",
-  info.withAttachments,
-  "with attachments |",
-  info.stillMarkup,
-  "previews still starting with '<'"
+  `LIST: ${info.status} | ${info.count} msgs | ${info.payloadKB}KB | max body ${info.maxBody} chars | ${info.withAttachments} w/ attachments | ${info.stillMarkup} still markup | ${Date.now() - t0}ms`
 );
-info.previews.forEach((p) => console.log(`  • ${p.from.padEnd(42)} ${JSON.stringify(p.preview)}`));
+info.sample.forEach((s) => console.log("  •", s));
 await page.screenshot({ path: process.env.SCRATCH + "/mail-list.png" });
 await browser.close();

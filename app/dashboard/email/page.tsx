@@ -141,7 +141,15 @@ export default function EmailPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ isRead: true }),
       });
-      refresh();
+      // Patch the one row locally instead of calling refresh(). A full refetch
+      // pulls the WHOLE folder — ~5MB for this mailbox — merely to flip a
+      // boolean, and it races the detail fetch above: whichever lands second
+      // wins, so a refresh arriving late replaces the message being read with
+      // the list row that has no HTML body, blanking the reading pane.
+      setList((prev) =>
+        prev ? prev.map((e) => (e.id === email.id ? { ...e, isRead: true } : e)) : prev
+      );
+      setSelected((prev) => (prev?.id === email.id ? { ...prev, isRead: true } : prev));
     }
   };
 
