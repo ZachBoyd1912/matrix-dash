@@ -17,6 +17,7 @@ import {
   SquareTerminal,
   Bot,
   Vault,
+  FolderOpen,
   type LucideIcon,
 } from "lucide-react";
 
@@ -98,6 +99,7 @@ export const NAV_ITEMS: NavItem[] = [
     groupId: "devtools",
   },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
+  { href: "/dashboard/files", label: "Files", icon: FolderOpen },
 ];
 
 /** Curated bottom-tab set for mobile — deliberately NOT NAV_ITEMS.slice(0,4),
@@ -105,8 +107,8 @@ export const NAV_ITEMS: NavItem[] = [
 export const MOBILE_PRIMARY_HREFS = [
   "/dashboard",
   "/dashboard/sessions",
+  "/dashboard/files",
   "/dashboard/tasks",
-  "/dashboard/settings",
 ];
 
 export function isNavActive(item: NavItem, pathname: string): boolean {

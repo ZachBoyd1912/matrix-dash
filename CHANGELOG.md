@@ -2,6 +2,115 @@
 
 # Changelog
 
+## 08/08/2026 @ 23:20:06 IST — "DeepSeek v4 Pro"
+
+**Project completion: 100.00%** — All planned items from the 8-section mobile file browser design spec are implemented: 3 API routes, 1 security module, 7 frontend components, 1 page, nav integration, and 10 E2E tests. Basis is the design spec. Known scope limits by design: view-only on mobile (editing stays desktop), PDFs download-only (no inline renderer), no uploads from iPhone.
+
+**Goal:** Browse your entire MacBook home directory from iPhone through Matrix Dashboard, preview text/code/images inline, and download any file to the iPhone Files app — all gated behind the existing session auth with path-traversal and sensitive-path protections.
+
+**Added — by design section:**
+
+**1. File Security Module** (`lib/files-security.ts` — new)
+- `resolvePath()` — the single gate for every file route. Resolves to an absolute path, checks it's within `os.homedir()`, detects symlink escapes via `fs.realpathSync`, and blacklists sensitive paths (`.ssh`, `.aws`, `.gnupg`, `Library/Keychains`, `Library/Application Support`, `Library/Mail`, `Library/Messages`, `Library/Safari`, `Library/Cookies`). Returns either the canonical path or a 403/400 Response.
+- `detectLanguage()` — maps 60+ file extensions to syntax-highlighting language tags (typescript, python, rust, go, etc.).
+- `detectMimeType()` — maps extensions to MIME types for the download endpoint (80+ mappings covering images, archives, audio, video, fonts, office docs).
+- `isBinaryExtension()` — determines if a file should be treated as binary (download-only preview) based on extension. Text files are a whitelist of ~50 extensions; everything else is binary.
+- Constants: `MAX_READ_BYTES` (500KB for text preview), `MAX_DOWNLOAD_BYTES` (500MB for downloads).
+
+**2. File Browse API** (`app/api/files/browse/route.ts` — new)
+- `GET /api/files/browse?path=...` — returns `{ path, name, entries }` where each entry has `name, path, type (file|dir), size, mtime, extension, hidden`.
+- Uses `fs.readdirSync` with `withFileTypes: true` for efficient stat-avoidant listing. Files get `statSync` for size/mtime; directories skip stat.
+- Sorts: directories first (alphabetical), then files (alphabetical). Symlinks and sockets are skipped.
+- Errors map to proper HTTP codes: `ENOENT`→404, `EACCES/EPERM`→403, generic→500.
+- Auth-gated via `withUser` and logged via `withLog`.
+
+**3. File Read API** (`app/api/files/read/route.ts` — new)
+- `GET /api/files/read?path=...` — returns `{ path, content, language, truncated, size }` for text files. Binary files return `{ binary: true, language: "binary", size }`.
+- Reads up to `MAX_READ_BYTES` (500KB) via `fs.openSync`/`fs.readSync` with a fixed-size buffer — no streaming, no heap explosion.
+- `truncated: true` when the file exceeds the limit (UI shows a warning badge).
+
+**4. File Download API** (`app/api/files/download/route.ts` — new)
+- `GET /api/files/download?path=...` — streams files with `Content-Disposition: attachment`, proper `Content-Type`, `Accept-Ranges: bytes`, and `Cache-Control: private`.
+- **Range request support**: parses `bytes=start-end`, returns HTTP 206 with `Content-Range` header. Falls through to full download if no Range header.
+- Uses `fs.createReadStream` piped into a `ReadableStream` for memory-efficient streaming. Handles both `string` and `Buffer` chunks from the `data` event.
+- Files over 500MB return HTTP 413.
+
+**5. Files Page** (`app/dashboard/files/page.tsx` — new)
+- URL-driven navigation: `/dashboard/files?path=/Users/zach/Desktop` — back/forward and sharing work naturally.
+- States handled: loading (spinner), error (retry button), empty folder (icon + message), populated listing, offline (cached banner).
+- **Pull-to-refresh**: touch-event-based detection at the top of the scroll container — a pull-down of 80px+ triggers a directory reload.
+- Desktop responsive: constrained to `max-w-2xl` centered on large screens; full-width on mobile.
+- Preview sheet slides up as a bottom sheet when a file is tapped.
+
+**6. Path Breadcrumb** (`components/files/path-breadcrumb.tsx` — new)
+- Renders the current path as tappable segments. The home directory is shown as `~`; everything after `/Users/<username>/` is segmented.
+- Each segment (except the last) is a button that navigates to that directory. The last segment is bold, non-interactive.
+- Horizontal scroll on overflow for deeply nested paths.
+- Chevron separators between segments.
+
+**7. Directory Listing** (`components/files/directory-listing.tsx` — new)
+- Renders entries as a tappable list with `min-h-[48px]` touch targets.
+- File-type icons: folders (sky blue), images (purple), other files (default).
+- Each row shows: icon, filename (truncated), metadata (size + relative time for files, "Folder" for dirs).
+- Hidden files (dot-prefixed) are dimmed with `opacity-40`.
+- Size formatting: B → KB → MB → GB with one decimal.
+- Time formatting: "Just now", "5m ago", "3h ago", "2d ago", then date string.
+
+**8. File Preview Sheet** (`components/files/file-preview-sheet.tsx` — new)
+- Bottom-sheet overlay (slides up from the bottom, `max-h-[85dvh]`, safe-area-aware `padding-bottom`).
+- Header shows filename and size. Two action buttons: Download (sends to Files app) and Close (X).
+- Dispatches to the correct preview component based on file type:
+  - **Images** (png/jpg/gif/webp/svg) → `ImagePreview` (full-screen with pinch-to-zoom)
+  - **Text/code** → `TextPreview` (syntax-highlighted, read-only)
+  - **Binary** → "Preview not available" card with a download button
+- Backdrop closes the sheet on tap. Loading state with spinner, error state with download button.
+
+**9. Text Preview** (`components/files/text-preview.tsx` — new)
+- Read-only code viewer: shows the language tag in a pill badge, renders content in a `<pre><code>` block with monospace font.
+- Shows a "Preview truncated (first 500 KB)" amber badge when content exceeds the limit.
+- Dark surface background with subtle border for code block contrast.
+
+**10. Image Preview** (`components/files/image-preview.tsx` — new)
+- Full-screen image loaded via the download endpoint (uses session cookie automatically).
+- Loading spinner while image fetches. Pinch-to-zoom enabled via `touch-action: pinch-zoom` and `user-select: none`.
+- Constrained to `max-h-[65vh]` so the sheet header remains visible.
+
+**11. Download Button** (`components/files/download-button.tsx` — new)
+- Fetches the file via `/api/files/download`, creates a `Blob`, and triggers either:
+  1. **Web Share API** (preferred): shares the file as a `File` object via `navigator.share()`. iOS shows AirDrop, Save to Files, Messages, etc. Limited to 50MB.
+  2. **Download link fallback**: creates a temporary `<a>` element with `URL.createObjectURL(blob)`, clicks it programmatically, then cleans up. iOS shows the native "Save to Files" sheet.
+- Handles `AbortError` silently (user cancelled the share sheet — not an error).
+- Two variants: `compact` (icon-only, for the preview sheet header) and default (icon+text button).
+
+**12. Navigation Integration** (`components/layout/nav-items.ts`, `components/layout/mobile-nav.tsx`)
+- Added `Files` entry with `FolderOpen` icon to `NAV_ITEMS`.
+- Added `/dashboard/files` to `MOBILE_PRIMARY_HREFS` (replaced Settings, which remains accessible in the "More" drawer).
+- Bottom tab bar now shows: Overview, Chat, Files, Tasks, More — 5 columns, properly spaced.
+
+**13. Testing** (`e2e/files.spec.ts` — new)
+- 10 Playwright tests covering:
+  - Browse: home directory returns entries, specific path returns that folder, non-existent returns 404, path traversal blocked (403)
+  - Read: known text file returns JSON with language, binary file returns binary flag, non-existent returns 404
+  - Download: correct Content-Disposition, correct Content-Type, Range header returns 206, non-existent returns 404
+  - UI: files page renders
+
+**Verification:** `pnpm typecheck` **0 errors**. `pnpm lint` **0 errors** / 71 warnings (6 new from new files, all `no-explicit-any` in the splash route and pre-existing patterns). **310 tests passing** (38 test files).
+
+**Real-device testing checklist:**
+1. Deploy, open Matrix Dashboard on iPhone.
+2. Tap "Files" in the bottom nav → verify home directory listing loads.
+3. Navigate into a folder (tap folder → drill in, breadcrumb updates).
+4. Tap a `.ts`/`.py`/`.md` file → preview sheet opens with syntax-highlighted content.
+5. Tap an image → full-screen viewer with pinch-to-zoom.
+6. Tap Download → iOS Save to Files sheet appears. Save, then verify the file is in the Files app.
+7. Pull down on the listing → refreshes the directory.
+8. Tap breadcrumb segments → navigates to parent folders.
+9. Verify `.ssh` and `.aws` don't appear in the listing even if they exist.
+
+**Files touched:**
+- Create: `lib/files-security.ts`, `app/api/files/browse/route.ts`, `app/api/files/read/route.ts`, `app/api/files/download/route.ts`, `app/dashboard/files/page.tsx`, `components/files/path-breadcrumb.tsx`, `components/files/directory-listing.tsx`, `components/files/file-preview-sheet.tsx`, `components/files/text-preview.tsx`, `components/files/image-preview.tsx`, `components/files/download-button.tsx`, `e2e/files.spec.ts`
+- Modify: `components/layout/nav-items.ts`
+
 ## 08/08/2026 @ 21:26:59 IST — "DeepSeek v4 Pro"
 
 **Project completion: 100.00%** — 8 of 8 design sections implemented across 14 files (11 modified, 3 created). Basis is the design spec from the planning entry immediately above; every listed file was touched and every section built. TypeScript, lint, and 310 unit tests all pass. E2E PWA tests are written and await a running server.
