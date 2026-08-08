@@ -8,6 +8,7 @@ import { agents } from "@/lib/db/schema";
 import { notify, fireWebhooks } from "./notify";
 import { decayMemories } from "@/lib/ai/consolidation";
 import { syncAllAccounts } from "./email";
+import { runEmailHtmlBackfillSlice } from "./gmail";
 import { writeBackup } from "./backup";
 import { getSetting, setSetting } from "@/lib/db/settings";
 import { runWithUser } from "@/lib/db/context";
@@ -36,6 +37,7 @@ const g = globalThis as unknown as {
     agentJobs: Map<string, ScheduledTask>;
     heartbeat?: ScheduledTask;
     emailPoll?: ScheduledTask;
+    emailHtmlBackfill?: ScheduledTask;
     portfolioSync?: ScheduledTask;
     obsidianSync?: ScheduledTask;
   };
@@ -245,6 +247,19 @@ export function startDaemon() {
   // Email polling every 5 minutes (no-op when no accounts configured).
   s.emailPoll = cron.schedule("*/5 * * * *", () => {
     void syncAllAccounts().catch(() => {});
+  });
+
+  // Repair mail synced before HTML had its own column, a slice at a time.
+  // Deliberately out of the request path: doing this inside GET /api/emails
+  // competed for heap with serialising a whole folder and killed the 955MB
+  // production VM on the first page load after deploy.
+  s.emailHtmlBackfill = cron.schedule("*/2 * * * *", () => {
+    try {
+      const repaired = runEmailHtmlBackfillSlice();
+      if (repaired > 0) console.log(`[emails] repaired HTML for ${repaired} message(s)`);
+    } catch (err) {
+      console.error("[emails] HTML backfill slice failed", err);
+    }
   });
 
   // Obsidian vault reconcile, every 10 minutes. Previously this only ran when

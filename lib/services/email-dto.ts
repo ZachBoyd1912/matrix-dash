@@ -19,11 +19,16 @@ export type EmailListRow = Pick<
   | "toAddr"
   | "subject"
   | "body"
-  | "attachments"
   | "isRead"
   | "isStarred"
   | "createdAt"
->;
+> & {
+  /** Full metadata on the detail route; the list sends only a marker. */
+  attachments: string | null;
+  /** 1 when the message has attachments. The list only draws a paperclip, so
+   *  shipping the real metadata for every row is payload spent for nothing. */
+  hasAttachments?: number;
+};
 
 /**
  * Attachment metadata is stored as a JSON string. A malformed value must not
@@ -45,7 +50,10 @@ export function parseAttachments(raw: string | null): AttachmentMeta[] | undefin
 }
 
 export function toEmailListItem(row: EmailListRow): Email {
+  // The list query reports presence only; the detail query sends real metadata.
   const attachments = parseAttachments(row.attachments);
+  const hasAttachments =
+    row.hasAttachments !== undefined ? row.hasAttachments === 1 : !!attachments?.length;
   return {
     id: row.id,
     folder: row.folder,
@@ -57,6 +65,7 @@ export function toEmailListItem(row: EmailListRow): Email {
     isStarred: !!row.isStarred,
     createdAt: row.createdAt,
     ...(attachments?.length ? { attachments } : {}),
+    ...(hasAttachments ? { hasAttachments: true } : {}),
   };
 }
 

@@ -16,6 +16,7 @@ import {
 } from "@/lib/utils/email-address";
 import { hasOwnColorScheme } from "@/lib/utils/email-theme";
 import { blockRemoteImages } from "@/components/email/email-body";
+import { listEmails, PREVIEW_CHARS } from "@/lib/services/email-list";
 import { htmlToText, looksLikeHtml, sanitizeEmailHtml } from "@/lib/utils/sanitize";
 
 const b64 = (s: string) => Buffer.from(s, "utf-8").toString("base64url");
@@ -409,5 +410,64 @@ describe("extractAttachments", () => {
 
   it("returns an empty list for a message with none", () => {
     expect(extractAttachments({ mimeType: "text/plain", body: { data: b64("hi") } })).toEqual([]);
+  });
+});
+
+describe("listEmails payload", () => {
+  beforeEach(() => {
+    getDb().delete(emails).run();
+  });
+
+  const insert = (over: Partial<typeof emails.$inferInsert> = {}) => {
+    const id = randomUUID();
+    getDb()
+      .insert(emails)
+      .values({ id, folder: "inbox", body: "", createdAt: new Date().toISOString(), ...over })
+      .run();
+    return id;
+  };
+
+  it("truncates the body so a folder listing cannot exhaust the heap", () => {
+    // The regression that killed production: a ~12,000-message inbox at up to
+    // 20,000 characters per body is ~240MB of strings on a 955MB VM.
+    insert({ body: "x".repeat(20_000) });
+    const [row] = listEmails({ folder: "inbox" });
+    expect(row.body.length).toBe(PREVIEW_CHARS);
+  });
+
+  it("keeps a short body intact", () => {
+    insert({ body: "Your order shipped" });
+    expect(listEmails({ folder: "inbox" })[0].body).toBe("Your order shipped");
+  });
+
+  it("never ships the HTML body in a listing", () => {
+    insert({ body: "text", bodyHtml: "<p>" + "y".repeat(50_000) + "</p>" });
+    const [row] = listEmails({ folder: "inbox" });
+    expect(row.bodyHtml).toBeUndefined();
+    expect(JSON.stringify(row).length).toBeLessThan(1_000);
+  });
+
+  it("reports attachment presence without shipping the metadata", () => {
+    insert({
+      attachments: JSON.stringify([
+        { attachmentId: "a", filename: "invoice.pdf", mimeType: "application/pdf", size: 1 },
+      ]),
+    });
+    const [row] = listEmails({ folder: "inbox" });
+    expect(row.hasAttachments).toBe(true);
+    expect(row.attachments).toBeUndefined();
+  });
+
+  it("leaves hasAttachments unset for a message with none", () => {
+    insert({});
+    expect(listEmails({ folder: "inbox" })[0].hasAttachments).toBeUndefined();
+  });
+
+  it("filters by folder and by starred", () => {
+    insert({ folder: "inbox", subject: "in" });
+    insert({ folder: "sent", subject: "out" });
+    insert({ folder: "inbox", subject: "fav", isStarred: true });
+    expect(listEmails({ folder: "sent" }).map((r) => r.subject)).toEqual(["out"]);
+    expect(listEmails({ starred: true }).map((r) => r.subject)).toEqual(["fav"]);
   });
 });

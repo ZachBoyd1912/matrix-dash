@@ -23,8 +23,17 @@ export interface Email {
    * in list responses: 400KB of markup per row would dwarf the payload.
    */
   bodyHtml?: string | null;
-  /** Metadata only — bytes are fetched from /api/emails/[id]/attachments/[attachmentId]. */
+  /**
+   * Full metadata, on the single-email GET only — bytes come from
+   * /api/emails/[id]/attachments/[attachmentId].
+   */
   attachments?: AttachmentMeta[];
+  /**
+   * Presence flag, sent by the LIST endpoint instead of the metadata itself.
+   * The list only draws a paperclip, and a folder response covers thousands of
+   * messages, so shipping the real array per row is payload spent for nothing.
+   */
+  hasAttachments?: boolean;
   isRead: boolean | null;
   isStarred: boolean | null;
   createdAt: string;

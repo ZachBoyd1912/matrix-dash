@@ -5,6 +5,7 @@ import { gmailConnections, emails } from "@/lib/db/schema";
 import { decrypt, encrypt } from "@/lib/utils/crypto";
 import { notify } from "@/lib/services/notify";
 import { htmlToText, looksLikeHtml } from "@/lib/utils/sanitize";
+import { getSetting, setSetting } from "@/lib/db/settings";
 import type { AttachmentMeta } from "@/types/email";
 
 /**
@@ -27,6 +28,10 @@ const BACKFILL_BATCH = 300;
  * length was cut off mid-document rather than authored that way.
  */
 const LEGACY_BODY_CAP = 20_000;
+
+/** Settings keys tracking backfill progress across restarts. */
+const BACKFILL_DONE = "emailHtmlBackfilled";
+const BACKFILL_CURSOR = "emailHtmlBackfillCursor";
 
 // ─── Helpers ──────────────────────────────────────────
 
@@ -615,4 +620,36 @@ export async function getGmailAttachment(
   const data = (await res.json()) as { data?: string };
   if (!data.data) return null;
   return Buffer.from(data.data.replace(/-/g, "+").replace(/_/g, "/"), "base64");
+}
+
+/**
+ * One scheduled slice of the pre-bodyHtml repair, for the daemon to call.
+ *
+ * Deliberately NOT in the request path. It first ran inside GET /api/emails,
+ * where it competed for heap with serialising a whole folder and killed the
+ * 955MB production VM outright. Out here it has the process to itself, and a
+ * slow repair costs nobody a page load.
+ *
+ * Bounded twice — by batch count and by wall clock — and resumable through a
+ * stored cursor, so it makes steady progress across ticks without ever holding
+ * much at once. Returns the number repaired this slice.
+ */
+export function runEmailHtmlBackfillSlice(budgetMs = 5_000, maxBatches = 20): number {
+  if (getSetting(BACKFILL_DONE) === "1") return 0;
+
+  const deadline = Date.now() + budgetMs;
+  let cursor = getSetting(BACKFILL_CURSOR) ?? "";
+  let repaired = 0;
+
+  for (let i = 0; i < maxBatches && Date.now() < deadline; i++) {
+    const batch = backfillEmailHtml(BACKFILL_BATCH, cursor);
+    if (batch.scanned === 0) {
+      setSetting(BACKFILL_DONE, "1");
+      break;
+    }
+    repaired += batch.repaired;
+    cursor = batch.lastId;
+    setSetting(BACKFILL_CURSOR, cursor);
+  }
+  return repaired;
 }

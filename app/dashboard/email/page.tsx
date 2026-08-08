@@ -305,7 +305,7 @@ export default function EmailPage() {
                         ? parseAddress(email.toAddr).name || "(no recipient)"
                         : parseAddress(email.fromAddr).name}
                     </span>
-                    {email.attachments && email.attachments.length > 0 && (
+                    {email.hasAttachments && (
                       <Paperclip size={10} className="text-text-muted shrink-0" />
                     )}
                     {email.isStarred && (
