@@ -1,35 +1,42 @@
+export type EmailPaint =
+  /** The sender paints its own background; only the surround is themed. */
+  | "own-background"
+  /** Text colours but no background — it assumes white, so give it white. */
+  | "assumes-white"
+  /** No opinion at all; paint it entirely in the dashboard's theme. */
+  | "themed";
+
 /**
- * Whether an email brings its own colour scheme.
+ * How much of an email's appearance we are allowed to decide.
  *
- * This decides how the message document is painted, and the choice is forced
- * by a real conflict:
+ * A three-way split, because the two-way one produces a visible defect at each
+ * extreme:
  *
- * - A **designed** email (marketing, receipts, anything with a template) sets
- *   its own backgrounds and text colours. Re-colouring it produces the classic
- *   dark-mode email failure — logos on transparent backgrounds disappear,
- *   branded buttons lose contrast, and images keep their own light backgrounds
- *   regardless. Gmail does not attempt it, and neither do we: those render
- *   exactly as sent, which is what "looks identical to Gmail" means.
+ * - **own-background** — a designed template (marketing, receipts) sets its own
+ *   backgrounds. Recolouring it is the classic dark-mode email failure: logos
+ *   on transparent backgrounds vanish and branded buttons lose contrast. Its
+ *   content is left exactly as sent, but the padding AROUND it follows the
+ *   dashboard theme — painting that white frames a dark email in a white
+ *   border, which is what "not themed" looks like.
  *
- * - A **plain** email — a bare `<p>`/`<div>` body with no styling, which is
- *   most personal mail and most transactional notifications — has no opinion.
- *   Painting that with the dashboard's own theme is what makes the reading pane
- *   feel like part of the app rather than a white box pasted into it.
+ * - **assumes-white** — sets text colours but no background. This is the
+ *   dangerous one: themed onto a dark surface, dark text becomes invisible. It
+ *   gets the white background it was written against.
  *
- * Getting this backwards is not cosmetic: an email that sets dark text but no
- * background, rendered on a dark themed surface, is invisible.
+ * - **themed** — a bare `<p>`/`<div>` body, which is most personal and
+ *   transactional mail. No opinion to preserve, so it is painted entirely in
+ *   the dashboard's own colours and follows theme changes.
  */
-export function hasOwnColorScheme(html: string): boolean {
+export function classifyEmailPaint(html: string): EmailPaint {
   // Only the opening stretch matters — a template declares its palette in the
-  // wrapper table, and scanning 400KB of markup on every render is wasteful.
+  // wrapper — and scanning 400KB on every render is wasteful.
   const head = html.slice(0, 20_000).toLowerCase();
-  return (
+  const hasBackground =
     head.includes("bgcolor=") ||
     head.includes("background-color:") ||
-    head.includes("background:#") ||
-    head.includes("background: #") ||
-    /(?:^|[;"'\s])color\s*:/.test(head)
-  );
+    /background\s*:\s*(#|rgb|hsl|linear-gradient)/.test(head);
+  if (hasBackground) return "own-background";
+  return /(?:^|[;"'\s])color\s*:/.test(head) ? "assumes-white" : "themed";
 }
 
 export interface EmailThemeTokens {
@@ -57,24 +64,34 @@ export const NEUTRAL_TOKENS: EmailThemeTokens = {
  * other client. Only the things a bare document gets wrong are set: readable
  * defaults, no horizontal overflow, and links that look like links.
  */
-export function buildDocumentCss(t: EmailThemeTokens, themed: boolean): string {
+export function buildDocumentCss(t: EmailThemeTokens, paint: EmailPaint): string {
+  const themed = paint === "themed";
+  // `own-background` keeps the sender's content untouched but themes the
+  // surround, so a dark email is not framed in a white border.
+  const surround = paint === "assumes-white" ? NEUTRAL_TOKENS.background : t.background;
+  const bodyBg = paint === "own-background" ? "transparent" : surround;
+  const textColor = paint === "assumes-white" ? NEUTRAL_TOKENS.text : t.text;
+  const linkColor = paint === "assumes-white" ? NEUTRAL_TOKENS.link : t.link;
+  const borderColor = paint === "assumes-white" ? NEUTRAL_TOKENS.border : t.border;
+
   return `
   :root { color-scheme: ${themed ? "dark light" : "light"}; }
-  html, body { margin: 0; padding: 0; background: ${t.background}; }
+  html { margin: 0; padding: 0; background: ${surround}; }
+  body { margin: 0; background: ${bodyBg}; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-    font-size: 14px; line-height: 1.6; color: ${t.text};
-    padding: 16px; word-break: break-word; overflow-wrap: anywhere;
+    font-size: 14px; line-height: 1.6; ${paint === "own-background" ? "" : `color: ${textColor};`}
+    padding: ${paint === "own-background" ? "0" : "16px"};
+    word-break: break-word; overflow-wrap: anywhere;
   }
-  a { color: ${t.link}; text-decoration: underline; }
+  a { color: ${linkColor}; text-decoration: underline; }
   img { max-width: 100%; height: auto; border: 0; }
   table { max-width: 100%; }
-  hr { border: 0; border-top: 1px solid ${t.border}; }
+  hr { border: 0; border-top: 1px solid ${borderColor}; }
   blockquote {
     margin: 0 0 0 8px; padding-left: 12px;
-    border-left: 2px solid ${t.border}; color: ${t.muted};
+    border-left: 2px solid ${borderColor}; color: ${t.muted};
   }
   pre { white-space: pre-wrap; word-wrap: break-word; }
-  ::selection { background: ${t.link}33; }
 `;
 }

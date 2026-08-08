@@ -14,7 +14,7 @@ import {
   prefixSubject,
   quoteBody,
 } from "@/lib/utils/email-address";
-import { hasOwnColorScheme } from "@/lib/utils/email-theme";
+import { classifyEmailPaint, buildDocumentCss } from "@/lib/utils/email-theme";
 import { blockRemoteImages } from "@/components/email/email-body";
 import { listEmails, PREVIEW_CHARS } from "@/lib/services/email-list";
 import { htmlToText, looksLikeHtml, sanitizeEmailHtml } from "@/lib/utils/sanitize";
@@ -352,19 +352,58 @@ describe("blockRemoteImages", () => {
   });
 });
 
-describe("hasOwnColorScheme", () => {
-  it("treats a designed template as bringing its own palette", () => {
+describe("classifyEmailPaint", () => {
+  it("leaves a designed template's own palette alone", () => {
     // Recolouring one of these is the classic dark-mode email failure.
-    expect(hasOwnColorScheme('<table bgcolor="#0b1020"><tr><td>Hi</td></tr></table>')).toBe(true);
+    expect(classifyEmailPaint('<table bgcolor="#0b1020"><tr><td>Hi</td></tr></table>')).toBe(
+      "own-background"
+    );
   });
 
-  it("treats a bare body as themeable", () => {
-    expect(hasOwnColorScheme("<div><p>Hi Zach,</p><p>See you then.</p></div>")).toBe(false);
+  it("gives a bare body the dashboard's theme", () => {
+    expect(classifyEmailPaint("<div><p>Hi Zach,</p><p>See you then.</p></div>")).toBe("themed");
   });
 
-  it("detects an explicit text colour, which implies an assumed background", () => {
-    // The dangerous case: dark text, no background. Themed dark, it vanishes.
-    expect(hasOwnColorScheme('<p style="color:#111">Hello</p>')).toBe(true);
+  it("gives white to an email that sets text colour but no background", () => {
+    // The dangerous case: dark text themed onto a dark surface is invisible.
+    expect(classifyEmailPaint('<p style="color:#111">Hello</p>')).toBe("assumes-white");
+  });
+
+  it("detects a gradient background as the sender's own", () => {
+    expect(classifyEmailPaint('<div style="background: linear-gradient(#000,#111)">x</div>')).toBe(
+      "own-background"
+    );
+  });
+});
+
+describe("buildDocumentCss", () => {
+  const tokens = {
+    background: "#050505",
+    text: "#e8e8e8",
+    muted: "#555",
+    link: "#38bdf8",
+    border: "#333",
+  };
+
+  it("themes the surround of a designed email but not its content", () => {
+    // The white frame around a dark email is exactly what "not themed" looks
+    // like, and it is what the two-way split produced.
+    const css = buildDocumentCss(tokens, "own-background");
+    expect(css).toContain("html { margin: 0; padding: 0; background: #050505");
+    expect(css).toContain("background: transparent");
+    expect(css).not.toContain("color: #e8e8e8;");
+  });
+
+  it("keeps an assumes-white email on white regardless of the theme", () => {
+    const css = buildDocumentCss(tokens, "assumes-white");
+    expect(css).toContain("#ffffff");
+    expect(css).not.toContain("#050505");
+  });
+
+  it("paints a themed email entirely in the theme's colours", () => {
+    const css = buildDocumentCss(tokens, "themed");
+    expect(css).toContain("#050505");
+    expect(css).toContain("color: #e8e8e8;");
   });
 });
 

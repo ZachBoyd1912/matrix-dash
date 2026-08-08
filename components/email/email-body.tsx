@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Image as ImageIcon, Loader2, ShieldCheck } from "lucide-react";
-import { buildDocumentCss, hasOwnColorScheme, NEUTRAL_TOKENS } from "@/lib/utils/email-theme";
+import { buildDocumentCss, classifyEmailPaint, NEUTRAL_TOKENS } from "@/lib/utils/email-theme";
 import { useThemeTokens } from "@/lib/hooks/use-theme-tokens";
 
 interface Props {
@@ -66,17 +66,20 @@ export function EmailBody({ html, text, loading }: Props) {
   // would silently opt the next sender in.
   useEffect(() => setShowImages(false), [html]);
 
-  const { srcDoc, blocked, themed } = useMemo(() => {
-    if (!html) return { srcDoc: null, blocked: 0, themed: false };
+  const { srcDoc, blocked, frameBg } = useMemo(() => {
+    if (!html) return { srcDoc: null, blocked: 0, frameBg: null };
 
     const { html: processed, blocked } = showImages
       ? { html, blocked: 0 }
       : blockRemoteImages(html);
 
-    // A designed email paints its own palette; only an unstyled one gets the
-    // dashboard's. See hasOwnColorScheme for why the distinction is forced.
-    const themed = !hasOwnColorScheme(html);
-    const css = buildDocumentCss(themed && tokens ? tokens : NEUTRAL_TOKENS, themed);
+    // How much of the appearance we may decide — see classifyEmailPaint.
+    const paint = classifyEmailPaint(html);
+    const active = tokens ?? NEUTRAL_TOKENS;
+    const css = buildDocumentCss(active, paint);
+    // The frame itself matches whatever the document will paint behind the
+    // message, so there is no flash of the wrong colour before it loads.
+    const frameBg = paint === "assumes-white" ? NEUTRAL_TOKENS.background : active.background;
 
     // `<base target="_blank">` makes every link open in a new tab. Without it a
     // click tries to navigate the frame itself, which the sandbox blocks — so
@@ -84,7 +87,7 @@ export function EmailBody({ html, text, loading }: Props) {
     return {
       srcDoc: `<!doctype html><html><head><meta charset="utf-8"><base target="_blank"><style>${css}</style></head><body>${processed}</body></html>`,
       blocked,
-      themed,
+      frameBg,
     };
   }, [html, showImages, tokens]);
 
@@ -123,7 +126,7 @@ export function EmailBody({ html, text, loading }: Props) {
       <iframe
         // Remounting on a content change keeps the previous message from
         // lingering in the frame while the new one paints.
-        key={`${srcDoc.length}-${showImages}-${themed}-${tokens?.background ?? ""}`}
+        key={`${srcDoc.length}-${showImages}-${frameBg ?? ""}`}
         srcDoc={srcDoc}
         title="Message body"
         // No allow-scripts, no allow-same-origin. allow-popups is what lets a
@@ -131,7 +134,7 @@ export function EmailBody({ html, text, loading }: Props) {
         sandbox="allow-popups allow-popups-to-escape-sandbox"
         referrerPolicy="no-referrer"
         className="min-h-0 w-full flex-1 rounded-lg border border-white/5"
-        style={{ background: themed && tokens ? tokens.background : NEUTRAL_TOKENS.background }}
+        style={{ background: frameBg ?? NEUTRAL_TOKENS.background }}
       />
     </div>
   );
