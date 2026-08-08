@@ -148,6 +148,24 @@ describe("looksLikeHtml", () => {
   it("does not flag plain text", () => {
     expect(looksLikeHtml("Hi Zach,\n\nYour order shipped.")).toBe(false);
   });
+
+  it("detects a body that opens with <meta, which real mail often does", () => {
+    // The Revolut receipt in the operator's mailbox starts exactly like this.
+    // The earlier hand-picked tag list missed it, so it stayed raw markup.
+    expect(looksLikeHtml('<meta http-equiv="Content-Type" content="text/html">')).toBe(true);
+  });
+
+  it("detects other wrapper tags a fixed list would miss", () => {
+    for (const html of ["<center>hi</center>", "<body>hi</body>", "<font size=2>hi</font>"]) {
+      expect(looksLikeHtml(html)).toBe(true);
+    }
+  });
+
+  it("still does not flag prose containing angle brackets", () => {
+    expect(looksLikeHtml("<3 from Jane")).toBe(false);
+    expect(looksLikeHtml("if a < b then c")).toBe(false);
+    expect(looksLikeHtml("reply to <zach@example.com> please")).toBe(false);
+  });
 });
 
 describe("sanitizeEmailHtml", () => {

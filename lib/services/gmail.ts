@@ -29,9 +29,20 @@ const BACKFILL_BATCH = 300;
  */
 const LEGACY_BODY_CAP = 20_000;
 
-/** Settings keys tracking backfill progress across restarts. */
-const BACKFILL_DONE = "emailHtmlBackfilled";
-const BACKFILL_CURSOR = "emailHtmlBackfillCursor";
+/**
+ * Settings keys tracking backfill progress across restarts.
+ *
+ * VERSIONED on purpose. `looksLikeHtml` decides which rows are candidates, so
+ * widening it means rows previously judged plain text are now repairable — but
+ * a completed pass would never look at them again. Bumping the suffix retires
+ * the old "done" marker and starts a fresh sweep. Raise it whenever the
+ * detection rule changes.
+ *
+ * v2: the original matched a hand-picked list of tag names, so mail opening
+ * with `<meta http-equiv` was missed and kept showing raw markup in the list.
+ */
+const BACKFILL_DONE = "emailHtmlBackfilled_v2";
+const BACKFILL_CURSOR = "emailHtmlBackfillCursor_v2";
 
 // ─── Helpers ──────────────────────────────────────────
 

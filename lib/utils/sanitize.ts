@@ -103,12 +103,17 @@ export function htmlToText(input: string): string {
  * holds raw markup.
  */
 export function looksLikeHtml(input: string): boolean {
-  const head = input.slice(0, 2000).toLowerCase();
-  return (
-    head.includes("<!doctype html") ||
-    head.includes("<html") ||
-    /<(table|div|p|br|a|img|span|td)\b[^>]*>/i.test(head)
-  );
+  const head = input.slice(0, 2000).trimStart().toLowerCase();
+  if (head.startsWith("<!doctype html") || head.startsWith("<!--")) return true;
+  // Any well-formed opening tag, not a hand-picked list. The earlier version
+  // matched only a handful of names, so a body opening with `<meta http-equiv`
+  // — which is how a lot of real mail starts — was judged plain text and left
+  // showing raw markup in the message list forever.
+  //
+  // The letter-first requirement is what keeps prose out: `<3`, `a < b` and a
+  // quoted `<zach@example.com>` all fail, because a tag name must be followed
+  // by whitespace or a closing bracket.
+  return /<[a-z][a-z0-9-]*(\s|\/?>)/i.test(head);
 }
 
 /**
