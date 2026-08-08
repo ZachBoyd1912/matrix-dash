@@ -2,7 +2,20 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
-import { Inbox, Send, FileEdit, Trash2, Star, PenSquare, Mail, ArchiveRestore } from "lucide-react";
+import {
+  Inbox,
+  Send,
+  FileEdit,
+  Trash2,
+  Star,
+  PenSquare,
+  Mail,
+  ArchiveRestore,
+  Reply,
+  ReplyAll,
+  Forward,
+  Paperclip,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Dialog } from "@/components/ui/dialog";
@@ -10,6 +23,10 @@ import { EmptyState } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast, confirm } from "@/lib/stores/use-feedback";
 import { useGsapEntrance } from "@/lib/hooks/use-gsap-entrance";
+import { EmailBody } from "@/components/email/email-body";
+import { EmailHeader } from "@/components/email/email-header";
+import { EmailAttachments } from "@/components/email/email-attachments";
+import { parseAddress, prefixSubject, quoteBody } from "@/lib/utils/email-address";
 import { timeAgo } from "@/lib/utils/time";
 import { cn } from "@/lib/utils/cn";
 import { EMAIL_FOLDERS, type Email, type EmailFolder } from "@/types/email";
@@ -21,12 +38,37 @@ const FOLDER_ICONS: Record<EmailFolder, React.ReactNode> = {
   trash: <Trash2 size={14} />,
 };
 
+/**
+ * Belt-and-braces for the list preview.
+ *
+ * `body` is plain text for everything the new sync writes, and the one-time
+ * backfill converts older rows — but a row that arrives before the backfill
+ * runs, or from some future import path, must still never render
+ * `<!doctype html> <html xmlns=...` as its preview. A regex is enough here:
+ * this is display-only truncated text, not a security boundary.
+ */
+function previewText(body: string): string {
+  if (!body) return "";
+  if (!body.includes("<")) return body;
+  return body
+    .replace(/<(script|style|head)\b[^>]*>[\s\S]*?<\/\1>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export default function EmailPage() {
   const ref = useGsapEntrance();
   const [folder, setFolder] = useState<EmailFolder | "starred">("inbox");
   const [list, setList] = useState<Email[] | null>(null);
   const [selected, setSelected] = useState<Email | null>(null);
   const [composeOpen, setComposeOpen] = useState(false);
+  /** Prefilled fields when the composer is opened from Reply / Forward. */
+  const [draft, setDraft] = useState<{ to: string; subject: string; body: string } | null>(null);
+  /** True while an older message's HTML is being refetched from Gmail. */
+  const [bodyLoading, setBodyLoading] = useState(false);
   const [gmailAddr, setGmailAddr] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -34,7 +76,14 @@ export default function EmailPage() {
     const res = await fetch(`/api/emails?${query}`);
     const data = (await res.json()) as Email[];
     setList(data);
-    setSelected((prev) => (prev ? (data.find((e) => e.id === prev.id) ?? null) : null));
+    // Re-sync the open message's metadata from the list, but keep bodyHtml:
+    // the list response deliberately omits it (see LIST_COLUMNS), so spreading
+    // the list row over the selection would blank the reading pane.
+    setSelected((prev) => {
+      if (!prev) return null;
+      const fresh = data.find((e) => e.id === prev.id);
+      return fresh ? { ...fresh, bodyHtml: prev.bodyHtml } : null;
+    });
   }, [folder]);
 
   useEffect(() => {
@@ -53,8 +102,39 @@ export default function EmailPage() {
       .catch(() => {});
   }, []);
 
+  const startReply = (email: Email, mode: "reply" | "replyAll" | "forward") => {
+    const from = parseAddress(email.fromAddr);
+    // Reply-all would also need Cc, which is not stored today — so it targets
+    // the sender plus every other To recipient, and says so rather than
+    // silently dropping people the original was copied to.
+    const others =
+      mode === "replyAll"
+        ? email.toAddr
+            .split(",")
+            .map((a) => parseAddress(a).address)
+            .filter((a) => a && a !== from.address)
+        : [];
+    setDraft({
+      to: mode === "forward" ? "" : [from.address, ...others].filter(Boolean).join(", "),
+      subject: prefixSubject(email.subject, mode === "forward" ? "Fwd" : "Re"),
+      body: quoteBody(email.fromAddr, email.createdAt, email.body),
+    });
+    setComposeOpen(true);
+  };
+
   const open = async (email: Email) => {
+    // Show the list row immediately, then fill in the HTML body. The detail
+    // route also repairs mail synced before HTML was stored, so this can take
+    // a Gmail round-trip on first open of an old message.
     setSelected(email);
+    setBodyLoading(true);
+    fetch(`/api/emails/${email.id}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((full: Email | null) => {
+        if (full) setSelected((prev) => (prev?.id === full.id ? full : prev));
+      })
+      .catch(() => {})
+      .finally(() => setBodyLoading(false));
     if (!email.isRead) {
       await fetch(`/api/emails/${email.id}`, {
         method: "PATCH",
@@ -222,9 +302,12 @@ export default function EmailPage() {
                       )}
                     >
                       {folder === "sent" || folder === "drafts"
-                        ? email.toAddr || "(no recipient)"
-                        : email.fromAddr}
+                        ? parseAddress(email.toAddr).name || "(no recipient)"
+                        : parseAddress(email.fromAddr).name}
                     </span>
+                    {email.attachments && email.attachments.length > 0 && (
+                      <Paperclip size={10} className="text-text-muted shrink-0" />
+                    )}
                     {email.isStarred && (
                       <Star size={11} className="shrink-0 fill-amber-400 text-amber-400" />
                     )}
@@ -240,7 +323,9 @@ export default function EmailPage() {
                   >
                     {email.subject || "(no subject)"}
                   </p>
-                  <p className="text-text-muted mt-0.5 truncate text-[11px]">{email.body}</p>
+                  <p className="text-text-muted mt-0.5 truncate text-[11px]">
+                    {previewText(email.body)}
+                  </p>
                 </button>
               )}
             />
@@ -253,17 +338,48 @@ export default function EmailPage() {
         {selected ? (
           <>
             <div className="flex items-start justify-between gap-3 border-b border-white/5 bg-white/[0.015] px-6 py-4">
-              <div className="min-w-0">
-                <h2 className="text-text-primary text-base font-semibold tracking-tight">
+              <div className="min-w-0 flex-1">
+                <h2 className="text-text-primary mb-3 text-base font-semibold tracking-tight">
                   {selected.subject || "(no subject)"}
                 </h2>
-                <p className="text-text-muted mt-1.5 text-xs">
-                  From <span className="text-text-secondary">{selected.fromAddr}</span> · To{" "}
-                  <span className="text-text-secondary">{selected.toAddr}</span> ·{" "}
-                  {timeAgo(selected.createdAt)}
-                </p>
+                <EmailHeader
+                  fromAddr={selected.fromAddr}
+                  toAddr={selected.toAddr}
+                  createdAt={selected.createdAt}
+                />
               </div>
               <div className="flex shrink-0 items-center gap-1">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => startReply(selected, "reply")}
+                  aria-label="Reply"
+                  title="Reply"
+                  className="transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.92]"
+                >
+                  <Reply size={14} />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => startReply(selected, "replyAll")}
+                  aria-label="Reply all"
+                  title="Reply all"
+                  className="transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.92]"
+                >
+                  <ReplyAll size={14} />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => startReply(selected, "forward")}
+                  aria-label="Forward"
+                  title="Forward"
+                  className="transition-all duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] active:scale-[0.92]"
+                >
+                  <Forward size={14} />
+                </Button>
+                <span className="mx-1 h-4 w-px bg-white/10" />
                 <Button
                   size="icon"
                   variant="ghost"
@@ -298,10 +414,11 @@ export default function EmailPage() {
                 </Button>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-6">
-              <p className="text-text-primary/90 max-w-2xl text-sm leading-7 whitespace-pre-wrap">
-                {selected.body}
-              </p>
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-6">
+              <EmailBody html={selected.bodyHtml} text={selected.body} loading={bodyLoading} />
+              {selected.attachments && selected.attachments.length > 0 && (
+                <EmailAttachments emailId={selected.id} attachments={selected.attachments} />
+              )}
             </div>
           </>
         ) : (
@@ -317,9 +434,14 @@ export default function EmailPage() {
 
       <ComposeDialog
         open={composeOpen}
-        onClose={() => setComposeOpen(false)}
+        draft={draft}
+        onClose={() => {
+          setComposeOpen(false);
+          setDraft(null);
+        }}
         onDone={() => {
           setComposeOpen(false);
+          setDraft(null);
           refresh();
         }}
       />
@@ -329,10 +451,13 @@ export default function EmailPage() {
 
 function ComposeDialog({
   open,
+  draft,
   onClose,
   onDone,
 }: {
   open: boolean;
+  /** Prefill from Reply / Reply-all / Forward; null for a blank compose. */
+  draft: { to: string; subject: string; body: string } | null;
   onClose: () => void;
   onDone: () => void;
 }) {
@@ -340,6 +465,16 @@ function ComposeDialog({
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
+
+  // Applied when the dialog OPENS rather than on every draft change, so typing
+  // over a quoted reply is never clobbered by a re-render.
+  useEffect(() => {
+    if (!open) return;
+    setTo(draft?.to ?? "");
+    setSubject(draft?.subject ?? "");
+    setBody(draft?.body ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const save = async (target: "sent" | "drafts") => {
     setBusy(true);

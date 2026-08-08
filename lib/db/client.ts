@@ -873,6 +873,8 @@ function runColumnMigrations(sqlite: Database.Database) {
   ensureColumn("emails", "message_id", "message_id TEXT");
   ensureColumn("emails", "tags", "tags TEXT NOT NULL DEFAULT ''");
   ensureColumn("emails", "summary", "summary TEXT");
+  ensureColumn("emails", "body_html", "body_html TEXT");
+  ensureColumn("emails", "attachments", "attachments TEXT");
   ensureColumn("session_messages", "blocks", "blocks TEXT");
   ensureColumn("session_messages", "provider_kind", "provider_kind TEXT");
   ensureColumn("session_messages", "input_tokens", "input_tokens INTEGER");

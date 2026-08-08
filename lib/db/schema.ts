@@ -145,7 +145,26 @@ export const emails = sqliteTable("emails", {
   fromAddr: text("from_addr").notNull().default(""),
   toAddr: text("to_addr").notNull().default(""),
   subject: text("subject").notNull().default(""),
+  /**
+   * ALWAYS plain text — list previews, search and AI summaries read this, so
+   * raw markup here is what leaked `<!doctype html>` into the message list.
+   * Derived from bodyHtml when a message has no text/plain alternative.
+   */
   body: text("body").notNull().default(""),
+  /**
+   * The original HTML body, unsanitized. Null for genuinely plain-text mail
+   * (and for older rows that predate this column — see repairEmailHtml, which
+   * refetches those from Gmail the first time one is opened). Sanitized at
+   * render time, never at rest, so a sanitizer improvement applies to mail
+   * already stored.
+   */
+  bodyHtml: text("body_html"),
+  /**
+   * JSON array of AttachmentMeta. Gmail does not send attachment bytes with
+   * the message — only an attachmentId to fetch them by — so this is metadata
+   * only and the bytes are streamed on demand by the download route.
+   */
+  attachments: text("attachments"),
   isRead: integer("is_read", { mode: "boolean" }).default(false),
   isStarred: integer("is_starred", { mode: "boolean" }).default(false),
   accountId: text("account_id"),

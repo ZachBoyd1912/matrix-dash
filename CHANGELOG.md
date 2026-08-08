@@ -2,6 +2,35 @@
 
 # Changelog
 
+## 08/08/2026 @ 01:26:21 IST — "Sonnet 5"
+
+**Project completion: 91.67%** — 11 of the 12 tasks tracked for this change are done; the twelfth is deploy-and-verify, running immediately after this entry. Basis is the task list agreed with the operator: the core HTML-rendering fix, the four reading-pane additions they asked for, and two bugs found while building it. This figure covers this change only, not the product.
+
+**Goal:** Emails fetched over Gmail OAuth rendered as unformatted text — no spacing, no images, no links. The operator supplied a Gmail screenshot of the same message as the reference. A second bug was visible in their screenshot of Matrix Dash: the Revolut preview in the message list read `<!doctype html> <html xmlns="http://www.w3.org/1...`.
+
+**Fixed:**
+- `lib/services/gmail.ts` — **the root cause.** `extractBody` returned a single string and preferred `text/plain`, so every rich email was stored as its stripped-down text alternative. A message with no plain alternative fell through to returning raw HTML *in the same field*, which then rendered as escaped markup and leaked the doctype into the list. It also recursed with `{ parts: part.parts }` and returned the first non-empty branch, so a `multipart/related` wrapping a `multipart/alternative` silently discarded one of the two bodies. Replaced by `extractBodies`, which walks the entire tree, keeps both representations, and skips parts with a filename — those are attachments, not the body.
+- `body` is now always plain text and `bodyHtml` holds the markup, so the list preview, search and AI summaries can never see a tag again.
+- `app/api/emails/route.ts` — the list endpoint selected every column. With HTML now stored that would have shipped up to 400KB per message across a whole folder; it selects an explicit column set instead.
+
+**Added:**
+- `components/email/email-body.tsx` — renders the message in a **sandboxed iframe**, not `dangerouslySetInnerHTML`. No `allow-scripts` (nothing in a message can execute, underneath the server-side sanitizer, so one sanitizer bypass is not fatal) and deliberately no `allow-same-origin`. Also style containment: email CSS is written for the 1990s and would bleed into the dashboard from a normal div.
+- `sanitizeEmailHtml` in `lib/utils/sanitize.ts` — a deliberately permissive allow-list, because real mail is table layout with inline styles and stripping that reproduces the very bug being fixed. Scripts, event handlers, iframes, forms and `javascript:` URIs are all removed.
+- **Remote images blocked by default**, with a banner and a one-click reveal. Gmail hides this by proxying images through Google; Matrix Dash has no proxy, so loading one tells the sender the exact moment the message was opened and from which IP. The operator chose this over matching the screenshot's default.
+- **Theme-aware rendering.** An unstyled email is painted in the dashboard's own theme and re-paints live when the theme changes — an iframe cannot inherit CSS variables, so the values are resolved in the parent and written into the frame, with a MutationObserver on the root element. A *designed* email keeps its own palette untouched: recolouring one is the classic dark-mode email failure, where logos on transparent backgrounds vanish and branded buttons lose contrast.
+- Attachments — extracted, listed with icon and size, downloaded on demand through a new route. They were previously discarded during sync, so a message with a PDF looked identical to one without. The route checks the requested id against the metadata for *that* message; without it the route would proxy any attachment in the account to anyone who could reach it, using the owner's token.
+- Sender identity (display name, address, coloured initial), and Reply / Reply-all / Forward with a properly quoted original.
+
+**Two bugs found by testing against the real 376MB mailbox rather than a fixture:**
+- **The backfill exhausted a 2GB heap and killed the process.** It loaded all 34,916 rows at once. The VM this deploys to has 955MB total, so the first page load after deploy would have taken production down. Now filtered in SQL, batched at 300 rows, time-boxed to 2s per request and resumable via a stored cursor.
+- **`htmlToText` was 172× slower than it needed to be.** Built on DOMPurify, it spun up a jsdom document per email: repairing 3,765 messages took 292 seconds and peaked at 1.9GB. It is not a security boundary — its output goes into a React text node, which escapes everything — so it is now regex-based. The same run takes **1.7 seconds at 133MB peak**, and survives a 700MB heap cap.
+- A third, subtler one: the old sync truncated every body to 20,000 characters, so recovered markup was often cut mid-tag. Those are left for the on-open refetch rather than rendered as a visibly half-finished document.
+
+**Verification:** `pnpm typecheck` 0 errors, `pnpm lint` 0 errors / 65 warnings (down one — an `any` removed), **283 tests passing** (up from 233; 50 new). Backfill measured end-to-end against a copy of the operator's real mailbox: 7,207 candidates, 6,895 repaired, 312 correctly left alone. Live verification follows.
+
+**Files touched:** `lib/services/gmail.ts`, `lib/utils/sanitize.ts`, `lib/db/schema.ts`, `lib/db/client.ts`, `types/email.ts`, `app/api/emails/route.ts`, `app/api/emails/[id]/route.ts`, `app/dashboard/email/page.tsx`. New: `lib/utils/email-theme.ts`, `lib/utils/email-address.ts`, `lib/services/email-dto.ts`, `lib/hooks/use-theme-tokens.ts`, `components/email/email-body.tsx`, `components/email/email-header.tsx`, `components/email/email-attachments.tsx`, `app/api/emails/[id]/attachments/[attachmentId]/route.ts`, `__tests__/lib/email-html.test.ts`.
+
+
 ## 07/08/2026 @ 20:17:05 IST — "Sonnet 5"
 
 **Project completion: 100.00%** — all 14 tasks across the two plans written for this work are complete and verified live: 9 in `docs/superpowers/plans/2026-08-07-phase-a-reliability-fixes.md` and 5 in `docs/superpowers/plans/2026-08-07-phase-b-vault-index.md`. **A caveat on that number, because the raw count disagrees:** both plan files still contain 92 unticked `- [ ]` step checkboxes. They were never ticked during execution, so counting them would report 0%. The task-level count is the honest figure — each task's deliverable was gated on typecheck, lint, tests and, for Task 5, live production checks recorded below. This figure covers **these two plans only**; it is not a claim about the product. Still open elsewhere: 9 of 19 roadmap plans remain implemented-but-not-real-tested, and member login is still hard-gated behind the local-first runner.
