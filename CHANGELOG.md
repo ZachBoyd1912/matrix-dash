@@ -2,6 +2,29 @@
 
 # Changelog
 
+## 08/08/2026 @ 02:49:23 IST — "Sonnet 5"
+
+**Project completion: 100.00%** — 12 of 12 tasks, every one verified in production rather than inferred. Basis is the agreed task list for this change.
+
+**Goal:** Verify the four reading-pane additions actually work end to end, not merely that their buttons exist. Three did. The fourth was broken, and the bug was mine.
+
+**Fixed:**
+- **Attachments could never be recovered for the mail that needed it most.** `repairEmailHtml` returned early whenever `bodyHtml` was already set — and the local backfill had just set `bodyHtml` on ~6,895 rows, so attachment recovery was permanently short-circuited for exactly those messages. Production confirmed it: **0 of 8,722** messages showed an attachment. The two gaps are tracked separately now, with `attachments IS NULL` meaning "never checked" and `[]` meaning "checked, none found" — without that distinction there is no way to stop re-asking Gmail about every attachment-less message on every open.
+- Writing that marker exposed a second bug in the same change: the list query tested only for `NULL`, so `[]` would have put a paperclip on **every** message the repair had ever looked at. Caught by a test written against the intended behaviour rather than the implemented one.
+
+**Verified live, each by doing the thing rather than checking a button exists:**
+- **Attachments** — found three real ones by opening likely messages; `statements.zip` downloaded as **601,470 bytes**, exactly the size reported, with `content-type: application/zip` and a correct `content-disposition`. A forged attachment id returns **404**, so the ownership check holds. The strip renders: "1 ATTACHMENT · Invoice-SHW-11103.pdf 23 KB", with paperclips on the matching list rows.
+- **Reply** — prefills To `noreply@puprime.com`, Subject `Re: Verify Your Identity to Start Trading`, and the body with a real attribution line and `>`-quoted original.
+- **Plain-text mail** — opened a Sent message: no iframe, `whitespace-pre-wrap` text. It does not land in an empty frame, which was the regression path.
+- **HTML mail** — the operator's own reference message renders with banner image, headings, blue call-to-action and correct spacing; 7 images blocked on open, loaded on one click.
+
+**Known limit, stated rather than discovered:** a theme switch repaints only mail with no colour opinion of its own. Designed templates — most of this inbox: marketing, GitHub, Revolut — keep their own palette by design, and only the surround follows the theme. Recolouring them is the classic dark-mode email failure.
+
+**Verification:** `pnpm typecheck` 0 errors, `pnpm lint` 0 errors / 65 warnings, **295 tests passing** (67 for email).
+
+**Files touched:** `lib/services/gmail.ts`, `lib/services/email-list.ts`, `app/api/emails/[id]/route.ts`, `__tests__/lib/email-html.test.ts`.
+
+
 ## 08/08/2026 @ 02:35:15 IST — "Sonnet 5"
 
 **Project completion: 100.00%** — all 12 tasks tracked for this change are complete and verified in production. Basis is the task list agreed with the operator: the core HTML-rendering fix, the four reading-pane additions they chose, and the bugs found while shipping it. Covers this change only. Known residue, deliberately not chased: 7 of 8,722 inbox previews still show markup (`<o:OfficeDocumentSettings`, a bare `<img>` fragment) — 0.08%, and each needs its own special case rather than a rule.
