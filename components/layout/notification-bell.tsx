@@ -115,6 +115,15 @@ export function NotificationBell() {
                 );
               })
             )}
+            {items.length > 0 && (
+              <Link
+                href="/dashboard/notifications"
+                onClick={() => setOpen(false)}
+                className="text-text-secondary hover:text-text-primary block border-t border-white/5 px-3 py-2.5 text-center text-[11px] font-medium transition-colors"
+              >
+                View all notifications
+              </Link>
+            )}
           </div>
         </div>
       )}

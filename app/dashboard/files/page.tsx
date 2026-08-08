@@ -1,18 +1,26 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { FolderOpen, Loader2, AlertTriangle } from "lucide-react";
+import { FolderOpen, Loader2, AlertTriangle, Upload, Plus } from "lucide-react";
+import { randomUUID } from "crypto";
 import { useOnlineStatus } from "@/lib/hooks/use-online-status";
 import { PathBreadcrumb } from "@/components/files/path-breadcrumb";
 import { DirectoryListing } from "@/components/files/directory-listing";
 import { FilePreviewSheet } from "@/components/files/file-preview-sheet";
+import { CameraButton } from "@/components/files/camera-button";
+import { UploadQueue, type QueuedFile } from "@/components/files/upload-queue";
 import type { BrowseResult, FileEntry } from "@/lib/files-security";
+
+function newQueuedFile(file: File): QueuedFile {
+  return { id: randomUUID(), name: file.name, file, progress: 0, status: "pending" };
+}
 
 export default function FilesPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const online = useOnlineStatus();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const currentPath = searchParams.get("path") || "";
 
@@ -20,6 +28,8 @@ export default function FilesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [previewFile, setPreviewFile] = useState<FileEntry | null>(null);
+  const [uploadFiles, setUploadFiles] = useState<QueuedFile[]>([]);
+  const [showUploadQueue, setShowUploadQueue] = useState(false);
 
   const fetchDir = useCallback(
     async function fetchDirectoryListing(pathOverride?: string) {
@@ -60,9 +70,41 @@ export default function FilesPage() {
   function handleFileTap(file: FileEntry) {
     setPreviewFile(file);
   }
-
   function handleClosePreview() {
     setPreviewFile(null);
+  }
+
+  // Camera capture → add to upload queue
+  function handleCameraCapture(file: File) {
+    setUploadFiles((prev) => [...prev, newQueuedFile(file)]);
+    setShowUploadQueue(true);
+  }
+
+  // File picker (multi)
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const newFiles: QueuedFile[] = [];
+    for (let i = 0; i < files.length; i++) {
+      newFiles.push(newQueuedFile(files[i]));
+    }
+    setUploadFiles((prev) => [...prev, ...newFiles]);
+    setShowUploadQueue(true);
+    e.target.value = "";
+  }
+
+  function handleUploadComplete() {
+    setUploadFiles([]);
+    setShowUploadQueue(false);
+    fetchDir(); // refresh listing
+  }
+
+  function removeUploadFile(id: string) {
+    setUploadFiles((prev) => {
+      const next = prev.filter((f) => f.id !== id);
+      if (next.length === 0) setShowUploadQueue(false);
+      return next;
+    });
   }
 
   // Pull-to-refresh
@@ -71,49 +113,72 @@ export default function FilesPage() {
       let startY = 0;
       let pulling = false;
       const el = document.getElementById("files-scroll");
-
-      function onTouchStart(e: TouchEvent) {
+      const onTS = (e: TouchEvent) => {
         if (el && el.scrollTop <= 0) {
           startY = e.touches[0].clientY;
           pulling = true;
         }
-      }
-      function onTouchMove(e: TouchEvent) {
+      };
+      const onTM = (e: TouchEvent) => {
         if (!pulling) return;
-        const dy = e.touches[0].clientY - startY;
-        if (dy > 80 && el && el.scrollTop <= 0) {
+        if (e.touches[0].clientY - startY > 80 && el && el.scrollTop <= 0) {
           pulling = false;
           fetchDir();
         }
-      }
-      function onTouchEnd() {
+      };
+      const onTE = () => {
         pulling = false;
-      }
-
-      el?.addEventListener("touchstart", onTouchStart, { passive: true });
-      el?.addEventListener("touchmove", onTouchMove, { passive: true });
-      el?.addEventListener("touchend", onTouchEnd);
-
-      return function cleanupPullToRefresh() {
-        el?.removeEventListener("touchstart", onTouchStart);
-        el?.removeEventListener("touchmove", onTouchMove);
-        el?.removeEventListener("touchend", onTouchEnd);
+      };
+      el?.addEventListener("touchstart", onTS, { passive: true });
+      el?.addEventListener("touchmove", onTM, { passive: true });
+      el?.addEventListener("touchend", onTE);
+      return () => {
+        el?.removeEventListener("touchstart", onTS);
+        el?.removeEventListener("touchmove", onTM);
+        el?.removeEventListener("touchend", onTE);
       };
     },
     [fetchDir]
   );
 
+  const destination = browse?.path || "";
+
   return (
     <div className="mx-auto max-w-2xl">
+      {/* Hidden multi-file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        className="hidden"
+        onChange={handleFileSelect}
+      />
+
       <div
         id="files-scroll"
         className="flex h-[calc(100dvh-7rem)] flex-col overflow-y-auto md:h-[calc(100dvh-3.5rem)]"
       >
-        {/* Breadcrumb */}
-        <div className="bg-bg-base/90 sticky top-0 z-10 px-4 py-2 backdrop-blur-md">
-          {browse && (
-            <PathBreadcrumb currentPath={browse.path} name={browse.name} onNavigate={navigateTo} />
-          )}
+        {/* Breadcrumb + actions */}
+        <div className="bg-bg-base/90 sticky top-0 z-10 flex items-center gap-1 px-4 py-2 backdrop-blur-md">
+          <div className="min-w-0 flex-1">
+            {browse && (
+              <PathBreadcrumb
+                currentPath={browse.path}
+                name={browse.name}
+                onNavigate={navigateTo}
+              />
+            )}
+          </div>
+          <div className="flex shrink-0 items-center gap-0.5">
+            <CameraButton onCapture={handleCameraCapture} />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="text-text-muted hover:text-text-primary grid h-8 w-8 place-items-center rounded-md transition-colors hover:bg-white/5"
+              aria-label="Upload files"
+            >
+              <Upload size={16} />
+            </button>
+          </div>
         </div>
 
         {/* Content */}
@@ -123,7 +188,6 @@ export default function FilesPage() {
               <Loader2 className="text-text-muted h-6 w-6 animate-spin" />
             </div>
           )}
-
           {error && (
             <div className="flex flex-col items-center justify-center gap-3 py-20">
               <AlertTriangle className="h-8 w-8 text-amber-400" />
@@ -136,14 +200,12 @@ export default function FilesPage() {
               </button>
             </div>
           )}
-
           {!loading && !error && browse && browse.entries.length === 0 && (
             <div className="flex flex-col items-center justify-center gap-2 py-20">
               <FolderOpen className="text-text-muted h-10 w-10" />
               <p className="text-text-muted text-sm">This folder is empty</p>
             </div>
           )}
-
           {!loading && !error && browse && browse.entries.length > 0 && (
             <DirectoryListing
               entries={browse.entries}
@@ -151,7 +213,6 @@ export default function FilesPage() {
               onFileTap={handleFileTap}
             />
           )}
-
           {!online && (
             <div className="text-text-muted mt-4 text-center text-xs">
               Offline — showing cached listing
@@ -159,9 +220,18 @@ export default function FilesPage() {
           )}
         </div>
 
-        {/* Preview sheet */}
         {previewFile && <FilePreviewSheet file={previewFile} onClose={handleClosePreview} />}
       </div>
+
+      {showUploadQueue && uploadFiles.length > 0 && (
+        <UploadQueue
+          files={uploadFiles}
+          destinationPath={destination}
+          onComplete={handleUploadComplete}
+          onRemove={removeUploadFile}
+          onClose={() => setShowUploadQueue(false)}
+        />
+      )}
     </div>
   );
 }

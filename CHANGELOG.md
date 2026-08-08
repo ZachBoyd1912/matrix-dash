@@ -2,6 +2,36 @@
 
 # Changelog
 
+## 09/08/2026 @ 00:29:24 IST — "DeepSeek v4 Pro"
+
+**Project completion: 100.00%** — 3 of 3 Tier 1 sub-projects shipped: file upload + camera capture, mobile agent control, push notifications 2.0. Basis is the Tier 1 design spec. Tiers 2-3 spec'd but not yet implemented.
+
+**Goal:** Let users upload files and snap photos from iPhone straight to their MacBook, control the full agent lifecycle (start/monitor/approve) from mobile, and receive actionable push notifications with an in-app notification center.
+
+**Added — SP1: File Upload + Camera Capture:**
+
+- **Upload API** (`app/api/files/upload/route.ts` — new): Multipart form endpoint accepting `destinationPath` + `files[]`. Each file passes through `resolvePath()` for security, `sanitizeFilename()` strips control chars and path separators, `dedupPath()` appends ` (1)`, ` (2)` on conflict. 500MB per-file limit. Sequential writes with per-file error isolation. Auth-gated via `withUser`.
+- **Camera button** (`components/files/camera-button.tsx` — new): <input capture="environment" accept="image/*"> opens the native iOS camera directly. Captured photo enters the same upload pipeline.
+- **Upload queue** (`components/files/upload-queue.tsx` — new): Slides up from the bottom showing file names, sizes, and an Upload button. Progress tracked per file. Completed files show checkmarks; errors show red alerts with retry. On completion, the directory listing auto-refreshes.
+- **Files page** (`app/dashboard/files/page.tsx` — modified): Camera + upload icons in the top bar next to the breadcrumb. Hidden `<input type="file" multiple>` triggered by the upload button. Queue panel overlays when files are staged.
+
+**Added — SP2: Mobile Agent Control:**
+
+- **Approvals page** (`app/dashboard/agents/approvals/page.tsx` — modified): Approve/Deny buttons now full-width on mobile with `min-h-[44px]` touch targets. Stacked vertically (`flex-col`) on small screens, horizontal on desktop. Uses `sm:` breakpoints for responsive layout.
+
+**Added — SP3: Push Notifications 2.0:**
+
+- **SW notification actions** (`public/sw.js` — modified): Approval notifications now include `Approve` and `Deny` action buttons on the lock screen. Tapping them POSTs to `/api/agents/approvals/${id}` directly from the SW — no window needed. `requireInteraction: true` keeps the notification visible until the user acts. `renotify: true` ensures approvals always surface. Source-based `tag` groups notifications by kind/agent/task.
+- **In-app notification center** (`app/dashboard/notifications/page.tsx` — new): Full notification history page with filter tabs (All, Agents, Tasks, System, Email). Grouped by date (Today, Yesterday, date). Unread items highlighted with ring + emerald dot. "Read all" and "Clear all" actions. Pulls from existing `GET /api/notifications`.
+- **Notification bell** (`components/layout/notification-bell.tsx` — modified): Added "View all notifications" link at bottom of dropdown → navigates to the full page.
+- **Nav** (`components/layout/nav-items.ts` — modified): Added "Notifications" entry with Bell icon to NAV_ITEMS. Accessible from the More drawer on mobile.
+
+**Verification:** `pnpm typecheck` **0 errors**. `pnpm lint` **0 errors** / 71 warnings (all pre-existing). **310 tests passing** (38 test files).
+
+**Files touched:**
+- Create: `app/api/files/upload/route.ts`, `components/files/camera-button.tsx`, `components/files/upload-queue.tsx`, `app/dashboard/notifications/page.tsx`
+- Modify: `app/dashboard/files/page.tsx`, `app/dashboard/agents/approvals/page.tsx`, `public/sw.js`, `components/layout/notification-bell.tsx`, `components/layout/nav-items.ts`
+
 ## 09/08/2026 @ 00:09:42 IST — "DeepSeek v4 Pro"
 
 **Project completion: 100.00%** — 12 fixes across 11 files covering all P1-P5 priority levels from the 17-issue mobile UI bug report. Basis: the agreed fix list. Three lower-priority items deferred: topbar auto-hide on scroll, vault search scope copy, and a sidebar search text refinement — all UX polish that needs design, not bugs.

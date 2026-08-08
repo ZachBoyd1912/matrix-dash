@@ -169,12 +169,31 @@ self.addEventListener("push", (event) => {
         }
       }
 
+      // Tag by source so iOS groups notifications — same tag replaces the
+      // previous notification for that source rather than stacking them.
+      const tag = data.tag || data.kind || "matrix-dash";
+
+      // Build notification actions — approve/deny for agent approvals.
+      const actions = data.approvalId
+        ? [
+            { action: "approve", title: "Approve" },
+            { action: "deny", title: "Deny" },
+          ]
+        : [];
+
       return self.registration.showNotification(data.title || "Matrix Dash", {
         body: data.body || "",
         icon: "/icon.svg",
         badge: "/icon.svg",
-        data: { url: data.href || "/dashboard" },
-        tag: data.tag || "matrix-dash", // collapses duplicate notifications
+        tag,
+        renotify: !!data.approvalId, // always surface approvals
+        requireInteraction: !!data.approvalId, // stay until user acts
+        actions,
+        data: {
+          url: data.href || "/dashboard",
+          approvalId: data.approvalId || null,
+          runId: data.runId || null,
+        },
       });
     })()
   );
@@ -182,24 +201,46 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+  const { url, approvalId } = event.notification.data || {};
 
   // Clear the app badge when the user taps a notification.
   if (self.registration.clearAppBadge) {
     event.waitUntil(self.registration.clearAppBadge());
   }
 
-  const url = event.notification.data?.url || "/dashboard";
+  // Handle action buttons (approve/deny from lock screen).
+  if (event.action === "approve" && approvalId) {
+    event.waitUntil(
+      fetch(`/api/agents/approvals/${approvalId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ decision: "approve" }),
+      })
+    );
+    return;
+  }
+  if (event.action === "deny" && approvalId) {
+    event.waitUntil(
+      fetch(`/api/agents/approvals/${approvalId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ decision: "deny" }),
+      })
+    );
+    return;
+  }
+
+  // Default tap — open the dashboard at the relevant URL.
+  const targetUrl = url || "/dashboard";
   event.waitUntil(
     self.clients.matchAll({ type: "window" }).then((clients) => {
-      // Focus an existing window if one is already open.
       for (const client of clients) {
         if (client.url.includes(self.location.origin) && "focus" in client) {
           client.focus();
-          return client.navigate(url);
+          return client.navigate(targetUrl);
         }
       }
-      // Otherwise, open a new one.
-      return self.clients.openWindow(url);
+      return self.clients.openWindow(targetUrl);
     })
   );
 });

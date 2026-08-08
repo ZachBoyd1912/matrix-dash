@@ -132,10 +132,11 @@ export default function ApprovalsPage() {
                 Always allow this {a.toolName === "Bash" ? "command" : "path"} for this agent
               </label>
 
-              <div className="flex justify-end gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
                 <Button
                   variant="ghost"
                   size="sm"
+                  className="min-h-[44px] sm:min-h-0"
                   disabled={busy === a.id}
                   onClick={() => decide(a, "deny")}
                 >
@@ -144,6 +145,7 @@ export default function ApprovalsPage() {
                 <Button
                   variant="primary"
                   size="sm"
+                  className="min-h-[44px] sm:min-h-0"
                   disabled={busy === a.id}
                   onClick={() => decide(a, "approve")}
                 >

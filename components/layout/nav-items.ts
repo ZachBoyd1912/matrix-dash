@@ -18,6 +18,7 @@ import {
   Bot,
   Vault,
   FolderOpen,
+  Bell,
   type LucideIcon,
 } from "lucide-react";
 
@@ -100,6 +101,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
   { href: "/dashboard/files", label: "Files", icon: FolderOpen },
+  { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
 ];
 
 /** Curated bottom-tab set for mobile — deliberately NOT NAV_ITEMS.slice(0,4),
