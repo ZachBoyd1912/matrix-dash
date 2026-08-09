@@ -7,7 +7,7 @@ export function initPostHog() {
   if (!key) return;
 
   posthog.init(key, {
-    api_host: "https://app.posthog.com",
+    api_host: "https://app.eu.posthog.com",
     persistence: "localStorage",
     autocapture: true,
     capture_pageview: true,
