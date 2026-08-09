@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  BarChart3,
   Bot,
   Brain,
   Palette,
@@ -89,6 +90,12 @@ const SECTIONS: Section[] = [
     href: "/dashboard/settings/devices",
     label: "Devices",
     icon: MonitorSmartphone,
+    groupId: "system",
+  },
+  {
+    href: "/dashboard/settings/analytics",
+    label: "Analytics",
+    icon: BarChart3,
     groupId: "system",
   },
 
