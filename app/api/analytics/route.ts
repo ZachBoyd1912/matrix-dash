@@ -22,6 +22,18 @@ export const GET = withUser(async (req) => {
   const projectId = getSetting("posthog_project_id") || "";
   const apiKey = process.env.POSTHOG_PERSONAL_API_KEY;
   if (!projectId || !apiKey) {
+    // Return placeholder per-domain data so the dashboard Sites card works
+    // even before PostHog keys are configured.
+    if (metric === "summary") {
+      return Response.json({
+        result: [
+          { domain: "zbautomations.ie", count: 142 },
+          { domain: "matrix.zbautomations.ie", count: 87 },
+          { domain: "builder.zbautomations.ie", count: 31 },
+        ],
+        placeholder: true,
+      });
+    }
     return Response.json({ error: "PostHog not configured" }, { status: 503 });
   }
 

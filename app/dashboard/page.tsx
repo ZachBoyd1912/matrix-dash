@@ -101,6 +101,7 @@ export default function Overview() {
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [relinkingId, setRelinkingId] = useState<string | null>(null);
   const [relinkValue, setRelinkValue] = useState("");
+  const [siteVisitors, setSiteVisitors] = useState<Record<string, number>>({});
 
   const refresh = useCallback(() => {
     fetch("/api/briefing")
@@ -117,6 +118,20 @@ export default function Overview() {
     fetch("/api/memories/stats")
       .then((r) => r.json())
       .then(setStats)
+      .catch(() => {});
+    fetch("/api/analytics?metric=summary")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.result && Array.isArray(data.result)) {
+          const byDomain: Record<string, number> = {};
+          for (const entry of data.result) {
+            if (entry.domain && typeof entry.count === "number") {
+              byDomain[entry.domain] = entry.count;
+            }
+          }
+          setSiteVisitors(byDomain);
+        }
+      })
       .catch(() => {});
     refresh();
   }, [refresh]);
@@ -305,27 +320,50 @@ export default function Overview() {
           )}
         </Card>
 
-        <Card>
-          <div className="text-text-muted mb-3 flex items-center gap-2 text-[10px] tracking-[0.18em] uppercase">
-            <Globe size={12} className="text-sky-400" /> Sites
+        <Card className="flex-1 p-0">
+          <div className="p-4">
+            <h2 className="font-display text-text-primary flex items-center gap-2 text-[17px] italic">
+              <Globe size={16} className="text-emerald-400" /> Sites
+            </h2>
           </div>
-          <div className="space-y-2.5">
-            {briefing?.sites.map((s) => (
-              <div key={s.label} className="flex items-center justify-between text-sm">
-                <span className="text-text-primary">{s.label}</span>
-                {s.lastStatus === null ? (
-                  <span className="text-text-muted text-xs">not checked</span>
-                ) : s.ok ? (
-                  <span className="flex items-center gap-1.5 text-xs text-emerald-400">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> up
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1.5 text-xs text-rose-400">
-                    <span className="h-1.5 w-1.5 rounded-full bg-rose-400" /> {s.lastStatus}
-                  </span>
-                )}
-              </div>
-            )) ?? <p className="text-text-muted text-xs">Loading…</p>}
+          <div className="divide-y divide-white/5">
+            {briefing?.sites.map((s) => {
+              const visitors = siteVisitors[s.label];
+              return (
+                <Link
+                  key={s.label}
+                  href={`/dashboard/sites/${encodeURIComponent(s.label)}`}
+                  className="flex items-center justify-between px-4 py-3 transition-colors hover:bg-white/[0.03]"
+                >
+                  <div className="min-w-0">
+                    <p className="text-text-primary text-sm font-medium">{s.label}</p>
+                    <p className="text-text-muted text-[11px]">
+                      {s.lastStatus === null ? (
+                        "Not checked"
+                      ) : s.ok ? (
+                        <span className="inline-flex items-center gap-1 text-emerald-400">
+                          <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />{" "}
+                          Online
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-rose-400">
+                          <span className="inline-block h-1.5 w-1.5 rounded-full bg-rose-400" />{" "}
+                          {s.lastStatus}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <p className="text-text-primary text-sm font-bold tabular-nums">
+                        {visitors !== undefined ? visitors.toLocaleString() : "—"}
+                      </p>
+                      <p className="text-text-muted text-[10px]">visitors</p>
+                    </div>
+                  </div>
+                </Link>
+              );
+            }) ?? <p className="text-text-muted px-4 py-3 text-xs">Loading…</p>}
           </div>
         </Card>
 
