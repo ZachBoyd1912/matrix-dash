@@ -1,7 +1,7 @@
 // Bump this string whenever the caching strategy below changes — it names the
 // caches, so a bump makes activate() below clean out anything from the old
 // version rather than serving stale entries under the new logic forever.
-const CACHE_VERSION = "v3";
+const CACHE_VERSION = "v4";
 const STATIC_CACHE = `matrix-static-${CACHE_VERSION}`;
 const API_CACHE = `matrix-api-${CACHE_VERSION}`;
 const OFFLINE_URL = "/dashboard/offline";

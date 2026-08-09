@@ -1,17 +1,14 @@
 "use client";
 
-import { Search, Sparkles, Menu, WifiOff, Download, ArrowLeft, Share2 } from "lucide-react";
+import { Search, Sparkles, Menu, WifiOff, ArrowLeft } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useAppStore } from "@/lib/stores/use-app-store";
 import { useOnlineStatus } from "@/lib/hooks/use-online-status";
 import { NAV_ITEMS } from "./nav-items";
 import { ThemeToggle } from "./theme-toggle";
 import { NotificationBell } from "./notification-bell";
-import { DeviceStatus } from "./device-status";
 import { ApprovalBadge } from "./approval-badge";
 import { VoiceOrb } from "./voice-orb";
-import { VoiceAnnouncer } from "./voice-announcer";
-import { ClipboardSend } from "./clipboard-send";
 
 const TITLES: Record<string, string> = Object.fromEntries(
   NAV_ITEMS.map((item) => [item.href, item.label])
@@ -23,30 +20,7 @@ export function Topbar() {
   const setMobileNavOpen = useAppStore((s) => s.setMobileNavOpen);
   const mobileNavOpen = useAppStore((s) => s.mobileNavOpen);
   const online = useOnlineStatus();
-  const installPromptEvent = useAppStore((s) => s.installPromptEvent);
-  const setInstallPromptEvent = useAppStore((s) => s.setInstallPromptEvent);
   const isStandalone = useAppStore((s) => s.isStandalone);
-
-  const install = async () => {
-    if (!installPromptEvent) return;
-    await installPromptEvent.prompt();
-    await installPromptEvent.userChoice;
-    setInstallPromptEvent(null);
-  };
-
-  /** Share the current page via the Web Share API (available in standalone PWA). */
-  const share = async () => {
-    if (typeof navigator === "undefined" || !navigator.share) return;
-    try {
-      await navigator.share({
-        title: document.title,
-        url: window.location.href,
-      });
-    } catch {
-      /* user cancelled — intentionally empty */
-    }
-  };
-  const canShare = typeof navigator !== "undefined" && !!navigator.share;
 
   const title =
     TITLES[pathname] ||
@@ -61,8 +35,6 @@ export function Topbar() {
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-emerald-400/20 to-transparent" />
       <div className="flex h-full items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-3">
-          {/* In standalone (installed PWA) mode, there's no browser back button,
-              so provide one. */}
           {isStandalone && (
             <button
               onClick={() => window.history.back()}
@@ -94,27 +66,6 @@ export function Topbar() {
               <WifiOff size={11} /> Offline
             </div>
           )}
-          {canShare && (
-            <button
-              onClick={share}
-              className="text-text-muted hover:text-text-primary grid h-8 w-8 place-items-center rounded-md transition-colors hover:bg-white/5"
-              aria-label="Share"
-              title="Share"
-            >
-              <Share2 size={14} />
-            </button>
-          )}
-          <ClipboardSend />
-          {installPromptEvent && (
-            <button
-              onClick={install}
-              className="text-text-muted hover:text-text-primary grid h-8 w-8 place-items-center rounded-md transition-colors hover:bg-white/5"
-              aria-label="Install Matrix Dash"
-              title="Install Matrix Dash"
-            >
-              <Download size={14} />
-            </button>
-          )}
           <ThemeToggle />
           <button
             onClick={() => setCommandOpen(true)}
@@ -129,9 +80,7 @@ export function Topbar() {
             </kbd>
           </button>
           <VoiceOrb />
-          <VoiceAnnouncer />
           <ApprovalBadge />
-          <DeviceStatus />
           <NotificationBell />
           <div className="relative grid h-8 w-8 place-items-center rounded-full border border-white/10 bg-gradient-to-br from-emerald-400/30 to-sky-400/30 shadow-[0_0_16px_-4px_rgba(52,211,153,0.5)]">
             <Sparkles size={13} className="text-emerald-300" />

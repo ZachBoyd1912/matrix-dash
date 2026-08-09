@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { X } from "lucide-react";
+import { X, Share2 } from "lucide-react";
 import { NAV_ITEMS, MOBILE_PRIMARY_HREFS, isNavActive } from "./nav-items";
 import { LogoMark } from "./logo";
 import { useAppStore } from "@/lib/stores/use-app-store";
+import { ClipboardSend } from "./clipboard-send";
 import { cn } from "@/lib/utils/cn";
 
 /** Bottom tab bar (always visible on <md) + slide-in drawer for the full nav. */
@@ -116,6 +117,24 @@ export function MobileNav() {
                   </Link>
                 );
               })}
+
+              {/* Quick actions */}
+              <div className="mt-3 border-t border-white/5 pt-3">
+                {typeof navigator !== "undefined" && navigator.share && (
+                  <button
+                    onClick={() => {
+                      setOpen(false);
+                      navigator
+                        .share({ title: document.title, url: window.location.href })
+                        .catch(() => {});
+                    }}
+                    className="text-text-secondary hover:text-text-primary flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm transition-colors hover:bg-white/5"
+                  >
+                    <Share2 size={16} /> Share
+                  </button>
+                )}
+                <ClipboardSend />
+              </div>
             </nav>
           </div>
         </div>

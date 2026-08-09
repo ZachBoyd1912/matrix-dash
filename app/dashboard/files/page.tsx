@@ -2,8 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { FolderOpen, Loader2, AlertTriangle, Upload, Plus } from "lucide-react";
-import { randomUUID } from "crypto";
+import { FolderOpen, Loader2, AlertTriangle, Upload } from "lucide-react";
 import { useOnlineStatus } from "@/lib/hooks/use-online-status";
 import { PathBreadcrumb } from "@/components/files/path-breadcrumb";
 import { DirectoryListing } from "@/components/files/directory-listing";
@@ -13,7 +12,7 @@ import { UploadQueue, type QueuedFile } from "@/components/files/upload-queue";
 import type { BrowseResult, FileEntry } from "@/lib/files-security";
 
 function newQueuedFile(file: File): QueuedFile {
-  return { id: randomUUID(), name: file.name, file, progress: 0, status: "pending" };
+  return { id: crypto.randomUUID(), name: file.name, file, progress: 0, status: "pending" };
 }
 
 export default function FilesPage() {
