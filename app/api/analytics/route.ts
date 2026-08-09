@@ -4,7 +4,7 @@ import { getSetting } from "@/lib/db/settings";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const POSTHOG_API = "https://app.eu.posthog.com/api";
+const POSTHOG_API = "https://eu.posthog.com/api";
 
 interface CacheEntry {
   data: unknown;
