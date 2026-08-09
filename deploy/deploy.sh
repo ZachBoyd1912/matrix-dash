@@ -40,6 +40,19 @@ echo "=== syncing source + applying ==="
 gcloud compute ssh matrix-dash --zone="$ZONE" --project="$PROJECT" \
   --command="cd /opt/matrix-dash && sudo git fetch origin --quiet && sudo git reset --hard --quiet $SHA && bash deploy/apply-artifact.sh"
 
+# Deploy landing page with PostHog key substituted
+echo "=== deploying landing page with PostHog ==="
+POSTHOG_KEY=$(gcloud compute ssh matrix-dash --zone="$ZONE" --project="$PROJECT" \
+  --command="grep NEXT_PUBLIC_POSTHOG_KEY /opt/matrix-dash/.env.production | cut -d= -f2" 2>/dev/null || true)
+if [ -n "$POSTHOG_KEY" ]; then
+  sed "s/__POSTHOG_KEY__/$POSTHOG_KEY/g" deploy/landing/index.html > /tmp/index_posthog.html
+  gcloud compute scp /tmp/index_posthog.html "matrix-dash:/var/www/landing/index.html" --zone="$ZONE" --project="$PROJECT"
+  rm /tmp/index_posthog.html
+  echo "Landing page deployed with PostHog key"
+else
+  echo "WARNING: NEXT_PUBLIC_POSTHOG_KEY not found in .env.production — landing page skipped"
+fi
+
 echo
 echo "=== deployed. Verify externally (a 0 exit is not proof the site changed) ==="
 for host in matrix.zbautomations.ie builder.zbautomations.ie zbautomations.ie; do
