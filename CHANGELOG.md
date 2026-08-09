@@ -2,6 +2,18 @@
 
 # Changelog
 
+## 09/08/2026 @ 03:16:10 IST — "DeepSeek v4 Pro"
+
+**Goal:** Build the per-domain analytics detail page (Task 6) — dynamic route showing metric tiles, trend chart placeholder, and referrer/geography side panels for each site domain.
+
+**Added:**
+- **Domain detail page** (`app/dashboard/sites/[domain]/page.tsx` — new): Next.js 15 App Router dynamic route using `use(params)` to unwrap the Promise-based `params` contract. Decodes `decodeURIComponent(domain)` from the URL segment. Renders a back link to `/dashboard/sites` with `ArrowLeft` icon and the `DomainDetail` component inside GSAP entrance wrapper.
+- **DomainDetail component** (`components/sites/domain-detail.tsx` — new): Takes `domain` prop and renders page title with `text-gradient`, 4 `MetricTile` placeholders (Unique Visitors 24h, Page Views 24h, Avg. Duration, Bounce Rate — all "—"), a "Visitors — Last 7 Days" trend chart section with loading spinner, and two side panels (Top Referrers, Geography) with "Data loads from PostHog" placeholder text. All data panels are stubs — Task 7 wires the real `/api/analytics` endpoint.
+
+**Verification:** `pnpm typecheck` — zero errors. `pnpm lint` — zero errors (71 pre-existing warnings unchanged).
+
+**Files Touched:** `app/dashboard/sites/[domain]/page.tsx` (new), `components/sites/domain-detail.tsx` (new), `CHANGELOG.md` (modified).
+
 ## 09/08/2026 @ 03:00:26 IST — "DeepSeek v4 Pro"
 
 **Goal:** Build the Sites analytics dashboard page (Task 4) — Bloomberg-style dense layout with metric tiles, per-domain cards, and dark background. Add `Globe` nav entry pointing to `/dashboard/sites`.
