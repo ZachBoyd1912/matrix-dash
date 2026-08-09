@@ -2,6 +2,17 @@
 
 # Changelog
 
+## 09/08/2026 @ 03:26:22 IST — "DeepSeek v4 Pro"
+
+**Goal:** Write E2E Playwright tests for the Sites page and analytics API (Task 10). Verify full build with typecheck, lint, and unit tests.
+
+**Added:**
+- **E2E tests** (`e2e/sites.spec.ts` — new): Three browser-based UI tests (Sites page renders 3 domain cards, site detail page renders with metric tiles and back link, analytics settings page renders with PostHog input and buttons) and two API tests (returns 503 for unknown metric when PostHog not configured, returns placeholder data with `placeholder: true` for summary metric). All tests handle auth via `ensureAuth()` helper that detects first-run bootstrap vs existing-owner sign-in, using browser-evaluated `fetch()` so the session cookie is sent with API requests.
+
+**Verification:** `pnpm typecheck` — zero errors. `pnpm lint` — zero errors (73 pre-existing warnings). `pnpm test --run` — 38 files / 310 tests all passing.
+
+**Files Touched:** `e2e/sites.spec.ts` (new), `CHANGELOG.md` (modified).
+
 ## 09/08/2026 @ 03:19:50 IST — "DeepSeek v4 Pro"
 
 **Goal:** Wire PostHog analytics data to the Sites page and per-domain detail page (Task 7). Replace all hardcoded placeholder data with real API calls through the `/api/analytics` proxy route, while keeping placeholder fallbacks when PostHog keys are not configured.
