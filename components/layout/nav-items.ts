@@ -19,6 +19,7 @@ import {
   Vault,
   FolderOpen,
   Bell,
+  Globe,
   type LucideIcon,
 } from "lucide-react";
 
@@ -101,6 +102,7 @@ export const NAV_ITEMS: NavItem[] = [
   },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
   { href: "/dashboard/files", label: "Files", icon: FolderOpen },
+  { href: "/dashboard/sites", label: "Sites", icon: Globe },
   { href: "/dashboard/notifications", label: "Notifications", icon: Bell },
 ];
 
