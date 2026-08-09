@@ -30,15 +30,38 @@ export default function SitesPage() {
   useEffect(function loadSiteData() {
     async function fetchData() {
       setLoading(true);
-      // TODO: Task 7 — wire real analytics data from /api/analytics
-      const results: SiteData[] = SITES.map((s) => ({
-        ...s,
-        visitors24h: 0,
-        visitors7d: 0,
-        pageviews24h: 0,
-        sparkline: [],
-        status: "unknown" as const,
-      }));
+
+      // Fetch summary data for each domain in parallel
+      const results = await Promise.all(
+        SITES.map(async (site): Promise<SiteData> => {
+          try {
+            const res = await fetch(
+              `/api/analytics?metric=summary&domain=${encodeURIComponent(site.domain)}`
+            );
+            const json = await res.json();
+            return {
+              domain: site.domain,
+              label: site.label,
+              visitors24h: json.visitors24h ?? 0,
+              visitors7d: json.visitors7d ?? 0,
+              pageviews24h: json.pageviews24h ?? 0,
+              sparkline: json.sparkline ?? [],
+              status: "unknown",
+            };
+          } catch {
+            return {
+              domain: site.domain,
+              label: site.label,
+              visitors24h: 0,
+              visitors7d: 0,
+              pageviews24h: 0,
+              sparkline: [],
+              status: "unknown",
+            };
+          }
+        })
+      );
+
       setSites(results);
       setLoading(false);
     }

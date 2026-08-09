@@ -2,6 +2,21 @@
 
 # Changelog
 
+## 09/08/2026 @ 03:19:50 IST — "DeepSeek v4 Pro"
+
+**Goal:** Wire PostHog analytics data to the Sites page and per-domain detail page (Task 7). Replace all hardcoded placeholder data with real API calls through the `/api/analytics` proxy route, while keeping placeholder fallbacks when PostHog keys are not configured.
+
+**Added:**
+- **Analytics route expansion** (`app/api/analytics/route.ts` — modified): Added support for 4 new `metric` values — `dau` (daily active users trend), `top_pages` (breakdown by `$pathname`), `referrers` (breakdown by `$referrer`), and `geo` (breakdown by `$geoip_country_code`). Each uses the appropriate PostHog API endpoint (`insights/trend/` for trend data, `insights/` with `display: "ActionsTable"` for breakdowns). Added domain-seeded placeholder generators (`placeholderSummary`, `placeholderDau`, `placeholderTopPages`, `placeholderReferrers`, `placeholderGeo`) so every metric type returns usable dummy data when PostHog is not configured — no 503 errors anywhere. Enhanced the existing `summary` endpoint to return per-domain structured data (`visitors24h`, `visitors7d`, `pageviews24h`, `sparkline`) when a `domain` param is present, using 3 parallel PostHog API calls (24h DAU, 24h total, 7d DAU trend). Extracted shared helpers (`dateFromParam`, `domainFilter`, `makeHeaders`, `posthogTrendUrl`, `posthogInsightUrl`) for DRY API construction.
+
+**Changed:**
+- **Sites page** (`app/dashboard/sites/page.tsx` — modified): Replaced hardcoded `SITES.map(...)` with all-zero placeholders with `Promise.all` fetching `/api/analytics?metric=summary&domain=...` for each of the 3 domains in parallel. Populates `visitors24h`, `visitors7d`, `pageviews24h`, and `sparkline` from API response. Falls back to zeros on fetch errors. Loading spinner already existed.
+- **DomainDetail component** (`components/sites/domain-detail.tsx` — modified): Converted from static placeholder component to full data-driven component with `useState` + `useEffect`. Fetches 5 API endpoints in parallel via `Promise.allSettled`: summary, dau, top_pages, referrers, geo. Summary tiles now show live visitor/pageview counts (24h and 7d with computed avg daily). Trend chart renders a 40-pixel CSS bar chart with hover tooltips showing exact counts and daily date labels. Top Pages and Referrers panels render sorted lists (top 5) with `tabular-nums`. Geography panel renders country code pills with counts. All panels show loading spinners and "no data" fallbacks. Error banner appears on fetch failures.
+
+**Verification:** `pnpm typecheck` — zero errors. `pnpm lint` — zero errors (73 pre-existing warnings unchanged). `pnpm test --run` — 38 files / 310 tests all passing.
+
+**Files Touched:** `app/api/analytics/route.ts` (modified), `app/dashboard/sites/page.tsx` (modified), `components/sites/domain-detail.tsx` (modified), `CHANGELOG.md` (modified).
+
 ## 09/08/2026 @ 03:16:10 IST — "DeepSeek v4 Pro"
 
 **Goal:** Build the per-domain analytics detail page (Task 6) — dynamic route showing metric tiles, trend chart placeholder, and referrer/geography side panels for each site domain.
