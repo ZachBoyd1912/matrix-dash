@@ -2,6 +2,22 @@
 
 # Changelog
 
+## 09/08/2026 @ 03:00:26 IST — "DeepSeek v4 Pro"
+
+**Goal:** Build the Sites analytics dashboard page (Task 4) — Bloomberg-style dense layout with metric tiles, per-domain cards, and dark background. Add `Globe` nav entry pointing to `/dashboard/sites`.
+
+**Added:**
+- **MetricTile** (`components/sites/metric-tile.tsx` — new): Reusable tile component showing label, value in `tabular-nums`, optional percentage change with color coding (emerald ↑ / rose ↓), and optional 24-point CSS sparkline bar chart.
+- **SiteCard** (`components/sites/site-card.tsx` — new): Per-domain card composable showing domain name with status dot (green/red/grey), last status text, and 4 metric tiles (Visitors 24h/7d, Pageviews 24h, Uptime). Uses 2-col grid on mobile, 4-col on desktop.
+- **Sites page** (`app/dashboard/sites/page.tsx` — new): Client-side page with GSAP entrance animation, loading spinner, and 3 hardcoded domains (zbautomations.ie, matrix.zbautomations.ie, builder.zbautomations.ie) with placeholder data. Wired to fetch analytics data in Task 7. Uses existing `useGsapEntrance` hook and page pattern from sessions page.
+
+**Changed:**
+- **Nav items** (`components/layout/nav-items.ts` — modified): Added `Globe` import from lucide-react. Inserted `/dashboard/sites` route between Files and Notifications in `NAV_ITEMS`.
+
+**Verification:** `pnpm typecheck` — zero errors. `pnpm lint` — zero errors (73 pre-existing warnings unchanged).
+
+**Files Touched:** `app/dashboard/sites/page.tsx` (new), `components/sites/metric-tile.tsx` (new), `components/sites/site-card.tsx` (new), `components/layout/nav-items.ts` (modified), `CHANGELOG.md` (modified).
+
 ## 09/08/2026 @ 00:39:27 IST — "DeepSeek v4 Pro"
 
 **Project completion: 100.00%** — Tiers 2-3 shipped: clipboard bridge, PWA widgets, mobile-optimized chat, and offline queuing. All 7 sub-projects across Tiers 1-3 are now built. Basis is the 3-tier design spec with 28 planned files; all implemented and verified.
